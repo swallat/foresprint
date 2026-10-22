@@ -185,6 +185,66 @@ func validFieldName(name string) bool {
 	return model.RuleFieldName.MatchString(strings.TrimSuffix(name, "\n"))
 }
 
+// checkProjects checks projects.yaml; sources are the rule sources (nil without a tracker: no
+// rules to check). It returns the project ids.
+func checkProjects(data *storage.TeamData, today time.Time, r *reporter, sources []string, products map[string]model.Product) map[string]bool {
+	team := data.Team
+	projectIDs := map[string]bool{}
+	for _, pr := range data.Projects {
+		where := "projects.yaml: " + pr.ID
+		if projectIDs[pr.ID] {
+			r.error(where, msg("duplicate id"))
+		}
+		projectIDs[pr.ID] = true
+		ids := pr.Products()
+		switch {
+		case team.Features.Products:
+			if len(ids) == 0 {
+				r.error(where, msg("product is missing (the product distribution is on)"))
+			}
+			for _, id := range ids {
+				prod, known := products[id]
+				switch {
+				case !known:
+					r.error(where, msg("unknown product '{id}'", "id", id))
+				case prod.End != nil && prod.End.Before(today) && !pr.Closed():
+					r.warn(where, msg("Product '{id}' ended on {end}", "id", id, "end", day(*prod.End)))
+				}
+			}
+		case len(ids) > 0:
+			r.error(where, msg("product must be empty (the product distribution is off)"))
+		}
+		switch {
+		case pr.Closed():
+		case pr.Target == nil:
+			r.warn(where, msg("target is missing: the project is distributed last and has no deadline to miss"))
+		case pr.Target.Before(today):
+			r.warn(where, msg("target {date} lies in the past", "date", day(*pr.Target)))
+		}
+		checkProjectV1(data, pr, where, r)
+		if sources == nil {
+			continue // without a tracker there are no assignment rules
+		}
+		if pr.Match != nil {
+			for _, problem := range RuleProblems(pr.Match, sources) {
+				r.error(where, msg("match: {problem}", "problem", problem))
+			}
+		} else {
+			assigned := false
+			for _, tk := range data.Tickets {
+				if tk.Project != nil && *tk.Project == pr.ID {
+					assigned = true
+					break
+				}
+			}
+			if !assigned {
+				r.warn(where, msg("neither a match rule nor assigned tickets"))
+			}
+		}
+	}
+	return projectIDs
+}
+
 func checkTickets(data *storage.TeamData, today time.Time, r *reporter) {
 	team := data.Team
 	tr := team.Tracker
@@ -247,50 +307,7 @@ func checkTickets(data *storage.TeamData, today time.Time, r *reporter) {
 			}
 		}
 	}
-	projectIDs := map[string]bool{}
-	for _, pr := range data.Projects {
-		where := "projects.yaml: " + pr.ID
-		if projectIDs[pr.ID] {
-			r.error(where, msg("duplicate id"))
-		}
-		projectIDs[pr.ID] = true
-		switch {
-		case team.Features.Products:
-			prod, known := products[str(pr.Product)]
-			switch {
-			case str(pr.Product) == "":
-				r.error(where, msg("product is missing (the product distribution is on)"))
-			case !known:
-				r.error(where, msg("unknown product '{id}'", "id", *pr.Product))
-			case prod.End != nil && prod.End.Before(today):
-				r.warn(where, msg("Product '{id}' ended on {end}", "id", *pr.Product, "end", day(*prod.End)))
-			}
-		case str(pr.Product) != "":
-			r.error(where, msg("product must be empty (the product distribution is off)"))
-		}
-		switch {
-		case pr.Target == nil:
-			r.warn(where, msg("target is missing: the project is distributed last and has no deadline to miss"))
-		case pr.Target.Before(today):
-			r.warn(where, msg("target {date} lies in the past", "date", day(*pr.Target)))
-		}
-		if pr.Match != nil {
-			for _, problem := range RuleProblems(pr.Match, sources) {
-				r.error(where, msg("match: {problem}", "problem", problem))
-			}
-		} else {
-			assigned := false
-			for _, tk := range data.Tickets {
-				if tk.Project != nil && *tk.Project == pr.ID {
-					assigned = true
-					break
-				}
-			}
-			if !assigned {
-				r.warn(where, msg("neither a match rule nor assigned tickets"))
-			}
-		}
-	}
+	projectIDs := checkProjects(data, today, r, sources, products)
 
 	known := knownSprints(data, 52)
 	ticketKeys := map[string]bool{}
@@ -519,7 +536,10 @@ func CheckTeam(data *storage.TeamData, today time.Time) []Issue {
 	}
 	if team.Features.Tickets {
 		checkTickets(data, today, r)
+	} else if team.Features.Projects {
+		checkProjects(data, today, r, nil, products)
 	}
+	checkV1(data, today, r)
 	return r.issues
 }
 
@@ -703,9 +723,15 @@ func abs(v float64) float64 {
 // and empty number fields, each as a notice with file name, line and key path. The files of
 // the ticket pre-planning only with tickets.
 func CheckTeamFiles(base string, tickets bool) []Issue {
+	return CheckFiles(base, model.Features{Tickets: tickets})
+}
+
+// CheckFiles is CheckTeamFiles for the features of the team: with projects but without tickets
+// projects.yaml is checked as well.
+func CheckFiles(base string, features model.Features) []Issue {
 	var files []string
 	for _, name := range storage.TeamFiles {
-		if tickets || !contains(storage.TicketFiles, name) {
+		if features.Tickets || !contains(storage.TicketFiles, name) || (features.Projects && name == "projects.yaml") {
 			files = append(files, name)
 		}
 	}
@@ -741,5 +767,5 @@ func CheckFolder(root, team string, today time.Time) []Issue {
 	if err != nil {
 		return []Issue{{Level: Error, Where: team, Message: err.Error()}}
 	}
-	return append(CheckTeam(data, today), CheckTeamFiles(filepath.Join(root, team), data.Team.Features.Tickets)...)
+	return append(CheckTeam(data, today), CheckFiles(filepath.Join(root, team), data.Team.Features)...)
 }

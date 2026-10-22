@@ -3,6 +3,7 @@ package preplan
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -184,15 +185,32 @@ func findProject(data *storage.TeamData, id *string) *model.Project {
 }
 
 // TicketProduct returns the product whose budget a ticket uses, and the candidates when
-// several product rules contradict each other. A ticket of a known project takes the project's
-// product; otherwise the product rules decide. Without the products feature there is only the
-// one implicit product: (nil, nil).
+// several product rules contradict each other. The PO's override wins; then a ticket of an
+// open project takes the project's product (with several products the product rules decide
+// among them, the first one if no rule fits); a work package carries its product; otherwise
+// the product rules decide. Without the products feature there is only the one implicit
+// product: (nil, nil).
 func TicketProduct(ticket model.Ticket, data *storage.TeamData) (*string, []string) {
 	if !data.Team.Features.Products {
 		return nil, nil
 	}
-	if project := findProject(data, ticket.Project); project != nil && project.Product != nil && *project.Product != "" {
-		return project.Product, nil
+	if o := data.Preplan.OverrideFor(ticket.Key); o != nil && o.Product != nil && *o.Product != "" {
+		return o.Product, nil
+	}
+	if project := ProjectOf(ticket, data); project != nil {
+		switch own := project.Products(); len(own) {
+		case 0:
+		case 1:
+			return &own[0], nil
+		default:
+			if id, _ := assign.Project(ticket.Facts(), candidatesOf(productsByID(data.Products, own)), data.Team.Tracker.ProjectMatchOrder); id != "" {
+				return &id, nil
+			}
+			return &own[0], nil
+		}
+	}
+	if ticket.Product != nil && *ticket.Product != "" {
+		return ticket.Product, nil
 	}
 	id, candidates := assign.Project(ticket.Facts(), candidatesOf(data.Products), data.Team.Tracker.ProjectMatchOrder)
 	if id == "" {
@@ -201,15 +219,38 @@ func TicketProduct(ticket model.Ticket, data *storage.TeamData) (*string, []stri
 	return &id, candidates
 }
 
-// ProductConflict is the product a product rule assigns although the ticket's project belongs
-// to another one (the project wins); nil = no contradiction.
+func productsByID(all []model.Product, ids []string) []model.Product {
+	var out []model.Product
+	for _, id := range ids {
+		for _, p := range all {
+			if p.ID == id {
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}
+
+// ProductConflict is the product a product rule assigns although the ticket's single-product
+// project belongs to another one (the project wins); nil = no contradiction. A PO override
+// settles the matter.
 func ProductConflict(ticket model.Ticket, data *storage.TeamData) *string {
-	project := findProject(data, ticket.Project)
-	if project == nil || project.Product == nil || *project.Product == "" || !data.Team.Features.Products {
+	if !data.Team.Features.Products {
+		return nil
+	}
+	if o := data.Preplan.OverrideFor(ticket.Key); o != nil && o.Product != nil && *o.Product != "" {
+		return nil
+	}
+	project := ProjectOf(ticket, data)
+	if project == nil {
+		return nil
+	}
+	own := project.Products()
+	if len(own) == 0 {
 		return nil
 	}
 	other, _ := assign.Project(ticket.Facts(), candidatesOf(data.Products), data.Team.Tracker.ProjectMatchOrder)
-	if other != "" && other != *project.Product {
+	if other != "" && !slices.Contains(own, other) {
 		return &other
 	}
 	return nil
@@ -300,6 +341,7 @@ func OrderTickets(data *storage.TeamData) (ordered, leftover []model.Ticket) {
 	var open []model.Ticket
 	for _, tk := range data.Tickets {
 		if !tk.Done {
+			tk.Project = effectiveProjectID(tk, data)
 			open = append(open, tk)
 		}
 	}
@@ -738,6 +780,9 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 	}
 	length := data.Team.Sprint.LengthDays
 	for _, pr := range ProjectOrder(data.Projects) {
+		if pr.Closed() {
+			continue
+		}
 		result.Projects = append(result.Projects, TrafficLight(pr, result, sprints, length, current, &today))
 	}
 	result.Refinement = refinementList(data, result, sprints)
