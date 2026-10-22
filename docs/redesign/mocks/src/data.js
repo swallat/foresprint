@@ -57,7 +57,7 @@ window.DEMO = {
   ],
   // points per available person day (normalized velocity), used to convert points to PD
   rate: 0.85,
-  plannableShare: 0.85, smallShare: 0.1,
+  plannableShare: 0.85,
   overheadShare: 0.05,
   // absences in person days per person and sprint; a: announced, c: confirmed
   // planned absences as periods per person (dates only, no reason); Foresprint turns them into days per sprint (a: announced, c: confirmed)
