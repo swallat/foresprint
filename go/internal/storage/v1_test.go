@@ -52,6 +52,7 @@ tracker:
       share: 40
   write_sprint: true
   removed_target: pro_forma
+  board_id: 42
   fields: {estimate: Punkte, status: Status, acceptance: Kriterien, product: Produkt, project: Vorhaben, refined: Bereit, production: Anteil}
 `
 
@@ -77,11 +78,11 @@ func TestTeamV1Fields(t *testing.T) {
 	tr := team.Tracker
 	if len(tr.ProductionRules) != 2 || tr.ProductionRules[1].Percent != 40 || !tr.WriteSprint ||
 		tr.RemovedTarget != "pro_forma" || tr.PackagePrefix != "AP" || *tr.ProductionLabel != "prod-only" ||
-		*tr.Fields.Production != "Anteil" || *tr.Fields.Acceptance != "Kriterien" {
+		tr.BoardID == nil || *tr.BoardID != 42 || *tr.Fields.Production != "Anteil" || *tr.Fields.Acceptance != "Kriterien" {
 		t.Errorf("tracker %+v", tr)
 	}
 	out := idempotent(t, "team", v1Team)
-	for _, want := range []string{"naming:", "pro_forma:", "estimation:", "production_rules:", "removed_target: pro_forma"} {
+	for _, want := range []string{"naming:", "pro_forma:", "estimation:", "production_rules:", "removed_target: pro_forma", "board_id: 42"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("written team lacks %q:\n%s", want, out)
 		}
@@ -120,6 +121,8 @@ func TestTeamV1Errors(t *testing.T) {
 		"placeholder": {"sprint:\n  naming:\n    - pattern: \"{XX}\"\n", "unknown placeholder {XX}"},
 		"share":       {"features: {tickets: true}\ntracker:\n  production_rules:\n    - {match: {label: [a]}, share: 150}\n", "between 0 and 100"},
 		"factor":      {"estimation:\n  factor: 0\n", "greater than 0"},
+		"board":       {"features: {tickets: true}\ntracker:\n  board_id: 0\n", "board_id"},
+		"boardtext":   {"features: {tickets: true}\ntracker:\n  board_id: abc\n", "board_id"},
 		"removed":     {"features: {tickets: true}\ntracker:\n  removed_target: elsewhere\n", "removed_target"},
 	} {
 		if _, err := TeamFromDict("t", loadMap(t, c.text), where); err == nil || !strings.Contains(err.Error(), c.want) {
