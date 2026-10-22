@@ -62,6 +62,9 @@ func unrelated(ctx context.Context, root, remote, upstream string) (bool, error)
 			if msg == "" {
 				msg = strings.TrimSpace(run.Stdout)
 			}
+			if msg == "" {
+				msg = git.SilentFailure([]string{"merge-base"}, run.Code)
+			}
 			return false, git.Classify(msg, git.ClassifyOpts{})
 		}
 		shallow, _ := git.Lenient(ctx, root, "rev-parse", "--is-shallow-repository")
