@@ -88,6 +88,33 @@ func TestTeamV1Fields(t *testing.T) {
 	}
 }
 
+func TestProductionMax(t *testing.T) {
+	read := func(text string) model.Features {
+		team, err := TeamFromDict("t", loadMap(t, text), where)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return team.Features
+	}
+	if f := read("features: {production: true}\n"); f.ProductionMax != nil || f.ProductionCap() != 100 {
+		t.Errorf("default: %+v", f)
+	}
+	f := read("features: {production: true, production_max: 60}\n")
+	if f.ProductionCap() != 60 {
+		t.Errorf("cap %v", f.ProductionCap())
+	}
+	if out := idempotent(t, "team", "features: {production: true, production_max: 60}\n"); !strings.Contains(out, "production_max: 60") {
+		t.Errorf("not written:\n%s", out)
+	}
+	// 100 is the default and is not written
+	if out := idempotent(t, "team", "features: {production: true, production_max: 100}\n"); strings.Contains(out, "production_max") {
+		t.Errorf("100 written:\n%s", out)
+	}
+	if _, err := TeamFromDict("t", loadMap(t, "features: {production_max: -1}\n"), where); err == nil || !strings.Contains(err.Error(), "production_max") {
+		t.Errorf("negative: %v", err)
+	}
+}
+
 func TestTeamV1Errors(t *testing.T) {
 	for name, c := range map[string]struct{ text, want string }{
 		"placeholder": {"sprint:\n  naming:\n    - pattern: \"{XX}\"\n", "unknown placeholder {XX}"},
@@ -165,11 +192,14 @@ projects:
   state: finished
   end: 2026-11-15
   open_scope: 12
+  contact: Alex Example
   milestones:
-  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2]}
+  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2], light: yellow}
   contingent:
     total: 40
     per_month: {2026-07: 10, 2026-08: 12.5}
+    used: 14
+    used_per_month: {2026-07: 9, 2026-08: 5}
   match: {epic: [E1]}
 `
 	d := loadMap(t, text)
@@ -181,7 +211,9 @@ projects:
 	if p.Product == nil || *p.Product != "web" || len(p.AlsoProducts) != 1 || strings.Join(p.Products(), ",") != "web,app" ||
 		!p.Closed() || p.State != model.ProjectFinished || *p.OpenScope != 12 ||
 		len(p.Milestones) != 1 || len(p.Milestones[0].Tickets) != 2 ||
-		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 {
+		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 ||
+		*p.Contingent.Used != 14 || p.Contingent.UsedPerMonth.Len() != 2 ||
+		p.Milestones[0].Light != "yellow" || *p.Contact != "Alex Example" {
 		t.Fatalf("%+v", p)
 	}
 	first := DumpYAML(ProjectsToDict(projects))
@@ -356,6 +388,37 @@ func TestCloneCopiesPrognosisLists(t *testing.T) {
 	c.Prognoses[0].Carry[0].Rest = 2
 	if s.Prognoses[0].Finish[0] != "A" || s.Prognoses[0].Carry[0].Rest != 1 {
 		t.Error("Clone shares the lists of a prognosis")
+	}
+}
+
+func TestAbsenceCellsRoundTrip(t *testing.T) {
+	// 1.0: confirmed and announced cells side by side in an open sprint.
+	open := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\nabsence_state: open\nexpected_absences:\n  ben: 1\n"
+	d := loadMap(t, open)
+	s, err := SprintFromDict(d, where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.AbsenceStatus() != model.AbsencesExpected || s.CellState("anna") != model.AbsencesConfirmed || s.CellState("ben") != model.AbsencesExpected {
+		t.Fatalf("read: %v %v %v", s.AbsenceStatus(), s.CellState("anna"), s.CellState("ben"))
+	}
+	out := idempotent(t, "sprint", open)
+	if !strings.Contains(out, "absence_state: open") {
+		t.Errorf("the open state is not written:\n%s", out)
+	}
+	// Announced cells only need no stored state: the file is the 0.8 form.
+	only := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences: {}\nexpected_absences:\n  ben: 1\n"
+	if out := idempotent(t, "sprint", only); strings.Contains(out, "absence_state") {
+		t.Errorf("announced-only sprint got a state:\n%s", out)
+	}
+	// A 0.8 file with absences stays a frozen sprint and is written back without a state.
+	legacy := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\n"
+	if out := idempotent(t, "sprint", legacy); strings.Contains(out, "absence_state") {
+		t.Errorf("legacy sprint got a state:\n%s", out)
+	}
+	ls, _ := SprintFromDict(loadMap(t, legacy), where)
+	if ls.CellState("ben") != model.AbsencesConfirmed {
+		t.Errorf("legacy sprint is not frozen: %v", ls.CellState("ben"))
 	}
 }
 

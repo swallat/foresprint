@@ -210,13 +210,22 @@ func (s *Store) ResolveConflicts(decisions []Decision) Result {
 	}
 	choices := gitsync.Choices{}
 	for _, d := range decisions {
-		if d.Choice != Mine && d.Choice != Theirs {
+		choice := d.Choice
+		switch choice {
+		case Mine, Theirs:
+		case Custom:
+			// The value the person typed; a text that is no YAML is refused before anything happens.
+			if _, _, err := yamlmerge.CustomValue(yamlmerge.CustomChoice(d.Value)); err != nil {
+				return s.failed(git.New(i18n.T("The value you entered cannot be read: {error}", "error", err.Error()), "error", ""))
+			}
+			choice = yamlmerge.CustomChoice(d.Value)
+		default:
 			continue
 		}
 		if choices[d.File] == nil {
 			choices[d.File] = yamlmerge.Choices{}
 		}
-		choices[d.File].Choose(yamlmerge.Path(d.Path), d.Choice)
+		choices[d.File].Choose(yamlmerge.Path(d.Path), choice)
 	}
 	remaining, err := gitsync.ResolveConflicts(s.ctx(), dir, choices)
 	if err != nil {

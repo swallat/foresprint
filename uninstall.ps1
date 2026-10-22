@@ -46,6 +46,13 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     Write-Host "Warning: uv not found, so the commands in $localBin cannot be removed; install uv or run 'uv tool uninstall foresprint'."
 }
 
+# 1b. the program of install.ps1 
+$programDir = if ($env:FORESPRINT_BIN) { $env:FORESPRINT_BIN } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Programs\foresprint" } else { $null }
+if ($programDir -and (Test-Path -LiteralPath (Join-Path $programDir "foresprint.exe"))) {
+    Add-Action "file" (Join-Path $programDir "foresprint.exe")
+    if (Test-Path -LiteralPath (Join-Path $programDir "foresprint.exe.old")) { Add-Action "file" (Join-Path $programDir "foresprint.exe.old") }
+}
+
 # 2. shortcuts on the desktop and in the Start menu; only if they start one of our programs
 $shell = New-Object -ComObject WScript.Shell
 foreach ($folder in "Desktop", "Programs") {
@@ -53,7 +60,7 @@ foreach ($folder in "Desktop", "Programs") {
     if (-not $base) { continue }
     foreach ($app in $apps) {
         $link = Join-Path $base "$app.lnk"
-        if ((Test-Path -LiteralPath $link) -and $shell.CreateShortcut($link).TargetPath -match "(foresprint|sprintforecast)-app") {
+        if ((Test-Path -LiteralPath $link) -and $shell.CreateShortcut($link).TargetPath -match "(foresprint|sprintforecast)") {
             Add-Action "file" $link
         }
     }

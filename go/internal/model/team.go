@@ -113,6 +113,9 @@ type Features struct {
 	PO bool
 	// Production: topics with production access.
 	Production bool
+	// ProductionMax caps the production time at this percentage of the time of the people with
+	// production access (features.production_max); nil = 100, no cap.
+	ProductionMax *float64
 	// Tickets: ticket pre-planning (projects.yaml, tickets.yaml, preplan.yaml).
 	Tickets bool
 	// Projects: projects.yaml is read although Tickets is off (projects without tickets, with
@@ -258,7 +261,7 @@ func NewPersonID(name string, existing map[string]bool, fallback string) string 
 type Product struct {
 	ID   string
 	Name string
-	// PO is the responsible PO (optional, only for grouping).
+	// PO is the responsible PO: an id of Team.ProductOwners, or a plain name in a 0.8 file (optional).
 	PO    *string
 	Start *time.Time
 	End   *time.Time
@@ -348,4 +351,12 @@ func parsePort(s string) (int, bool) {
 		}
 	}
 	return n, true
+}
+
+// ProductionCap is the cap of the production time in percent; 100 means no cap.
+func (f Features) ProductionCap() float64 {
+	if f.ProductionMax == nil {
+		return 100
+	}
+	return *f.ProductionMax
 }
