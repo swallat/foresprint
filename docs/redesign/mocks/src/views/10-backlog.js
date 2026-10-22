@@ -29,9 +29,9 @@
     let h = FS.ticketRow(t, { drag: true, ...o });
     if (t.key.startsWith("AP-")) h = h.replace(/<span class="key">.*?<\/a><\/span>/, `<span class="key" title="Von Hand angelegt, kein Tracker">${t.key}</span>`);
     const flags = (t.est == null ? `<span class="chip warn">${FS.icon("help", "small")}ohne Schätzung</span>` : "") +
-      (RULE[t.key] && FS.multiProduct() ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
+      (RULE[t.key] && FS.multiProduct() && FS.trk() === "jira" ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
       (B.flag === "earmarked" && t.sprint ? `<span class="chip">${FS.icon("event", "small")}${t.sprint}</span>` : "");
-    h = h.replace('<span class="meta">', `<span class="meta">${flags}`).replace('<span class="handle">', `<input type="checkbox" class="bl-sel" data-key="${t.key}" aria-label="${t.key} auswählen" ${B.sel.includes(t.key) ? "checked" : ""}><span class="handle">`);
+    h = h.replace('<span class="meta">', `<span class="meta">${flags}`).replace('<span class="handle">', `<input type="checkbox" class="bl-sel" data-key="${t.key}" aria-label="${FS.dk(t.key)} auswählen" ${B.sel.includes(t.key) ? "checked" : ""}><span class="handle">`);
     return B.sel.includes(t.key) ? h.replace('class="ticket"', 'class="ticket selected"') : h;
   }
 
@@ -115,7 +115,7 @@
       return `<div class="lane bl-pf" data-zone="${esc(s.name)}"><div class="lane-head"><div class="row">
         <button class="btn ghost icon" type="button" data-pf="${esc(s.name)}" aria-expanded="${open}" aria-label="${open ? "Zuklappen" : "Aufklappen"}">${FS.icon(open ? "expand_less" : "expand_more")}</button>
         <strong>${esc(s.name)}</strong><span class="chip">${FS.icon("inventory_2", "small")}Pro forma</span><span class="chip data">${ts.length}</span><span class="muted small data">${FS.sum(ts, (t) => t.est)} Punkte</span></div>
-        <span class="small muted">${esc(s.note || "")}. Sprint aus ${D.team.tracker}, zählt nicht für Kapazität und Forecast. <a href="#jira">Festlegen, was pro forma ist</a></span></div>
+        <span class="small muted">${esc(s.note || "")}. ${B.notracker ? "Ablage in Foresprint" : `Sprint aus ${D.team.tracker}`}, zählt nicht für Kapazität und Forecast. ${B.notracker ? "" : '<a href="#jira">Festlegen, was pro forma ist</a>'}</span></div>
         ${open ? `<div class="lane-body">${ts.length ? ts.map((t) => row(t)).join("") : `<p class="muted small" style="padding:8px 12px;margin:0">Leer. Tickets hierher ziehen.</p>`}</div>` : ""}</div>`;
     }).join("");
   }
@@ -181,10 +181,10 @@
         @media (max-width:1100px){.bl-board{grid-template-columns:minmax(0,1fr)}}
         @media (max-width:700px){.bl-board .ticket{grid-template-columns:22px 20px minmax(0,1fr)}.bl-board .ticket .key,.bl-board .ticket .title{grid-column:3}.bl-board .ticket .handle,.bl-board .ticket .bl-sel{grid-row:1 / span 3}}
       </style>
-      <div class="page-head"><div><h1>Backlog</h1><p class="lead">Alle Tickets in einer Reihenfolge. Ansichten sind Filter derselben Liste. Rechts siehst du, was für die nächsten Sprints vorgemerkt ist und ob es in die Spanne passt.</p></div>
-        <div class="actions">${B.notracker ? `<button class="btn primary" type="button" data-act="workitem">${FS.icon("add")}Arbeitspaket anlegen</button>` : ""}<button class="btn ${B.notracker ? "primary" : ""}" type="button" id="bl-notracker" aria-pressed="${B.notracker}">${FS.icon("sync_disabled")}Ohne Tracker ansehen</button></div></div>
+      <div class="page-head"><div><h1>Backlog</h1><p class="lead">Alle ${B.notracker ? "Arbeitspakete" : "Tickets"} in einer Reihenfolge. Ansichten sind Filter derselben Liste. Rechts siehst du, was für die nächsten Sprints vorgemerkt ist und ob es in die Spanne passt.</p></div>
+        <div class="actions">${B.notracker ? `<button class="btn primary" type="button" data-act="workitem">${FS.icon("add")}Arbeitspaket anlegen</button>` : ""}</div></div>
       <div id="bl-syncwrap">${syncLine()}</div>
-      ${B.notracker ? `<div class="banner info"><span>${FS.icon("info")}</span><div class="grow"><strong>So sieht der Backlog ohne Tracker aus.</strong> Es gibt keinen Abruf. Arbeitspakete legst du von Hand an (Schlüssel AP-01, kein Link in ein Tracker-System). Schätzung, Produkt und Projekt pflegst du im Ticket-Panel. Filter, Reihenfolge und Sprint-Lanes funktionieren gleich. Die Tickets unten bleiben nur zur Ansicht stehen.</div></div>` : ""}
+      ${B.notracker ? `<div class="banner info"><span>${FS.icon("info")}</span><div class="grow"><strong>Arbeitspakete in Foresprint, ohne Tracker.</strong> Es gibt keinen Abruf. Arbeitspakete legst du von Hand an (Schlüssel AP-…, kein Link nach außen). Schätzung, Produkt und Projekt pflegst du im Panel. Filter, Reihenfolge und Sprint-Lanes funktionieren wie mit Tracker. Umstellen: <a href="#jira">Einstellungen, Tickets und Tracker</a>.</div></div>` : ""}
       <div id="bl-chips"></div>
       <div class="row" style="margin-bottom:12px"><div class="bl-q"><label class="small muted" for="bl-q">${FS.icon("search")}</label><input class="input" id="bl-q" type="search" placeholder="Suchen: Schlüssel, Titel, Produkt, Projekt" autocomplete="off"></div></div>
       <div id="bl-bar"></div>
@@ -223,7 +223,6 @@
           else if (a === "workitem") workItemPanel();
         }
       });
-      m.querySelector("#bl-notracker").onclick = () => { FS.setTrk(B.notracker ? "jira" : "local"); FS.render(); };
     },
   });
 
@@ -307,7 +306,7 @@
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type .title", text: "Ein Klick auf den Titel öffnet das Ticket-Panel. Schlüssel und Pfeil öffnen " + D.team.tracker + "." },
       { view: "backlog", text: "Im Panel pflegst du Schätzung, Produkt, Projekt und Vormerkung und siehst, ob das Ticket refined ist. Der Verlauf steht darunter.", before() { setTimeout(() => FS.ticketPanel("ATL-434"), 250); } },
       { view: "backlog", hl: ".bl-ruleflag", text: "Entscheidung Regelkonflikt: Trifft keine oder mehr als eine Produktregel zu, markiert die Zeile es. Der Hinweis erklärt den Grund, das Produkt der Regel entscheidet, du kannst es für dieses Ticket von Hand setzen. Dann zurück zum Backlog.", before() { setView("unz"); } },
-      { view: "backlog", hl: "#bl-notracker", text: "Ohne Tracker: Dieser Schalter zeigt den Backlog mit von Hand angelegten Arbeitspaketen. Es gibt dann keinen Abruf, alles andere bleibt gleich.", before() { setView("alle"); FS.setTrk("jira"); } },
+      { view: "backlog", hl: "#bl-syncwrap", text: "Ohne Tracker: Unter Einstellungen, Tickets und Tracker wählt das Team \"Arbeitspakete in Foresprint\". Dann gibt es keinen Abruf, Arbeitspakete legst du hier von Hand an, alles andere bleibt gleich. Zum Ansehen oben in den Abläufen den Schalter Tickets nutzen.", before() { setView("alle"); } },
     ],
   });
 })();
