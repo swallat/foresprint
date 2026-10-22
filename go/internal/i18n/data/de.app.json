@@ -66,6 +66,13 @@
   "Milestone date": "Datum des Meilensteins",
   "Please enter a date for every milestone.": "Bitte gib für jeden Meilenstein ein Datum ein.",
   "Please choose how the project ends.": "Bitte wähle, wie das Projekt endet.",
-  "{name} has history and can only be closed.": "{name} hat einen Verlauf und kann nur abgeschlossen werden."
+  "{name} has history and can only be closed.": "{name} hat einen Verlauf und kann nur abgeschlossen werden.",
+  "Enter a name for the team.": "Gib dem Team einen Namen.",
+  "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein.",
+  "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
+  "Enter the start of the first sprint as a date (YYYY-MM-DD).": "Trage den Beginn des ersten Sprints als Datum ein (JJJJ-MM-TT).",
+  "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
+  "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
+  "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}"
  }
 }
