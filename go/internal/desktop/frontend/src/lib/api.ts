@@ -12,11 +12,12 @@ import type { PlanApi } from './types.plan';
 import type { DataApi } from './types.data';
 import type { ProjectsApi } from './types.projects';
 import type { ReviewApi } from './types.review';
+import type { SettingsApi } from './types.settings';
 import type { SetupApi } from './types.setup';
 import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends BacklogApi, DataApi, PlanApi, ProjectsApi, ReviewApi, SetupApi, SprintsApi, TodayApi, ForecastApi, TeamApi {
+export interface Api extends BacklogApi, DataApi, PlanApi, ProjectsApi, ReviewApi, SetupApi, SettingsApi, SprintsApi, TodayApi, ForecastApi, TeamApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -29,7 +30,6 @@ export interface Api extends BacklogApi, DataApi, PlanApi, ProjectsApi, ReviewAp
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
-  SyncTracker(): Promise<Result>;
 }
 
 interface WailsWindow {

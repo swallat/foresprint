@@ -9,6 +9,7 @@ import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createBacklogMock } from './mock.backlog';
 import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
+import { settingsMock } from './mock.settings';
 import { teamMock } from './mock.team';
 import type { Prefs, Result, SprintInfo } from './types';
 import type { NewTeam, Opened, Problem, Region, ServerCheck, SetupKind, SetupState, SignInGuide } from './types.setup';
@@ -40,6 +41,7 @@ let prefs: Prefs = {
     { code: 'en', label: 'English' },
   ],
   theme: 'system',
+  density: 'normal',
   themes: [
     { code: 'system', label: 'As system' },
     { code: 'light', label: 'Light' },
@@ -148,6 +150,7 @@ export const mockApi: Api = {
   ...dataMock,
   ...planMock,
   ...teamMock,
+  ...settingsMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -160,6 +163,10 @@ export const mockApi: Api = {
   async SetTheme(code) {
     prefs = { ...prefs, theme: code };
   },
+  async SetDensity(code) {
+    prefs = { ...prefs, density: code as Prefs['density'] };
+  },
+
   async Texts(lang) {
     // The catalog is bundled only where the mock is the whole program (npm run dev, tests); in
     // the program, texts always come from the core, also while the demo team is shown.
@@ -190,9 +197,6 @@ export const mockApi: Api = {
   },
   async Today() {
     return today();
-  },
-  async SyncTracker() {
-    return { ok: true, message: 'Tracker synced.' };
   },
   async SetupState(): Promise<SetupState> {
     return { dataDir: prefs.dataDir, teams: [team], name: '', email: '', suggestedHelper: '' };
