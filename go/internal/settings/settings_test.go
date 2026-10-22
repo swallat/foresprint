@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -99,6 +100,9 @@ func TestSettingsMatchPython(t *testing.T) {
 				}
 			}
 			for raw, exp := range w.Parse[lang] {
+				if runtime.GOOS == "windows" && (raw == "a:b" || raw == "CON") {
+					continue // the reference ran on Linux; Windows refuses these file names
+				}
 				value, err := s.Parse(raw)
 				switch {
 				case exp.Error != "":
