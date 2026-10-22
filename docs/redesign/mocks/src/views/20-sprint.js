@@ -49,10 +49,11 @@
 
   // ---------- shared pieces ----------
   const CSS = `<style>
-    .sp-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+    .sp-sum{display:flex;flex-wrap:wrap;gap:16px} .sp-sum > *{flex:1 1 200px;min-width:0} .sp-sum > :last-child{flex:0 1 auto}
     .sp-sum h3{margin:0 0 4px;font:600 12px/16px var(--font-ui);color:var(--text-muted)}
     .sp-sum .big{font:600 22px/28px var(--font-data)}
-    .sp-sum .proj{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+    .sp-sum .projs{display:grid;grid-template-columns:minmax(0,max-content) auto auto;justify-content:start;gap:6px 8px;align-items:center;margin-top:4px}
+    .sp-sum .proj{display:contents} .sp-sum .proj > *{white-space:nowrap} .sp-sum .proj > .data{text-align:right}
     .sp-sum .cap{margin:6px 0 2px}
     .sp-abs{display:inline-flex;align-items:center;gap:4px}
     .sp-abs .input{width:56px;height:28px;text-align:right;padding:0 8px}
@@ -61,6 +62,7 @@
     .sp-st{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
     .sp-abs.a .sp-st{color:var(--warn)} .sp-abs.c .sp-st{color:var(--ok)} .sp-st:hover{background:var(--surface-2)}
     .sp-st-ph{width:24px;display:inline-block}
+    .sp-fz{width:100%;max-width:170px;justify-content:center} .sp-fz[data-unfreeze]{color:var(--ok)}
     .sp-abs.g .input{border-style:dashed} .sp-abs.g .input::placeholder{color:var(--text-muted);text-decoration:line-through;opacity:1}
     .sp-abs.g .sp-st{color:var(--text-muted)}
     .sp-btn{min-width:60px;height:28px;padding:0 10px;border-radius:999px;border:1.5px solid var(--primary);background:transparent;color:var(--primary);font:13px var(--font-data);cursor:pointer}
@@ -160,7 +162,7 @@
         ${FS.capBar(p, c.fc, c.low, c.high)}
         <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} Tickets</div></div>
       <div><h3>Kontingente je Projekt <span class="chip small">Schätzung</span></h3>
-        ${hints.length ? hints.map((h) => `<div class="proj"><span class="chip">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("") : `<div class="small muted">Keine Projekttickets im Sprint.</div>`}</div>
+        ${hints.length ? `<div class="projs">${hints.map((h) => `<div class="proj"><span class="chip" title="${esc(h.pr.name)}">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("")}</div>` : `<div class="small muted">Keine Projekttickets im Sprint.</div>`}</div>
     </div></div>`;
   }
   const tw = (inner) => `<div class="tw">${inner}</div>`;
@@ -242,7 +244,7 @@
       <tr class="sum"><td>Abwesend gesamt</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(absDays(s.id))} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Kapazität</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(calc(s.id).cap)} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Forecast PLAN</td><td></td>${cols.map((s) => { const c = calc(s.id); return `<td class="sp-c data" style="color:var(--forecast)">${c.past ? "–" : `${fmt(c.fc)} <span class="muted small">(${c.low} bis ${c.high})</span>`}</td>`; }).join("")}</tr>
-      <tr><td>Bestätigen</td><td></td>${cols.map((s) => { const cells = Object.keys(absOf(s.id)).length; return `<td class="sp-c"><div class="stack" style="align-items:center">${cells && absState(s.id) !== "confirmed" ? `<button class="btn" type="button" data-confirm="${s.id}">${ic("done_all")}Angekündigte bestätigen</button>` : ""}<button class="btn ${cells ? "ghost" : ""}" type="button" data-nobody="${s.id}">${ic("person_off")}Niemand abwesend bestätigen</button></div></td>`; }).join("")}</tr>
+      <tr><td>Belegung</td><td></td>${cols.map((s) => { const fz = absState(s.id) === "confirmed", n = Object.keys(absOf(s.id)).length; return `<td class="sp-c">${fz ? `<button class="btn ghost sp-fz" type="button" data-unfreeze="${s.id}" title="Festgeschrieben: ${n ? n + " Einträge bestätigt, alle anderen 0 Tage" : "niemand abwesend"}. Klick löst die Belegung wieder.">${ic("lock")}Festgeschrieben</button>` : `<button class="btn sp-fz" type="button" data-confirm="${s.id}" title="Bestätigt alle Einträge. Leere Felder zählen als 0 Tage.">${ic("lock_open")}Festschreiben</button>`}</td>`; }).join("")}</tr>
       </tbody></table>`)}</div>
       <div class="grid cols-2">
         <div class="card" id="sp-ready"><h2>Bereit für die Planung?</h2><div class="stack">${ready.map((r) => `<div class="row">${FS.lightChip(r.light, r.state)}<span style="flex:1;min-width:160px"><strong>${r.title}</strong><br><span class="small muted">${r.text}</span></span>${r.link ? `<a class="btn" href="${r.link[0]}">${r.link[1]}</a>` : ""}</div>`).join("")}</div>
@@ -272,17 +274,17 @@
       });
       main.querySelectorAll("[data-restore]").forEach((b) => (b.onclick = () => { const [sid, pid] = b.dataset.restore.split("|"); FS.restoreAbs(sid, pid); touch(sid); rerender(); document.querySelector(`[data-abs="${b.dataset.restore}"]`)?.focus(); }));
       main.querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const [sid, pid] = b.dataset.st.split("|"), c = absOf(sid)[pid]; c.s = c.s === "c" ? "a" : "c"; touch(sid); rerender(); document.querySelector(`[data-st="${b.dataset.st}"]`)?.focus(); }));
-      main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(b.dataset.confirm); rerender(); FS.toast(`Abwesenheiten für ${b.dataset.confirm} bestätigt.`); }));
-      main.querySelectorAll("[data-nobody]").forEach((b) => (b.onclick = () => { const sid = b.dataset.nobody, prev = JSON.stringify(absOf(sid)), ps = FS.sprint(sid).absences; nobody(sid); rerender(); FS.toast(`Für ${sid}: niemand abwesend, bestätigt.`, () => { D.absences[sid] = JSON.parse(prev); FS.sprint(sid).absences = ps; rerender(); }); }));
+      main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { const sid = b.dataset.confirm, prev = JSON.stringify(absOf(sid)), ps = FS.sprint(sid).absences; confirmAbs(sid); rerender(); FS.toast(`Belegung ${sid} festgeschrieben. Leere Felder zählen als 0 Tage.`, () => { D.absences[sid] = JSON.parse(prev); FS.sprint(sid).absences = ps; rerender(); }); }));
+      main.querySelectorAll("[data-unfreeze]").forEach((b) => (b.onclick = () => { unfreezeAbs(b.dataset.unfreeze); rerender(); FS.toast(`Belegung ${b.dataset.unfreeze} wieder offen, Einträge gelten als angekündigt.`); }));
     },
   });
   function confirmAbs(sid) { Object.values(absOf(sid)).forEach((c) => (c.s = "c")); FS.sprint(sid).absences = "confirmed"; }
-  function nobody(sid) { Object.entries(D.absences[sid] || {}).forEach(([pid, c]) => FS.ghostAbs(sid, pid, c)); D.absences[sid] = {}; FS.sprint(sid).absences = "confirmed"; }
+  function unfreezeAbs(sid) { const c = Object.values(absOf(sid)); c.forEach((x) => (x.s = "a")); FS.sprint(sid).absences = c.length ? "announced" : "unknown"; }
   function readiness(sid) {
     const unref = tix(sid).filter((t) => !t.refined), noPre = D.products.filter((p) => pp(sid, p.id).pre == null), dev = D.products.filter((p) => pp(sid, p.id).pre != null && earmark(sid, p.id) > pp(sid, p.id).pre);
     const a = absState(sid);
     return [
-      { light: a === "confirmed" ? "ok" : "warn", state: a === "confirmed" ? "erledigt" : "offen", title: "Abwesenheiten", text: a === "confirmed" ? "Alle Abwesenheiten sind bestätigt." : a === "announced" ? `${Object.keys(absOf(sid)).length} Personen angekündigt, noch nicht bestätigt. Bestätigen oben in der Tabelle.` : "Noch nichts erfasst. Eintragen oder oben \"Niemand abwesend bestätigen\"." },
+      { light: a === "confirmed" ? "ok" : "warn", state: a === "confirmed" ? "erledigt" : "offen", title: "Abwesenheiten", text: a === "confirmed" ? "Belegung festgeschrieben." : a === "announced" ? `${Object.keys(absOf(sid)).length} Personen angekündigt, noch nicht bestätigt. Oben in der Tabelle festschreiben.` : "Noch nichts erfasst. Eintragen oder oben festschreiben, dann gilt: niemand abwesend." },
       { light: unref.length ? "warn" : "ok", state: unref.length ? "offen" : "erledigt", title: "Refinement", text: unref.length ? `${unref.length} vorgemerkte Tickets sind nicht refined: ${unref.map((t) => t.key).join(", ")}.` : "Alle vorgemerkten Tickets sind refined und geschätzt.", link: unref.length ? ["#backlog", "Im Backlog öffnen"] : null },
       { light: noPre.length || dev.length ? "warn" : "ok", state: noPre.length || dev.length ? "offen" : "erledigt", title: "Vorplanung je Produkt", text: noPre.length ? `Kein Betrag für ${noPre.map((p) => p.name).join(", ")}.` : dev.length ? `Vormerkungen liegen über dem Betrag: ${dev.map((p) => p.name).join(", ")}.` : "Jedes Produkt hat einen Betrag, die Vormerkungen passen.", link: ["#preplan", "Vorplanen"] },
     ];
@@ -365,7 +367,7 @@
         <div class="row" style="margin-top:12px"><div class="field"><label for="sp-commit">Zusage (Commitment) in Punkten</label><input class="input data" id="sp-commit" inputmode="numeric" value="${commitOf(sid)}" ${fz ? "disabled" : ""} style="width:120px"></div>
         <div style="flex:1;min-width:200px">${FS.capBar(commitOf(sid), c.fc, c.low, c.high)}<span class="small muted">Zusage gegen Forecast PLAN ${c.fc} (${c.low} bis ${c.high})</span></div></div></div>`;
       return `${header(sid, "plan", actions)}${summary(sid)}
-      ${abs !== "confirmed" ? `<div class="banner warn sp-abs-banner">${ic("event_busy")}<div class="grow"><strong>Abwesenheiten sind für ${sid} noch nicht bestätigt.</strong> ${cells.length ? `Angekündigt: ${cells.map(([pid, a]) => `${esc(FS.person(pid).name)} (${a.d} T)`).join(", ")}.` : "Noch nichts erfasst."} Kapazität und Forecast PLAN können sich noch ändern. Das blockiert nichts.<div class="row" style="margin-top:8px">${cells.length ? `<button class="btn" type="button" data-confirm="${sid}">${ic("done_all")}Bestätigen</button>` : ""}<button class="btn" type="button" data-nobody="${sid}">${ic("person_off")}Niemand abwesend bestätigen</button><a class="btn ghost" href="#prepare">Im Raster ändern</a></div></div></div>` : ""}
+      ${abs !== "confirmed" ? `<div class="banner warn sp-abs-banner">${ic("event_busy")}<div class="grow"><strong>Abwesenheiten sind für ${sid} noch nicht bestätigt.</strong> ${cells.length ? `Angekündigt: ${cells.map(([pid, a]) => `${esc(FS.person(pid).name)} (${a.d} T)`).join(", ")}.` : "Noch nichts erfasst."} Kapazität und Forecast PLAN können sich noch ändern. Das blockiert nichts.<div class="row" style="margin-top:8px"><button class="btn" type="button" data-confirm="${sid}">${ic("lock")}Belegung festschreiben</button><a class="btn ghost" href="#prepare">Im Raster ändern</a></div></div></div>` : ""}
       ${fz ? `<div class="banner info">${ic("lock")}<div class="grow">Eingefroren am <span class="data">${fz.at}</span>: ${fz.noT ? "Zusage" : `${fz.keys.length} Tickets, Zusage`} <span class="data">${fz.commit}</span> Punkte. Planungsprotokoll ist geschrieben.<div class="row" style="margin-top:8px"><button class="btn" type="button" id="sp-reopen">${ic("lock_open")}Plan wieder öffnen</button><a class="btn" href="#minutes">${ic("description")}Protokoll ansehen</a></div></div></div>` : ""}
       <div class="row" id="sp-mode" style="margin-bottom:12px"><button class="chip filter ${noT ? "" : "on"}" type="button" data-mode="trk">${ic("confirmation_number", "small")}Mit Tracker: Tickets</button><button class="chip filter ${noT ? "on" : ""}" type="button" data-mode="amt">${ic("pin", "small")}Ohne Tracker: Beträge und Zusage</button></div>
       ${noT ? noTrackerCard : laneTop}
@@ -377,8 +379,7 @@
     wire(main) {
       wireCommon(main);
       const sid = FS.state.sprint, S = st();
-      main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(sid); rerender(); FS.toast("Abwesenheiten bestätigt. Kapazität und Forecast PLAN sind aktuell."); }));
-      main.querySelectorAll("[data-nobody]").forEach((b) => (b.onclick = () => { nobody(sid); rerender(); FS.toast("Niemand abwesend, bestätigt."); }));
+      main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(sid); rerender(); FS.toast("Belegung festgeschrieben. Kapazität und Forecast PLAN sind aktuell."); }));
       main.querySelectorAll("[data-mode]").forEach((b) => (b.onclick = () => { S.noTracker = b.dataset.mode === "amt"; rerender(); }));
       main.querySelectorAll("[data-amt]").forEach((i) => (i.onchange = () => { const v = parseInt(i.value, 10); (S.amt[sid] ??= {})[i.dataset.amt] = isNaN(v) ? 0 : v; delete S.commit[sid]; rerender(); }));
       const cm = main.querySelector("#sp-commit"); if (cm) cm.onchange = () => { const v = parseInt(cm.value, 10); S.commit[sid] = isNaN(v) ? 0 : v; rerender(); };
@@ -515,7 +516,7 @@
   FS.flow({ id: "F3", title: "Sprint vorbereiten und vorplanen", summary: "Abwesenheiten klären, Bereitschaft prüfen und den Betrag je Produkt aus den Vormerkungen festlegen.", steps: [
     { view: "prepare", before() { FS.state.sprint = "2026.22"; }, hl: ".stepper", text: "Heute zeigt: Sprint 2026.22 braucht Vorbereitung. Oben siehst du alle Stufen als Links. \"fehlt noch\" ist nur ein Hinweis, nichts ist gesperrt." },
     { view: "prepare", hl: "#sp-abs-grid", text: "Das Raster zeigt Abwesenheiten für diesen und die nächsten drei Sprints. Tage tippst du direkt ein, Tab oder Enter springt weiter. Neue Einträge sind angekündigt (gelb, offenes Schloss), ein Klick auf das Schloss bestätigt sie (grün, geschlossenes Schloss). Kapazität und Forecast PLAN unten in der Tabelle ziehen sofort mit." },
-    { view: "prepare", hl: "[data-nobody]", text: "Hat niemand frei, genügt \"Niemand abwesend bestätigen\" je Sprint. Mit \"Angekündigte bestätigen\" werden vorhandene Einträge fest." },
+    { view: "prepare", hl: "[data-confirm]", text: "\"Festschreiben\" friert die Belegung eines Sprints ein: Alle Einträge gelten als bestätigt, leere Felder als 0 Tage. Hat niemand frei, ist das damit auch erledigt. Ein Klick auf \"Festgeschrieben\" löst sie wieder." },
     { view: "prepare", hl: "#sp-ready", text: "Die Bereitschaft fasst zusammen: Abwesenheiten, Refinement und Vorplanung je Produkt. Offene Punkte warnen nur, du kannst jederzeit weiter." },
     { view: "preplan", hl: "#sp-earmarks", text: "Vorplanen geht jederzeit, auch für spätere Sprints. Die Vormerkungen aus dem Backlog stehen hier nach Projekt und Tagesgeschäft, mit Kontingenthinweis in PT (Schätzung)." },
     { view: "preplan", hl: "#sp-prod-table", text: "Eine Tabelle je Sprint: Vorgeplant trägst du hier ein, \"Vormerkungen übernehmen\" macht daraus einen Vorschlag. Geplant und Erledigt sind in dieser Stufe nur lesbar." },
