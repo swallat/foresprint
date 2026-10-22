@@ -4,7 +4,8 @@
 //
 // Another language is another file in data/: nothing in the program changes. A language may
 // have extra files "<code>.<name>.json" (same format) for texts that only exist in the Go core;
-// they are merged into the catalog of the language and win over "<code>.json".
+// they are merged into the catalog of the language and win over "<code>.json". The texts of
+// the window are in "<code>.ui.json"; UITexts serves that set to the frontend.
 package i18n
 
 import (
@@ -36,6 +37,8 @@ type Catalog struct {
 var (
 	loadOnce sync.Once
 	catalogs map[string]*Catalog
+	// ui holds the texts of the window per language, from the files "<code>.ui.json".
+	ui map[string]map[string]string
 
 	mu       sync.Mutex
 	override string
@@ -44,6 +47,7 @@ var (
 
 func load() {
 	catalogs = map[string]*Catalog{}
+	ui = map[string]map[string]string{}
 	var extras []Catalog
 	entries, err := files.ReadDir("data")
 	if err != nil {
@@ -57,6 +61,9 @@ func load() {
 		var catalog Catalog
 		if err := json.Unmarshal(raw, &catalog); err != nil {
 			panic("i18n: " + entry.Name() + ": " + err.Error())
+		}
+		if strings.HasSuffix(entry.Name(), ".ui.json") { // texts of the window, served as a set
+			ui[catalog.Code] = catalog.Texts
 		}
 		if strings.Count(entry.Name(), ".") > 1 { // extra file: merged below
 			extras = append(extras, catalog)
@@ -73,6 +80,18 @@ func load() {
 			base.Texts[k] = v
 		}
 	}
+}
+
+// UITexts returns the texts of the window for a language: English source text to translation.
+// Only texts that have a translation are in the set; the window shows the source text for the
+// rest. The set comes from the file "<code>.ui.json" and is empty for English.
+func UITexts(code string) map[string]string {
+	loadOnce.Do(load)
+	out := make(map[string]string, len(ui[code]))
+	for k, v := range ui[code] {
+		out[k] = v
+	}
+	return out
 }
 
 // Register adds translations of one language (English source text to translated text) from
