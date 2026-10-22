@@ -7,7 +7,7 @@
   const f1 = (n) => FS.fmt(n, 1);
 
   // ---------- shared mock state ----------
-  S.teamApplied ??= { hist: 6, method: "median", band: "p20", horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast", unit: "sp", conv: "velocity", factor: 0.85, unitFrom: "2026.22" };
+  S.teamApplied ??= { hist: 5, trend: "flat", refcap: 53, share: 85, rounding: 1, horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast", unit: "sp", conv: "velocity", factor: 0.85, unitFrom: "2026.22" };
   S.teamDraft ??= { ...S.teamApplied };
   S.rules ??= {
     portal: 'component = "Portal"',
@@ -355,20 +355,27 @@
   });
 
   // ================= settings (team) =================
-  const SET_LABEL = { hist: "Sprints für die Velocity", method: "Mittelwert-Art", band: "Spanne", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis", unit: "Schätzeinheit", conv: "Umrechnung SP und PT", factor: "Fester Faktor (SP je PT)", unitFrom: "Einheit gilt ab Sprint" };
-  const fmtV = (v) => (v === true ? "an" : v === false ? "aus" : { median: "Median", mean: "Mittelwert", p20: "mittlere 60 %", sd: "plus/minus Standardabweichung", forecast: "Forecast PLAN", capacity: "Kapazität mal Rate", sp: "Story Points", pt: "Personentage", velocity: "aus der Velocity" , fixed: "fester Faktor" }[v] || (typeof v === "number" ? FS.fmt(v, 2) : String(v)));
+  const SET_LABEL = { hist: "Sprints für die Velocity", trend: "Trend", refcap: "Referenzkapazität (PT)", share: "Verplanbarer Anteil (%)", rounding: "Rundung", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis", unit: "Schätzeinheit", conv: "Umrechnung SP und PT", factor: "Fester Faktor (SP je PT)", unitFrom: "Einheit gilt ab Sprint" };
+  const fmtV = (v) => (v === true ? "an" : v === false ? "aus" : { flat: "Flach", linear: "Linear", classic: "Klassisch", forecast: "Forecast PLAN", share: "nur verplanbarer Anteil", sp: "Story Points", pt: "Personentage", velocity: "aus der Velocity" , fixed: "fester Faktor" }[v] || (typeof v === "number" ? FS.fmt(v, 2) : String(v)));
   const settingsDiff = () => Object.keys(S.teamDraft).filter((k) => S.teamDraft[k] !== S.teamApplied[k]);
   FS.view("settings", {
     title: "Einstellungen, Team",
     render() {
       const d = S.teamDraft;
       const sw = (k, t, sub) => `<label class="row" style="align-items:flex-start;flex-wrap:nowrap"><input type="checkbox" data-t="${k}" ${d[k] ? "checked" : ""} style="margin-top:3px"><span><strong>${t}</strong><br><span class="small muted">${sub}</span></span></label>`;
+      const num = (k, label) => `<div class="field"><label for="t-${k}">${label}</label><input class="input data" id="t-${k}" data-t="${k}" inputmode="numeric" value="${d[k]}" style="text-align:right"></div>`;
       const sel = (k, label, opts) => `<div class="field"><label for="t-${k}">${label}</label><select class="input" id="t-${k}" data-t="${k}">${opts.map(([v, l]) => `<option value="${v}" ${String(d[k]) === String(v) ? "selected" : ""}>${l}</option>`).join("")}</select></div>`;
       return `${head("Einstellungen, Team", "Forecast, Funktionen und Budgetbasis des Teams.")}
         <div class="field" style="max-width:360px;margin-bottom:12px"><label for="s-q">Einstellung suchen</label><input class="input" id="s-q" type="search" placeholder="z. B. Produktion, Spanne"></div>
         <div class="grid cols-2" id="s-cards">
-          <div class="card" data-s="forecast velocity spanne horizont sprintlänge mittelwert"><h2>Forecast</h2><div class="grid" style="gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-            ${sel("hist", "Sprints für die Velocity", [[4, "4"], [6, "6"], [8, "8"]])}${sel("method", "Mittelwert-Art", [["median", "Median"], ["mean", "Mittelwert"]])}${sel("band", "Spanne", [["p20", "mittlere 60 %"], ["sd", "plus/minus Standardabweichung"]])}${sel("horizon", "Horizont", [[3, "3 Sprints"], [4, "4 Sprints"], [6, "6 Sprints"]])}${sel("len", "Standard-Sprintlänge", [[9, "9 Arbeitstage"], [10, "10 Arbeitstage"], [15, "15 Arbeitstage"]])}</div>
+          <div class="card" data-s="forecast velocity spanne horizont sprintlänge fenster trend klassisch linear referenzkapazität verplanbar kleinkram rundung"><h2>Forecast</h2><div class="grid" style="gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+            ${sel("hist", "Fenster (Sprints im Mittel)", [[3, "3"], [4, "4"], [5, "5 (Standard)"], [6, "6"], [8, "8"]])}${sel("trend", "Trend", [["flat", "Flach (Standard)"], ["linear", "Linear"], ["classic", "Klassisch"]])}${num("refcap", "Referenzkapazität (PT)")}${num("share", "Verplanbarer Anteil (%)")}${sel("rounding", "Rundung", [[0, "ganze Punkte"], [1, "eine Nachkommastelle"]])}${sel("horizon", "Horizont", [[3, "3 Sprints"], [4, "4 Sprints"], [6, "6 Sprints"]])}${sel("len", "Standard-Sprintlänge", [[9, "9 Arbeitstage"], [10, "10 Arbeitstage"], [15, "15 Arbeitstage"]])}</div>
+            <details class="small" style="margin-top:12px"><summary style="cursor:pointer">Was die Einstellungen bewirken</summary><ul style="margin:6px 0 0;padding-left:18px">
+              <li><strong>Fenster:</strong> über wie viele Sprints mit Wert die normierte Velocity gemittelt wird (gleitender Mittelwert). Neue Teams bekommen ab 3 Sprints einen ersten Forecast.</li>
+              <li><strong>Trend:</strong> wie der Mittelwert in die Zukunft fortgeschrieben wird. Flach: letzter Mittelwert bleibt (robust). Linear: Steigung der letzten zwei Mittelwerte fortschreiben. Klassisch: wie die Excel-Vorlage, erster Sprint linear, zweiter multiplikativ, dann linear; trägt Ausreißer weiter.</li>
+              <li><strong>Forecast PLAN</strong> = Trend der normierten Velocity ÷ Referenzkapazität × Kapazität des Sprints, abgerundet. Bei "Flach" ist das dasselbe wie Kapazität × Rate.</li>
+              <li><strong>Spanne:</strong> niedrigste bis höchste normierte Velocity im Fenster, auf die Kapazität umgerechnet. Keine Einstellung.</li>
+              <li><strong>Verplanbarer Anteil:</strong> Teil des Forecast PLAN, der auf Produkte und Projekte verteilt wird; der Rest ist Kleinkram.</li></ul></details>
             <div class="row small" style="margin:12px 0 0"><span>Rate aus dem Verlauf: <strong class="data">${FS.fmt(D.rate, 2)}</strong> Punkte je Personentag</span>${calcBtn("rate")}</div></div>
           <div class="card" data-s="funktionen features produktionszugang projekte protokolle label abwesenheit"><h2>Funktionen</h2><div class="stack" style="gap:12px">
             ${sw("prod", "Produktionszugang", "Je Person ein Merkmal Produktionszugang, je Ticket ein Prod-Anteil (ohne Tickets ein PT-Wert je Sprint). Vorplanen und Planen vergleichen das mit der Zeit der Personen mit Zugang. Warnt, sperrt nicht.")}
@@ -378,8 +385,8 @@
             ${sw("absState", "Abwesenheiten angekündigt und bestätigt trennen", "Jede Zelle zeigt ihren Zustand.")}</div></div>
           <div class="card" data-s="budget basis anteil"><h2>Budgetbasis</h2><div class="stack">
             <label class="row" style="flex-wrap:nowrap"><input type="radio" name="basis" data-t="basis" value="forecast" ${d.basis === "forecast" ? "checked" : ""}><span><strong>Forecast PLAN</strong> <span class="small muted">(Standard)</span></span></label>
-            <label class="row" style="flex-wrap:nowrap"><input type="radio" name="basis" data-t="basis" value="capacity" ${d.basis === "capacity" ? "checked" : ""}><span><strong>Kapazität mal Rate</strong></span></label>
-            <div class="row small muted"><span>Beispiel Kundenportal 2026.22: <span class="data">${FS.fmt(Math.round(0.35 * fcOf("2026.22")))}</span> Punkte nach Forecast, <span class="data">${FS.fmt(Math.round(0.35 * FS.sprint("2026.22").capacityPD * D.rate))}</span> nach Kapazität</span>${calcBtn("basis")}</div></div></div>
+            <label class="row" style="flex-wrap:nowrap"><input type="radio" name="basis" data-t="basis" value="share" ${d.basis === "share" ? "checked" : ""}><span><strong>Nur verplanbarer Anteil</strong> <span class="small muted">(Kleinkram wird nicht auf Produkte verteilt)</span></span></label>
+            <div class="row small muted"><span>Beispiel Kundenportal 2026.22: <span class="data">${FS.fmt(Math.round(0.35 * fcOf("2026.22")))}</span> Punkte vom ganzen Forecast PLAN, <span class="data">${FS.fmt(Math.round(0.35 * fcOf("2026.22") * d.share / 100))}</span> vom verplanbaren Anteil (${d.share} %)</span>${calcBtn("basis")}</div></div></div>
           <div class="card" id="s-unit" data-s="einheit schätzung story points personentage umrechnung faktor sp pt"><h2>Schätzeinheit und Umrechnung</h2><div class="stack" style="gap:12px">
             <div class="stack" role="radiogroup" aria-label="Schätzeinheit" style="gap:6px"><div class="small muted">Worin schätzt das Team?</div>
               <label class="row" style="flex-wrap:nowrap"><input type="radio" name="unit" data-t="unit" value="sp" ${d.unit === "sp" ? "checked" : ""}><span><strong>Story Points</strong> <span class="small muted">(Standard)</span></span></label>
@@ -412,7 +419,7 @@
       });
       calcs(main, {
         rate: () => { const w = [1, 2, 3, 4]; const ps = D.sprints.filter((s) => s.state === "past"); calc("Rate aus dem Verlauf", [...ps.map((s, i) => [`${s.id}: ${s.velocity} Punkte / ${s.capacityPD} PT, Gewicht ${w[i]}`, FS.fmt(s.velocity / s.capacityPD, 2)]), ["gewichteter Mittelwert", FS.fmt(D.rate, 2)]], "Jüngere Sprints zählen stärker."); },
-        basis: () => { const s = FS.sprint("2026.22"); calc("Budgetbasis Kundenportal", [["Anteil", "35 %"], ["Forecast PLAN mal Anteil", `${f1(0.35 * s.forecast)} Punkte`], [`Kapazität ${s.capacityPD} PT mal Rate ${FS.fmt(D.rate, 2)} mal Anteil`, `${f1(0.35 * s.capacityPD * D.rate)} Punkte`]]); },
+        basis: () => { const s = FS.sprint("2026.22"), sh = S.teamDraft.share / 100; calc("Budgetbasis Kundenportal", [["Anteil Kundenportal", "35 %"], ["Forecast PLAN mal Anteil", `${f1(0.35 * s.forecast)} Punkte`], [`Forecast PLAN mal verplanbarer Anteil (${S.teamDraft.share} %) mal Anteil`, `${f1(0.35 * s.forecast * sh)} Punkte`]]); },
       });
     },
   });
