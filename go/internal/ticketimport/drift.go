@@ -60,3 +60,38 @@ func DetectDrift(frozen []string, tickets []model.Ticket, sprintID string) Drift
 	sort.Strings(d.Unknown)
 	return d
 }
+
+// AdditionalDone is the "additionally done" of the Review with a tracker: the tickets pulled in
+// after the freeze that are done, and the sum of their estimates (the estimate, as in the
+// velocity: what the ticket was estimated at, not what remained).
+type AdditionalDone struct {
+	// Keys are the done tickets pulled in after the freeze, sorted.
+	Keys []string
+	// Points is the sum of their estimates in the team's unit.
+	Points float64
+	// NoEstimate are those among Keys without an estimate (they add nothing to Points).
+	NoEstimate []string
+}
+
+// AdditionalDoneOf selects, from the tickets pulled in after the freeze (see DetectDrift), the
+// ones that are done and adds up their estimates. frozen nil (not frozen yet) gives nothing.
+func AdditionalDoneOf(frozen []string, tickets []model.Ticket, sprintID string) AdditionalDone {
+	var out AdditionalDone
+	byKey := map[string]model.Ticket{}
+	for _, t := range tickets {
+		byKey[t.Key] = t
+	}
+	for _, key := range DetectDrift(frozen, tickets, sprintID).PulledIn {
+		t := byKey[key]
+		if !t.Done {
+			continue
+		}
+		out.Keys = append(out.Keys, key)
+		if t.Estimate == nil {
+			out.NoEstimate = append(out.NoEstimate, key)
+			continue
+		}
+		out.Points += *t.Estimate
+	}
+	return out
+}
