@@ -107,17 +107,28 @@ jobs:
           ldflags="-s -w -X main.version=$version"
           exe=foresprint
           if [ "${{ matrix.goos }}" = linux ]; then tags=$tags,webkit2_41; fi
-          # Windows: no console window on a double click; the program attaches to the console of the
-          # caller (cmd/foresprint/console_windows.go).
-          if [ "${{ matrix.goos }}" = windows ]; then ldflags="$ldflags -H windowsgui"; exe=foresprint.exe; fi
+          # Windows: a console program (a terminal waits for it and shows its output); the window
+          # start releases the console again (cmd/foresprint/console_windows.go).
+          if [ "${{ matrix.goos }}" = windows ]; then exe=foresprint.exe; fi
           # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
           if [ "${{ matrix.goos }}" = darwin ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
           mkdir -p ../stage
           CGO_ENABLED=1 go build -trimpath -tags "$tags" -ldflags "$ldflags" -o "../stage/$exe" ./cmd/foresprint
           cp ../LICENSE ../stage/
+      - name: Console subsystem (Windows)
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        run: |
+          # PE header: subsystem 3 = console (2 would be a program without a console).
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path stage/foresprint.exe))
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 24 + 68)
+          if ($subsystem -ne 3) { throw "subsystem is $subsystem, expected 3 (console)" }
       - name: Smoke test
-        if: matrix.goos != 'windows'
-        run: ./stage/foresprint version
+        run: |
+          exe=./stage/foresprint; if [ "${{ matrix.goos }}" = windows ]; then exe=./stage/foresprint.exe; fi
+          out=$($exe --version); echo "$out"; test -n "$out"
+          $exe version
       - name: Archive
         run: |
           version="${TAG#v}"
