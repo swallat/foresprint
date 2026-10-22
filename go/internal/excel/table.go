@@ -51,7 +51,7 @@ func rowEmpty(row []string) bool {
 	return true
 }
 
-// cellText is the text of a cell value: whole numbers without decimals, dates as ISO dates.
+// tableText is the text of a cell value: whole numbers without decimals, dates as ISO dates.
 func tableText(v any) string {
 	switch x := v.(type) {
 	case nil:
@@ -64,7 +64,8 @@ func tableText(v any) string {
 		if x == math.Trunc(x) && math.Abs(x) < 1e15 {
 			return strconv.FormatInt(int64(x), 10)
 		}
-		return strconv.FormatFloat(x, 'f', -1, 64)
+		f, _ := strconv.ParseFloat(strconv.FormatFloat(x, 'g', 15, 64), 64) // Excel shows 15 digits
+		return strconv.FormatFloat(f, 'f', -1, 64)
 	case bool:
 		if x {
 			return "TRUE"

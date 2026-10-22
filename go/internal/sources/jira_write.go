@@ -1,9 +1,9 @@
 package sources
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 )
@@ -19,8 +19,6 @@ var (
 	backlogIssuePath = "/rest/agile/1.0/backlog/issue"
 	issueKeyPattern  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*-[0-9]+$`)
 )
-
-const forbiddenLabels = "Jira refuses the write (403): the account may not change labels of this ticket."
 
 // MaxMoveBatch is how many issues one request moves (the limit of the Jira API).
 const MaxMoveBatch = 50
@@ -118,12 +116,36 @@ func (j *JiraSource) moveIssues(path string, keys []string) error {
 			issues = append(issues, k)
 		}
 		if _, err := j.request(http.MethodPost, path, nil, map[string]any{"issues": issues}); err != nil {
-			var e *Error
-			if errors.As(err, &e) && e.Msg == T(forbiddenLabels) { // decodeWrite words the 403 for labels
-				return errorf("Jira refuses the write (403): the account may not edit sprints (needs the right to manage sprints).")
-			}
 			return err
 		}
 	}
 	return nil
+}
+
+// ListBoardSprints reads the open and future sprints of a board (GET only), so that a sprint
+// without any ticket yet can be the target of a write-back.
+func (j *JiraSource) ListBoardSprints(boardID int) ([]SprintValue, error) {
+	var out []SprintValue
+	for start := 0; ; {
+		params := url.Values{"state": {"active,future"}, "startAt": {strconv.Itoa(start)}, "maxResults": {"50"}}
+		answer, err := j.request(http.MethodGet, fmt.Sprintf("/rest/agile/1.0/board/%d/sprint", boardID), params, nil)
+		if err != nil {
+			return nil, err
+		}
+		page, ok := asObject(answer)
+		if !ok {
+			return nil, j.shapeError()
+		}
+		values, _ := asList(page["values"])
+		for _, v := range values {
+			if s, ok := ParseSprint(v); ok && s.ID != "" {
+				out = append(out, s)
+			}
+		}
+		if last, _ := page["isLast"].(bool); last || len(values) == 0 {
+			sortSprints(out)
+			return out, nil
+		}
+		start += len(values)
+	}
 }

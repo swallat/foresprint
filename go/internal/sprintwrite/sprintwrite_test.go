@@ -52,6 +52,7 @@ func input() Input {
 	return Input{
 		SprintID:  "2026.1",
 		Committed: []string{"A-1", "A-2", "A-4"},
+		TakenOut:  []string{"A-3"},
 		Tickets: []model.Ticket{
 			{Key: "A-1", Title: "in", InSprint: s("2026.1"), SprintName: s("2026.1")},
 			{Key: "A-2", Title: "backlog"},
@@ -93,7 +94,7 @@ func TestBuild(t *testing.T) {
 	if got := moves(Build(in)); got[1] != "A-3>2026.2" {
 		t.Fatalf("next: %v", got)
 	}
-	in.Committed = nil // not frozen: nothing is taken out, nothing is put in
+	in.Committed, in.TakenOut = nil, nil // nothing frozen, nothing taken out
 	if got := moves(Build(in)); len(got) != 0 {
 		t.Fatalf("unfrozen: %v", got)
 	}
@@ -150,5 +151,88 @@ func TestApplyStopsAtError(t *testing.T) {
 	res := Apply(p, f)
 	if res.Err == nil || len(res.Done) != 0 || len(res.Failed) != 3 {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestPulledInTicketStays(t *testing.T) {
+	in := input()
+	in.TakenOut = nil // A-3 is in the tracker's sprint but not on the list: drift, not taken out
+	for _, m := range Build(in).Moves {
+		if m.Key == "A-3" {
+			t.Fatalf("A-3 must stay: %+v", m)
+		}
+	}
+}
+
+func TestTrackerSprintDecidesNotToolId(t *testing.T) {
+	in := input()
+	in.Tickets[0].InSprint = nil // the tool sprint has ended, the tracker sprint is still active
+	for _, m := range Build(in).Moves {
+		if m.Key == "A-1" {
+			t.Fatalf("A-1 is in the tracker sprint already: %+v", m)
+		}
+	}
+}
+
+func TestEmptyBoardSprintIsATarget(t *testing.T) {
+	in := input()
+	in.Dir = NewDirectory(nil, in.Tracker)
+	if p := Build(in); len(p.Problems) != 1 {
+		t.Fatalf("unknown: %+v", p)
+	}
+	in.Dir.Add([]sources.SprintValue{{ID: "9", Name: "2026.1", State: "FUTURE"}})
+	if p := Build(in); len(p.Moves) == 0 {
+		t.Fatalf("board sprint: %+v", p)
+	}
+}
+
+type recorder struct {
+	calls   [][]string
+	failOn  int
+	counter int
+}
+
+func (r *recorder) MoveToSprint(_ int, keys []string) error {
+	r.counter++
+	if r.counter == r.failOn {
+		return errors.New("boom")
+	}
+	r.calls = append(r.calls, keys)
+	return nil
+}
+func (r *recorder) MoveToBacklog([]string) error { return nil }
+
+func TestBatchFailureKeepsWhatWentThrough(t *testing.T) {
+	target := Ref{ID: "5", Name: "2026.1"}
+	var p Plan
+	for i := 0; i < 120; i++ {
+		p.Moves = append(p.Moves, Move{Key: "A-" + itoaN(i+1), To: &target, FromKnown: true})
+	}
+	r := &recorder{failOn: 2}
+	res := Apply(p, r)
+	if res.Err == nil || len(res.Done) != 50 || len(res.Failed) != 70 {
+		t.Fatalf("done %d failed %d err %v", len(res.Done), len(res.Failed), res.Err)
+	}
+}
+
+func itoaN(i int) string {
+	s := ""
+	for ; i > 0; i /= 10 {
+		s = string(rune('0'+i%10)) + s
+	}
+	return s
+}
+
+func TestUndoSkipsUnknownAndClosed(t *testing.T) {
+	closed := Ref{ID: "4", Name: "old", State: "CLOSED"}
+	open := Ref{ID: "5", Name: "now"}
+	done := []Move{
+		{Key: "A-1", To: &open, From: nil, FromKnown: false},
+		{Key: "A-2", To: &open, From: &closed, FromKnown: true},
+		{Key: "A-3", To: &open, From: nil, FromKnown: true},
+	}
+	p := UndoPlan(done)
+	if len(p.Moves) != 1 || p.Moves[0].Key != "A-3" || p.Moves[0].To != nil || len(p.Problems) != 2 {
+		t.Fatalf("%+v", p)
 	}
 }

@@ -13,6 +13,9 @@ type Drift struct {
 	PulledIn []string
 	// Dropped are frozen tickets that are no longer in the tracker's sprint (and not done).
 	Dropped []string
+	// Unknown are frozen tickets the last import did not return at all (for example finished
+	// ones, if the query leaves them out): nothing is known about them.
+	Unknown []string
 }
 
 // DetectDrift compares the frozen list of the sprint with the tickets of the last import.
@@ -37,13 +40,23 @@ func DetectDrift(frozen []string, tickets []model.Ticket, sprintID string) Drift
 			}
 		}
 	}
+	listed := map[string]bool{}
 	for _, k := range frozen {
-		if t, ok := known[k]; ok && (inSprint[k] || t.Done) {
+		if listed[k] {
 			continue
 		}
-		d.Dropped = append(d.Dropped, k)
+		listed[k] = true
+		t, ok := known[k]
+		switch {
+		case !ok:
+			d.Unknown = append(d.Unknown, k)
+		case inSprint[k] || t.Done:
+		default:
+			d.Dropped = append(d.Dropped, k)
+		}
 	}
 	sort.Strings(d.PulledIn)
 	sort.Strings(d.Dropped)
+	sort.Strings(d.Unknown)
 	return d
 }

@@ -40,6 +40,25 @@ func NewDirectory(known []sources.SprintValue, tracker model.TrackerSettings) Di
 	return d
 }
 
+// Add makes further tracker sprints known, for example the sprints of a board that hold no ticket
+// yet (JiraSource.ListBoardSprints). A sprint already known is kept as it is.
+func (d *Directory) Add(known []sources.SprintValue) {
+	for _, s := range known {
+		if _, ok := d.byID(s.ID); !ok {
+			d.sprints = append(d.sprints, Ref{ID: s.ID, Name: s.Name, State: s.State})
+		}
+	}
+}
+
+func (d Directory) byID(id string) (Ref, bool) {
+	for _, r := range d.sprints {
+		if r.ID == id {
+			return r, true
+		}
+	}
+	return Ref{}, false
+}
+
 // ByName finds a tracker sprint by its name.
 func (d Directory) ByName(name string) (Ref, bool) {
 	for _, r := range d.sprints {
@@ -83,9 +102,11 @@ type Move struct {
 	Key    string
 	Title  string
 	Reason Reason
-	// From is where the ticket is now (nil = backlog or unknown).
-	From *Ref
-	To   *Ref
+	// From is where the ticket is now: nil with FromKnown = the backlog; FromKnown false = a
+	// place the directory does not know (an undo cannot go back there).
+	From      *Ref
+	FromKnown bool
+	To        *Ref
 	// Skip leaves the move out (the per-ticket opt-out of the preview).
 	Skip bool
 }
@@ -101,11 +122,14 @@ type Plan struct {
 type Input struct {
 	// SprintID is the sprint of the tool that is written.
 	SprintID string
-	// Committed is the list frozen at Planning; nil = not frozen (nothing is taken out then).
+	// Committed is the list frozen at Planning; nil = not frozen (nothing is put in then).
 	Committed []string
-	Tickets   []model.Ticket
-	Tracker   model.TrackerSettings
-	Dir       Directory
+	// TakenOut are the tickets that were in the tracker's sprint but taken out in planning (the
+	// list "adjust in Jira"). Tickets pulled in after the freeze are drift, never taken out.
+	TakenOut []string
+	Tickets  []model.Ticket
+	Tracker  model.TrackerSettings
+	Dir      Directory
 	// ProForma are the names of the pro-forma sprints; NextSprintID is the sprint after SprintID.
 	ProForma     []string
 	NextSprintID string
@@ -128,40 +152,51 @@ func Build(in Input) Plan {
 	for _, t := range in.Tickets {
 		byKey[t.Key] = t
 	}
-	from := func(t model.Ticket) *Ref {
-		if t.SprintName == nil {
-			return nil
+	from := func(t model.Ticket) (*Ref, bool) {
+		if t.SprintName == nil || *t.SprintName == "" {
+			return nil, true
 		}
 		if r, ok := in.Dir.ByName(*t.SprintName); ok {
-			return &r
+			return &r, true
 		}
-		return nil
+		return nil, false
 	}
-	committed := map[string]bool{}
+	// The tracker's sprint decides, not the tool's sprint id (that is cleared once the sprint
+	// of the tool has ended).
+	inTarget := func(t model.Ticket) bool {
+		return t.SprintName != nil && *t.SprintName == target.Name ||
+			t.InSprint != nil && *t.InSprint == in.SprintID
+	}
+	seenKey := map[string]bool{}
 	for _, key := range in.Committed {
-		committed[key] = true
+		if seenKey[key] {
+			continue
+		}
+		seenKey[key] = true
 		t, known := byKey[key]
 		switch {
 		case !known:
 			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: not in the ticket list, cannot be moved", key))
-		case t.Done || (t.InSprint != nil && *t.InSprint == in.SprintID):
+		case t.Done || inTarget(t):
 		default:
-			plan.Moves = append(plan.Moves, Move{Key: key, Title: t.Title, Reason: Committed, From: from(t), To: &target})
+			ref, ok := from(t)
+			plan.Moves = append(plan.Moves, Move{Key: key, Title: t.Title, Reason: Committed, From: ref, FromKnown: ok, To: &target})
 		}
 	}
-	if in.Committed != nil {
+	if len(in.TakenOut) > 0 {
 		removed, problem := removedTarget(in)
 		if problem != "" {
 			plan.Problems = append(plan.Problems, problem)
 		}
-		for _, t := range in.Tickets {
-			if t.InSprint == nil || *t.InSprint != in.SprintID || committed[t.Key] || t.Done {
+		seenOut := map[string]bool{}
+		for _, key := range in.TakenOut {
+			t, known := byKey[key]
+			if seenOut[key] || problem != "" || !known || t.Done || !inTarget(t) || seenKey[key] {
 				continue
 			}
-			if problem != "" {
-				continue
-			}
-			plan.Moves = append(plan.Moves, Move{Key: t.Key, Title: t.Title, Reason: TakenOut, From: from(t), To: removed})
+			seenOut[key] = true
+			ref, ok := from(t)
+			plan.Moves = append(plan.Moves, Move{Key: key, Title: t.Title, Reason: TakenOut, From: ref, FromKnown: ok, To: removed})
 		}
 	}
 	sort.SliceStable(plan.Moves, func(i, j int) bool { return plan.Moves[i].Key < plan.Moves[j].Key })
@@ -229,36 +264,49 @@ func Apply(plan Plan, mover Mover) Result {
 	}
 	var res Result
 	for i, g := range groups {
-		keys := make([]string, len(g.moves))
-		for k, m := range g.moves {
-			keys[k] = m.Key
-		}
-		var err error
-		if g.to == nil {
-			err = mover.MoveToBacklog(keys)
-		} else if id, convErr := strconv.Atoi(g.to.ID); convErr != nil {
-			err = fmt.Errorf("sprint %q has no usable id", g.to.Name)
-		} else {
-			err = mover.MoveToSprint(id, keys)
-		}
-		if err != nil {
-			res.Err = err
-			for _, rest := range groups[i:] {
-				res.Failed = append(res.Failed, rest.moves...)
+		for start := 0; start < len(g.moves); start += sources.MaxMoveBatch {
+			batch := g.moves[start:min(start+sources.MaxMoveBatch, len(g.moves))]
+			keys := make([]string, len(batch))
+			for k, m := range batch {
+				keys[k] = m.Key
 			}
-			return res
+			var err error
+			if g.to == nil {
+				err = mover.MoveToBacklog(keys)
+			} else if id, convErr := strconv.Atoi(g.to.ID); convErr != nil {
+				err = fmt.Errorf("sprint %q has no usable id", g.to.Name)
+			} else {
+				err = mover.MoveToSprint(id, keys)
+			}
+			if err != nil {
+				// What went through stays in Done (and can be undone); the rest failed.
+				res.Err = err
+				res.Failed = append(res.Failed, g.moves[start:]...)
+				for _, rest := range groups[i+1:] {
+					res.Failed = append(res.Failed, rest.moves...)
+				}
+				return res
+			}
+			res.Done = append(res.Done, batch...)
 		}
-		res.Done = append(res.Done, g.moves...)
 	}
 	return res
 }
 
-// UndoPlan reverses moves that went through: every ticket goes back to where it was.
+// UndoPlan reverses moves that went through: every ticket goes back to where it was. A ticket
+// whose earlier place is unknown or a closed sprint cannot go back; it is named in Problems.
 func UndoPlan(done []Move) Plan {
 	var plan Plan
 	for i := len(done) - 1; i >= 0; i-- {
 		m := done[i]
-		plan.Moves = append(plan.Moves, Move{Key: m.Key, Title: m.Title, Reason: Undo, From: m.To, To: m.From})
+		switch {
+		case !m.FromKnown:
+			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: its earlier place is unknown, it stays where it is", m.Key))
+		case m.From != nil && m.From.Closed():
+			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: its earlier sprint %q is closed, it stays where it is", m.Key, m.From.Name))
+		default:
+			plan.Moves = append(plan.Moves, Move{Key: m.Key, Title: m.Title, Reason: Undo, From: m.To, FromKnown: true, To: m.From})
+		}
 	}
 	return plan
 }

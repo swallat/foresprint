@@ -8,10 +8,13 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
+
+	"golang.org/x/text/encoding/charmap"
 
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pytext"
@@ -148,6 +151,15 @@ func ParseTable(rows [][]string, opts Options) Result {
 	prefix := Prefix(opts.Tracker)
 	all := append([]model.Ticket(nil), opts.Existing...)
 	seen := map[string]int{}
+	ranked := append([]model.Ticket(nil), opts.Existing...)
+	// Keys the table names itself are reserved first, so a generated key never takes one.
+	for _, row := range rows[1:] {
+		if i, ok := columns["key"]; ok && i < len(row) {
+			if k := pytext.Strip(row[i]); k != "" {
+				all = append(all, model.Ticket{Key: k})
+			}
+		}
+	}
 	cell := func(row []string, field string) string {
 		if i, ok := columns[field]; ok && i < len(row) {
 			return pytext.Strip(row[i])
@@ -175,12 +187,12 @@ func ParseTable(rows [][]string, opts Options) Result {
 			seen[t.Key] = line
 		}
 		if s := cell(row, "estimate"); s != "" {
-			f, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", "."), 64)
-			if err != nil || f < 0 || math.IsNaN(f) || math.IsInf(f, 0) {
+			f, err := sources.ParseNumber(s)
+			if err != nil || f == nil || *f < 0 {
 				res.Problems = append(res.Problems, Problem{Row: line, Msg: sources.T("The estimate {value} is not a non-negative number", "value", s)})
 				continue
 			}
-			t.Estimate = &f
+			t.Estimate = f
 		}
 		set := func(dst **string, field string) {
 			if v := cell(row, field); v != "" {
@@ -202,7 +214,9 @@ func ParseTable(rows [][]string, opts Options) Result {
 			if opts.Tracker.RefinedLabel != nil && *opts.Tracker.RefinedLabel != "" {
 				label = *opts.Tracker.RefinedLabel
 			}
-			t.Labels = append(t.Labels, label)
+			if !slices.Contains(t.Labels, label) {
+				t.Labels = append(t.Labels, label)
+			}
 		}
 		t.Done = truthy(cell(row, "done"))
 		if t.Status != nil {
@@ -214,10 +228,11 @@ func ParseTable(rows [][]string, opts Options) Result {
 		}
 		if t.Key == "" {
 			t.Key = NextKey(all, prefix)
+			all = append(all, model.Ticket{Key: t.Key})
 		}
-		rank := RankAfter(all)
+		rank := RankAfter(ranked)
 		t.Rank = &rank
-		all = append(all, t)
+		ranked = append(ranked, t)
 		res.Packages = append(res.Packages, t)
 	}
 	return res
@@ -253,12 +268,18 @@ func truthy(s string) bool {
 }
 
 // ReadCSV reads a CSV table; the delimiter (comma, semicolon or tab) is guessed from the header
-// line and a byte order mark is dropped.
+// line, a byte order mark is dropped and text that is not UTF-8 is read as Windows-1252 (what
+// German Excel writes as "CSV").
 func ReadCSV(raw []byte) ([][]string, error) {
 	raw = bytes.TrimPrefix(raw, []byte("\xef\xbb\xbf"))
+	if !utf8.Valid(raw) {
+		if decoded, err := charmap.Windows1252.NewDecoder().Bytes(raw); err == nil {
+			raw = decoded
+		}
+	}
 	first, _, _ := bytes.Cut(raw, []byte("\n"))
 	r := csv.NewReader(bytes.NewReader(raw))
-	r.Comma = sources.SniffDelimiter(string(first))
+	r.Comma = delimiter(string(first))
 	r.FieldsPerRecord = -1
 	r.LazyQuotes = true
 	var rows [][]string
@@ -329,4 +350,15 @@ func mergeOne(old, in model.Ticket) model.Ticket {
 	}
 	out.Done = in.Done || old.Done && in.Status == nil
 	return out
+}
+
+// delimiter is the separator that occurs most in the header line: semicolon, tab or comma.
+func delimiter(header string) rune {
+	best, count := ',', strings.Count(header, ",")
+	for _, c := range []rune{';', '\t'} {
+		if n := strings.Count(header, string(c)); n > count {
+			best, count = c, n
+		}
+	}
+	return best
 }

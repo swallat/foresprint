@@ -1,7 +1,6 @@
 package ticketimport
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -52,13 +51,11 @@ func MappedRuleFields(t model.TrackerSettings) []sources.RuleField {
 // "1" is 1 percent). Anything else is no value.
 func ParsePercent(values []string) (float64, bool) {
 	for _, v := range values {
-		text := strings.TrimSpace(strings.TrimSuffix(pytext.Strip(v), "%"))
-		text = strings.ReplaceAll(text, ",", ".")
-		f, err := strconv.ParseFloat(text, 64)
-		if err != nil || f != f || f < 0 || f > 100 {
+		f, err := sources.ParseNumber(strings.TrimSuffix(pytext.Strip(v), "%"))
+		if err != nil || f == nil || *f < 0 || *f > 100 {
 			continue
 		}
-		return f, true
+		return *f, true
 	}
 	return 0, false
 }
@@ -156,6 +153,20 @@ func matchByIDOrName(value string, ids, names []string) (string, bool) {
 // is matched against the id or the name of the projects and products; a value that matches
 // nothing leaves the decision to the rules.
 func applyMappedAssignment(t *model.Ticket, env Env) {
+	// What the PO decided for the ticket wins over the field and the rules (decisions 5 and 21).
+	override := env.Preplan.OverrideFor(t.Key)
+	if override != nil {
+		defer func() {
+			if override.Project != nil {
+				t.Project, t.ProjectCandidates = override.Project, []string{}
+			} else if override.Daily {
+				t.Project, t.ProjectCandidates = nil, []string{}
+			}
+			if override.Product != nil {
+				t.Product = override.Product
+			}
+		}()
+	}
 	if env.Tracker.Fields.Project != nil {
 		if values, ok := t.Extra.Get(MapProject); ok {
 			ids, names := make([]string, len(env.Projects)), make([]string, len(env.Projects))

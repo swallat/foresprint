@@ -150,10 +150,41 @@ func TestDetectDrift(t *testing.T) {
 	in := func(k string) model.Ticket { return model.Ticket{Key: k, InSprint: str("2026.1")} }
 	tickets := []model.Ticket{in("A-1"), in("A-9"), {Key: "A-2"}, {Key: "A-3", Done: true}}
 	d := DetectDrift([]string{"A-1", "A-2", "A-3", "A-7"}, tickets, "2026.1")
-	if !reflect.DeepEqual(d.PulledIn, []string{"A-9"}) || !reflect.DeepEqual(d.Dropped, []string{"A-2", "A-7"}) {
+	if !reflect.DeepEqual(d.PulledIn, []string{"A-9"}) || !reflect.DeepEqual(d.Dropped, []string{"A-2"}) ||
+		!reflect.DeepEqual(d.Unknown, []string{"A-7"}) {
 		t.Fatalf("%+v", d)
 	}
 	if d := DetectDrift(nil, tickets, "2026.1"); len(d.PulledIn)+len(d.Dropped) != 0 {
 		t.Fatalf("unfrozen: %+v", d)
+	}
+}
+
+func TestHandOverrideWinsOverMappedFields(t *testing.T) {
+	tracker := model.TrackerSettings{}
+	tracker.Fields.Project = str("Projekt")
+	tracker.Fields.Product = str("Produkt")
+	env := Env{
+		Tracker:  tracker,
+		Projects: []model.Project{{ID: "p1", Name: "Relaunch"}, {ID: "p2", Name: "Other"}},
+		Products: []model.Product{{ID: "shop", Name: "Webshop"}},
+		Sprints:  noSprints{},
+		Preplan: model.Preplan{Overrides: []model.TicketOverride{
+			{Ticket: "A-1", Project: str("p2")}, {Ticket: "A-2", Daily: true}, {Ticket: "A-3", Product: str("app")},
+		}},
+	}
+	raw := func(key string) sources.RawTicket {
+		return sources.RawTicket{Key: key, Extra: map[string][]string{MapProject: {"relaunch"}, MapProduct: {"webshop"}}}
+	}
+	if tk := Convert(raw("A-1"), env); *tk.Project != "p2" {
+		t.Errorf("project override: %v", tk.Project)
+	}
+	if tk := Convert(raw("A-2"), env); tk.Project != nil {
+		t.Errorf("daily override: %v", *tk.Project)
+	}
+	if tk := Convert(raw("A-3"), env); *tk.Product != "app" || *tk.Project != "p1" {
+		t.Errorf("product override: %v %v", tk.Product, tk.Project)
+	}
+	if tk := Convert(raw("A-4"), env); *tk.Project != "p1" || *tk.Product != "shop" {
+		t.Errorf("no override: %v %v", tk.Project, tk.Product)
 	}
 }

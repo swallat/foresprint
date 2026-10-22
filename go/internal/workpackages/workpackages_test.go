@@ -83,3 +83,34 @@ func TestMerge(t *testing.T) {
 		t.Errorf("merged %+v", out[0])
 	}
 }
+
+func TestReadCSVTabAndWindows1252(t *testing.T) {
+	rows, err := ReadCSV([]byte("Titel\tSch\xe4tzung\nA\t1\n"))
+	if err != nil || len(rows) != 2 || rows[0][1] != "Schätzung" || rows[1][1] != "1" {
+		t.Fatalf("%v %v", rows, err)
+	}
+}
+
+func TestExplicitKeyIsNotTakenByAGeneratedOne(t *testing.T) {
+	rows := [][]string{{"Key", "Titel"}, {"", "Auto"}, {"AP-1", "Explicit"}}
+	res := ParseTable(rows, Options{})
+	if len(res.Packages) != 2 || res.Packages[0].Key == "AP-1" || res.Packages[1].Key != "AP-1" {
+		t.Fatalf("%+v", res.Packages)
+	}
+}
+
+func TestEstimateSeparators(t *testing.T) {
+	rows := [][]string{{"Titel", "Schätzung"}, {"a", "1.234,5"}, {"b", "1,000.5"}, {"c", "0x1p3"}}
+	res := ParseTable(rows, Options{})
+	if len(res.Packages) != 2 || *res.Packages[0].Estimate != 1234.5 || *res.Packages[1].Estimate != 1000.5 || len(res.Problems) != 1 {
+		t.Fatalf("%+v %+v", res.Packages, res.Problems)
+	}
+}
+
+func TestRefinedLabelOnlyOnce(t *testing.T) {
+	rows := [][]string{{"Titel", "Labels", "Bereit"}, {"a", "refined, x", "ja"}}
+	res := ParseTable(rows, Options{})
+	if got := res.Packages[0].Labels; !reflect.DeepEqual(got, []string{"refined", "x"}) {
+		t.Fatalf("%v", got)
+	}
+}
