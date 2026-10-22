@@ -25,7 +25,7 @@
     return onchange([...others, ...list]);
   }
 
-  function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input?: HTMLInputElement) {
+  function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input: HTMLInputElement | null = null) {
     const next = { ...a, ...patch };
     if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
     if (next.from === '' || next.to === '' || next.to < next.from) {
