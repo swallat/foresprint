@@ -91,11 +91,12 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 	}
 	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	out := TodayData{
-		Date:    day.Format("2006-01-02"),
-		Team:    team,
-		Name:    data.Team.Name,
-		Source:  sourceOf(data.Team),
-		Sprints: todaySprints(data, day),
+		Date:     day.Format("2006-01-02"),
+		Team:     team,
+		Name:     data.Team.Name,
+		Source:   sourceOf(data.Team),
+		Sprints:  todaySprints(data, day),
+		Findings: []TodayFinding{},
 	}
 	issues := validate.CheckTeam(data, day)
 	sort.SliceStable(issues, func(i, j int) bool { return issues[i].Level == validate.Error && issues[j].Level != validate.Error })
