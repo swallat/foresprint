@@ -4,6 +4,7 @@
 import type { Api } from './api';
 import type { ForecastRow, ForecastView, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
 import type { Prefs, SprintInfo } from './types';
 import type { TodayData, TodaySprint } from './types.today';
@@ -121,6 +122,7 @@ function today(): TodayData {
 }
 
 export const mockApi: Api = {
+  ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
   async Info() {

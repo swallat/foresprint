@@ -7,10 +7,11 @@
 import type { ForecastApi } from './types.forecast';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { DataApi } from './types.data';
+import type { ReviewApi } from './types.review';
 import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends DataApi, SprintsApi, TodayApi, ForecastApi {
+export interface Api extends DataApi, ReviewApi, SprintsApi, TodayApi, ForecastApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;

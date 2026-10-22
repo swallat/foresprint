@@ -38,6 +38,9 @@ type API struct {
 	dataDir string
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
+	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
+	tagMu sync.Mutex
+	tags  []string
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
