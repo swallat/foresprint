@@ -2,6 +2,8 @@ package app
 
 import (
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/swallat/foresprint/internal/datasvc"
 	"github.com/swallat/foresprint/internal/i18n"
@@ -20,9 +22,12 @@ type demoState struct {
 // EnterDemo writes Team Atlas into a throwaway folder and makes it the data folder, until
 // LeaveDemo. Nothing is remembered in the settings of the person. It returns the key of the team.
 func (a *API) EnterDemo(lang string) (string, error) {
+	a.enterMu.Lock() // two overlapping calls would lose the folder to go back to
+	defer a.enterMu.Unlock()
 	a.mu.Lock()
 	if a.demo.on { // start over with fresh data
 		a.dropDemoLocked()
+		a.data.SetFolder(a.dataDir)
 	}
 	a.mu.Unlock()
 	dir, err := os.MkdirTemp("", "foresprint-demo-")
@@ -87,4 +92,15 @@ func demoStatus() Status {
 // demoResult is the answer of Save, Refresh and the tracker sync in the demo.
 func demoResult() Result {
 	return Result{OK: true, Message: i18n.T("This is demo data: nothing is saved or shared.")}
+}
+
+// sweepDemos removes demo folders a former run left behind (the program was closed in the demo);
+// a day old ones only, another window may still use a younger one.
+func sweepDemos() {
+	old, _ := filepath.Glob(filepath.Join(os.TempDir(), "foresprint-demo-*"))
+	for _, dir := range old {
+		if info, err := os.Stat(dir); err == nil && time.Since(info.ModTime()) > 24*time.Hour {
+			_ = os.RemoveAll(dir)
+		}
+	}
 }

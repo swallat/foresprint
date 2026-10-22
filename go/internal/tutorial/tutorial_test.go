@@ -53,3 +53,16 @@ func TestCurrentSprintContainsToday(t *testing.T) {
 		}
 	}
 }
+
+func TestMonthsStayDistinctAtMonthEnds(t *testing.T) {
+	for _, day := range []time.Time{time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC), time.Date(2027, 3, 29, 0, 0, 0, 0, time.UTC)} {
+		seen := map[string]bool{}
+		for m := -1; m <= 3; m++ {
+			k := monthAt(day, m).Format("2006-01")
+			if seen[k] {
+				t.Errorf("%s: month %s twice", day.Format("2006-01-02"), k)
+			}
+			seen[k] = true
+		}
+	}
+}

@@ -46,7 +46,7 @@ func Write(root string, today time.Time, lang string) error {
 		"perMonth": func(each float64, months ...int) string {
 			parts := make([]string, len(months))
 			for i, m := range months {
-				parts[i] = fmt.Sprintf("%s: %g", current.AddDate(0, m, 0).Format("2006-01"), each)
+				parts[i] = fmt.Sprintf("%s: %g", monthAt(current, m).Format("2006-01"), each)
 			}
 			return "{" + strings.Join(parts, ", ") + "}"
 		},
@@ -91,6 +91,11 @@ func currentStart(today time.Time) time.Time {
 	return d.AddDate(0, 0, -back)
 }
 
+// monthAt is the first day of the month m months from t (AddDate would spill 31 Sep into October).
+func monthAt(t time.Time, m int) time.Time {
+	return time.Date(t.Year(), t.Month()+time.Month(m), 1, 0, 0, 0, 0, time.UTC)
+}
+
 func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
 
 // history are the figures of the six finished sprints: capacity, velocity, planned and done per
@@ -103,7 +108,7 @@ var history = []struct {
 	{36, 28, 2, [4]float64{10, 6, 7, 5}, "  anna: 2\n  cem: 1\n"},
 	{38, 31, 3, [4]float64{11, 7, 7, 6}, "  ben: 3\n"},
 	{34, 27, 2, [4]float64{9, 6, 6, 6}, "  dora: 4\n  cem: 1\n"},
-	{37, 30, 3, [4]float64{10, 7, 7, 6}, "  anna: 1\n"},
+	{37, 30, 3, [4]float64{10, 7, 7, 6}, "  anna: 3\n"},
 	{35, 29, 2, [4]float64{10, 6, 7, 6}, "  ben: 2\n  dora: 1\n"},
 	{36, 30, 3, [4]float64{11, 6, 7, 6}, "  cem: 2\n"},
 }
@@ -115,12 +120,12 @@ func sprintYAML(i int, id string, start time.Time) string {
 	fmt.Fprintf(&b, "id: '%s'\nstart: %s\nend: %s\n", id, start.Format("2006-01-02"), start.AddDate(0, 0, sprintDays).Format("2006-01-02"))
 	if i > len(history) {
 		// The next sprint: nothing known yet, so Today asks for its preparation.
-		b.WriteString("absences: {}\n")
+		b.WriteString("absence_state: expected\nabsences: {}\nexpected_absences:\n  anna: 5\n  dora: 3\n")
 		return b.String()
 	}
 	if i == len(history) {
 		// The current sprint: absences announced and confirmed per person, nothing frozen.
-		b.WriteString("absence_state: open\nabsences:\n  cem: 3\nexpected_absences:\n  ben: 2\n  dora: 3\n")
+		b.WriteString("absence_state: open\nabsences:\n  cem: 3\nexpected_absences:\n  ben: 2\n")
 		b.WriteString("products:\n  portal: {preplanned: 10}\n  mobile: {preplanned: 6}\n  billing: {preplanned: 7}\n  platform: {preplanned: 6}\n")
 		b.WriteString("preplanned: 29\n")
 		return b.String()
