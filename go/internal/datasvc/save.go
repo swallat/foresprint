@@ -20,7 +20,7 @@ var protectedRe = regexp.MustCompile(`(?i)protected branch|GH006|not allowed to 
 // uploads, in one step (D2). If the server only takes merge requests, the work goes to a branch of
 // the person's own and the result carries the link (D4).
 func (s *Store) Save(opts SaveOptions) Result {
-	return s.share(gitsync.SyncOptions{Message: s.messageOf(opts.Message), AllowInvalid: opts.SaveAnyway})
+	return s.share(gitsync.SyncOptions{Message: s.messageOf(opts.Message), AllowInvalid: opts.SaveAnyway, Tags: opts.Tags})
 }
 
 // Refresh takes over what others have saved, without uploading anything (D2).

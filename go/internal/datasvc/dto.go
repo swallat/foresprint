@@ -110,6 +110,8 @@ type SaveOptions struct {
 	Message string `json:"message"`
 	// SaveAnyway shares even if the merged data has errors (the list of D2).
 	SaveAnyway bool `json:"saveAnyway"`
+	// Tags name the saved state (set with the save, uploaded with it).
+	Tags []string `json:"tags,omitempty"`
 }
 
 // Result is the result of Save and Refresh.

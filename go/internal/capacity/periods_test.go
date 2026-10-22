@@ -35,7 +35,7 @@ func TestApplyPeriods(t *testing.T) {
 
 	t.Run("announced and confirmed periods", func(t *testing.T) {
 		periods := periodsOf(map[string][]model.AbsencePeriod{
-			// a: Mon-Wed announced (3 days) + Tue-Thu confirmed (3 days): Tue, Wed count once, as confirmed
+			// a: Mon-Wed announced (3 days) + Tue-Thu confirmed (3 days): Tue, Wed count once
 			"a": {
 				{From: day(2026, 10, 5), To: day(2026, 10, 7)},
 				{From: day(2026, 10, 6), To: day(2026, 10, 8), Confirmed: true},
@@ -44,14 +44,14 @@ func TestApplyPeriods(t *testing.T) {
 			"b": {{From: day(2026, 10, 10), To: day(2026, 10, 12)}},
 		}, "a", "b")
 		got := capacity.ApplyPeriods(&team, people, periods, sprint).Sprint
-		// confirmed makes the sprint confirmed, so announced days count with the absences
-		if got.Absences["a"] != 4 || got.Absences["b"] != 1 || got.ExpectedAbsences != nil {
+		// decision G1: in an open sprint a period only announces, confirmed or not
+		if got.ExpectedAbsences["a"] != 4 || got.ExpectedAbsences["b"] != 1 || len(got.Absences) != 0 {
 			t.Errorf("absences %v expected %v", got.Absences, got.ExpectedAbsences)
 		}
 		if sprint.Absences != nil || sprint.ExpectedAbsences != nil {
 			t.Error("the stored sprint was changed")
 		}
-		if got.AbsenceStatus() != model.AbsencesConfirmed {
+		if got.AbsenceStatus() != model.AbsencesExpected {
 			t.Errorf("status %v", got.AbsenceStatus())
 		}
 	})
@@ -88,7 +88,7 @@ func TestApplyPeriods(t *testing.T) {
 		periods := periodsOf(map[string][]model.AbsencePeriod{
 			"a": {{From: day(2026, 10, 5), To: day(2026, 10, 9), Confirmed: true}},
 		}, "a")
-		got := capacity.Sprint(&team, people, capacity.ApplyPeriods(&team, people, periods, sprint).Sprint, 0).Capacity
+		got := capacity.WithOpenAbsences(&team, people, capacity.ApplyPeriods(&team, people, periods, sprint).Sprint)
 		if got != base-5 {
 			t.Errorf("capacity %v, want %v", got, base-5)
 		}
