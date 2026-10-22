@@ -110,6 +110,7 @@
       const sum = Math.round(FS.sum(D.products, (p) => p.share) * 100);
       const rd = S.ruleDraft;
       return `${head("Produkte", "Produkte mit Product Owner, Anteil am Sprint und Regel, die Tickets zuordnet.", `<button class="btn" type="button" data-act="add">${ic("add")}Produkt hinzufügen</button>`)}
+        ${FS.multiProduct() ? "" : `<div class="banner info">${ic("info")}<div class="grow"><strong>Ein Produkt:</strong> Alle Tickets gehören dem Team, Zuordnungsregeln, Budgets und Bilanz je Produkt sind ausgeblendet. Mit einem zweiten Produkt erscheinen sie überall automatisch.</div></div>`}
         ${sum !== 100 ? `<div class="banner warn">${ic("error")}<div class="grow">Die Anteile ergeben <strong class="data">${sum} %</strong>, nicht 100 %. Der Rest wird im Standardanteil nicht verteilt.</div></div>` : ""}
         <div class="tw"><table class="t"><thead><tr><th>Produkt</th><th>Product Owner</th><th class="num">Anteil</th><th>Zuordnungsregel</th><th class="num">Tickets</th><th class="num" title="Forecast 2026.22 mal Anteil">Standard 2026.22</th><th></th></tr></thead><tbody>
           ${D.products.map((p) => { const r = S.rules[p.id]; return `<tr><td>${FS.productChip(p.id)}</td><td><select class="input" data-po="${p.id}" aria-label="PO ${esc(p.name)}">${D.pos.map((o) => `<option value="${o.id}" ${o.id === p.po ? "selected" : ""}>${esc(o.name)}</option>`).join("")}</select></td>

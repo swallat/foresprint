@@ -188,13 +188,13 @@
     ${light ? `<div class="banner warn">${ic("flag")}<div class="grow"><strong>${light} von ${D.projects.length} Projekten</strong> sind knapp oder gefährdet. Details in der Tabelle und in der Konfliktansicht darunter.</div></div>` : ""}
     <div class="card pf-timeline"><h2>Zeitachse bis Ende Januar</h2><div class="pf-scroll">${timelineSvg()}</div>
       <div class="pf-legend"><span><i class="pf-sw bar"></i>Laufzeit bis Ende</span><span>${ic("check_circle")}Meilenstein im Plan</span><span>${ic("error")}knapp</span><span>${ic("cancel")}gefährdet</span><span><i class="pf-sw" style="border-color:var(--highlight);border-top-width:3px"></i>heute</span><span>Klick auf eine Zeile öffnet das Projekt</span></div></div>
-    <h2 style="margin:24px 0 8px">Kontingent und Produkte</h2>
-    <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th>Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PT)</th><th class="num">verbraucht (PT)</th><th class="num">geplant (PT)</th><th>Verbrauch</th></tr></thead><tbody>
-      ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a></td><td>${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
+    <h2 style="margin:24px 0 8px">${FS.multiProduct() ? "Kontingent und Produkte" : "Kontingent"}</h2>
+    <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th class="only-multiprod">Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PT)</th><th class="num">verbraucht (PT)</th><th class="num">geplant (PT)</th><th>Verbrauch</th></tr></thead><tbody>
+      ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a></td><td class="only-multiprod">${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
         <td class="num">${fmt(p.contingentPD)}</td><td class="num">${fmt(st.used)}</td><td class="num">${fmt(st.plannedPD, 1)} ${calcBtn("proj", p.id)}</td><td>${meter(p, st)}</td></tr>`; }).join("")}
-      <tr class="pf-sub"><td colspan="8">Tagesgeschäft je Produkt, ohne Ampel: Budget aus der Vorplanung, nicht aus einem Projekt</td></tr>
+      <tr class="pf-sub"><td colspan="8">${FS.multiProduct() ? "Tagesgeschäft je Produkt" : "Tagesgeschäft"}, ohne Ampel: Budget aus der Vorplanung, nicht aus einem Projekt</td></tr>
       ${D.products.map((pr) => { const sid = "2026.22"; const budget = pd(D.productPlan[sid][pr.id].pre); const used = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === "2026.21"), (t) => t.est)); const planned = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === sid), (t) => t.est));
-        return `<tr><td>${FS.projectChip(null)}</td><td>${FS.productChip(pr.id)}</td><td class="muted">laufend</td><td class="muted">${ic("remove")}keine Ampel</td><td class="num">${fmt(budget, 1)}</td><td class="num">${fmt(used, 1)}</td><td class="num">${fmt(planned, 1)}</td>
+        return `<tr><td>${FS.projectChip(null)}</td><td class="only-multiprod">${FS.productChip(pr.id)}</td><td class="muted">laufend</td><td class="muted">${ic("remove")}keine Ampel</td><td class="num">${fmt(budget, 1)}</td><td class="num">${fmt(used, 1)}</td><td class="num">${fmt(planned, 1)}</td>
           <td><span class="small muted">Budget je Sprint ${sid}; verbraucht = Sprint 2026.21</span></td></tr>`; }).join("")}
     </tbody></table></div>
     <p class="small muted" style="margin:8px 0 0">${est} Geplante und zugeordnete PT sind aus Punkten berechnet: Punkte geteilt durch ${rateTxt()} Punkte je Personentag. Verbraucht und gebucht sind eingetragene PT.</p>
@@ -207,7 +207,7 @@
       <form class="stack pf-form" id="np" novalidate>
         <div class="banner info" style="margin:0">${ic("cloud_off")}<div class="grow">Funktioniert ohne ${D.team.tracker} und offline. Das Projekt wird in den Daten des Teams gespeichert, sobald Sie oben auf Speichern klicken.</div></div>
         <div class="field"><label for="np-name">Name</label><input class="input" id="np-name" placeholder="z. B. Neues Partnerportal"></div>
-        <fieldset><legend class="small muted" style="padding:0">Produkte (mehrere möglich)</legend><div class="row" id="np-prods">${D.products.map((p) => `<button type="button" class="chip filter" data-prod="${p.id}" aria-pressed="false"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join("")}</div></fieldset>
+        <fieldset class="only-multiprod"><legend class="small muted" style="padding:0">Produkte (mehrere möglich)</legend><div class="row" id="np-prods">${D.products.map((p) => `<button type="button" class="chip filter" data-prod="${p.id}" aria-pressed="false"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join("")}</div></fieldset>
         <div class="field"><label for="np-end">Enddatum</label><input class="input" id="np-end" type="date" value="2027-03-31"></div>
         <fieldset><legend class="small muted" style="padding:0">Meilensteine (Datum, Tickets optional)</legend><div class="stack" id="np-ms"></div><div><button class="btn" type="button" id="np-addms">${ic("add")}Meilenstein</button></div></fieldset>
         <div class="field"><label for="np-pd">Kontingent gesamt (Personentage)</label><input class="input data" id="np-pd" type="number" min="0" step="1" value="40" style="max-width:140px"></div>
@@ -226,7 +226,7 @@
     el.querySelector("#np").onsubmit = (e) => {
       e.preventDefault();
       const name = el.querySelector("#np-name").value.trim();
-      const products = [...el.querySelectorAll("[data-prod].on")].map((b) => b.dataset.prod);
+      const products = FS.multiProduct() ? [...el.querySelectorAll("[data-prod].on")].map((b) => b.dataset.prod) : [D.products[0].id];
       const end = el.querySelector("#np-end").value;
       const err = el.querySelector("#np-err");
       const msg = !name ? "Bitte einen Namen eingeben." : !products.length ? "Bitte mindestens ein Produkt wählen." : !end ? "Bitte ein Enddatum wählen." : "";
@@ -312,7 +312,7 @@
       <div class="actions"><select class="input" id="pj-pick" aria-label="Projekt wechseln">${D.projects.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
         <button class="btn" type="button" id="pj-edit">${ic("edit")}Bearbeiten</button></div></div>
     <div class="grid cols-3">
-      <div class="card"><div class="small muted">Produkte</div><div class="row" style="margin-top:6px">${p.products.map(FS.productChip).join("")}</div>
+      <div class="card"><div class="only-multiprod"><div class="small muted">Produkte</div><div class="row" style="margin-top:6px">${p.products.map(FS.productChip).join("")}</div></div>
         <div class="small muted" style="margin-top:12px">Nächster Meilenstein</div><div style="margin-top:4px">${nextMs ? `${esc(nextMs.name)} <span class="data">${FS.fmtDate(nextMs.date)}</span> ${FS.lightChip(nextMs.light)}` : "keiner mehr"}</div></div>
       <div class="card"><div class="row"><div class="small muted" style="flex:1">Kontingent (PT)</div>${est}${calcBtn("proj", p.id)}</div>
         <div class="pf-big" style="margin:4px 0 8px">${fmt(st.total, 1)} <span class="muted" style="font-size:14px">von ${fmt(p.contingentPD)}</span></div>${meter(p, st)}
@@ -498,7 +498,7 @@
     const cell = (sid, pid, grp) => { const v = D.productHistory[sid][pid]; const a = v[st]; const pr = st === 2 ? v[4] : st === 3 ? v[5] : null; return `<td class="num">${a == null ? `<span class="muted">${sid === "2026.21" ? "läuft" : "–"}</span>` : fmt(a)}${showProd && pr != null ? ` <span class="muted small">davon ${pr}</span>` : ""}</td>`; };
     const tot = (sid, list, i) => { const vals = list.map((p) => D.productHistory[sid][p.id][i]); return vals.some((v) => v == null) ? null : sum(vals); };
     return `<div class="fp-history"><div class="row" style="margin-bottom:12px"><span class="muted small">Stufe</span>${stages.map(([l, i]) => `<button class="chip filter ${st === i ? "on" : ""}" type="button" data-stage="${i}" aria-pressed="${st === i}">${l}</button>`).join("")}
-      <label class="row small" style="margin-left:auto;gap:6px"><input type="checkbox" id="fp-prod" ${showProd ? "checked" : ""}>davon Prod anzeigen</label></div>
+      <label class="row small col-prod" style="margin-left:auto;gap:6px"><input type="checkbox" id="fp-prod" ${showProd ? "checked" : ""}>davon Prod anzeigen</label></div>
       <div class="tw"><table class="t"><thead><tr><th>PO</th><th>Produkt</th>${ids.map((id) => `<th class="num">${id}</th>`).join("")}</tr></thead><tbody>
       ${D.pos.map((po) => { const list = D.products.filter((p) => p.po === po.id); return list.map((p, k) => `<tr><td>${k ? "" : esc(po.name)}</td><td>${FS.productChip(p.id)}</td>${ids.map((sid) => cell(sid, p.id)).join("")}</tr>`).join("") +
         `<tr class="sum"><td></td><td>Summe ${esc(po.name.split(" ")[0])}</td>${ids.map((sid) => { const t = tot(sid, list, st); return `<td class="num">${t == null ? "–" : fmt(t)}${showProd && (st === 2 || st === 3) && t != null ? ` <span class="muted small">davon ${tot(sid, list, st + 2)}</span>` : ""}</td>`; }).join("")}</tr>`; }).join("")}
@@ -521,10 +521,11 @@
   FS.view("forecast", {
     title: "Forecast",
     render() {
+      if (FS.state.fcTab === "verlauf" && !FS.multiProduct()) FS.state.fcTab = "forecast";
       const tab = FS.state.fcTab;
       return `${STYLE}
       <div class="page-head"><div><h1>Forecast</h1><p class="lead">Wie viel schafft das Team in den kommenden Sprints, und wann wird etwas fertig? Immer verfügbar, auch ohne bestätigte Abwesenheiten oder ${D.team.tracker}.</p></div></div>
-      <div class="tabs" role="tablist">${TABS.map(([id, icn, l]) => `<a href="#forecast" role="tab" data-tab="${id}" class="${tab === id ? "active" : ""}" aria-selected="${tab === id}">${ic(icn)}${l}</a>`).join("")}</div>
+      <div class="tabs" role="tablist">${TABS.filter(([id]) => id !== "verlauf" || FS.multiProduct()).map(([id, icn, l]) => `<a href="#forecast" role="tab" data-tab="${id}" class="${tab === id ? "active" : ""}" aria-selected="${tab === id}">${ic(icn)}${l}</a>`).join("")}</div>
       ${tab === "forecast" ? forecastTabHtml() : tab === "analyse" ? `<div class="card fp-analysis"><h2>Wann ist es fertig?</h2><div id="an-body">${analysisHtml()}</div></div>` : tab === "verlauf" ? historyHtml() : reportsHtml()}`;
     },
     wire(main) {

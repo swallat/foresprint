@@ -65,7 +65,7 @@
   FS.view("help", {
     title: "Hilfe, Rechenwege",
     render() {
-      const T = topics(), mode = FS.state.calcMode;
+      const T = topics().filter((t) => FS.multiProduct() || !["standard", "bilanz"].includes(t.id)), mode = FS.state.calcMode;
       const modes = [["off", "Ausblenden"], ["icon", "Als Symbol"], ["inline", "Immer ausgeklappt"]];
       return `<div class="page-head"><div><h1>Rechenwege</h1><p class="lead">Jede Zahl in Foresprint ist nachvollziehbar. Hier steht jede Rechnung einmal ausführlich, mit den Zahlen von Team Atlas eingesetzt.</p></div></div>
         <div class="banner info"><span>${FS.icon("tune")}</span><div class="grow">Neben den Zahlen: <span class="row" style="display:inline-flex;margin-left:6px">${modes.map(([v, l]) => `<button type="button" class="chip filter ${mode === v ? "on" : ""}" data-help-mode="${v}" aria-pressed="${mode === v}">${l}</button>`).join("")}</span>

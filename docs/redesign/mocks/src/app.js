@@ -18,6 +18,31 @@
   FS.fmt = (n, digits = 0) => (n == null ? "–" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }));
   FS.sum = (arr, f = (x) => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
   // Reference capacity: full team without absences (display scale of the normalized velocity, as in 0.8)
+  // Optional features show up only when configured: several products, several POs, production share.
+  FS.multiProduct = () => D.products.length > 1;
+  FS.multiPO = () => D.pos.length > 1;
+  FS.prodOn = () => FS.state.teamApplied?.prod !== false;
+  // Demo switch: Team Atlas with every feature, or a simple team (one PO, one product, no production share)
+  FS.setSimple = (on) => {
+    FS._full ??= structuredClone(D);
+    Object.keys(FS._full).forEach((k) => (D[k] = structuredClone(FS._full[k])));
+    FS.state.simple = on;
+    FS.state.sp = undefined;
+    if (FS.state.bl) { FS.state.bl.products = []; if (FS.state.bl.group === "product") FS.state.bl.group = "none"; }
+    if (FS.state.teamApplied) { FS.state.teamApplied.prod = !on; FS.state.teamDraft = { ...FS.state.teamApplied }; }
+    if (!on) { FS.state.rules = FS._fullRules ?? FS.state.rules; FS.state.ruleDraft = { product: D.products[0].id }; return; }
+    FS._fullRules ??= FS.state.rules;
+    const ids = D.products.map((p) => p.id);
+    D.products = [{ id: "team", name: D.team.name, po: D.pos[0].id, share: 1, color: "#4646d4" }];
+    D.pos = [D.pos[0]];
+    D.tickets.forEach((t) => (t.product = "team"));
+    D.projects.forEach((p) => (p.products = ["team"]));
+    const add = (rows) => rows.reduce((a, r) => { Object.entries(r || {}).forEach(([k, v]) => { if (typeof v === "number") a[k] = (a[k] ?? 0) + v; else if (v == null && !(k in a)) a[k] = null; }); return a; }, {});
+    Object.keys(D.productPlan).forEach((sid) => (D.productPlan[sid] = { team: add(ids.map((id) => D.productPlan[sid][id])) }));
+    if (D.productHistory) Object.keys(D.productHistory).forEach((sid) => { const r = ids.map((id) => D.productHistory[sid][id]); D.productHistory[sid] = { team: r[0].map((_, i) => (r.some((x) => x[i] == null) ? null : FS.sum(r, (x) => x[i]))) }; });
+    FS.state.rules = { team: "" };
+    FS.state.ruleDraft = { product: "team" };
+  };
   FS.refCap = () => Math.round(FS.sum(D.people, (p) => p.fte) * 10);
   FS.normVel = (s) => (s.velocity == null ? null : (s.velocity / s.capacityPD) * FS.refCap());
 
@@ -35,7 +60,7 @@
       <span class="handle">${opts.drag ? FS.icon("drag_indicator") : ""}</span>
       ${FS.keyLink(t)}
       <span class="title">${FS.esc(t.title)}</span>
-      <span class="meta">${FS.refinedChip(t)}${opts.noProduct ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.estHtml(t)}</span>
+      <span class="meta">${FS.refinedChip(t)}${opts.noProduct || !FS.multiProduct() ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.estHtml(t)}</span>
     </div>`;
 
   // Capacity bar: used vs forecast range (all in points)
@@ -106,7 +131,7 @@
       <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span><span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Ticket groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
       <h2 style="margin:0">${FS.esc(t.title)}</h2>
       <dl class="kv">
-        <dt>Produkt</dt><dd><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
+        <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod"><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
         <dt>Projekt</dt><dd><select class="input" id="tp-project"><option value="">Tagesgeschäft</option>${opts(D.projects, t.project)}</select></dd>
         <dt>Schätzung</dt><dd class="data">${t.est ?? "keine"} Punkte <span class="muted small">aus ${D.team.tracker}</span></dd>
         <dt>Refined</dt><dd>${t.refined ? FS.lightChip("ok", "ja") : FS.lightChip("warn", "nein")}</dd>
@@ -114,7 +139,7 @@
         ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
       </dl>
       <div class="field"><label for="tp-note">Notiz zur Vormerkung</label><textarea class="input" id="tp-note" rows="2" placeholder="z. B. mit Kim abgestimmt"></textarea></div>
-      <p class="small muted" style="margin:0">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
+      <p class="small muted only-multiprod" style="margin:0">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
       <h2 style="margin:8px 0 0">Aus ${D.team.tracker} <span class="chip small">nur gelesen</span></h2>
       ${facts(t)}
       ${FS.trackerBlocks(t)}
@@ -140,7 +165,7 @@
       const inSprint = D.tickets.filter((x) => x.sprint === sid), pts = FS.sum(inSprint, (x) => x.est), sp = FS.sprint(sid);
       el.setAttribute("aria-label", `${t.key} ${t.title}`);
       el.innerHTML = `<div class="present-head">
-          ${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span>${FS.refinedChip(t)}${FS.productChip(t.product)}${FS.projectChip(t.project)}
+          ${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span>${FS.refinedChip(t)}${FS.multiProduct() ? FS.productChip(t.product) : ""}${FS.projectChip(t.project)}
           <span style="flex:1"></span>
           <span class="small muted data">${i + 1} von ${keys.length}</span>
           <button class="btn icon" type="button" data-step="-1" aria-label="Vorheriges Ticket" ${i <= 0 ? "disabled" : ""}>${FS.icon("chevron_left")}</button>
@@ -400,6 +425,8 @@
     main.innerHTML = `<div class="page">${v.render()}</div>`;
     if (v.wire) v.wire(main);
     applyCalcMode(main);
+    const de = document.documentElement.dataset;
+    de.prodshare = FS.prodOn() ? "on" : "off"; de.multiprod = FS.multiProduct() ? "on" : "off"; de.multipo = FS.multiPO() ? "on" : "off";
     main.querySelectorAll(".ticket").forEach((el) => el.addEventListener("dblclick", () => FS.ticketPanel(el.dataset.key)));
     main.querySelectorAll(".ticket .title").forEach((el) => el.addEventListener("click", () => FS.ticketPanel(el.closest(".ticket").dataset.key)));
     document.title = `${v.title || "Foresprint"} · Foresprint Mockups`;

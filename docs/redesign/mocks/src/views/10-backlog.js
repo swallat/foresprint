@@ -29,7 +29,7 @@
     let h = FS.ticketRow(t, { drag: true, ...o });
     if (t.key.startsWith("AP-")) h = h.replace(/<span class="key">.*?<\/a><\/span>/, `<span class="key" title="Von Hand angelegt, kein Tracker">${t.key}</span>`);
     const flags = (t.est == null ? `<span class="chip warn">${FS.icon("help", "small")}ohne Schätzung</span>` : "") +
-      (RULE[t.key] ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
+      (RULE[t.key] && FS.multiProduct() ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
       (B.flag === "earmarked" && t.sprint ? `<span class="chip">${FS.icon("event", "small")}${t.sprint}</span>` : "");
     h = h.replace('<span class="meta">', `<span class="meta">${flags}`).replace('<span class="handle">', `<input type="checkbox" class="bl-sel" data-key="${t.key}" aria-label="${t.key} auswählen" ${B.sel.includes(t.key) ? "checked" : ""}><span class="handle">`);
     return B.sel.includes(t.key) ? h.replace('class="ticket"', 'class="ticket selected"') : h;
@@ -61,7 +61,7 @@
       <div class="row"><strong class="data">${id}</strong><span class="muted small data">${FS.fmtDate(s.start)} bis ${FS.fmtDate(s.end)}</span><span style="flex:1"></span>${abs}<a class="small" href="#preplan" data-go="preplan" data-sprint="${id}">Vorplanen</a></div>
       ${FS.capBar(used, s.forecast, s.low, s.high)}
       <div class="row small"><span class="data"><strong>${used}</strong> Punkte vorgemerkt, Forecast ${s.forecast} (Spanne ${s.low} bis ${s.high})</span>${calcBtn(`data-calc="${id}"`)}</div>
-      <div class="row">${prods}</div>
+      <div class="row only-multiprod">${prods}</div>
       ${over ? `<div class="banner bad" style="margin:0"><span>${FS.icon("warning")}</span><div class="grow">Über der Obergrenze: ${used} Punkte, Spanne endet bei ${s.high}. Das ist eine Warnung, kein Stopp.</div></div>` : ""}
       ${noEst || open ? `<div class="row small muted">${FS.icon("help", "small")}${open} nicht refined, ${noEst} ohne Schätzung (zählen 0)</div>` : ""}
     </div><div class="lane-body">${ts.length ? ts.map((t) => row(t, { noProject: true })).join("") : `<p class="muted small bl-empty">Noch nichts vorgemerkt. Ticket hierher ziehen oder Vormerken für... wählen.</p>`}</div></div>`;
@@ -91,7 +91,7 @@
   function workItemPanel() {
     const el = FS.openPanel("Arbeitspaket anlegen", `<p class="small muted">Ohne Tracker legst du Arbeit hier von Hand an. Sie liegt in der Datei tickets.yaml im Datenordner.</p>
       <div class="field"><label for="wi-t">Titel</label><input class="input" id="wi-t" placeholder="z. B. Release-Notizen schreiben"></div>
-      <div class="field"><label for="wi-p">Produkt</label><select class="input" id="wi-p">${D.products.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
+      <div class="field only-multiprod"><label for="wi-p">Produkt</label><select class="input" id="wi-p">${D.products.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="wi-j">Projekt</label><select class="input" id="wi-j"><option value="">Tagesgeschäft</option>${D.projects.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="wi-e">Schätzung in Punkten</label><input class="input data" id="wi-e" type="number" min="1" value="3"></div>
       <button class="btn primary" type="button" id="wi-ok">${FS.icon("add")}Anlegen</button>`);
@@ -126,10 +126,10 @@
     const tog = (arr, v) => (arr.includes(v) ? "on" : "");
     const av = activeView();
     return `<div class="tabs" id="bl-tabs" role="tablist" aria-label="Gespeicherte Ansichten">${VIEWS.map(([id, name]) => `<a href="#backlog" role="tab" data-view="${id}" class="${av === id ? "active" : ""}">${name}</a>`).join("")}${av ? "" : `<a href="#backlog" data-act="saveview">${FS.icon("bookmark_add")}Als Ansicht speichern</a>`}</div>
-      <div class="row" style="margin-bottom:8px"><span class="small muted">Produkt</span>${D.products.map((p) => `<button type="button" class="chip filter ${tog(B.products, p.id)}" data-f="products:${p.id}" aria-pressed="${B.products.includes(p.id)}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join("")}</div>
+      <div class="row only-multiprod" style="margin-bottom:8px"><span class="small muted">Produkt</span>${D.products.map((p) => `<button type="button" class="chip filter ${tog(B.products, p.id)}" data-f="products:${p.id}" aria-pressed="${B.products.includes(p.id)}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join("")}</div>
       <div class="row" style="margin-bottom:8px"><span class="small muted">Projekt</span>${D.projects.map((p) => `<button type="button" class="chip filter ${tog(B.projects, p.id)}" data-f="projects:${p.id}" aria-pressed="${B.projects.includes(p.id)}">${FS.icon("flag", "small")}${esc(p.name)}</button>`).join("")}<button type="button" class="chip filter ${tog(B.projects, "")}" data-f="projects:" aria-pressed="${B.projects.includes("")}">Tagesgeschäft</button>
         <span class="small muted" style="margin-left:8px">Stand</span><button type="button" class="chip filter ${B.refined === "yes" ? "on" : ""}" data-f="refined:yes">Refined</button><button type="button" class="chip filter ${B.refined === "open" ? "on" : ""}" data-f="refined:open">${FS.icon("help", "small")}Offen</button>
-        <span class="small muted" style="margin-left:8px">Gruppieren</span>${[["none", "Keine"], ["project", "Projekt"], ["product", "Produkt"]].map(([v, l]) => `<button type="button" class="chip filter ${B.group === v ? "on" : ""}" data-group="${v}">${l}</button>`).join("")}</div>`;
+        <span class="small muted" style="margin-left:8px">Gruppieren</span>${[["none", "Keine"], ["project", "Projekt"], ...(FS.multiProduct() ? [["product", "Produkt"]] : [])].map(([v, l]) => `<button type="button" class="chip filter ${B.group === v ? "on" : ""}" data-group="${v}">${l}</button>`).join("")}</div>`;
   }
   function barHtml() {
     if (!B.sel.length) return "";
