@@ -302,7 +302,7 @@ func ResolveCapacity(data *storage.TeamData, sprint model.Sprint, history *capac
 	case model.AbsencesConfirmed:
 		return model.Ptr(capacity.Sprint(&data.Team, data.People, sprint, 0).Capacity), src(engine.SourcePeople)
 	case model.AbsencesExpected:
-		return model.Ptr(capacity.WithExpectedAbsences(&data.Team, data.People, sprint)), src(engine.SourceExpected)
+		return model.Ptr(capacity.WithOpenAbsences(&data.Team, data.People, sprint)), src(engine.SourceExpected)
 	}
 	var rate *float64
 	if history != nil {

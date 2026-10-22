@@ -4,12 +4,17 @@
 import type { Api } from './api';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createSprintsMock } from './mock.sprints';
+import { teamMock } from './mock.team';
 import type { Prefs, SprintInfo } from './types';
 import type { TodayData, TodaySprint } from './types.today';
 
+// Eight finished sprints, the running one and five to come, counted from today.
+const monday = new Date(Date.now() - ((new Date().getUTCDay() + 6) % 7) * 86400000);
+const first = Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate()) - 8 * 14 * 86400000;
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
-  const start = new Date(Date.UTC(2026, 0, 5 + i * 14));
+  const start = new Date(first + i * 14 * 86400000);
   const end = new Date(start.getTime() + 11 * 86400000);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const now = Date.now();
@@ -117,7 +122,9 @@ function today(): TodayData {
 }
 
 export const mockApi: Api = {
+  ...createSprintsMock(sprints),
   ...dataMock,
+  ...teamMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
