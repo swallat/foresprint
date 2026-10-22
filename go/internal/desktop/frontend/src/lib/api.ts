@@ -8,10 +8,15 @@ import type { ForecastApi } from './types.forecast';
 import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { DataApi } from './types.data';
+import type { ProjectsApi } from './types.projects';
+import type { ReviewApi } from './types.review';
+import type { SetupApi } from './types.setup';
 import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends DataApi, SprintsApi, TodayApi, ForecastApi, TeamApi {
+
+
+export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayApi, ForecastApi, TeamApi, SetupApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -37,13 +42,36 @@ const bridge = (window as unknown as WailsWindow).go?.app?.API;
 export const inProgram = bridge !== undefined;
 
 let impl: Api | undefined = bridge;
+let mock: Api | undefined;
+let demo = false;
 
-async function resolve(): Promise<Api> {
+/** Methods about this person and this machine: they never go to the demo team. */
+const personal = new Set(['Info', 'Prefs', 'SetLanguage', 'SetTheme', 'Texts', 'PickFolder', 'PickDataDir']);
+
+/**
+ * Switches every call about team data to the invented demo team (Team Atlas) that the mock
+ * answers, in the program too. Nothing reaches the data folder while it is on.
+ */
+export function setDemo(on: boolean): void {
+  demo = on;
+}
+
+export function isDemo(): boolean {
+  return demo;
+}
+
+async function loadMock(): Promise<Api> {
+  mock ??= (await import('./mock')).mockApi;
+  return mock;
+}
+
+async function resolve(method: string): Promise<Api> {
+  if (demo && !personal.has(method)) return loadMock();
   if (!impl) {
-    // The mock is part of the bundle only in development and in the "mock" build (screenshots,
-    // tests); in the program the bridge always exists.
+    // The mock is part of the bundle for the demo team and for the browser (npm run dev, tests);
+    // in the program the bridge always exists.
     if (!(import.meta.env.DEV || import.meta.env.MODE === 'mock')) throw new Error('api: no connection to the program');
-    impl = (await import('./mock')).mockApi;
+    impl = await loadMock();
   }
   return impl;
 }
@@ -53,7 +81,7 @@ export const api: Api = new Proxy({} as Api, {
   get:
     (_, method: string) =>
     async (...args: unknown[]) => {
-      const target = (await resolve()) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
+      const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
       const fn = target[method];
       if (!fn) throw new Error(`api: unknown method ${method}`);
       return fn.apply(target, args);
