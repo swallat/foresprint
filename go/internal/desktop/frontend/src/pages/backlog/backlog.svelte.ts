@@ -82,11 +82,14 @@ export function allTickets(view: BacklogView | undefined): BacklogTicket[] {
 export async function earmark(keys: string[], sprint: string): Promise<void> {
   const view = store.view;
   if (!view || keys.length === 0) return;
-  const before = new Map(allTickets(view).map((tk) => [tk.key, tk.earmark]));
+  const rows = allTickets(view);
+  const before = new Map(rows.map((tk) => [tk.key, tk.earmark]));
+  const notes = new Map(rows.map((tk) => [tk.key, tk.earmarkNote ?? '']));
+  const fixed = new Set(rows.filter((tk) => tk.fixed).map((tk) => tk.key));
   const moved: string[] = [];
   try {
     for (const key of keys) {
-      if ((before.get(key) ?? '') === sprint) continue;
+      if ((before.get(key) ?? '') === sprint || fixed.has(key)) continue;
       await api.SetEarmark(app.team, key, sprint, '');
       moved.push(key);
     }
@@ -112,7 +115,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
     label: t('Undo'),
     run: async () => {
       try {
-        for (const key of moved) await api.SetEarmark(app.team, key, before.get(key) ?? '', '');
+        for (const key of moved) await api.SetEarmark(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
       } catch (e) {
         toast(String(e), 'bad');
       }

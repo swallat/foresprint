@@ -3,6 +3,7 @@
   // ticket is read from the tracker; here the PO sets product, project, an own estimate, the
   // production share and the earmark. A work package is edited completely in a form. The key NEW
   // opens the form for a new work package (flows.md section 5, "ticket panel"; decision 15).
+  import { untrack } from 'svelte';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
@@ -49,7 +50,7 @@
     confirmDelete = false;
     if (app.ticket === NEW) {
       detail = undefined;
-      draft = blankDraft();
+      draft = untrack(blankDraft);
       return;
     }
     try {
@@ -120,7 +121,7 @@
       const key = await api.SaveWorkPackage(app.team, input);
       error = '';
       await changed();
-      toast(creating ? t('{key} created and placed at the top of the backlog.', { key }) : t('{key} saved.', { key }), 'ok');
+      toast(creating ? t('{key} created and placed first in its priority.', { key }) : t('{key} saved.', { key }), 'ok');
       app.ticket = key;
       await load();
     } catch (e) {
@@ -407,14 +408,14 @@
 {#snippet earmarkRow()}
   {#if detail}
     <div class="stack tight">
-      <select class="input" aria-label={t('Earmarked for')} value={detail.earmark} onchange={(e) => run(() => api.SetEarmark(app.team, detail!.key, e.currentTarget.value, detail!.note))}>
+      <select class="input" aria-label={t('Earmarked for')} value={detail.earmark} disabled={detail.fixed} onchange={(e) => run(() => api.SetEarmark(app.team, detail!.key, e.currentTarget.value, detail!.note))}>
         <option value="">{t('Not earmarked')}</option>
         {#each lanes as s (s)}<option value={s}>{t('Sprint {id}', { id: s })}</option>{/each}
         {#if detail.earmark && !lanes.includes(detail.earmark)}<option value={detail.earmark}>{t('Sprint {id}', { id: detail.earmark })}</option>{/if}
       </select>
       {#if detail.earmark}
         <label class="small muted" for="tp-note">{t('Note on the earmark')}</label>
-        <textarea class="input" id="tp-note" rows="2" placeholder={t('e.g. agreed with the product owner')} value={detail.note} onchange={(e) => run(() => api.SetEarmark(app.team, detail!.key, detail!.earmark, e.currentTarget.value))}></textarea>
+        <textarea class="input" id="tp-note" rows="2" placeholder={t('e.g. agreed with the product owner')} value={detail.note} onchange={(e) => run(() => api.SetEarmarkNote(app.team, detail!.key, e.currentTarget.value))}></textarea>
       {/if}
     </div>
   {/if}

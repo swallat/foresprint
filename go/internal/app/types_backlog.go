@@ -40,7 +40,11 @@ type BacklogTicket struct {
 	RuleProducts []string `json:"ruleProducts,omitempty"`
 	// Earmark is the sprint the PO put the ticket into ("" = none); TrackerSprint is the
 	// sprint according to the tracker (id, or the name when it is unknown here).
-	Earmark       string `json:"earmark"`
+	Earmark string `json:"earmark"`
+	// EarmarkNote is the PO's note on the earmark.
+	EarmarkNote string `json:"earmarkNote,omitempty"`
+	// Fixed: the tracker has the ticket in a sprint; the PO cannot move it here.
+	Fixed         bool   `json:"fixed,omitempty"`
 	TrackerSprint string `json:"trackerSprint"`
 	// Production is the share (0-100) that needs production access; nil = not set.
 	Production *float64 `json:"production"`

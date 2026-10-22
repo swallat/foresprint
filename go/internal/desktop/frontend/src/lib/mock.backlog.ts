@@ -196,6 +196,9 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       r.earmark = sprint;
       if (note) r.note = note;
     },
+    async SetEarmarkNote(_team, key, note) {
+      find(key).note = note;
+    },
     async SetEstimate(_team, key, value) {
       const r = find(key);
       if (kind === 'tracker' && r.estimate != null) throw new Error(`The estimate of ${key} comes from the tracker.`);

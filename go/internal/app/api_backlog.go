@@ -99,13 +99,10 @@ func (c *backlogContext) proFormaName(tk model.Ticket) string {
 
 // learn adds the coming sprints of the timeline that have no file yet, so that dependencies
 // between earmarks in them can be checked.
-func (c *backlogContext) learn(lanes []BacklogLane) {
-	for _, l := range lanes {
-		if _, ok := c.sprints[l.Sprint]; ok {
-			continue
-		}
-		if start, err := time.Parse("2006-01-02", l.Start); err == nil {
-			c.sprints[l.Sprint] = model.Sprint{ID: l.Sprint, Start: start}
+func (c *backlogContext) learn(upcoming []model.Sprint) {
+	for _, s := range upcoming {
+		if _, ok := c.sprints[s.ID]; !ok {
+			c.sprints[s.ID] = model.Sprint{ID: s.ID, Start: s.Start}
 		}
 	}
 }
@@ -168,8 +165,9 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 		r.TrackerSprint = str(tk.SprintName)
 	}
 	if e := data.Preplan.EarmarkFor(tk.Key); e != nil {
-		r.Earmark = e.Sprint
+		r.Earmark, r.EarmarkNote = e.Sprint, str(e.Note)
 	}
+	r.Fixed = str(tk.InSprint) != ""
 	if share := data.Preplan.ProductionFor(tk.Key); share != nil {
 		p := share.Percent
 		r.Production = &p
@@ -291,8 +289,8 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	all := append(append([]model.Ticket{}, ordered...), leftover...)
 	view.Cycles = append(view.Cycles, cycles(leftover)...)
 
-	lanes := a.lanes(data)
-	c.learn(lanes)
+	lanes, upcoming := a.lanes(data)
+	c.learn(upcoming)
 	laneAt := map[string]int{}
 	for i, l := range lanes {
 		laneAt[l.Sprint] = i
@@ -340,8 +338,9 @@ func cycles(left []model.Ticket) [][]string {
 	return [][]string{keys}
 }
 
-// lanes returns the next coming sprints with their Forecast PLAN.
-func (a *API) lanes(data *storage.TeamData) []BacklogLane {
+// lanes returns the next coming sprints with their Forecast PLAN, and all coming sprints of
+// the timeline.
+func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 	now := today()
 	plans := map[string]*float64{}
 	var upcoming []model.Sprint
@@ -361,11 +360,12 @@ func (a *API) lanes(data *storage.TeamData) []BacklogLane {
 		}
 	}
 	sort.SliceStable(upcoming, func(i, j int) bool { return upcoming[i].Start.Before(upcoming[j].Start) })
-	if len(upcoming) > lanesShown {
-		upcoming = upcoming[:lanesShown]
+	shown := upcoming
+	if len(shown) > lanesShown {
+		shown = shown[:lanesShown]
 	}
-	out := make([]BacklogLane, 0, len(upcoming))
-	for _, s := range upcoming {
+	out := make([]BacklogLane, 0, len(shown))
+	for _, s := range shown {
 		state := "unknown"
 		switch s.AbsenceStatus() {
 		case model.AbsencesConfirmed:
@@ -382,7 +382,7 @@ func (a *API) lanes(data *storage.TeamData) []BacklogLane {
 			Tickets:  []BacklogTicket{},
 		})
 	}
-	return out
+	return out, upcoming
 }
 
 // Ticket returns one ticket with all details.
@@ -396,8 +396,8 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 		return nil, fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", key))
 	}
 	c := newBacklogContext(data)
-	lanes := a.lanes(data)
-	c.learn(lanes)
+	lanes, upcoming := a.lanes(data)
+	c.learn(upcoming)
 	d := &TicketDetail{
 		BacklogTicket: c.row(*tk),
 		Description:   str(tk.Description),
@@ -537,6 +537,9 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 		if tk.Done {
 			return nil, fmt.Errorf("%s", i18n.T("{key} is done and cannot be earmarked.", "key", key))
 		}
+		if str(tk.InSprint) != "" {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is in a sprint in the tracker.", "key", key))
+		}
 		s := data.SprintByID(sprint)
 		if s == nil {
 			fc, err := forecast.Build(data, today())
@@ -562,6 +565,19 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 		}
 		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: ptr(note)})
 		return savePreplan(repo, team, data), nil
+	})
+}
+
+// SetEarmarkNote sets the PO's note on an existing earmark; "" takes the note away.
+func (a *API) SetEarmarkNote(team, key, note string) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		for i := range data.Preplan.Earmarks {
+			if data.Preplan.Earmarks[i].Ticket == key {
+				data.Preplan.Earmarks[i].Note = ptr(note)
+				return savePreplan(repo, team, data), nil
+			}
+		}
+		return nil, fmt.Errorf("%s", i18n.T("{key} is not earmarked.", "key", key))
 	})
 }
 
@@ -700,8 +716,35 @@ func nextPackageKey(data *storage.TeamData) string {
 	return prefix + strconv.Itoa(highest+1)
 }
 
-// rankFirst gives the work package the first rank and renumbers the others in their order.
+// rankFirst gives the work package the first rank: below the lowest numeric rank if there is
+// room, else all others are renumbered in their order.
 func rankFirst(data *storage.TeamData, key string) {
+	lowest := -1
+	for _, tk := range data.Tickets {
+		if tk.Key == key {
+			continue
+		}
+		n, err := strconv.Atoi(str(tk.Rank))
+		if err != nil || n < 0 {
+			lowest = -2
+			break
+		}
+		if lowest == -1 || n < lowest {
+			lowest = n
+		}
+	}
+	if lowest == -1 || lowest > 0 {
+		r := fmt.Sprintf("%08d", max(lowest-1, 0))
+		if lowest == -1 {
+			r = fmt.Sprintf("%08d", 1000)
+		}
+		for i := range data.Tickets {
+			if data.Tickets[i].Key == key {
+				data.Tickets[i].Rank = &r
+			}
+		}
+		return
+	}
 	var rest []model.Ticket
 	for _, tk := range data.Tickets {
 		if tk.Key != key {
@@ -720,7 +763,7 @@ func rankFirst(data *storage.TeamData, key string) {
 }
 
 // SaveWorkPackage creates (Key "") or changes a work package and returns its key. A new one goes
-// to the top of the backlog.
+// first among the tickets of its priority.
 func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) {
 	backlogMu.Lock()
 	defer backlogMu.Unlock()

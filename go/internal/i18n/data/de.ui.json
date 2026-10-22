@@ -234,7 +234,7 @@
   "{count} tickets are back in the backlog.": "{count} Tickets sind zurück im Backlog.",
   "{count} tickets earmarked for {sprint}.": "{count} Tickets für {sprint} vorgemerkt.",
   "{count} tickets in the list": "{count} Tickets in der Liste",
-  "{key} created and placed at the top of the backlog.": "{key} angelegt und oben im Backlog eingeordnet.",
+  "{key} created and placed first in its priority.": "{key} angelegt und an erster Stelle seiner Priorität eingeordnet.",
   "{key} deleted.": "{key} gelöscht.",
   "{key} earmarked for {sprint}.": "{key} für {sprint} vorgemerkt.",
   "{key} is back in the backlog.": "{key} ist zurück im Backlog.",

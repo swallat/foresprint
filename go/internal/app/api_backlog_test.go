@@ -102,6 +102,12 @@ func TestWorkPackageLifecycle(t *testing.T) {
 	if err != nil || d.Note != "agreed" || !d.Editable {
 		t.Fatalf("detail %+v err %v", d, err)
 	}
+	if err := api.SetEarmarkNote("t", key, ""); err != nil {
+		t.Fatal(err)
+	}
+	if d, _ = api.Ticket("t", key); d.Note != "" || d.EarmarkNote != "" || d.Earmark != lane {
+		t.Errorf("clearing the note keeps the earmark: %+v", d.BacklogTicket)
+	}
 	if err := api.SetEarmark("t", key, "", ""); err != nil {
 		t.Fatal(err)
 	}

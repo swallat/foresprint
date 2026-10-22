@@ -109,6 +109,7 @@
     await earmark(keys, sprint);
   }
   async function step(tk: BacklogTicket, by: -1 | 1): Promise<void> {
+    if (tk.fixed) return;
     const next = neighbour(laneIds, tk.earmark, by);
     if (next === undefined) return;
     await earmark([tk.key], next);
@@ -405,7 +406,7 @@
       ticket={tk}
       {view}
       selectable
-      draggable
+      draggable={!tk.fixed}
       {showProduct}
       {showProject}
       checked={ui.selection.includes(tk.key)}
