@@ -80,6 +80,11 @@ var builders []Builder
 // Register adds a command to the program. Call it from an init function.
 func Register(b Builder) { builders = append(builders, b) }
 
+// Cobra on Windows ends a program whose parent is Explorer: it prints "This is a command line
+// tool", waits five seconds and exits with 1 ("mousetrap"). Started without arguments from
+// Explorer (a double click, a shortcut) the program opens the window, so that check must not run.
+func init() { cobra.MousetrapHelpText = "" }
+
 // Execute runs the program with the arguments (without the program name) and returns the exit
 // code: 0 success, 1 failure of the command, 2 wrong use.
 func Execute(args []string, in io.Reader, out, errOut io.Writer) int {

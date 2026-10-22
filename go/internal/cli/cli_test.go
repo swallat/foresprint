@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func run(t *testing.T, args ...string) (int, string, string) {
@@ -61,6 +63,13 @@ func TestVersionFlagAndBadDate(t *testing.T) {
 	t.Setenv(AsOfEnv, "nonsense")
 	if code, _, _ := run(t, "language"); code != 2 {
 		t.Errorf("bad env date: %d", code)
+	}
+}
+
+// A double click starts the program with Explorer as parent; cobra must not end it then (#368).
+func TestNoMousetrap(t *testing.T) {
+	if cobra.MousetrapHelpText != "" {
+		t.Errorf("cobra mousetrap is on: %q", cobra.MousetrapHelpText)
 	}
 }
 
