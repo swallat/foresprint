@@ -2,7 +2,8 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
-import type { Prefs, Result, SprintInfo, Status } from './types';
+import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import type { Prefs, SprintInfo } from './types';
 
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
@@ -34,18 +35,8 @@ let prefs: Prefs = {
   recentDataDirs: ['/demo/teams'],
 };
 
-let incoming = 2;
-const status = (): Status => ({
-  storage: incoming > 0 ? 'incoming' : 'saved',
-  detail: '',
-  incoming,
-  findings: 1,
-  tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '' },
-});
-
-const ok = (message: string): Result => ({ ok: true, message });
-
 export const mockApi: Api = {
+  ...dataMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -79,14 +70,12 @@ export const mockApi: Api = {
     return status();
   },
   async Save() {
-    incoming = 0;
-    return ok('Saved.');
+    return saveMock(false);
   },
   async Refresh() {
-    incoming = 0;
-    return ok('Up to date.');
+    return refreshMock();
   },
   async SyncTracker() {
-    return ok('Tracker synced.');
+    return { ok: true, message: 'Tracker synced.' };
   },
 };

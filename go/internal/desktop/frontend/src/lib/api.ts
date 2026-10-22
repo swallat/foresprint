@@ -4,9 +4,10 @@
 // To add a method: add it to the Go struct (internal/app/api_<area>.go), add its signature to
 // `Api` below (or to an area interface that extends it) and an answer to the mock.
 
+import type { DataApi } from './types.data';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 
-export interface Api {
+export interface Api extends DataApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
