@@ -75,7 +75,7 @@ func (c *Chain) follow(previous *model.Sprint, prefix []model.Sprint) (model.Spr
 	start := previous.End
 	// The ID the numbering would give: needed for a rule that begins at a sprint not yet there.
 	legacy, legacyErr := NextID(previous.ID, start, c.team.Sprint.Numbering)
-	rule := c.activeRule(prefix, legacy, legacyErr == nil)
+	rule := c.activeRule(prefix, start, legacy, legacyErr == nil)
 	if rule == nil {
 		if legacyErr != nil {
 			return model.Sprint{}, legacyErr
@@ -93,12 +93,17 @@ func (c *Chain) follow(previous *model.Sprint, prefix []model.Sprint) (model.Spr
 // activeRule is the last rule that has begun by the new sprint: it has no From, its From sprint
 // is already in the chain, its From is the ID the numbering gives the new sprint, it has already
 // named a sprint of this chain, or it names the previous sprint (its From sprint was renamed).
-func (c *Chain) activeRule(prefix []model.Sprint, legacy string, legacyOK bool) *model.NamingRule {
+func (c *Chain) activeRule(prefix []model.Sprint, start time.Time, legacy string, legacyOK bool) *model.NamingRule {
 	rules := c.team.Sprint.Naming
 	var found *model.NamingRule
 	for i := range rules {
 		r := &rules[i]
 		started := r.From == nil || c.begun[i] || (legacyOK && *r.From == legacy)
+		if !started && found != nil {
+			// A rule may begin at a sprint that has no file yet: its From is the name the rule
+			// before it gives that sprint.
+			started = c.nameBy(found, prefix, start) == *r.From
+		}
 		if !started {
 			for _, s := range prefix {
 				if s.ID == *r.From {
@@ -121,6 +126,19 @@ func (c *Chain) activeRule(prefix []model.Sprint, legacy string, legacyOK bool) 
 		}
 	}
 	return found
+}
+
+// nameBy is the ID the rule gives the sprint that follows prefix and begins on start.
+func (c *Chain) nameBy(rule *model.NamingRule, prefix []model.Sprint, start time.Time) string {
+	if len(prefix) == 0 {
+		return ""
+	}
+	number, seq := numbersAfter(patternsOf(c.team.Sprint.Naming, rule), prefix, c.team.Sprint.Numbering, start.Year())
+	id, err := model.FormatSprintName(rule.Pattern, model.SprintNameInput{Start: start, Number: number, Sequence: seq})
+	if err != nil {
+		return ""
+	}
+	return id
 }
 
 // MatchesNaming reports whether the ID is a name made by one of the rules.

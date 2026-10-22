@@ -236,3 +236,38 @@ func TestUndoSkipsUnknownAndClosed(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 }
+
+type fakeBoard struct {
+	asked int
+	err   error
+}
+
+func (b *fakeBoard) ListBoardSprints(id int) ([]sources.SprintValue, error) {
+	b.asked = id
+	return []sources.SprintValue{{ID: "9", Name: "2026.3", State: "FUTURE"}}, b.err
+}
+
+func TestLoadDirectoryUsesTheBoard(t *testing.T) {
+	tracker := model.TrackerSettings{}
+	board := &fakeBoard{}
+	d, err := LoadDirectory(nil, board, tracker)
+	if err != nil || board.asked != 0 {
+		t.Fatalf("no board_id must not ask: %v %d", err, board.asked)
+	}
+	if _, ok := d.ForSprint("2026.3"); ok {
+		t.Fatal("unknown without board")
+	}
+	id := 3
+	tracker.BoardID = &id
+	d, err = LoadDirectory(nil, board, tracker)
+	if err != nil || board.asked != 3 {
+		t.Fatalf("%v %d", err, board.asked)
+	}
+	if r, ok := d.ForSprint("2026.3"); !ok || r.ID != "9" {
+		t.Fatalf("board sprint: %+v", r)
+	}
+	board.err = errors.New("down")
+	if _, err := LoadDirectory(nil, board, tracker); err == nil {
+		t.Fatal("board error must be returned")
+	}
+}
