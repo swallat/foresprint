@@ -122,6 +122,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
   const forecast = [38, 42, 41, 36];
   const proForma = ['Refinement'];
   const tracked = new Map<string, string>(); // ticket -> pro-forma sprint in the tracker
+  let ordered = false;
   const placed = new Map<string, string>(); // ticket -> pro-forma sprint chosen here
   if (kind === 'tracker') {
     const r = rows.find((x) => x.key === 'ATL-431');
@@ -181,6 +182,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
         multi: true,
         production: true,
         cycles: [],
+        ownOrder: kind === 'tracker' && ordered,
         adjust: [...placed].filter(([key, to]) => to !== (tracked.get(key) ?? '')).map(([key, to]) => ({ key, title: find(key).title, url: '', from: tracked.get(key) ?? '', to })),
       };
       return clone(view);
@@ -289,6 +291,10 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       if (found < 0) throw new Error(`${before} is not in the backlog.`);
       order.splice(at, 0, moving);
       order.forEach((x, i) => (x.rank = (i + 1) * 10));
+      ordered = true;
+    },
+    async ResetOrder() {
+      ordered = false;
     },
   };
 }

@@ -86,6 +86,16 @@ export async function reorder(key: string, anchor: string, after = false): Promi
   await changed();
 }
 
+/** Takes the own order of tracker tickets away; the tracker's rank counts again. */
+export async function resetOrder(): Promise<void> {
+  try {
+    await api.ResetOrder(app.team);
+  } catch (e) {
+    toast(String(e), 'bad');
+  }
+  await changed();
+}
+
 /** Every ticket the view knows, wherever it sits. */
 export function allTickets(view: BacklogView | undefined): BacklogTicket[] {
   if (!view) return [];

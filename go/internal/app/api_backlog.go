@@ -306,6 +306,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 		Production: data.Team.Features.Production,
 		Cycles:     [][]string{},
 		Adjust:     []BacklogAdjust{},
+		OwnOrder:   data.Team.Source() == model.SourceTracker && len(data.Preplan.Order) > 0,
 	}
 	if data.TicketsImported != nil {
 		view.Imported = data.TicketsImported.Format(time.RFC3339)
@@ -653,6 +654,18 @@ func backlogSetProForma(data *storage.TeamData, c *backlogContext, tk model.Tick
 	if name != c.trackerProForma(tk) {
 		pp.ProForma = append(pp.ProForma, model.ProFormaPlacement{Ticket: tk.Key, Name: name})
 	}
+}
+
+// ResetOrder takes the PO's own order of tracker tickets away: the tracker's rank counts again.
+func (a *API) ResetOrder(team string) error {
+	backlogMu.Lock()
+	defer backlogMu.Unlock()
+	repo, data, err := a.loadTickets(team)
+	if err != nil {
+		return err
+	}
+	data.Preplan.Order = nil
+	return backlogSavePreplan(repo, team, data)()
 }
 
 // MoveToProForma puts a tracker ticket into the pro-forma sprint of that name, or ("") back

@@ -99,6 +99,8 @@ type BacklogView struct {
 	// Adjust lists the tickets the PO placed in (or out of) a pro-forma sprint here that the
 	// tracker still has differently: they are to be adjusted in the tracker.
 	Adjust []BacklogAdjust `json:"adjust"`
+	// OwnOrder: the PO's own order among tracker tickets is in use (ResetOrder takes it away).
+	OwnOrder bool `json:"ownOrder"`
 }
 
 // BacklogAdjust is one ticket whose pro-forma sprint differs between the tool and the tracker.

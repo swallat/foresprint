@@ -4,6 +4,7 @@
   // production share and the earmark. A work package is edited completely in a form. The key NEW
   // opens the form for a new work package (flows.md section 5, "ticket panel"; decision 15).
   import { untrack } from 'svelte';
+  import { fmt } from '../../lib/format';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
@@ -353,7 +354,7 @@
         <dt><label for="tp-est">{t('Estimate')}</label></dt>
         <dd>
           {#if detail.estimate != null || detail.remaining != null}
-            <span class="data">{detail.size ?? '–'} {unit}</span> <span class="muted small">{t('from {tracker}', { tracker: view?.tracker ?? '' })}</span>
+            <span class="data">{fmt(detail.size)} {unit}</span> <span class="muted small">{t('from {tracker}', { tracker: view?.tracker ?? '' })}</span>
           {:else}
             <span class="row nowrap">
               <input class="input data short" id="tp-est" inputmode="decimal" value={detail.size ?? ''} placeholder="–" aria-describedby="tp-est-hint" onchange={(e) => run(() => api.SetEstimate(app.team, detail!.key, number(e.currentTarget.value)))} />

@@ -13,7 +13,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toProForma, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, store, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -397,7 +397,10 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, choose the planning order and no grouping. Alt+Right earmarks for the next sprint.')}</span>
+            {#if view.ownOrder}
+              <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
+            {/if}
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}

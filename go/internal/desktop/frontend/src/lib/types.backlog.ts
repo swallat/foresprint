@@ -79,6 +79,8 @@ export interface BacklogView {
   drift?: BacklogDrift;
   /** Tickets placed in or out of a pro-forma sprint here that the tracker still has differently. */
   adjust: BacklogAdjust[];
+  /** The own order among tracker tickets is in use. */
+  ownOrder: boolean;
 }
 
 export interface BacklogDrift {
@@ -148,6 +150,7 @@ export interface BacklogApi {
   Ticket(team: string, key: string): Promise<TicketDetail>;
   EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
   MoveToProForma(team: string, key: string, name: string): Promise<void>;
+  ResetOrder(team: string): Promise<void>;
   SetEarmarkNote(team: string, key: string, note: string): Promise<void>;
   SetEstimate(team: string, key: string, value: number | null): Promise<void>;
   SetRefined(team: string, key: string, refined: boolean): Promise<void>;

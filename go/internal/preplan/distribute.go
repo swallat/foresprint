@@ -358,8 +358,10 @@ func OrderTickets(data *storage.TeamData) (ordered, leftover []model.Ticket) {
 	var items []keyed
 	var unassigned []model.Ticket
 	own := map[string]int{} // the PO's own order (preplan.yaml), before the tracker's rank
-	for i, key := range data.Preplan.Order {
-		own[key] = i + 1
+	if data.Team.Source() == model.SourceTracker {
+		for i, key := range data.Preplan.Order {
+			own[key] = i + 1
+		}
 	}
 	for _, tk := range open {
 		k := orderKey{priority: PriorityRank(tk.Priority, order), rankNil: tk.Rank == nil, rank: rankText(tk), key: tk.Key}
