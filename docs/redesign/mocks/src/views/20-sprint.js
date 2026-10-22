@@ -26,7 +26,8 @@
     return { s, base, abs, cap, fc, low: Math.round(cap * RLO), high: Math.round(cap * RHI) };
   }
   const tix = (sid) => D.tickets.filter((t) => t.sprint === sid || t.carryTo === sid);
-  const pts = (l) => sum(l, (t) => t.est);
+  // A carried-over ticket counts with its remaining effort in the sprint it was carried into.
+  const pts = (l) => sum(l, (t) => (t.carryTo && t.carryTo === FS.state.sprint ? t.carryRest ?? t.est : t.est));
   const pp = (sid, pid) => { const pl = (D.productPlan[sid] ??= {}); return (pl[pid] ??= { def: Math.round(FS.product(pid).share * calc(sid).fc), pre: null }); };
   const preSum = (sid) => sum(D.products, (p) => pp(sid, p.id).pre);
   const earmark = (sid, pid) => pts(tix(sid).filter((t) => t.product === pid));
@@ -43,51 +44,64 @@
   // What-if for the running sprint (0.8: team forecast for open sprints). Expected velocity of the
   // running sprint joins the rate history; carry-over tickets occupy part of the next sprint.
   FS.rateFactor = (sid, vel) => { const s = FS.sprint(sid), avg = sum(RATES, (x) => x) / RATES.length, nu = (sum(RATES, (x) => x) + vel / s.capacityPD) / (RATES.length + 1); return nu / avg; };
-  const cw = () => (st().cw ??= { carry: {}, extra: 0, commit: null, notDone: 0 });
-  function cwCalc(sid) {
+  // Several assumptions side by side (A, B, ...): the PO switches and compares; nothing is final before the Review.
+  const cwNew = (name) => ({ name, carry: {}, rest: {}, extra: 0, commit: null, notDone: 0, restNT: null });
+  const cwSets = () => (st().cwSets ??= [cwNew("A")]);
+  const cw = () => cwSets()[Math.min(st().cwAct ?? 0, cwSets().length - 1)];
+  const restOf = (w, t) => w.rest[t.key] ?? t.remaining ?? t.est;
+  function cwCalc(sid, w = cw()) {
     const i = D.sprints.findIndex((x) => x.id === sid), cur = D.sprints[i - 1];
     if (!cur || stateOf(cur.id) !== "current") return null;
-    const w = cw(), noT = st().noTracker, l = D.tickets.filter((t) => t.sprint === cur.id), c = calc(sid);
+    const noT = st().noTracker, l = D.tickets.filter((t) => t.sprint === cur.id), c = calc(sid);
     const commit = noT ? (w.commit ?? cur.plan) : cur.plan;
     const carryL = noT ? [] : l.filter((t) => w.carry[t.key]);
-    const notDone = noT ? w.notDone : pts(carryL);
+    // Velocity counts unfinished tickets in full (no partial credit); the next sprint only carries the remaining effort.
+    const notDone = noT ? w.notDone : sum(carryL, (t) => t.est);
+    const rest = noT ? Math.min(w.restNT ?? w.notDone, w.notDone) : sum(carryL, (t) => restOf(w, t));
     const vel = Math.max(0, commit - notDone + w.extra), k = FS.rateFactor(cur.id, vel) / FS.rateFactor(cur.id, commit);
     const touched = noT ? commit !== cur.plan || w.notDone > 0 || w.extra > 0 : carryL.length > 0 || w.extra > 0;
     const fc = Math.round(c.fc * k), low = Math.round(c.low * k), high = Math.round(c.high * k);
-    return { cur, l, noT, commit, carryL, notDone, extra: w.extra, vel, k, c, fc, low, high, free: fc - notDone, touched };
+    return { cur, l, noT, commit, carryL, notDone, rest, extra: w.extra, vel, k, c, fc, low, high, free: fc - rest, touched };
   }
   function cwCard(sid) {
     const r = cwCalc(sid);
     if (!r) return "";
-    const cid = r.cur.id, w = cw();
-    const tbl = r.noT ? `<div class="row" style="gap:16px;align-items:flex-end">
-        <div class="field"><label for="cw-commit">Commitment ${cid} (Punkte)</label><input class="input data" id="cw-commit" inputmode="decimal" value="${fmt(r.commit)}" style="width:96px;text-align:right"></div>
-        <div class="field"><label for="cw-nd">Erwartet nicht fertig (Punkte)</label><input class="input data" id="cw-nd" inputmode="decimal" value="${w.notDone || ""}" placeholder="0" style="width:96px;text-align:right"></div>
-        <div class="field"><label for="cw-extra">Zusätzlich erledigt (Punkte)</label><input class="input data" id="cw-extra" inputmode="decimal" value="${w.extra || ""}" placeholder="0" style="width:96px;text-align:right"></div></div>`
-      : `${tw(`<table class="t"><thead><tr><th>Ticket</th><th>Status in ${D.team.tracker}</th><th class="num">Punkte</th><th>Erwartung</th></tr></thead><tbody>${r.l.map((t) => { const done = t.status === "Fertig", c = !!w.carry[t.key]; return `<tr><td><button type="button" class="linkbtn data" data-cwt="${t.key}">${t.key}</button> ${esc(t.title)}</td><td><span class="chip small">${esc(t.status)}</span></td><td class="num">${t.est}</td><td>${done ? `<span class="chip ok small">${ic("check", "small")}erledigt</span>` : `<div class="seg" role="group" aria-label="Erwartung ${t.key}"><button type="button" class="seg-b ${c ? "" : "on"}" data-cw="${t.key}" data-v="0" aria-pressed="${!c}">${ic("check", "small")}wird fertig</button><button type="button" class="seg-b ${c ? "on warn" : ""}" data-cw="${t.key}" data-v="1" aria-pressed="${c}">${ic("redo", "small")}Übertrag</button></div>`}</td></tr>`; }).join("")}</tbody></table>`)}
-        <div class="row" style="margin-top:8px"><div class="field"><label for="cw-extra">Zusätzlich erledigt (Punkte)</label><input class="input data" id="cw-extra" inputmode="decimal" value="${w.extra || ""}" placeholder="0" style="width:96px;text-align:right"></div></div>`;
+    const cid = r.cur.id, w = cw(), sets = cwSets(), act = sets.indexOf(w);
+    const numIn = (id, v, ph, label, extra = "") => `<div class="field"><label for="${id}">${label}</label><input class="input data" id="${id}" inputmode="decimal" value="${v ?? ""}" placeholder="${ph}" style="width:96px;text-align:right" ${extra}></div>`;
+    const tbl = r.noT ? `<div class="row" style="gap:16px;align-items:flex-end;flex-wrap:wrap">
+        ${numIn("cw-commit", fmt(r.commit), "", `Commitment ${cid} (Punkte)`)}
+        ${numIn("cw-nd", w.notDone || "", "0", "Erwartet nicht fertig (Punkte)")}
+        ${numIn("cw-rest", w.restNT ?? "", fmt(w.notDone || 0), "davon Rest übertragen (Punkte)", w.notDone ? "" : "disabled")}
+        ${numIn("cw-extra", w.extra || "", "0", "Zusätzlich erledigt (Punkte)")}</div>`
+      : `${tw(`<table class="t"><thead><tr><th>Ticket</th><th>Status in ${D.team.tracker}</th><th class="num">Punkte</th><th>Erwartung</th><th class="num" title="Restaufwand, der in ${sid} weiterläuft. Vorschlag aus dem Restschätzungsfeld des Trackers, sonst die volle Schätzung.">Rest (Punkte)</th></tr></thead><tbody>${r.l.map((t) => { const done = t.status === "Fertig", c = !!w.carry[t.key]; return `<tr><td><button type="button" class="linkbtn data" data-cwt="${t.key}">${t.key}</button> ${esc(t.title)}</td><td><span class="chip small">${esc(t.status)}</span></td><td class="num">${t.est}</td><td>${done ? `<span class="chip ok small">${ic("check", "small")}erledigt</span>` : `<div class="seg" role="group" aria-label="Erwartung ${t.key}"><button type="button" class="seg-b ${c ? "" : "on"}" data-cw="${t.key}" data-v="0" aria-pressed="${!c}">${ic("check", "small")}wird fertig</button><button type="button" class="seg-b ${c ? "on warn" : ""}" data-cw="${t.key}" data-v="1" aria-pressed="${c}">${ic("redo", "small")}Übertrag</button></div>`}</td><td class="num">${c ? `<input class="input data" data-cwr="${t.key}" inputmode="decimal" value="${fmt(restOf(w, t))}" aria-label="Rest ${t.key} in Punkten" style="width:64px;height:28px;text-align:right">${t.remaining != null && w.rest[t.key] == null ? `<div class="small muted">aus ${D.team.tracker}</div>` : ""}` : '<span class="muted">–</span>'}</td></tr>`; }).join("")}</tbody></table>`)}
+        <div class="row" style="margin-top:8px">${numIn("cw-extra", w.extra || "", "0", "Zusätzlich erledigt (Punkte)")}</div>`;
     const d = r.fc - r.c.fc;
     const res = `<div class="cw-res">
-        <div><div class="small muted">Erwartete Velocity ${cid}</div><div class="data cw-big">${fmt(r.vel)}</div><div class="small muted">${fmt(r.commit)} − ${fmt(r.notDone)} + ${fmt(r.extra)}</div></div>
+        <div><div class="small muted">Erwartete Velocity ${cid}</div><div class="data cw-big">${fmt(r.vel)}</div><div class="small muted">${fmt(r.commit)} − ${fmt(r.notDone)} nicht fertig + ${fmt(r.extra)}</div></div>
         <div><div class="small muted">Forecast PLAN ${sid}</div><div class="data cw-big">${r.touched ? `${r.c.fc} ${ic("arrow_forward", "small")} <span style="color:var(--forecast)">${r.fc}</span>` : `<span style="color:var(--forecast)">${r.c.fc}</span>`}</div><div class="small muted">${r.touched ? `${d > 0 ? "+" : ""}${d} · Spanne ${r.low} bis ${r.high}` : "unverändert"}</div></div>
-        <div><div class="small muted">Übertrag nach ${sid}</div><div class="data cw-big">${fmt(r.notDone)}</div><div class="small muted">${r.carryL.length ? `${r.carryL.length} Tickets` : r.noT ? "Punkte" : "keine Tickets markiert"}</div></div>
-        <div><div class="small muted">Frei für Neues in ${sid}</div><div class="data cw-big">${fmt(r.free)}</div><div class="small muted">Forecast PLAN minus Übertrag</div></div></div>`;
-    return `<div class="card" id="sp-cw" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Was wäre wenn: laufender Sprint ${cid}</h2><span class="chip small">${r.touched ? "Annahme, nicht gespeichert" : "keine Annahme"}</span></div>
-      <p class="small muted" style="margin:4px 0 12px">Was wird in ${cid} voraussichtlich fertig? ${r.noT ? "Trage die Erwartung des Teams ein." : "Markiere Tickets, die das Team nicht schafft."} Das ändert die erwartete Velocity und damit den Forecast PLAN für ${sid}. Übertragene Arbeit belegt außerdem einen Teil von ${sid}.</p>
-      ${tbl}${res}
-      <div class="row" style="margin-top:12px">${r.carryL.some((t) => t.carryTo !== sid) ? `<button class="btn" type="button" id="cw-take">${ic("playlist_add")}Übertrag in ${sid} vormerken</button>` : ""}<button class="btn" type="button" id="cw-save" ${r.touched ? "" : "disabled"}>${ic("bookmark_add")}Als Prognose speichern</button><button class="btn ghost" type="button" id="cw-reset" ${r.touched ? "" : "disabled"}>Zurücksetzen</button></div></div>`;
+        <div><div class="small muted">Übertrag nach ${sid} (Rest)</div><div class="data cw-big">${fmt(r.rest)}</div><div class="small muted">${r.notDone ? `von ${fmt(r.notDone)} Punkten${r.carryL.length ? `, ${r.carryL.length} Tickets` : ""}` : r.noT ? "Punkte" : "keine Tickets markiert"}</div></div>
+        <div><div class="small muted">Frei für Neues in ${sid}</div><div class="data cw-big">${fmt(r.free)}</div><div class="small muted">Forecast PLAN minus Rest</div></div></div>`;
+    const cmp = sets.length > 1 ? tw(`<table class="t" id="cw-cmp" style="margin-top:12px"><thead><tr><th>Annahme</th><th class="num">erw. Velocity</th><th class="num">Forecast PLAN ${sid}</th><th class="num">Übertrag (Rest)</th><th class="num">Frei für Neues</th></tr></thead><tbody>${sets.map((x, j) => { const q = cwCalc(sid, x); return `<tr ${j === act ? 'class="sum"' : ""}><td>Annahme ${esc(x.name)}${j === act ? ' <span class="chip small">aktiv</span>' : ""}</td><td class="num">${fmt(q.vel)}</td><td class="num">${q.fc}</td><td class="num">${fmt(q.rest)}</td><td class="num">${fmt(q.free)}</td></tr>`; }).join("")}</tbody></table>`) : "";
+    return `<div class="card" id="sp-cw" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Was wäre wenn: laufender Sprint ${cid}</h2><span class="chip small">Annahme, endgültig erst im Review</span></div>
+      <p class="small muted" style="margin:4px 0 8px">Was wird in ${cid} voraussichtlich fertig? ${r.noT ? "Trage die Erwartung des Teams ein." : "Markiere Tickets, die das Team nicht schafft, und schätze ihren Rest."} Nicht fertige Tickets fehlen voll in der Velocity, in ${sid} läuft nur ihr Rest weiter. Die echten Werte trägst du im Review von ${cid} ein.</p>
+      <div class="row" id="cw-sets" style="margin-bottom:12px;gap:6px">${sets.map((x, j) => `<button type="button" class="chip filter ${j === act ? "on" : ""}" data-cwset="${j}" aria-pressed="${j === act}">Annahme ${esc(x.name)}</button>`).join("")}<button type="button" class="chip filter" id="cw-add" title="Kopiert die aktive Annahme">${ic("add", "small")}Annahme</button></div>
+      ${tbl}${res}${cmp}
+      <div class="row" style="margin-top:12px">${r.carryL.some((t) => t.carryTo !== sid) ? `<button class="btn" type="button" id="cw-take">${ic("playlist_add")}Übertrag in ${sid} vormerken</button>` : ""}<button class="btn" type="button" id="cw-save" ${r.touched ? "" : "disabled"}>${ic("bookmark_add")}Als Prognose speichern</button><button class="btn ghost" type="button" id="cw-reset" ${r.touched ? "" : "disabled"}>Annahme ${esc(w.name)} leeren</button></div></div>`;
   }
   function wireCw(main, sid) {
     const r = cwCalc(sid); if (!r) return;
     const w = cw(), num = (v) => { const x = parseFloat(String(v).replace(",", ".")); return isNaN(x) || x < 0 ? 0 : x; };
     main.querySelectorAll("[data-cw]").forEach((b) => (b.onclick = () => { if (b.dataset.v === "1") w.carry[b.dataset.cw] = true; else delete w.carry[b.dataset.cw]; rerender(); document.querySelector(`[data-cw="${b.dataset.cw}"][data-v="${b.dataset.v}"]`)?.focus(); }));
-    const on = (id, f) => { const el = main.querySelector(id); if (el) el.onchange = () => { f(num(el.value)); rerender(); }; };
-    on("#cw-extra", (v) => (w.extra = v)); on("#cw-nd", (v) => (w.notDone = v)); on("#cw-commit", (v) => (w.commit = v));
+    main.querySelectorAll("[data-cwr]").forEach((i) => (i.onchange = () => { const t = FS.ticket(i.dataset.cwr); w.rest[t.key] = Math.min(t.est, num(i.value)); rerender(); }));
+    const on = (id, f) => { const el = main.querySelector(id); if (el) el.onchange = () => { f(el.value.trim() === "" ? null : num(el.value)); rerender(); }; };
+    on("#cw-extra", (v) => (w.extra = v ?? 0)); on("#cw-nd", (v) => (w.notDone = v ?? 0)); on("#cw-commit", (v) => (w.commit = v)); on("#cw-rest", (v) => (w.restNT = v));
+    main.querySelectorAll("[data-cwset]").forEach((b) => (b.onclick = () => { st().cwAct = +b.dataset.cwset; rerender(); }));
+    main.querySelector("#cw-add").onclick = () => { const sets = cwSets(), n = cwNew(String.fromCharCode(65 + sets.length)); sets.push({ ...structuredClone(w), name: n.name }); st().cwAct = sets.length - 1; rerender(); FS.toast(`Annahme ${n.name} angelegt, als Kopie von ${w.name}.`); };
     const take = main.querySelector("#cw-take");
-    if (take) take.onclick = () => { const moved = r.carryL.filter((t) => t.carryTo !== sid); moved.forEach((t) => (t.carryTo = sid)); rerender(); FS.toast(`${moved.length} Tickets als Übertrag für ${sid} vorgemerkt.`, () => { moved.forEach((t) => delete t.carryTo); rerender(); }); };
+    if (take) take.onclick = () => { const moved = r.carryL.filter((t) => t.carryTo !== sid); moved.forEach((t) => { t.carryTo = sid; t.carryRest = restOf(w, t); }); rerender(); FS.toast(`${moved.length} Tickets mit ihrem Rest für ${sid} vorgemerkt.`, () => { moved.forEach((t) => { delete t.carryTo; delete t.carryRest; }); rerender(); }); };
     main.querySelectorAll("[data-cwt]").forEach((b) => (b.onclick = () => FS.ticketPanel(b.dataset.cwt)));
-    main.querySelector("#cw-save").onclick = () => { const p = (FS.state.prognosen ??= []); p.push({ name: `Prognose ${String.fromCharCode(65 + p.length)}`, text: `${r.cur.id}: erwartet ${fmt(r.vel)} erledigt, Übertrag ${fmt(r.notDone)}` }); FS.toast(`Prognose für ${r.cur.id} gespeichert. Das Review von ${r.cur.id} vergleicht sie mit dem Ergebnis.`, () => { p.pop(); }); };
-    main.querySelector("#cw-reset").onclick = () => { st().cw = null; rerender(); };
+    main.querySelector("#cw-save").onclick = () => { const p = (FS.state.prognosen ??= []); p.push({ name: `Prognose ${String.fromCharCode(65 + p.length)}`, text: `${r.cur.id}, Annahme ${w.name}: erwartet ${fmt(r.vel)} erledigt, Rest ${fmt(r.rest)} übertragen` }); FS.toast(`Annahme ${w.name} als Prognose gespeichert. Das Review von ${r.cur.id} vergleicht sie mit dem Ergebnis.`, () => { p.pop(); }); };
+    main.querySelector("#cw-reset").onclick = () => { const sets = cwSets(); sets[sets.indexOf(w)] = cwNew(w.name); rerender(); };
   }
   function rerender() {
     const m = document.getElementById("main"), y = m ? m.scrollTop : 0;
@@ -461,7 +475,7 @@
     if (S.rv[sid]) return S.rv[sid];
     const plan = s.plan ?? S.frozen[sid]?.commit ?? (preSum(sid) || 0), vel = s.velocity ?? (sid === "2026.21" ? 38 : plan);
     let r = { plan, notDone: Math.max(0, plan - vel), extra: Math.max(0, vel - plan), freeze: s.capacityPD, done: {}, tag: `sprint-${sid}` };
-    if (sid === "2026.21") { r.notDone = 4; r.extra = 2; r.freeze = 47; r.done = { portal: { d: 13, prod: 3 }, billing: { d: 8, prod: 1 }, mobile: { d: 9, prod: 2 }, platform: { d: 8, prod: 1 } }; }
+    if (sid === "2026.21") { r.notDone = 4; r.carryRest = 2; r.extra = 2; r.freeze = 47; r.done = { portal: { d: 13, prod: 3 }, billing: { d: 8, prod: 1 }, mobile: { d: 9, prod: 2 }, platform: { d: 8, prod: 1 } }; }
     else { let left = vel; D.products.forEach((p, i) => { const d = i === D.products.length - 1 ? left : Math.round(vel * p.share / 1); left -= d; r.done[p.id] = { d: sid >= "2026.22" ? 0 : Math.max(0, d), prod: 0 }; }); if (sid < "2026.21") { const t = sum(Object.values(r.done), (x) => x.d); r.done.portal.d += vel - t; } }
     return (S.rv[sid] = r);
   }
@@ -480,8 +494,8 @@
       <div class="grid cols-2" style="margin-bottom:16px">
         <div class="card" id="sp-velocity"><h2>Velocity</h2><div class="row"><span class="big data" style="font-size:28px;font-weight:600;color:var(--forecast)">${fmt(vel)}</span><span class="muted">Punkte erledigt</span>${calcBtn("vel")}</div>
           <p class="small muted">Zusage ${fmt(r.plan)} minus nicht erledigt plus zusätzlich erledigt. Die Velocity fließt in den Forecast der nächsten Sprints ein.</p></div>
-        <div class="card" id="sp-scope"><h2>Scope-Änderung</h2><div class="row"><div class="field"><label for="rv-nd">Nicht erledigt (Punkte)</label><input class="input data" id="rv-nd" data-rv="notDone" inputmode="numeric" value="${r.notDone}" ${ro} style="width:110px"></div><div class="field"><label for="rv-ex">Zusätzlich erledigt (Punkte)</label><input class="input data" id="rv-ex" data-rv="extra" inputmode="numeric" value="${r.extra}" ${ro} style="width:110px"></div></div>
-          <p class="small muted">Nicht erledigte Tickets wandern zurück ins Backlog, zusätzlich erledigte kamen während des Sprints dazu.</p></div></div>
+        <div class="card" id="sp-scope"><h2>Scope-Änderung</h2><div class="row"><div class="field"><label for="rv-nd">Nicht erledigt (Punkte)</label><input class="input data" id="rv-nd" data-rv="notDone" inputmode="numeric" value="${r.notDone}" ${ro} style="width:110px"></div><div class="field"><label for="rv-rest">davon Rest übertragen (Punkte)</label><input class="input data" id="rv-rest" data-rv="carryRest" inputmode="numeric" value="${r.carryRest ?? r.notDone}" ${ro} style="width:110px"></div><div class="field"><label for="rv-ex">Zusätzlich erledigt (Punkte)</label><input class="input data" id="rv-ex" data-rv="extra" inputmode="numeric" value="${r.extra}" ${ro} style="width:110px"></div></div>
+          <p class="small muted">Nicht erledigte Punkte fehlen voll in der Velocity. Ihr Rest ist der endgültige Übertrag in den nächsten Sprint und ersetzt die Annahme aus der Vorplanung. Zusätzlich erledigte kamen während des Sprints dazu.</p></div></div>
       <div id="sp-done" ${!FS.multiProduct() && !FS.prodOn() ? 'style="display:none"' : ""}><h2>${FS.multiProduct() ? "Erledigt je Produkt" : "Erledigt"}</h2>${tw(`<table class="t"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Geplant</th><th class="num">Erledigt</th><th class="num col-prod">davon Prod</th><th class="num">Differenz</th></tr></thead><tbody>${rows}</tbody></table>`)}
       <p class="small" style="margin:8px 0 16px">${doneSum === vel ? FS.lightChip("ok", "Summe passt zur Velocity") : FS.lightChip("warn", `Summe ${doneSum} weicht um ${signed(doneSum - vel)} von der Velocity ab`)} <span class="muted col-prod">Der Prod-Anteil (${prodSum}) wird nur angezeigt, nicht erzwungen.</span></p></div>
       <div class="grid cols-2">
@@ -570,7 +584,7 @@
     { view: "prepare", hl: "#sp-abs-grid", text: "Das Raster zeigt Abwesenheiten für diesen und die nächsten drei Sprints. Tage tippst du direkt ein, Tab oder Enter springt weiter. Neue Einträge sind angekündigt (gelb, offenes Schloss), ein Klick auf das Schloss bestätigt sie (grün, geschlossenes Schloss). Kapazität und Forecast PLAN unten in der Tabelle ziehen sofort mit." },
     { view: "prepare", hl: "[data-confirm]", text: "\"Festschreiben\" friert die Belegung eines Sprints ein: Alle Einträge gelten als bestätigt, leere Felder als 0 Tage. Hat niemand frei, ist das damit auch erledigt. Ein Klick auf \"Festgeschrieben\" löst sie wieder." },
     { view: "prepare", hl: "#sp-ready", text: "Die Bereitschaft fasst zusammen: Abwesenheiten, Refinement und Vorplanung je Produkt. Offene Punkte warnen nur, du kannst jederzeit weiter." },
-    { view: "preplan", hl: "#sp-cw", text: "Läuft der Vorsprint noch, schätzt du hier, was fertig wird. Markiere Tickets als Übertrag: Die erwartete Velocity sinkt, der Forecast PLAN passt sich an, und der Übertrag belegt einen Teil des nächsten Sprints. Gefällt die Annahme, speicherst du sie als Prognose." },
+    { view: "preplan", hl: "#sp-cw", text: "Läuft der Vorsprint noch, schätzt du hier, was fertig wird. Markiere Tickets als Übertrag und schätze ihren Rest: Die erwartete Velocity sinkt um die volle Schätzung, in den nächsten Sprint geht nur der Rest. Mit \"+ Annahme\" vergleichst du mehrere Varianten. Endgültig wird der Rest erst im Review eingetragen." },
     { view: "preplan", hl: "#sp-earmarks", text: "Vorplanen geht jederzeit, auch für spätere Sprints. Die Vormerkungen aus dem Backlog stehen hier nach Projekt und Tagesgeschäft, mit Kontingenthinweis in PT (Schätzung)." },
     { view: "preplan", hl: "#sp-prod-table", text: "Eine Tabelle je Sprint: Vorgeplant trägst du hier ein, \"Vormerkungen übernehmen\" macht daraus einen Vorschlag. Geplant und Erledigt sind in dieser Stufe nur lesbar." },
     { view: "preplan", hl: "#sp-prod-table", text: "Probiere es aus: Trägst du bei Abrechnung 12 ein, liegt die Summe über dem Forecast PLAN und eine Warnung erscheint. Sie blockiert nicht. Passt alles, ist der Sprint bereit für die Planung." },
