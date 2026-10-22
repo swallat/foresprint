@@ -108,7 +108,7 @@ window.DEMO = {
     { key: "ATL-415", title: "Self-Service: Adresse ändern", product: "portal", project: "ss2", est: 8, refined: true, status: "Bereit", sprint: "2026.22", rank: 2 },
     { key: "ATL-417", title: "Push-Hinweis bei neuer Rechnung", product: "mobile", project: "ss2", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 3 },
     { key: "ATL-420", title: "OAuth-Client für Mobile App registrieren", product: "mobile", project: "login", est: 3, prod: 100, refined: true, status: "Bereit", sprint: "2026.22", rank: 4 },
-    { key: "ATL-421", title: "Anmeldedienst: Token-Erneuerung", product: "platform", project: "login", est: 8, prod: 25, refined: true, status: "Bereit", sprint: "2026.22", rank: 5, inTrackerSprint: "2026.22" },
+    { key: "ATL-421", title: "Anmeldedienst: Token-Erneuerung", product: "platform", project: "login", est: 8, refined: true, status: "Bereit", sprint: "2026.22", rank: 5, inTrackerSprint: "2026.22" },
     { key: "ATL-423", title: "XRechnung: Pflichtfelder prüfen", product: "billing", project: "erech", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 6 },
     { key: "ATL-424", title: "Lastschriftmandat als PDF", product: "billing", project: null, est: 3, refined: true, status: "Bereit", sprint: null, rank: 7 },
     { key: "ATL-426", title: "Fehlerseite bei Wartung", product: "portal", project: null, est: 2, refined: true, status: "Bereit", sprint: null, rank: 8 },
