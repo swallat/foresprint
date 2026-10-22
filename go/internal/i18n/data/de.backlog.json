@@ -1,0 +1,22 @@
+{
+ "code": "de",
+ "name": "Deutsch",
+ "texts": {
+  "A work package cannot depend on itself.": "Ein Arbeitspaket kann nicht von sich selbst abhängen.",
+  "A work package needs a title.": "Ein Arbeitspaket braucht einen Titel.",
+  "Only work packages can be deleted here.": "Hier lassen sich nur Arbeitspakete löschen.",
+  "Product {id} is not known.": "Das Produkt {id} ist nicht bekannt.",
+  "Project {id} is not known.": "Das Projekt {id} ist nicht bekannt.",
+  "Sprint {id} is not known.": "Der Sprint {id} ist nicht bekannt.",
+  "Sprint {id} is over.": "Der Sprint {id} ist vorbei.",
+  "The estimate cannot be negative.": "Die Schätzung darf nicht negativ sein.",
+  "The estimate of {key} comes from the tracker.": "Die Schätzung von {key} kommt aus dem Tracker.",
+  "The production share is between 0 and 100 percent.": "Der Prod-Anteil liegt zwischen 0 und 100 Prozent.",
+  "This team gets its tickets from a tracker, not from work packages.": "Dieses Team bekommt seine Tickets aus einem Tracker, nicht aus Arbeitspaketen.",
+  "Ticket {key} not found.": "Das Ticket {key} gibt es nicht.",
+  "{key} is done and cannot be earmarked.": "{key} ist erledigt und lässt sich nicht vormerken.",
+  "{key} is in a sprint in the tracker.": "{key} liegt im Tracker in einem Sprint.",
+  "{key} is not earmarked.": "{key} ist nicht vorgemerkt.",
+  "{key} is refined in the tracker.": "{key} wird im Tracker refined."
+ }
+}

@@ -6,6 +6,7 @@ import { bindSprints, planMock } from './mock.plan';
 import { projectsMock } from './mock.projects';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createBacklogMock } from './mock.backlog';
 import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
 import { settingsMock } from './mock.settings';
@@ -142,6 +143,7 @@ let team = { key: 'atlas', name: 'Team Atlas', people: 6, sprints: sprints.lengt
 const ok = (message: string): Result => ({ ok: true, message });
 
 export const mockApi: Api = {
+  ...createBacklogMock(() => sprints),
   ...projectsMock,
   ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
