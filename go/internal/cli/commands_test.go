@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -205,5 +206,31 @@ func TestExcelRoundTrip(t *testing.T) {
 	}
 	if code, _, errOut := run(t, "--data", data, "excel-import", "demo", filepath.Join(data, "nope.xlsx")); code != 1 || errOut == "" {
 		t.Errorf("missing file: %d %q", code, errOut)
+	}
+}
+
+func TestPeopleKinds(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	var out, errOut bytes.Buffer
+	in := strings.NewReader("n\nFrieda Extern\n\n2026-10-15\n1\n2026-12-18\nq\n")
+	args := []string{"--data", data, "--as-of", "2026-10-15", "people", "demo", "--kind", "external"}
+	if code := Execute(args, in, &out, &errOut); code != 0 {
+		t.Fatalf("people: %d %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), "Last day in the team") {
+		t.Errorf("external people must be asked for an end date:\n%s", out.String())
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "people.yaml"))
+	if err != nil || !strings.Contains(string(raw), "kind: external") || !strings.Contains(string(raw), "2026-12-18") {
+		t.Errorf("people.yaml: %v\n%s", err, raw)
+	}
+	_, table, _ := run(t, "--data", data, "--as-of", "2026-10-15", "people", "demo")
+	if !strings.Contains(table, "external") {
+		t.Errorf("kind column missing:\n%s", table)
+	}
+	if code, _, errOut := run(t, "--data", data, "people", "demo", "--kind", "boss"); code == 0 || !strings.Contains(errOut, "--kind") {
+		t.Errorf("bad kind: %d %q", code, errOut)
 	}
 }
