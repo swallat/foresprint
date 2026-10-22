@@ -62,7 +62,6 @@ writes back unchanged (the golden round trips prove it).
 
 | File | Addition |
 | --- | --- |
-<<<<<<< HEAD
 | `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `features.production_max` (cap of the production time in percent, written only when not 100); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `product_owners` (list of `{id, name, person}`: the POs of the team, `person` = id of the `people.yaml` entry of a PO who works in the team); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
 | `people.yaml` | `kind: guest` or `external` (member is not written) |
 | `abwesenheiten.yaml` | `absences: {<person>: [{from, to, confirmed}]}`, dates only, never a reason |
