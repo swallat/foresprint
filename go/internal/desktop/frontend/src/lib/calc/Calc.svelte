@@ -26,6 +26,7 @@
   <button
     type="button"
     class="btn ghost icon calc-btn"
+    data-tour="calc"
     aria-expanded={open}
     aria-controls={open ? id : undefined}
     aria-label={t('Calculation of {name}', { name: label })}

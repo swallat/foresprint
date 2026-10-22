@@ -27,13 +27,13 @@ type undoLog struct {
 
 // remember reads the files as they are now and returns the token that undoes the step.
 func (a *API) remember(team string, files ...string) int {
-	a.undo.mu.Lock()
-	defer a.undo.mu.Unlock()
-	if a.undo.steps == nil {
-		a.undo.steps = map[string]undoEntry{}
+	a.teamUndo.mu.Lock()
+	defer a.teamUndo.mu.Unlock()
+	if a.teamUndo.steps == nil {
+		a.teamUndo.steps = map[string]undoEntry{}
 	}
-	a.undo.next++
-	e := undoEntry{token: a.undo.next, files: map[string][]byte{}}
+	a.teamUndo.next++
+	e := undoEntry{token: a.teamUndo.next, files: map[string][]byte{}}
 	for _, f := range files {
 		b, err := os.ReadFile(f)
 		switch {
@@ -43,16 +43,16 @@ func (a *API) remember(team string, files ...string) int {
 			e.files[f] = nil // Undo removes the file again
 		}
 	}
-	a.undo.steps[team] = e
+	a.teamUndo.steps[team] = e
 	return e.token
 }
 
 // forget drops the undo step of the team. Every write that is not itself a step calls it, so
 // Undo never puts back files over a newer edit.
 func (a *API) forget(team string) {
-	a.undo.mu.Lock()
-	defer a.undo.mu.Unlock()
-	delete(a.undo.steps, team)
+	a.teamUndo.mu.Lock()
+	defer a.teamUndo.mu.Unlock()
+	delete(a.teamUndo.steps, team)
 }
 
 func (a *API) teamFile(team, name string) string {
@@ -61,14 +61,14 @@ func (a *API) teamFile(team, name string) string {
 
 // Undo takes back the last step of the team if token is still its token.
 func (a *API) Undo(team string, token int) error {
-	a.undo.mu.Lock()
-	e, ok := a.undo.steps[team]
+	a.teamUndo.mu.Lock()
+	e, ok := a.teamUndo.steps[team]
 	if !ok || e.token != token {
-		a.undo.mu.Unlock()
+		a.teamUndo.mu.Unlock()
 		return errors.New(i18n.T("This change can no longer be undone."))
 	}
-	delete(a.undo.steps, team)
-	a.undo.mu.Unlock()
+	delete(a.teamUndo.steps, team)
+	a.teamUndo.mu.Unlock()
 	for path, content := range e.files {
 		if content == nil {
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {

@@ -12,10 +12,10 @@ import (
 
 const isoDay = "2006-01-02"
 
-// now is today's date; tests set a.today.
+// now is the clock of the Team area; tests set a.Now.
 func (a *API) now() time.Time {
-	if a.today != nil {
-		return a.today()
+	if a.Now != nil {
+		return a.Now()
 	}
 	return time.Now()
 }
@@ -32,7 +32,7 @@ func dayText(d *time.Time) string {
 	return d.Format(isoDay)
 }
 
-func parseDay(s string) (time.Time, error) {
+func parseTeamDay(s string) (time.Time, error) {
 	t, err := time.Parse(isoDay, s)
 	if err != nil {
 		return t, errors.New(i18n.T("'{text}' is not a date (YYYY-MM-DD).", "text", s))
@@ -181,7 +181,7 @@ func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
 	p.Memberships = nil
 	var prevEnd *time.Time
 	for i, m := range d.Memberships {
-		from, err := parseDay(m.From)
+		from, err := parseTeamDay(m.From)
 		if err != nil {
 			return p, err
 		}
@@ -190,7 +190,7 @@ func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
 			return p, errors.New(i18n.T("The share of {name} must be between 0.1 and 1.0.", "name", p.Name))
 		}
 		if m.To != "" {
-			to, err := parseDay(m.To)
+			to, err := parseTeamDay(m.To)
 			if err != nil {
 				return p, err
 			}
@@ -276,11 +276,11 @@ func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]Absenc
 		if !known[d.Person] {
 			return nil, errors.New(i18n.T("Unknown person '{id}'.", "id", d.Person))
 		}
-		from, err := parseDay(d.From)
+		from, err := parseTeamDay(d.From)
 		if err != nil {
 			return nil, err
 		}
-		to, err := parseDay(d.To)
+		to, err := parseTeamDay(d.To)
 		if err != nil {
 			return nil, err
 		}

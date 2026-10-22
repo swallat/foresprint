@@ -191,7 +191,7 @@ func optionalDay(s string) (*time.Time, error) {
 	if s == "" {
 		return nil, nil
 	}
-	t, err := parseDay(s)
+	t, err := parseTeamDay(s)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 	if err != nil {
 		return EndResult{}, err
 	}
-	end, err := parseDay(lastDay)
+	end, err := parseTeamDay(lastDay)
 	if err != nil {
 		return EndResult{}, err
 	}

@@ -32,7 +32,7 @@ func demoCopy(t *testing.T) (*API, string) {
 		t.Fatal(err)
 	}
 	api := newAPI(t, dst)
-	api.today = func() time.Time { return time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC) }
+	api.Now = func() time.Time { return time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC) }
 	return api, api.Teams()[0].Key
 }
 
