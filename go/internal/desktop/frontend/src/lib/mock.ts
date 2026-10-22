@@ -6,6 +6,7 @@ import { bindSprints, planMock } from './mock.plan';
 import type { ForecastRow, ForecastView, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createSprintsMock } from './mock.sprints';
+import { teamMock } from './mock.team';
 import type { Prefs, SprintInfo } from './types';
 import type { TodayData, TodaySprint } from './types.today';
 
@@ -127,6 +128,7 @@ export const mockApi: Api = {
   ...createSprintsMock(sprints),
   ...dataMock,
   ...planMock,
+  ...teamMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
