@@ -58,7 +58,7 @@ function actionCommands(): Command[] {
   if (app.status.tracker.enabled) {
     out.splice(2, 0, {
       id: 'act:sync',
-      label: t('Fetch tickets from the tracker now'),
+      label: t('Fetch tickets from {name} now', { name: app.status.tracker.name || t('Tracker') }),
       group: 'action',
       words: 'jira sync abrufen',
       run: () => void syncTracker(),

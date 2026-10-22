@@ -1,7 +1,7 @@
 <script lang="ts">
   import { app, refresh, selectSprint, syncTracker } from '../../lib/app.svelte';
   import { formatDay } from '../../lib/format';
-  import { t } from '../../lib/i18n.svelte';
+  import { language, t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import type { IconName } from '../../lib/icons';
   import { api } from '../../lib/api';
@@ -19,30 +19,48 @@
   // nothing blocks a page.
   let data = $state<TodayData>();
   let failure = $state('');
+  let latest = 0;
 
   async function load(team: string): Promise<void> {
+    const mine = ++latest;
     try {
-      data = await api.Today(team);
-      failure = '';
+      const got = await api.Today(team);
+      if (mine === latest) {
+        data = got;
+        failure = '';
+      }
     } catch (e) {
-      data = undefined;
-      failure = String(e);
+      if (mine === latest) {
+        data = undefined;
+        failure = String(e);
+      }
     }
   }
 
-  // Reload when the team changes and after a save or refresh (the status changes then).
+  // Reload when the team changes and after a save or refresh (the status values change then).
+  // The values are derived first: the status object is replaced every few seconds, and an
+  // unchanged value must not reload the page.
+  const team = $derived(app.team);
+  const storage = $derived(app.status.storage);
+  const incoming = $derived(app.status.incoming);
   $effect(() => {
-    const team = app.team;
-    void app.status.storage;
-    void app.status.incoming;
+    void storage;
+    void incoming;
     if (team) void load(team);
-    else data = undefined;
+    else {
+      latest++;
+      data = undefined;
+    }
+  });
+  $effect.pre(() => {
+    // Show nothing of the old team while the new one loads.
+    if (data && data.team !== team) data = undefined;
   });
 
   const steps: Record<StepKey, { icon: IconName; label: () => string; to: string }> = {
-    absences: { icon: 'event_busy', label: () => t('Absences'), to: '/sprint/prepare' },
-    preplan: { icon: 'low_priority', label: () => t('Pre-planning'), to: '/sprint/preplan' },
-    plan: { icon: 'checklist', label: () => t('Planning'), to: '/sprint/plan' },
+    absences: { icon: 'event_busy', label: () => t('Absences (people away)'), to: '/sprint/prepare' },
+    preplan: { icon: 'low_priority', label: () => t('Pre-plan'), to: '/sprint/preplan' },
+    plan: { icon: 'checklist', label: () => t('Plan'), to: '/sprint/plan' },
     review: { icon: 'task_alt', label: () => t('Review'), to: '/sprint/review' },
   };
 
@@ -59,9 +77,9 @@
   function when(s: TodaySprint): string {
     switch (s.state) {
       case 'running':
-        return t('running');
+        return t('in progress');
       case 'past':
-        return t('finished');
+        return t('completed');
       case 'next':
         return t('next');
       default:
@@ -69,12 +87,17 @@
     }
   }
 
-  function days(n: number): string {
-    return n === 1 ? t('1 day') : t('{n} days', { n });
+  function left(n: number): string {
+    return n === 1 ? t('1 day left.') : t('{n} days left.', { n });
+  }
+
+  function startsIn(n: number): string {
+    if (n <= 0) return t('Starts today.');
+    return n === 1 ? t('Starts tomorrow.') : t('Starts in {n} days.', { n });
   }
 
   const tracker = $derived(app.status.tracker);
-  const lastSync = $derived(tracker.last ? new Date(tracker.last).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const lastSync = $derived(tracker.last ? new Date(tracker.last).toLocaleString(language(), { dateStyle: 'short', timeStyle: 'short' }) : '');
   const sourceName = $derived(data?.source === 'packages' ? t('Work packages') : t('Tickets'));
   const trackerName = $derived(tracker.name || t('Tracker'));
   const unreviewed = $derived(data?.sprints.find((s) => s.state === 'past'));
@@ -118,7 +141,7 @@
           <Banner tone={s.steps[0]?.state === 'done' ? 'info' : 'warn'}>
             <strong>{t('Review on {date}', { date: formatDay(s.end) })}</strong>
             <span class="block">
-              {s.daysLeft > 0 ? t('{days} left.', { days: days(s.daysLeft) }) : t('Today is the last day.')}
+              {s.daysLeft > 0 ? left(s.daysLeft) : t('Today is the last day.')}
               {t('Enter velocity, scope change and what was done per product.')}
             </span>
           </Banner>
@@ -145,7 +168,7 @@
         </ul>
         {#if s.state !== 'running'}
           <p class="small muted">
-            {s.daysToStart > 0 ? t('Starts in {days}.', { days: days(s.daysToStart) }) : t('Starts today.')}
+            {startsIn(s.daysToStart)}
             {t('You can pre-plan at any time; planning works with the data of now.')}
           </p>
         {:else}
@@ -165,7 +188,7 @@
     <section class="card stack" aria-labelledby="td-in">
       <h2 id="td-in"><Icon name="cloud_download" /> {t('Changes from others')}</h2>
       {#if app.status.incoming > 0}
-        <p>{t('{n} new changes are waiting on the server.', { n: app.status.incoming })}</p>
+        <p>{app.status.incoming === 1 ? t('One new change is waiting on the server.') : t('{n} new changes are waiting on the server.', { n: app.status.incoming })}</p>
         <div class="row">
           <button class="btn primary" type="button" disabled={!!app.busy} onclick={refresh}><Icon name="download" />{t('Refresh')}</button>
           <a class="small" href={link('/data')}>{t('Details under Data')}</a>
@@ -208,7 +231,7 @@
       <p class="muted">{t('The data check found nothing.')}</p>
     {:else}
       <ul class="findings">
-        {#each data.findings as f (f.where + f.message)}
+        {#each data.findings as f, i (i)}
           <li>
             <span class="chip" class:bad={f.level === 'error'} class:warn={f.level === 'notice'}>
               <Icon name={f.level === 'error' ? 'error' : 'warning'} size={14} />{f.level === 'error' ? t('Error') : t('Notice')}

@@ -30,6 +30,10 @@
     void query;
     index = 0;
   });
+  $effect(() => {
+    // Keep the active entry in view while stepping with the arrow keys.
+    if (app.paletteOpen) document.getElementById(`pal-${index}`)?.scrollIntoView?.({ block: 'nearest' });
+  });
 
   function choose(e: Command | undefined): void {
     if (!e) return;
@@ -71,14 +75,14 @@
       <ul id="palette-list" role="listbox">
         {#each shown as e, i (e.id)}
           <li id={`pal-${i}`} role="option" aria-selected={i === index}>
-            <button type="button" class:on={i === index} onclick={() => choose(e)} onmousemove={() => (index = i)}>
+            <button type="button" tabindex="-1" class:on={i === index} onclick={() => choose(e)} onmousemove={() => (index = i)}>
               <span class="grow">{e.label}</span>
               {#if e.hint}<span class="muted small data">{e.hint}</span>{/if}
               <span class="chip">{labels[e.group]()}</span>
             </button>
           </li>
         {:else}
-          <li class="muted pad">{t('Nothing found.')}</li>
+          <li class="muted pad" role="option" aria-selected="false" aria-disabled="true">{t('Nothing found.')}</li>
         {/each}
       </ul>
     </div>

@@ -199,7 +199,11 @@ func stepsOf(s model.Sprint, state string) []TodayStep {
 	var abs string
 	switch s.AbsenceStatus() {
 	case model.AbsencesExpected:
-		abs = i18n.T("announced only ({count} people)", "count", len(s.ExpectedAbsences))
+		if len(s.ExpectedAbsences) == 1 {
+			abs = i18n.T("announced only (1 person)")
+		} else {
+			abs = i18n.T("announced only ({count} people)", "count", len(s.ExpectedAbsences))
+		}
 	case model.AbsencesUnknown:
 		abs = i18n.T("not entered yet")
 	}

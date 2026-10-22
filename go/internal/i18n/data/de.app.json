@@ -10,6 +10,7 @@
   "Choose the data folder": "Datenordner wählen",
   "announced only ({count} people)": "nur angekündigt ({count} Personen)",
   "not entered yet": "noch nicht eingetragen",
-  "{done} of {total} products": "{done} von {total} Produkten"
+  "{done} of {total} products": "{done} von {total} Produkten",
+  "announced only (1 person)": "nur angekündigt (1 Person)"
  }
 }
