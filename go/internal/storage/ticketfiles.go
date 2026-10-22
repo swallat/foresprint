@@ -132,6 +132,9 @@ func ProjectsFromDict(d *yamlx.Map, where string) ([]model.Project, error) {
 			return nil, err
 		}
 		pr.Note = text(get(p, "note"))
+		if err = projectExtrasFrom(p, &pr, at); err != nil {
+			return nil, err
+		}
 		projects = append(projects, pr)
 	}
 	return projects, nil
@@ -156,6 +159,7 @@ func ProjectsToDict(projects []model.Project) *yamlx.Map {
 		if p.Note != nil && *p.Note != "" {
 			put(entry, "note", *p.Note)
 		}
+		projectExtrasTo(entry, p)
 		out = append(out, entry)
 	}
 	return omap("schema", int64(Schema), "projects", out)
@@ -239,6 +243,9 @@ func TicketsFromDict(d *yamlx.Map, where string) (TicketsFile, error) {
 			return out, err
 		}
 		tk.Done = truthy(getOr(raw, "done", false))
+		if err = packageFieldsFrom(raw, &tk, at); err != nil {
+			return out, err
+		}
 		out.Tickets = append(out.Tickets, tk)
 	}
 	return out, nil
@@ -294,6 +301,7 @@ func TicketsToDict(f TicketsFile) *yamlx.Map {
 		if tk.Done {
 			put(entry, "done", true)
 		}
+		packageFieldsTo(entry, tk)
 		entries = append(entries, entry)
 	}
 	put(out, "tickets", entries)
@@ -343,6 +351,9 @@ func PreplanFromDict(d *yamlx.Map, where string) (model.Preplan, error) {
 		}
 		pp.Estimates = append(pp.Estimates, model.ManualEstimate{Ticket: pyStr(get(raw, "ticket")), Estimate: est, Note: text(get(raw, "note"))})
 	}
+	if err := preplanExtrasFrom(d, &pp, where); err != nil {
+		return pp, err
+	}
 	return pp, nil
 }
 
@@ -364,5 +375,7 @@ func PreplanToDict(pp model.Preplan) *yamlx.Map {
 		}
 		estimates = append(estimates, entry)
 	}
-	return omap("schema", int64(Schema), "earmarks", earmarks, "estimates", estimates)
+	out := omap("schema", int64(Schema), "earmarks", earmarks, "estimates", estimates)
+	preplanExtrasTo(out, pp)
+	return out
 }

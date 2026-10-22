@@ -443,6 +443,9 @@ func CheckTeam(data *storage.TeamData, today time.Time) []Issue {
 		if len(p.Memberships) == 0 {
 			r.warn(where, msg("no memberships recorded"))
 		}
+		if p.Kind == model.KindExternal && len(p.Memberships) > 0 && p.Memberships[len(p.Memberships)-1].End == nil {
+			r.warn(where, msg("external person without an end date"))
+		}
 		ordered := append([]model.Membership(nil), p.Memberships...)
 		sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Start.Before(ordered[j].Start) })
 		for _, m := range ordered {

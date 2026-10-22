@@ -59,6 +59,20 @@ type SprintSettings struct {
 	// FirstID and FirstStart are only needed as long as no sprint is recorded yet.
 	FirstID    *string
 	FirstStart *time.Time
+	// Naming are the sprint naming patterns, in the order of their From.
+	Naming []NamingRule
+	// ProForma are the names of the pro-forma sprints ("Refinement"): they sit under the
+	// backlog and never count for capacity.
+	ProForma []string
+}
+
+// EstimationSettings is the estimation unit over time (section estimation of team.yaml). The
+// unit of Team.Unit is the one valid from the first sprint on; Changes switch it later.
+type EstimationSettings struct {
+	// Factor converts between story points and person days (points per person day); nil = the
+	// measured team rate.
+	Factor  *float64
+	Changes []UnitChange
 }
 
 // ForecastSettings is the section forecast of team.yaml.
@@ -101,6 +115,9 @@ type Features struct {
 	Production bool
 	// Tickets: ticket pre-planning (projects.yaml, tickets.yaml, preplan.yaml).
 	Tickets bool
+	// Projects: projects.yaml is read although Tickets is off (projects without tickets, with
+	// milestones and contingents, decision 15c).
+	Projects bool
 	// Explicit is false when the file has no features section (older files); the values were
 	// derived from the existing data so that nothing disappears.
 	Explicit bool
@@ -118,6 +135,8 @@ type Team struct {
 	// Tracker is the settings of the ticket pre-planning (section tracker); only used with
 	// Features.Tickets.
 	Tracker TrackerSettings
+	// Estimation is the unit over time and the conversion between the units.
+	Estimation EstimationSettings
 	// TrackerRaw is the raw tracker section (a YAML value) that could not be read while
 	// Features.Tickets is off; kept so that writing team.yaml does not drop it. Nil if none.
 	TrackerRaw any
@@ -178,6 +197,8 @@ type Person struct {
 	Country *string
 	// Workweek is the person's own workweek (e.g. "mon,tue,wed,thu"), if different.
 	Workweek *string
+	// Kind: member (default), guest or external.
+	Kind PersonKind
 }
 
 // FTEOn returns the share in the team on day, 0 if the person is not in the team.

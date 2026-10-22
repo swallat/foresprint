@@ -31,7 +31,8 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
 | `internal/gittest` | Helpers for tests with real repositories (bare server, clones). Only imported by tests. |
 | `internal/difflib` | Python's `difflib` (SequenceMatcher, grouped opcodes, `unified_diff`) with identical output. |
-| `internal/gitsync` | State, fetch, "Save and share" (commit, merge at key level, validate, push with retry, merge request instead of push), conflicts and their decisions, remote server setup, branches, rescue after a detached HEAD. The YAML codec and the data check are supplied by the storage layer (`SetCodec`, `SetValidator`). |
+| `internal/gitsync` | State, fetch, "Save and share" (commit, merge at key level, validate, push with retry, merge request instead of push), conflicts and their decisions, remote server setup, branches, rescue after a detached HEAD. The YAML codec (`yamlx`) and the data check (`validate.CheckFolder`) are the defaults; `SetCodec` and `SetValidator` replace them in tests. |
+| `internal/datasvc` | The "Data" area of the window: status and chip, Save, Refresh, conflicts, history and restore, labels, Settings > Storage. Neutral words, plain structs with JSON names and no context, so the window binds the `Store` methods as they are (flows D1 to D6). |
 | `internal/githistory` | Discard (with trash and rollback), history, restore a version, take back a commit, tags (also on the server). |
 | `internal/signin` | Token sign-in over Git's credential helper (`git credential approve/reject`); the token is never stored or shown by the program. |
 | `internal/pymath` | The arithmetic of Python the results depend on: the compensated `sum()` of floats (Python 3.12+), `math.fsum`, `statistics.median`/`fmean`, `round`, and the number formats `{:,.2f}` and `{:g}`. A sum that has to match Python is calculated with these, not with a loop. |
@@ -43,6 +44,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/formulas` | The calculation path of every figure: steps and explanations as texts (`formulas.py`). |
 | `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
 | `internal/products` | Distribution of the sprint quantity over the products: standard shares, rows and totals, production state, totals per PO, balance (`products.py`). |
+| `internal/planning` | New in 1.0 (no Python original): plannable amount and small stuff, production demand against production time (traffic light), points ↔ person days. Formulas of flows.md, decisions 19 and 20. |
 | `internal/coretest` | Test helper: loads the golden team folders with `storage` and turns results into the JSON form of the Python references (snake case keys, dates as YYYY-MM-DD). |
 
 | `internal/sources` | Ticket sources: CSV export of Jira, Jira Data Center client (REST v2, token from the environment or the keychain), field resolution, field suggestions, the one label write. Python-compatible CSV reader, float parsing and `difflib`; compared with `golden/expected/sources`. |
@@ -50,6 +52,25 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/excel` | Excel output of a team: real formulas with the engine's cached results, the data sheets the import reads, charts. Built with excelize; the types of cached results and the chart extension are corrected in the file. Compared with `golden/expected/excel` (cells read back from the Python workbook). Also the Excel import (own xlsx reader with openpyxl's value semantics, plan and apply), compared with `golden/expected/excel_import` (85 workbooks: documents, error texts, changes, written files). |
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
+
+## Data format in 1.0
+
+Everything 1.0 adds is optional and written only when it has a value, so a 0.8 file reads and
+writes back unchanged (the golden round trips prove it).
+
+| File | Addition |
+| --- | --- |
+| `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
+| `people.yaml` | `kind: guest` or `external` (member is not written) |
+| `abwesenheiten.yaml` | `absences: {<person>: [{from, to, confirmed}]}`, dates only, never a reason |
+| `projects.yaml` | `products` (list; with one product the 0.8 key `product` stays), `start`, `end`, `state` (finished, cancelled), `open_scope`, `milestones`, `contingent: {total, per_month}` |
+| `tickets.yaml` / `arbeitspakete.yaml` | work package fields `description`, `acceptance`, `assignee`, `product`, `subtasks`, `comments`; `arbeitspakete.yaml` has the format of `tickets.yaml` and replaces it for `kind: packages` |
+| `preplan.yaml` | `production` (`{ticket, share, note}`), `overrides` (`{ticket, product, project, daily}`) |
+| `sprints/<id>.yaml` | `name`, `committed_tickets`, `carry` (`{ticket, rest, target}`), `rest_next`, `projects` (values per project, no tickets); prognoses: `label`, `finish`, `carry`, `rest_next` |
+
+`model.FormatSprintName` fills a naming pattern ({JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).
+`tracker.kind` accepts `packages`, so the message of the check lists it (known deviation from
+the Python reference).
 
 ## Texts
 
