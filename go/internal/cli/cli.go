@@ -94,6 +94,9 @@ func Execute(args []string, in io.Reader, out, errOut io.Writer) int {
 	root.SetErr(errOut)
 	err := root.Execute()
 	if err == nil {
+		if AfterRun != nil {
+			AfterRun(env, args)
+		}
 		return 0
 	}
 	var fail *Fail

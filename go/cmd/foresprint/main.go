@@ -10,6 +10,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/cli"
 	"github.com/swallat/foresprint/internal/holidays"
+	"github.com/swallat/foresprint/internal/selfupdate"
 )
 
 // version is set at build time: -ldflags "-X main.version=1.0.0".
@@ -17,10 +18,12 @@ var version = "dev"
 
 func init() {
 	cli.Version = version
+	cli.AfterRun = cli.AutoUpdate
 	cli.Register(versionCommand)
 }
 
 func main() {
+	selfupdate.CleanupOld()
 	os.Exit(cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 

@@ -15,6 +15,14 @@
   "Please select one of the available options": "Bitte eine der angebotenen Möglichkeiten wählen",
   "The keychain is not available on this computer. Set the environment variable {variable} instead.": "Der Schlüsselbund ist auf diesem Rechner nicht verfügbar. Setze stattdessen die Umgebungsvariable {variable}.",
   "Write a team's Excel list (formulas, trend chart, split per product).": "Excel-Liste eines Teams schreiben (Formeln, Trend-Diagramm, Aufteilung je Produkt).",
-  "{path}: not readable ({reason})": "{path}: nicht lesbar ({reason})"
+  "{path}: not readable ({reason})": "{path}: nicht lesbar ({reason})",
+  "Update foresprint to the latest version.": "Foresprint auf die neueste Version aktualisieren.",
+  "Version {version} – a development build does not update itself. Install a release from https://github.com/{repo}/releases.": "Version {version} – ein Entwicklungsstand aktualisiert sich nicht selbst. Eine Version von https://github.com/{repo}/releases installieren.",
+  "The newest version could not be determined: {error}": "Die neueste Version konnte nicht ermittelt werden: {error}",
+  "Version {version} is the latest.": "Version {version} ist die neueste.",
+  "Version {latest} is available (installed: {version}). Update with: {command}": "Version {latest} ist verfügbar (installiert: {version}). Aktualisieren mit: {command}",
+  "Installing version {latest} …": "Version {latest} wird installiert …",
+  "The update failed: {error}": "Die Aktualisierung ist fehlgeschlagen: {error}",
+  "Updated to version {latest}. The next start uses it.": "Auf Version {latest} aktualisiert. Der nächste Start nutzt sie."
  }
 }
