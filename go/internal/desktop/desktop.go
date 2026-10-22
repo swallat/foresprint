@@ -28,6 +28,10 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// Trace, when set, is told about the steps of the start (startup, page loaded, closed); the
+// Windows release writes them to its start log, because it has no console.
+var Trace = func(string) {}
+
 // Run opens the window and returns when it is closed.
 func Run(version, dataDir string) error {
 	api := app.New(version, dataDir)
@@ -46,7 +50,15 @@ func Run(version, dataDir string) error {
 		BackgroundColour: &options.RGBA{R: 242, G: 243, B: 248, A: 1},
 		AssetServer:      &assetserver.Options{Assets: dist},
 		Bind:             []any{api},
+		WindowStartState: options.Normal,
+		OnDomReady: func(ctx context.Context) {
+			Trace("page loaded")
+			raise(ctx)
+		},
+		OnBeforeClose: func(context.Context) bool { Trace("window closing"); return false },
 		OnStartup: func(ctx context.Context) {
+			Trace("window created")
+			raise(ctx)
 			api.ChooseFolder = func(title string) (string, error) {
 				return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: title})
 			}
@@ -66,4 +78,14 @@ func Run(version, dataDir string) error {
 		},
 		Windows: &windows.Options{Theme: windows.SystemDefault},
 	})
+}
+
+// raise makes sure the window can be seen: not minimised, centred on a screen, in front. A window
+// that exists but cannot be seen (a position outside the screen) is not acceptable.
+func raise(ctx context.Context) {
+	runtime.WindowUnminimise(ctx)
+	runtime.WindowCenter(ctx)
+	runtime.WindowShow(ctx)
+	runtime.WindowSetAlwaysOnTop(ctx, true)
+	runtime.WindowSetAlwaysOnTop(ctx, false)
 }
