@@ -6,6 +6,7 @@
 // Never use emojis in the UI.
 
 import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
+import i_archive from '@material-symbols/svg-400/outlined/archive.svg?raw';
 import i_arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?raw';
 import i_arrow_downward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw';
 import i_arrow_forward from '@material-symbols/svg-400/outlined/arrow_forward.svg?raw';
@@ -14,6 +15,7 @@ import i_attach_file from '@material-symbols/svg-400/outlined/attach_file.svg?ra
 import i_calculate from '@material-symbols/svg-400/outlined/calculate.svg?raw';
 import i_calendar_month from '@material-symbols/svg-400/outlined/calendar_month.svg?raw';
 import i_call_split from '@material-symbols/svg-400/outlined/call_split.svg?raw';
+import i_cancel from '@material-symbols/svg-400/outlined/cancel.svg?raw';
 import i_category from '@material-symbols/svg-400/outlined/category.svg?raw';
 import i_check from '@material-symbols/svg-400/outlined/check.svg?raw';
 import i_check_circle from '@material-symbols/svg-400/outlined/check_circle.svg?raw';
@@ -38,14 +40,18 @@ import i_drag_indicator from '@material-symbols/svg-400/outlined/drag_indicator.
 import i_edit from '@material-symbols/svg-400/outlined/edit.svg?raw';
 import i_error from '@material-symbols/svg-400/outlined/error.svg?raw';
 import i_event_available from '@material-symbols/svg-400/outlined/event_available.svg?raw';
+import i_event_repeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw';
 import i_filter_list from '@material-symbols/svg-400/outlined/filter_list.svg?raw';
 import i_flag from '@material-symbols/svg-400/outlined/flag.svg?raw';
 import i_folder_open from '@material-symbols/svg-400/outlined/folder_open.svg?raw';
+import i_forum from '@material-symbols/svg-400/outlined/forum.svg?raw';
+import i_gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw';
 import i_group from '@material-symbols/svg-400/outlined/group.svg?raw';
 import i_groups from '@material-symbols/svg-400/outlined/groups.svg?raw';
 import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
 import i_history from '@material-symbols/svg-400/outlined/history.svg?raw';
 import i_info from '@material-symbols/svg-400/outlined/info.svg?raw';
+import i_ios_share from '@material-symbols/svg-400/outlined/ios_share.svg?raw';
 import i_keyboard_arrow_down from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw';
 import i_keyboard_arrow_up from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw';
 import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
@@ -72,6 +78,7 @@ import i_sync from '@material-symbols/svg-400/outlined/sync.svg?raw';
 import i_task_alt from '@material-symbols/svg-400/outlined/task_alt.svg?raw';
 import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
+import i_unarchive from '@material-symbols/svg-400/outlined/unarchive.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
 import i_view_list from '@material-symbols/svg-400/outlined/view_list.svg?raw';
 import i_visibility from '@material-symbols/svg-400/outlined/visibility.svg?raw';
@@ -80,6 +87,7 @@ import i_warning from '@material-symbols/svg-400/outlined/warning.svg?raw';
 
 const icons = {
   add: i_add,
+  archive: i_archive,
   arrow_back: i_arrow_back,
   arrow_downward: i_arrow_downward,
   arrow_forward: i_arrow_forward,
@@ -88,6 +96,7 @@ const icons = {
   calculate: i_calculate,
   calendar_month: i_calendar_month,
   call_split: i_call_split,
+  cancel: i_cancel,
   category: i_category,
   check: i_check,
   check_circle: i_check_circle,
@@ -112,14 +121,18 @@ const icons = {
   edit: i_edit,
   error: i_error,
   event_available: i_event_available,
+  event_repeat: i_event_repeat,
   filter_list: i_filter_list,
   flag: i_flag,
   folder_open: i_folder_open,
+  forum: i_forum,
+  gavel: i_gavel,
   group: i_group,
   groups: i_groups,
   help: i_help,
   history: i_history,
   info: i_info,
+  ios_share: i_ios_share,
   keyboard_arrow_down: i_keyboard_arrow_down,
   keyboard_arrow_up: i_keyboard_arrow_up,
   language: i_language,
@@ -146,6 +159,7 @@ const icons = {
   task_alt: i_task_alt,
   today: i_today,
   tune: i_tune,
+  unarchive: i_unarchive,
   undo: i_undo,
   view_list: i_view_list,
   visibility: i_visibility,

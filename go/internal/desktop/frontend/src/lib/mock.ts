@@ -2,6 +2,7 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { projectsMock } from './mock.projects';
 import type { Prefs, Result, SprintInfo, Status } from './types';
 
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
@@ -46,6 +47,7 @@ const status = (): Status => ({
 const ok = (message: string): Result => ({ ok: true, message });
 
 export const mockApi: Api = {
+  ...projectsMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },

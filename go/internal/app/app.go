@@ -33,8 +33,12 @@ type API struct {
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFolder func(title string) (string, error)
 
+	// Now is the clock; nil = the system clock (set in tests).
+	Now func() time.Time
+
 	mu      sync.Mutex
 	dataDir string
+	undo    []projectSnapshot
 }
 
 // New returns the API for a data folder; "" takes the remembered one.

@@ -7,6 +7,22 @@
   "Tracker synced.": "Tracker abgerufen.",
   "The folder {path} does not exist.": "Den Ordner {path} gibt es nicht.",
   "No folder dialog in this build.": "Dieser Build hat keinen Ordnerdialog.",
-  "Choose the data folder": "Datenordner wählen"
+  "Choose the data folder": "Datenordner wählen",
+  "{what}: please enter a date as YYYY-MM-DD.": "{what}: Bitte gib ein Datum als JJJJ-MM-TT ein.",
+  "The project {id} does not exist.": "Das Projekt {id} gibt es nicht.",
+  "This team keeps no projects. Switch them on under Settings > Team.": "Dieses Team führt keine Projekte. Schalte sie unter Einstellungen > Team ein.",
+  "There is nothing to undo.": "Es gibt nichts zum Rückgängigmachen.",
+  "Please choose at least one product.": "Bitte wähle mindestens ein Produkt.",
+  "A project named {name} exists already.": "Ein Projekt namens {name} gibt es schon.",
+  "End date": "Enddatum",
+  "Start date": "Startdatum",
+  "Please enter an end date.": "Bitte gib ein Enddatum ein.",
+  "The start date lies after the end date.": "Das Startdatum liegt nach dem Enddatum.",
+  "The contingent cannot be negative.": "Das Kontingent darf nicht negativ sein.",
+  "The contingent per month needs a month and a number from 0.": "Das Kontingent pro Monat braucht einen Monat und eine Zahl ab 0.",
+  "Milestone date": "Datum des Meilensteins",
+  "Please enter a date for every milestone.": "Bitte gib für jeden Meilenstein ein Datum ein.",
+  "Please choose how the project ends.": "Bitte wähle, wie das Projekt endet.",
+  "{name} has history and can only be closed.": "{name} hat einen Verlauf und kann nur abgeschlossen werden."
  }
 }
