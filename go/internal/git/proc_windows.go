@@ -3,6 +3,7 @@
 package git
 
 import (
+	"os"
 	"os/exec"
 	"strconv"
 	"syscall"
@@ -22,3 +23,6 @@ func terminateTree(cmd *exec.Cmd) error {
 	_ = kill.Run()
 	return cmd.Process.Kill()
 }
+
+// exitSignal: Windows has no signals.
+func exitSignal(*os.ProcessState) string { return "" }

@@ -9,12 +9,20 @@ func TestSilentFailureNamesTheCallWithoutValues(t *testing.T) {
 	got := SilentFailure([]string{
 		"push", "--force-with-lease=refs/heads/x:abc", "-o", "merge_request.title=Secret",
 		"-oSecret2", "https://user:token@host/r.git", "--", "-secretfile", "HEAD:refs/heads/x",
-	}, 1)
+	}, 1, "")
 	want := "git push --force-with-lease -o -o ended with exit code 1 and no message"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	if strings.Contains(got, "token") || strings.Contains(got, "Secret2") || strings.Contains(got, "secretfile") || strings.Contains(got, "Secret") {
 		t.Fatalf("leaks a value: %q", got)
+	}
+}
+
+func TestSilentFailureNamesTheSignal(t *testing.T) {
+	got := SilentFailure([]string{"push", "--force"}, -1, "broken pipe")
+	want := "git push --force ended with exit code -1 and no message (ended by signal broken pipe)"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }
