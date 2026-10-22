@@ -83,6 +83,12 @@
   FS.projectChip = (id) => { const p = FS.project(id); return p ? `<span class="chip">${FS.icon("flag", "small")}${FS.esc(p.name)}</span>` : `<span class="chip muted">Tagesgeschäft</span>`; };
   FS.lightChip = (l, text) => { const m = { ok: ["ok", "check_circle", "im Plan"], warn: ["warn", "error", "knapp"], bad: ["bad", "cancel", "gefährdet"] }[l]; return `<span class="chip ${m[0]}">${FS.icon(m[1])}${text || m[2]}</span>`; };
   FS.refinedChip = (t) => (t.refined ? "" : `<span class="chip warn" title="Nicht refined">${FS.icon("help")}offen</span>`);
+  // Production share: part of a ticket's estimate that needs people with production access (0 to 100 %; 100 = production only).
+  // From the tracker field configured under Tickets und Tracker; a value set in Foresprint wins (kept in the team data).
+  FS.prodPct = (t) => FS.state.prodOver?.[t.key] ?? t.prod ?? 0;
+  FS.prodPts = (l) => FS.sum(l, (t) => ((t.est || 0) * FS.prodPct(t)) / 100);
+  FS.prodChip = (t) => (FS.prodOn() && FS.prodPct(t) ? `<span class="prod-sub" title="${FS.prodPct(t)} % der Schätzung brauchen Produktionszugang">${FS.icon("dns", "small")}Prod ${FS.prodPct(t)} %</span>` : "");
+  FS.setProd = (t, v, file) => { const was = FS.prodPct(t); if (v === was) return; if (FS.trk() === "local") t.prod = v; else (FS.state.prodOver ??= {})[t.key] = v; FS.addUnsaved?.(`${FS.dk(t.key)}: Prod-Anteil`, `${was} %`, `${v} %`, file); };
   FS.estHtml = (t) => (t.est == null ? `<span class="est muted" title="Keine Schätzung">?</span>` : `<span class="est">${t.est}</span>`);
 
   // Standard ticket row; opts.drag adds a drag handle
@@ -91,7 +97,7 @@
       <span class="handle">${opts.drag ? FS.icon("drag_indicator") : ""}</span>
       ${FS.keyLink(t)}
       <span class="title">${FS.esc(t.title)}</span>
-      <span class="meta">${FS.refinedChip(t)}${opts.noProduct || !FS.multiProduct() ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.estHtml(t)}</span>
+      <span class="meta">${FS.refinedChip(t)}${opts.noProduct || !FS.multiProduct() ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.prodChip(t)}${FS.estHtml(t)}</span>
     </div>`;
 
   // Capacity bar: used vs forecast range (all in points)
@@ -182,6 +188,7 @@
         <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod">${sel("tp-product", D.products.map((p) => [p.id, p.name]), t.product, "Produkt")}</dd>
         <dt>Projekt</dt><dd>${sel("tp-project", [["", "Tagesgeschäft"], ...D.projects.map((p) => [p.id, p.name])], t.project || "", "Projekt")}</dd>
         <dt>Schätzung</dt><dd class="row" style="gap:6px"><input class="input data" id="wp-est" inputmode="numeric" value="${t.est ?? ""}" placeholder="–" style="width:72px;text-align:right" aria-label="Schätzung in Punkten"><span class="small muted">Punkte</span></dd>
+        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% der Schätzung brauchen Produktionszugang, 100 = nur Prod</span></dd>` : ""}
         <dt>Refined</dt><dd><label class="row" style="gap:6px"><input type="checkbox" id="wp-ref" ${t.refined ? "checked" : ""}><span class="small">im Refinement geklärt</span></label></dd>
         <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`} <span class="small muted">im Backlog ziehen</span></dd>
         <dt>Labels</dt><dd><input class="input" id="wp-labels" value="${FS.esc(d.labels.join(", "))}" placeholder="kommagetrennt"></dd>
@@ -213,6 +220,7 @@
     on("#tp-product", "change", (e) => { note("Produkt", FS.product(t.product)?.name, FS.product(e.target.value).name); t.product = e.target.value; });
     on("#tp-project", "change", (e) => { note("Projekt", FS.project(t.project)?.name || "Tagesgeschäft", FS.project(e.target.value)?.name || "Tagesgeschäft"); t.project = e.target.value || null; });
     on("#wp-est", "change", (e) => { const v = parseInt(e.target.value, 10); note("Schätzung", t.est ?? "–", isNaN(v) ? "–" : v); t.est = isNaN(v) ? null : v; });
+    el.querySelector("#tp-prod")?.addEventListener("change", (e) => { const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)); e.target.value = v; FS.setProd(t, v, "arbeitspakete.yaml"); FS.render(); });
     on("#wp-ref", "change", (e) => { note("Refined", t.refined ? "ja" : "nein", e.target.checked ? "ja" : "nein"); t.refined = e.target.checked; });
     on("#wp-labels", "change", (e) => { d.labels = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); note("Labels", "", d.labels.join(", ")); });
     on("#wp-desc", "change", (e) => { note("Beschreibung", "geändert", "geändert"); d.description = e.target.value; });
@@ -236,6 +244,7 @@
         <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod"><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
         <dt>Projekt</dt><dd><select class="input" id="tp-project"><option value="">Tagesgeschäft</option>${opts(D.projects, t.project)}</select></dd>
         <dt>Schätzung</dt><dd class="data">${t.est ?? "keine"} Punkte <span class="muted small">aus ${D.team.tracker}</span></dd>
+        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% · ${FS.state.prodOver?.[t.key] != null ? "in Foresprint gesetzt" : t.prod != null ? `aus ${D.team.tracker}` : "fehlt in " + D.team.tracker + ", gilt 0"}</span></dd>` : ""}
         <dt>Refined</dt><dd>${t.refined ? FS.lightChip("ok", "ja") : FS.lightChip("warn", "nein")}</dd>
         <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`}</dd>
         ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
@@ -248,6 +257,7 @@
       <h2>Verlauf in Foresprint</h2>
       <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>18.10. Abruf aus ${D.team.tracker}: Schätzung 5</li></ul>`);
     if (el) el.querySelector("#tp-present").onclick = () => FS.presentTicket(key);
+    el?.querySelector("#tp-prod")?.addEventListener("change", (e) => { const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)); e.target.value = v; FS.setProd(t, v, "vorplanung.yaml"); FS.render(); });
   };
 
   // Presentation view: one ticket fills the window, arrows step through the list on screen.

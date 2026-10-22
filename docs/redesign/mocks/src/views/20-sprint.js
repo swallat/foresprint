@@ -25,6 +25,20 @@
     const cap = base - abs, fc = Math.round(cap * D.rate);
     return { s, base, abs, cap, fc, low: Math.round(cap * RLO), high: Math.round(cap * RHI) };
   }
+  // Production: capacity of the people with production access (their share of the sprint's person days, minus their absences)
+  // against the production part of the planned work (share per ticket, or one PT value without tickets).
+  function prodCap(sid) {
+    const days = FS.sprint(sid).days, all = sum(D.people, (p) => p.fte * days), base = BASE[sid] ?? FS.sprint(sid).capacityPD;
+    const ppl = D.people.filter((p) => p.prod).map((p) => { const raw = (p.fte * days * base) / all, abs = absOf(sid)[p.id]?.d || 0; return { p, raw, abs, pd: Math.max(0, raw - abs) }; });
+    return { ppl, pd: sum(ppl, (x) => x.pd) };
+  }
+  const prodPT = (sid) => (st().prodPT ??= { "2026.22": 6 })[sid] ?? null;
+  function prodNeed(sid) {
+    if (FS.trk() === "none") { const v = prodPT(sid); return { pd: v ?? 0, pts: (v ?? 0) * D.rate, set: v != null }; }
+    const l = tix(sid).filter((t) => FS.prodPct(t) > 0), p = FS.prodPts(l);
+    return { list: l, pts: p, pd: p / D.rate, set: true };
+  }
+  const prodLight = (need, cap) => (need > cap ? "bad" : need > cap * 0.8 ? "warn" : "ok");
   const tix = (sid) => D.tickets.filter((t) => t.sprint === sid || t.carryTo === sid);
   // A carried-over ticket counts with its remaining effort in the sprint it was carried into.
   const pts = (l) => sum(l, (t) => (t.carryTo && t.carryTo === FS.state.sprint ? t.carryRest ?? t.est : t.est));
@@ -84,8 +98,8 @@
         <div><div class="small muted">Erwartete Velocity ${cid}</div><div class="data cw-big">${fmt(r.vel)}</div><div class="small muted">${fmt(r.commit)} − ${fmt(r.notDone)} nicht fertig + ${fmt(r.extra)} ${r.noT ? "zusätzlich" : "nachgezogen"}</div></div>
         <div><div class="small muted">Forecast PLAN ${sid}</div><div class="data cw-big">${r.touched ? `${r.c.fc} ${ic("arrow_forward", "small")} <span style="color:var(--forecast)">${r.fc}</span>` : `<span style="color:var(--forecast)">${r.c.fc}</span>`}</div><div class="small muted">${r.touched ? `${d > 0 ? "+" : ""}${d} · Spanne ${r.low} bis ${r.high}` : "unverändert"}</div></div>
         <div><div class="small muted">Übertrag nach ${sid} (Rest)</div><div class="data cw-big">${fmt(r.rest)}</div><div class="small muted">${r.rest || r.notDone ? `von ${fmt(r.noT ? r.notDone : sum(r.carryL, (t) => t.est))} Punkten Schätzung${r.carryL.length ? `, ${r.carryL.length} Tickets` : ""}` : r.noT ? "Punkte" : "keine Tickets markiert"}</div></div>
-        <div><div class="small muted">Frei für Neues in ${sid}</div><div class="data cw-big">${fmt(r.free)}</div><div class="small muted">Forecast PLAN minus Rest</div></div></div>`;
-    const cmp = sets.length > 1 ? tw(`<table class="t" id="cw-cmp" style="margin-top:12px"><thead><tr><th>Annahme</th><th class="num">erw. Velocity</th><th class="num">Forecast PLAN ${sid}</th><th class="num">Übertrag (Rest)</th><th class="num">Frei für Neues</th></tr></thead><tbody>${sets.map((x, j) => { const q = cwCalc(sid, x); return `<tr ${j === act ? 'class="sum"' : ""}><td>Annahme ${esc(x.name)}${j === act ? ' <span class="chip small">aktiv</span>' : ""}</td><td class="num">${fmt(q.vel)}</td><td class="num">${q.fc}</td><td class="num">${fmt(q.rest)}</td><td class="num">${fmt(q.free)}</td></tr>`; }).join("")}</tbody></table>`) : "";
+        <div><div class="small muted">Verplanbar in ${sid}</div><div class="data cw-big">${fmt(r.free)}</div><div class="small muted">Forecast PLAN minus Rest</div></div></div>`;
+    const cmp = sets.length > 1 ? tw(`<table class="t" id="cw-cmp" style="margin-top:12px"><thead><tr><th>Annahme</th><th class="num">erw. Velocity</th><th class="num">Forecast PLAN ${sid}</th><th class="num">Übertrag (Rest)</th><th class="num">Verplanbar</th></tr></thead><tbody>${sets.map((x, j) => { const q = cwCalc(sid, x); return `<tr ${j === act ? 'class="sum"' : ""}><td>Annahme ${esc(x.name)}${j === act ? ' <span class="chip small">aktiv</span>' : ""}</td><td class="num">${fmt(q.vel)}</td><td class="num">${q.fc}</td><td class="num">${fmt(q.rest)}</td><td class="num">${fmt(q.free)}</td></tr>`; }).join("")}</tbody></table>`) : "";
     return `<div class="card" id="sp-cw" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Was wäre wenn: laufender Sprint ${cid}</h2><span class="chip small">Annahme, endgültig erst im Review</span></div>
       <p class="small muted" style="margin:4px 0 8px">Was wird in ${cid} voraussichtlich fertig? ${r.noT ? "Trage die Erwartung des Teams ein." : "Markiere Tickets, die das Team nicht schafft, und schätze ihren Rest."} ${r.noT ? "Was nicht fertig wird, fehlt voll in der Velocity" : "Nicht fertige Tickets fehlen voll in der Velocity"}, in ${sid} läuft nur ${r.noT ? "der" : "ihr"} Rest weiter. Die echten Werte trägst du im Review von ${cid} ein.</p>
       <div class="row" id="cw-sets" style="margin-bottom:12px;gap:6px">${sets.map((x, j) => `<button type="button" class="chip filter ${j === act ? "on" : ""}" data-cwset="${j}" aria-pressed="${j === act}">Annahme ${esc(x.name)}</button>`).join("")}<button type="button" class="chip filter" id="cw-add" title="Kopiert die aktive Annahme">${ic("add", "small")}Annahme</button></div>
@@ -225,19 +239,46 @@
     // The active assumption about the running sprint (Pre-plan) feeds the numbers here, marked as such.
     const a0 = cwCalc(sid), A = a0 && a0.touched ? a0 : null, fc = A ? A.fc : c.fc, lo = A ? A.low : c.low, hi = A ? A.high : c.high;
     const rest = A ? A.rest : sum(D.tickets.filter((t) => t.carryTo === sid), (t) => t.carryRest ?? t.est), free = fc != null ? fc - rest : null;
+    const pt = FS.state.teamApplied?.unit === "pt", used = FS.trk() === "none" ? commit ?? pre : p;
     return `<div class="card sp-sumbar" style="margin-bottom:16px"><div class="sp-sum">
       <div><h2>Kapazität</h2><div class="row"><span class="big">${fmt(c.cap)} PT</span>${calcBtn("cap")}</div>
-        <div class="small muted">${c.abs ? `${fmt(c.abs)} PT Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div></div>
+        <div class="small muted">${c.abs ? `${fmt(c.abs)} PT Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div>
+        ${FS.prodOn() && !c.past ? `<div class="small muted">davon mit Prod-Zugang ≈ <span class="data">${fmt(prodCap(sid).pd, 1)}</span> PT</div>` : ""}</div>
       <div><h2>Forecast PLAN${A ? ` <span class="chip small">mit Annahme ${esc(cw().name)}</span>` : ""}</h2><div class="row"><span class="big" style="color:var(--forecast)">${fmt(fc)} Punkte</span>${calcBtn("fc")}</div>
         <div class="small muted">${lo != null ? `Spanne <span class="data">${lo} bis ${hi}</span> · ${A ? `ohne Annahme <span class="data">${c.fc}</span>` : `Rate <span class="data">${fmt(D.rate, 2)}</span> je PT`}` : "Plan des abgeschlossenen Sprints"}</div></div>
-      ${lo != null ? `<div id="sp-free"><h2>Frei für Neues</h2><div class="row"><span class="big">${fmt(free)} Punkte</span></div>
-        <div class="small muted">≈ <span class="data">${fmt(free / D.rate, 1)}</span> PT · ${rest ? `minus Übertrag <span class="data">${fmt(rest)}</span>` : "kein Übertrag angenommen"}</div></div>` : ""}
-      <div><h2>${FS.trk() === "none" ? "Vorgeplant" : "Geplant"}</h2><div class="row"><span class="big">${fmt(FS.trk() === "none" ? commit ?? pre : p)} Punkte</span></div>
-        ${FS.capBar(FS.trk() === "none" ? commit ?? pre : p, fc, lo, hi)}
-        <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}${FS.trk() === "none" ? "Summe der Beträge je Produkt" : `Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} ${FS.trk() === "jira" ? "Tickets" : "Arbeitspakete"}`}</div></div>
+      ${lo != null ? `<div id="sp-free"><h2>Verplanbar</h2><div class="row"><span class="big">${pt ? `${fmt(free / D.rate, 1)} PT` : `${fmt(free)} Punkte`}</span>${calcBtn("free")}</div>
+        <div class="small muted">≈ <span class="data">${pt ? fmt(free) : fmt(free / D.rate, 1)}</span> ${pt ? "Punkte" : "PT"} · Forecast PLAN ${rest ? `minus Übertrag <span class="data">${fmt(rest)}</span>` : "ohne Übertrag"}</div></div>` : ""}
+      <div><h2>${FS.trk() === "none" ? "Vorgeplant" : "Geplant"}</h2><div class="row"><span class="big">${pt ? `${fmt(used / D.rate, 1)} PT` : `${fmt(used)} Punkte`}</span></div>
+        ${FS.capBar(used, fc, lo, hi)}
+        <div class="small muted">${free != null && lo != null ? `${used <= free ? `noch frei <span class="data">${pt ? fmt((free - used) / D.rate, 1) : fmt(free - used)}</span>` : `<span class="data">${pt ? fmt((used - free) / D.rate, 1) : fmt(used - free)}</span> über verplanbar`} · ` : ""}${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}${FS.trk() === "none" ? "Summe der Beträge je Produkt" : `Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} ${FS.trk() === "jira" ? "Tickets" : "Arbeitspakete"}`}</div></div>
+      ${FS.prodOn() && !c.past ? (() => { const pc = prodCap(sid), nd = prodNeed(sid), li = prodLight(nd.pd, pc.pd); return `<div id="sp-prodsum"><h2>Produktion</h2><div class="row"><span class="big">${nd.set ? `${fmt(nd.pd, 1)} von ${fmt(pc.pd, 1)} PT` : `– von ${fmt(pc.pd, 1)} PT`}</span>${calcBtn("prod")}</div>
+        <div class="row small" style="gap:6px">${nd.set ? FS.lightChip(li, li === "bad" ? `${fmt(nd.pd - pc.pd, 1)} PT zu viel` : li === "warn" ? "knapp" : "passt") : '<span class="chip">noch kein Wert</span>'}<span class="muted">${FS.trk() === "none" ? "Wert von Hand" : `Prod-Anteil <span class="data">${fmt(nd.pts, 1)}</span> Punkte`} · ${pc.ppl.length} Personen mit Zugang</span></div></div>`; })() : ""}
       <div><h2>Kontingente je Projekt <span class="chip small">Schätzung</span></h2>
         ${hints.length ? `<div class="projs">${hints.map((h) => `<div class="proj"><span class="chip" title="${esc(h.pr.name)}">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("")}</div>` : `<div class="small muted">${FS.trk() === "none" ? "Keine Projektbeträge im Sprint." : "Keine Projekttickets im Sprint."}</div>`}</div>
     </div></div>`;
+  }
+  // Production card for Pre-plan and Plan: capacity of people with access against the production part.
+  function prodCard(sid, ro) {
+    if (!FS.prodOn()) return "";
+    const pc = prodCap(sid), nd = prodNeed(sid), li = prodLight(nd.pd, pc.pd), none = FS.trk() === "none";
+    const head = `<div class="row" style="margin-bottom:4px"><h2 style="margin:0;flex:1">Produktion</h2>${nd.set ? FS.lightChip(li, li === "bad" ? `${fmt(nd.pd - pc.pd, 1)} PT mehr als verfügbar` : li === "warn" ? "knapp" : "passt") : ""}${calcBtn("prod")}</div>
+      <p class="small muted" style="margin:0 0 8px">Verfügbar: <span class="data">${fmt(pc.pd, 1)}</span> PT bei ${pc.ppl.length} Personen mit Produktionszugang (${pc.ppl.map((x) => esc(x.p.name.split(" ")[0])).join(", ")}), nach Abwesenheit.</p>`;
+    if (none) return `<div class="card" id="sp-prod" style="margin-bottom:16px">${head}
+      <div class="row"><div class="field"><label for="sp-prodpt">Produktionsarbeit in ${sid} (PT)</label><input class="input data" id="sp-prodpt" inputmode="decimal" value="${prodPT(sid) ?? ""}" placeholder="–" style="width:120px;text-align:right" ${ro ? "disabled" : ""}></div>
+      <p class="small muted" style="flex:1;min-width:220px;margin:0">Ohne Tickets reicht ein Wert: wie viele Personentage brauchen Zugang zur Produktion?</p></div></div>`;
+    const rows = nd.list.map((t) => `<tr><td>${FS.keyLink(t)} ${esc(t.title)}</td><td class="num">${fmt(t.est)}</td><td class="num edit"><input data-prodpct="${t.key}" inputmode="numeric" value="${FS.prodPct(t)}" aria-label="Prod-Anteil ${FS.dk(t.key)} in Prozent" ${ro ? "disabled" : ""}></td><td class="num">${fmt((t.est * FS.prodPct(t)) / 100, 1)}</td></tr>`).join("");
+    return `<div class="card" id="sp-prod" style="margin-bottom:16px">${head}
+      ${nd.list.length ? tw(`<table class="t"><thead><tr><th>${FS.trk() === "jira" ? "Ticket" : "Arbeitspaket"}</th><th class="num">Punkte</th><th class="num">Prod %</th><th class="num">Prod-Punkte</th></tr></thead><tbody>${rows}
+        <tr class="sum"><td>Summe</td><td></td><td></td><td class="num">${fmt(nd.pts, 1)}</td></tr><tr class="sum"><td>≈ PT (Rate ${fmt(D.rate, 2)})</td><td></td><td></td><td class="num">${fmt(nd.pd, 1)}</td></tr></tbody></table>`) : `<p class="muted small" style="margin:0">Kein ${FS.trk() === "jira" ? "Ticket" : "Arbeitspaket"} in ${sid} braucht Produktionszugang.</p>`}
+      ${ro ? "" : (() => { const rest = tix(sid).filter((t) => !FS.prodPct(t)); return rest.length ? `<div class="row" style="margin-top:8px;gap:6px"><select class="input" id="sp-prodadd" aria-label="Weiteres ${FS.trk() === "jira" ? "Ticket" : "Arbeitspaket"} mit Prod-Anteil" style="max-width:420px"><option value="">Weiteres ${FS.trk() === "jira" ? "Ticket" : "Arbeitspaket"} braucht Prod …</option>${rest.map((t) => `<option value="${t.key}">${FS.dk(t.key)} ${esc(t.title)}</option>`).join("")}</select><span class="small muted">startet mit 100 %, dann anpassen</span></div>` : ""; })()}
+      <p class="small muted" style="margin:8px 0 0">Je ${FS.trk() === "jira" ? "Ticket" : "Arbeitspaket"} ein Anteil von 0 bis 100 %: 100 % heißt, nur Personen mit Zugang können es umsetzen. ${FS.trk() === "jira" ? `Der Wert kommt aus ${D.team.tracker} (Feldzuordnung unter <a href="#jira">Tickets und Tracker</a>). Hier oder im Ticket geändert, überschreibt er den Wert aus ${D.team.tracker}.` : "Im Seitenpanel des Arbeitspakets oder hier änderbar."}</p></div>`;
+  }
+  function wireProd(main, sid) {
+    main.querySelectorAll("[data-prodpct]").forEach((i) => (i.onchange = () => { const v = Math.max(0, Math.min(100, parseInt(i.value, 10) || 0)); FS.setProd(FS.ticket(i.dataset.prodpct), v, FS.trk() === "local" ? "arbeitspakete.yaml" : "vorplanung.yaml"); rerender(); }));
+    const a = main.querySelector("#sp-prodadd");
+    if (a) a.onchange = () => { const t = FS.ticket(a.value); if (!t) return; FS.setProd(t, 100, FS.trk() === "local" ? "arbeitspakete.yaml" : "vorplanung.yaml"); rerender(); main.querySelector(`[data-prodpct="${t.key}"]`)?.focus(); };
+    const i = main.querySelector("#sp-prodpt");
+    if (i) i.onchange = () => { const v = parseFloat(i.value.replace(",", ".")), was = prodPT(sid); st().prodPT[sid] = isNaN(v) ? null : Math.max(0, v); FS.addUnsaved?.(`Produktionsarbeit ${sid}`, was == null ? "–" : `${fmt(was)} PT`, isNaN(v) ? "–" : `${fmt(v)} PT`, "vorplanung.yaml"); rerender(); };
   }
   const tw = (inner) => `<div class="tw">${inner}</div>`;
   const calcTable = (rows) => tw(`<table class="t"><tbody>${rows.map(([a, b, bold]) => `<tr class="${bold ? "sum" : ""}"><td class="sp-nowrap" style="white-space:normal">${a}</td><td class="num">${b}</td></tr>`).join("")}</tbody></table>`);
@@ -246,6 +287,13 @@
     if (kind === "cap") FS.openPanel(`Rechenweg: Kapazität ${sid}`, calcTable([["Personentage nach Kalender, FTE und Overhead, ohne Abwesenheit", `${fmt(c.base)} PT`], ["minus Abwesenheiten (" + ABS[absState(sid)][1] + ")", `− ${fmt(c.abs)} PT`], ["Kapazität", `${fmt(c.cap)} PT`, 1]]) + `<p class="small muted">Feiertage der Region ${D.team.region} sind in den Personentagen schon abgezogen.</p>`);
     if (kind === "fc") FS.openPanel(`Rechenweg: Forecast PLAN ${sid}`, calcTable([["Kapazität", `${fmt(c.cap)} PT`], ["mal Rate (normierte Velocity)", `${fmt(D.rate, 2)} Punkte je PT`], ["Forecast PLAN", `${fmt(c.fc)} Punkte`, 1], ["untere Grenze (niedrigste Rate " + fmt(RLO, 2) + " × Kapazität)", fmt(c.low)], ["obere Grenze (höchste Rate " + fmt(RHI, 2) + " × Kapazität)", fmt(c.high)]]) + `<p class="small muted">Die Spanne kommt aus der niedrigsten und höchsten Rate der letzten Sprints.</p>`);
     if (kind === "pd") { const h = projHints(sid).find((x) => x.pr.id === arg); FS.openPanel(`Rechenweg: ${h.pr.name} (Schätzung)`, calcTable([[`Punkte im Sprint ${sid}`, fmt(h.p)], ["geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(h.need, 1)} PT`, 1], ["Kontingent gebucht", `${h.pr.contingentPD} PT`], ["bereits verbraucht", `− ${h.pr.usedPD} PT`], ["Rest nach diesem Sprint", `${fmt(h.rest, 1)} PT`, 1]]) + `<p class="small muted">Umrechnung mit der Forecast-Rate des Sprints. Erledigtes wird nach dem Review mit der tatsächlichen Rate gerechnet.</p>`); }
+    if (kind === "free") { const a0 = cwCalc(sid), A = a0 && a0.touched ? a0 : null, fc = A ? A.fc : c.fc, rest = A ? A.rest : sum(D.tickets.filter((t) => t.carryTo === sid), (t) => t.carryRest ?? t.est);
+      FS.openPanel(`Rechenweg: Verplanbar ${sid}`, calcTable([[`Forecast PLAN${A ? " mit Annahme" : ""}`, `${fmt(fc)} Punkte`], ["minus Rest der Tickets, die aus dem laufenden Sprint übertragen werden", `− ${fmt(rest)} Punkte`], ["Verplanbar", `${fmt(fc - rest)} Punkte`, 1], ["geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt((fc - rest) / D.rate, 1)} PT`, 1]]) + `<p class="small muted">Die Einheit der großen Zahl folgt der Schätzeinheit des Teams (Einstellungen, Team). Die andere Einheit steht darunter.</p>`); }
+    if (kind === "prod") { const pc = prodCap(sid), nd = prodNeed(sid);
+      FS.openPanel(`Rechenweg: Produktion ${sid}`, `<h3 style="margin:0">Verfügbar</h3>` + calcTable([...pc.ppl.map((x) => [`${esc(x.p.name)} (FTE ${fmt(x.p.fte, 1)}${x.abs ? `, ${x.abs} T abwesend` : ""})`, `${fmt(x.pd, 1)} PT`]), ["Personen mit Produktionszugang", `${fmt(pc.pd, 1)} PT`, 1]]) +
+        `<h3 style="margin:8px 0 0">Gebraucht</h3>` + (FS.trk() === "none" ? calcTable([["Produktionsarbeit, von Hand eingetragen", `${fmt(nd.pd, 1)} PT`, 1]]) :
+        calcTable([...nd.list.map((t) => [`${FS.dk(t.key)} ${esc(t.title)}: ${t.est} × ${FS.prodPct(t)} %`, fmt((t.est * FS.prodPct(t)) / 100, 1)]), ["Prod-Anteil in Punkten", fmt(nd.pts, 1), 1], ["geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(nd.pd, 1)} PT`, 1]])) +
+        `<p class="small muted">Je Person zählt ihr Anteil an den Personentagen des Sprints, minus ihre Abwesenheit. Die Prüfung warnt nur. Sie nimmt an, dass Personen mit Zugang ihre ganze Zeit für Produktionsarbeit einsetzen könnten.</p>`); }
     if (kind === "vel") { const r = rvOf(sid); FS.openPanel(`Rechenweg: Velocity ${sid}`, calcTable([["Zusage (Plan)", fmt(r.plan)], ["minus nicht erledigt", `− ${fmt(r.notDone)}`], ["plus zusätzlich erledigt", `+ ${fmt(r.extra)}`], ["Velocity", `${fmt(r.plan - r.notDone + r.extra)} Punkte`, 1]])); }
     if (kind === "rate") { const r = rvOf(sid), v = r.plan - r.notDone + r.extra; FS.openPanel(`Rechenweg: tatsächliche Rate ${sid}`, calcTable([["Velocity", `${fmt(v)} Punkte`], ["geteilt durch eingefrorene Personentage", `${fmt(r.freeze)} PT`], ["tatsächliche Rate", `${fmt(v / r.freeze, 2)} Punkte je PT`, 1], ["Planrate zum Vergleich", fmt(D.rate, 2)]]) + `<p class="small muted">Diese Rate rechnet Erledigtes in Projektkontingent um (Schätzung).</p>`); }
   }
@@ -390,6 +438,7 @@
       <h2>${FS.multiProduct() ? "Betrag je Produkt" : "Betrag für das Team"}</h2>
       ${tw(`<table class="t" id="sp-prod-table"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Standard</th><th class="num">Vorgeplant</th><th class="num need-tickets">Vormerkungen</th><th class="num need-tickets">Abweichung</th><th class="num">Geplant</th><th class="num col-prod">davon Prod</th><th class="num">Erledigt</th></tr></thead><tbody>${rows}</tbody></table>`)}
       <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil${FS.trk() === "none" ? "" : ", Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag)"}. Geplant${FS.prodOn() ? ", davon Prod" : ""} und Erledigt füllen Planning und Review, hier nur lesbar.</p>
+      ${prodCard(sid)}
       ${FS.trk() === "none" ? projAmtCard(sid) : ""}
       <div id="sp-earmarks" class="need-tickets"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Vorgemerkte Tickets nach Projekt</h2><a class="btn" href="#backlog">${ic("view_list")}Im Backlog vormerken</a></div>
       ${groups.length ? `<div class="stack" style="gap:16px">${groups.map((g) => { const pr = g.pid && FS.project(g.pid), h = pr && projHints(sid).find((x) => x.pr.id === g.pid), p = pts(g.list); return `<div class="card" style="padding:0"><div class="row" style="padding:10px 12px;border-bottom:1px solid var(--border)">${FS.projectChip(g.pid)}<span class="small muted">${g.list.length} Tickets · <span class="data">${fmt(p)}</span> Punkte</span>
@@ -400,6 +449,7 @@
       wireCommon(main);
       const sid = FS.state.sprint;
       wireCw(main, sid);
+      wireProd(main, sid);
       main.querySelectorAll("[data-pa]").forEach((i) => (i.onchange = () => { const [pr, pj] = i.dataset.pa.split("|"), v = parseInt(i.value, 10); ((D.projAmt[sid] ??= {})[pr] ??= {})[pj] = isNaN(v) ? 0 : Math.max(0, v); rerender(); }));
       main.querySelectorAll("[data-pre]").forEach((i) => (i.onchange = () => { const v = parseInt(i.value, 10); pp(sid, i.dataset.pre).pre = isNaN(v) ? null : Math.max(0, v); rerender(); }));
       main.querySelector("#sp-take").onclick = () => { const prev = D.products.map((p) => pp(sid, p.id).pre); D.products.forEach((p) => (pp(sid, p.id).pre = earmark(sid, p.id))); rerender(); FS.toast("Beträge aus den Vormerkungen übernommen.", () => { D.products.forEach((p, i) => (pp(sid, p.id).pre = prev[i])); rerender(); }); };
@@ -412,7 +462,7 @@
   function freeze(sid) {
     const S = st(), l = tix(sid), noT = S.noTracker;
     const amt = (p) => (noT ? amtOf(sid, p.id) : earmark(sid, p.id));
-    D.products.forEach((p) => { pp(sid, p.id).plan = amt(p); pp(sid, p.id).prodPlan ??= 0; });
+    D.products.forEach((p) => { pp(sid, p.id).plan = amt(p); pp(sid, p.id).prodPlan = noT ? 0 : Math.round(FS.prodPts(l.filter((t) => t.product === p.id))); });
     const commit = noT ? commitOf(sid) : pts(l);
     S.frozen[sid] = { keys: l.map((t) => t.key), commit, at: nowStr(), noT };
     D.minutes.filter((m) => m.sprint === sid && m.kind === "Planning").forEach((m) => (m.obsolete = true));
@@ -459,6 +509,7 @@
       <div class="row small" id="sp-mode" style="margin-bottom:12px"><span class="chip">${ic(noT ? "pin" : "confirmation_number", "small")}${{ jira: `Tickets aus ${D.team.tracker}`, local: "Arbeitspakete in Foresprint", none: "Ohne Tickets: Beträge und Zusage" }[FS.trk()]}</span><span class="muted">Teameinstellung, ändern unter <a href="#jira">Einstellungen, Tickets und Tracker</a></span></div>
       ${noT ? noTrackerCard : laneTop}
       <div class="grid cols-2" id="sp-live" style="margin-bottom:16px">${prodTbl}${projTbl}</div>
+      ${prodCard(sid, !!fz)}
       ${noT ? "" : `<div class="only-jira">${jiraCard(sid, l, jira, fz)}</div>`}
       <div class="card only-jira"><div class="row"><label class="row" style="gap:8px"><input type="checkbox" id="sp-label" ${S.label ? "checked" : ""}> Label <span class="data">planned_for_${sid.replace(".", "_")}</span> in ${D.team.tracker} setzen (optional)</label></div>
         <p class="small muted" style="margin:8px 0 0">Der Knopf oben rechts friert die Einigung ein, speichert die Ticketliste lokal und schreibt das Planungsprotokoll.</p></div>`;
@@ -466,6 +517,7 @@
     wire(main) {
       wireCommon(main);
       const sid = FS.state.sprint, S = st();
+      wireProd(main, sid);
       main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(sid); rerender(); FS.toast("Belegung festgeschrieben. Kapazität und Forecast PLAN sind aktuell."); }));
       main.querySelectorAll("[data-amt]").forEach((i) => (i.onchange = () => { const v = parseInt(i.value, 10); (S.amt[sid] ??= {})[i.dataset.amt] = isNaN(v) ? 0 : v; delete S.commit[sid]; rerender(); }));
       const cm = main.querySelector("#sp-commit"); if (cm) cm.onchange = () => { const v = parseInt(cm.value, 10); S.commit[sid] = isNaN(v) ? 0 : v; rerender(); };
