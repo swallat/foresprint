@@ -1692,6 +1692,8 @@
   "“also refined if”": "„auch refined, wenn“",
   "… and {n} more changes": "… und {n} weitere Änderungen",
   "Prefilled from {n} done tickets pulled in after the freeze: {keys}.": "Vorbelegt aus {n} erledigten Tickets, die nach dem Festschreiben dazukamen: {keys}.",
-  "Without an estimate: {keys}.": "Ohne Schätzung: {keys}."
+  "Without an estimate: {keys}.": "Ohne Schätzung: {keys}.",
+  "Absence period for": "Abwesenheitszeitraum für",
+  "Enter period": "Zeitraum eintragen"
  }
 }

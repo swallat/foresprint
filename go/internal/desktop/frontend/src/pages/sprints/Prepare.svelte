@@ -3,7 +3,9 @@
   // sprints, the readiness list and the preview of the capacity. Nothing here is a gate: open
   // points show what is missing and planning works with the data at hand.
   import { api } from '../../lib/api';
-  import { app } from '../../lib/app.svelte';
+  import { app, toast } from '../../lib/app.svelte';
+  import AbsencePanel from '../team/AbsencePanel.svelte';
+  import { isCurrent } from '../../lib/team/people';
   import { days } from '../../lib/absences/format';
   import AbsenceGrid from '../../lib/absences/AbsenceGrid.svelte';
   import { t } from '../../lib/i18n.svelte';
@@ -13,6 +15,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
+  import type { AbsencePeriod, PeopleView } from '../../lib/types.team';
 
   let { params }: PageProps = $props();
   void params;
@@ -40,6 +43,28 @@
   });
 
   /** An edit in the grid changes this page's figures only when it is the sprint in focus. */
+  // "Enter period" (decision 23): absences as periods of a person, the same panel as Team > People.
+  let people = $state<PeopleView | undefined>();
+  let periods = $state<AbsencePeriod[]>([]);
+  let who = $state('');
+  let panelFor = $state('');
+  let gridKey = $state(0); // the grid reloads after periods changed
+  async function loadPeople() {
+    if (!app.team) return;
+    try {
+      [people, periods] = await Promise.all([api.People(app.team), api.AbsencePeriods(app.team)]);
+      if (!who) who = people.people.find((p) => isCurrent(p, people!.today))?.id ?? '';
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+  $effect(() => {
+    void app.team;
+    void loadPeople();
+  });
+  const current = $derived((people?.people ?? []).filter((p) => isCurrent(p, people?.today ?? '')));
+  const panelPerson = $derived(people?.people.find((p) => p.id === panelFor));
+
   function changed(column: AbsenceColumn) {
     if (column.id === app.sprint) void load();
   }
@@ -95,7 +120,20 @@
     <p class="small muted hint">
       {t('Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.')}
     </p>
-    <AbsenceGrid team={app.team} from={app.sprint} count={4} focus={app.sprint} onchange={changed} />
+    {#if current.length > 0}
+      <div class="row gap period">
+        <label class="small muted" for="pp-who">{t('Absence period for')}</label>
+        <select id="pp-who" class="input" bind:value={who}>
+          {#each current as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+        </select>
+        <button type="button" class="btn" disabled={!who} onclick={() => (panelFor = who)}>
+          <Icon name="date_range" />{t('Enter period')}
+        </button>
+      </div>
+    {/if}
+    {#key gridKey}
+      <AbsenceGrid team={app.team} from={app.sprint} count={4} focus={app.sprint} onchange={changed} />
+    {/key}
   </section>
 
   {#if info}
@@ -141,7 +179,30 @@
   {/if}
 {/if}
 
+{#if panelPerson && people}
+  <AbsencePanel
+    person={panelPerson}
+    today={people.today}
+    absences={periods}
+    onclose={() => (panelFor = '')}
+    onchange={async (list) => {
+      try {
+        periods = await api.SaveAbsencePeriods(app.team, list);
+      } catch (e) {
+        toast(e instanceof Error ? e.message : String(e), 'bad');
+        periods = await api.AbsencePeriods(app.team);
+      }
+      gridKey++;
+      void load();
+    }}
+  />
+{/if}
+
 <style>
+  .period {
+    margin: 4px 0 12px;
+    align-items: center;
+  }
   .block {
     margin-bottom: 16px;
   }
