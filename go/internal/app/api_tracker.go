@@ -491,7 +491,8 @@ func (a *API) syncTracker(team string) (Result, error) {
 	// work from the files as they are now.
 	backlogMu.Lock()
 	defer backlogMu.Unlock()
-	if repo, data, err = a.loadRepoTeam(team); err != nil {
+	repo, data, err := a.loadRepoTeam(team)
+	if err != nil {
 		return Result{}, err
 	}
 	if len(raws) == 0 && len(data.Tickets) > 0 {
