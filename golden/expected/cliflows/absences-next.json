@@ -1,0 +1,11 @@
+{
+ "args": [
+  "absences",
+  "demo"
+ ],
+ "input": "1\n0\n0,5\n2\n0\ny\n",
+ "exit_code": 0,
+ "files": {
+  "demo/sprints/2026.6.yaml": "# Sprint 2026.6. Explanations of all fields: `foresprint help fields`\nid: '2026.6'\nstart: 2026-03-18\nend: 2026-04-01\nabsences:\n  anna: 1\n  cem: 0.5\n  dana: 2\ncapacity: null\nforecast_ist: 15\nvelocity: 13.75\nscope_creep: 0\nplanning:\n  carryover: 0.5\n  backlog: 14.5\n  corrections:\n  - 1.5\n"
+ }
+}

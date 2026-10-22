@@ -106,6 +106,41 @@ SCENARIOS: list[dict] = [
         "args": ["settings", "demo"],
         "input": _answers(True, {"name": "Renamed"}) + "n\n",
     },
+    {"name": "people-nothing", "args": ["people", "demo"], "input": "q\n"},
+    {
+        "name": "people-new",
+        "args": ["people", "demo"],
+        "input": "n\nZoë Test\nby\n2026-04-01\n0,5\nq\n",
+    },
+    {
+        "name": "people-new-duplicate-then-valid",
+        "args": ["people", "demo"],
+        "input": "n\n\nn\nanna\nn\nMax\n\n\n0\n1\nq\n",
+    },
+    {
+        "name": "people-change-fte",
+        "args": ["people", "demo"],
+        "input": "x\nf\nnobody\nan\n2026-04-01\n0,6\nq\n",
+    },
+    {
+        "name": "people-change-fte-too-early",
+        "args": ["people", "demo"],
+        "input": "f\nanna\n2025-01-01\nq\n",
+    },
+    {"name": "people-leave", "args": ["people", "demo"], "input": "a\ncem\n2026-06-30\nq\n"},
+    {"name": "people-former", "args": ["people", "demo", "--former"], "input": "q\n"},
+    {"name": "absences-next", "args": ["absences", "demo"], "input": "1\n0\n0,5\n2\n0\ny\n"},
+    {
+        "name": "absences-keep-capacity",
+        "args": ["absences", "demo"],
+        "input": "0\n0\n0\n0\n0\nn\n",
+    },
+    {
+        "name": "absences-sprint-clamped",
+        "args": ["absences", "demo", "2026.9"],
+        "input": "abc\n99\n-1\n1,5\n\n\n\n\n\n\n",
+    },
+    {"name": "absences-unknown-sprint", "args": ["absences", "demo", "1999.1"], "input": ""},
     {
         "name": "settings-invalid-then-valid",
         "args": ["settings", "demo"],

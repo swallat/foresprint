@@ -11,6 +11,7 @@
   "Unknown command {name!r}. Try: {help}": "Unbekannter Befehl {name!r}. Versuchen Sie: {help}",
   "Usage error: {error}": "Falsche Eingabe: {error}",
   "Aborted.": "Abgebrochen.",
-  "Please enter y or n.": "Bitte j oder n eingeben."
+  "Please enter y or n.": "Bitte j oder n eingeben.",
+  "Please select one of the available options": "Bitte eine der angebotenen Möglichkeiten wählen"
  }
 }

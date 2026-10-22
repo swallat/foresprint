@@ -188,3 +188,19 @@ func (e *Env) AskDate(label string, def *time.Time) (time.Time, error) {
 		e.Println(i18n.P("Please enter the date as YYYY-MM-DD."))
 	}
 }
+
+// AskChoice asks for one of the choices (case as given); an empty answer is the default.
+func (e *Env) AskChoice(label string, choices []string, def string) (string, error) {
+	for {
+		raw, err := e.Ask(label+" ["+strings.Join(choices, "/")+"]", def)
+		if err != nil {
+			return "", err
+		}
+		for _, c := range choices {
+			if raw == c {
+				return c, nil
+			}
+		}
+		e.Println(i18n.P("Please select one of the available options"))
+	}
+}
