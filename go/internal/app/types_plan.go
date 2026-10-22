@@ -17,6 +17,12 @@ type PlanSprint struct {
 	// Source is where the work comes from: "tracker", "packages" or "none" (no tickets).
 	Source      string `json:"source"`
 	TrackerName string `json:"trackerName"`
+	// WriteBack is true when the team switched on writing the sprint back to the tracker; the
+	// page then offers the preview (PlanWritePreview).
+	WriteBack bool `json:"writeBack"`
+	// WriteUndo is true when a write-back of this sprint went through in this session and can be
+	// taken back.
+	WriteUndo bool `json:"writeUndo"`
 	// MultiProduct, MultiPO and Production switch the optional columns on (the products feature,
 	// more than one PO, the production access feature).
 	MultiProduct bool `json:"multiProduct"`

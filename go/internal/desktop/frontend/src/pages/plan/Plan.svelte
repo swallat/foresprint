@@ -14,6 +14,7 @@
   import SprintHead from '../../lib/plan/SprintHead.svelte';
   import Summary from '../../lib/plan/Summary.svelte';
   import TicketRow from '../../lib/plan/TicketRow.svelte';
+  import WriteBack from '../../lib/plan/WriteBack.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
@@ -67,15 +68,17 @@
     if (!x) return;
     const wasRemoved = removed.includes(key);
     const earmark = x.sprint;
+    // A ticket the tracker has in a sprint is decided there: it is taken out with a mark, never earmarked.
+    const free = x.inTracker === '';
     if (to === 'sprint') {
       await model.change(async () => {
         if (wasRemoved) await api.SetRemoved(app.team, d.sprint, key, false);
-        await api.SetEarmark(app.team, key, d.sprint);
+        if (free) await api.EarmarkTicket(app.team, key, d.sprint, '');
       });
     } else {
       await model.change(async () => {
         if (x.inTracker === d.sprint) await api.SetRemoved(app.team, d.sprint, key, true);
-        await api.SetEarmark(app.team, key, '');
+        if (free) await api.EarmarkTicket(app.team, key, '', '');
       });
     }
     toast(to === 'sprint' ? t('{key} taken into the sprint.', { key }) : t('{key} taken out of the sprint.', { key }), 'info', {
@@ -83,7 +86,7 @@
       run: () => {
         void model.change(async () => {
           await api.SetRemoved(app.team, d.sprint, key, wasRemoved);
-          await api.SetEarmark(app.team, key, earmark);
+          if (free) await api.EarmarkTicket(app.team, key, earmark, '');
         });
       },
     });
@@ -366,6 +369,7 @@
         <p class="muted small">{t('Nothing to adjust: the tracker and the plan agree.')}</p>
       {/if}
     </div>
+    {#if d.writeBack}<WriteBack {d} />{/if}
   {/if}
 {:else if model.loading}
   <p class="muted">{t('Loading …')}</p>

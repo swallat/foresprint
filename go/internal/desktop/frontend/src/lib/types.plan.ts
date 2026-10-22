@@ -128,6 +128,10 @@ export interface PlanSprint {
   unit: 'SP' | 'PT';
   source: Source;
   trackerName: string;
+  /** The team switched on writing the sprint back to the tracker. */
+  writeBack: boolean;
+  /** A write-back of this sprint went through in this session and can be taken back. */
+  writeUndo: boolean;
   multiProduct: boolean;
   multiPO: boolean;
   production: boolean;
@@ -179,8 +183,37 @@ export interface PlanApi {
   UseDefaults(team: string, sprint: string): Promise<void>;
   SetProjectAmount(team: string, sprint: string, project: string, value: number | null): Promise<void>;
   SetProductionPT(team: string, sprint: string, value: number | null): Promise<void>;
-  SetEarmark(team: string, ticket: string, sprint: string): Promise<void>;
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
+  PlanWritePreview(team: string, sprint: string): Promise<WritePreview>;
+  PlanWriteApply(team: string, sprint: string, approved: string[]): Promise<WriteResult>;
+  PlanWriteUndo(team: string, sprint: string): Promise<WriteResult>;
+}
+
+/** One ticket the write-back puts into another tracker sprint; an empty name is the backlog. */
+export interface WriteMove {
+  key: string;
+  title: string;
+  reason: 'committed' | 'taken_out' | 'undo';
+  from: string;
+  to: string;
+  fromKnown: boolean;
+}
+
+/** What the write-back would do (go/internal/app/api_writeback.go); nothing is changed yet. */
+export interface WritePreview {
+  enabled: boolean;
+  sprint: string;
+  removedTarget: 'backlog' | 'pro_forma' | 'next';
+  moves: WriteMove[];
+  problems: string[];
+  canUndo: boolean;
+}
+
+export interface WriteResult {
+  done: WriteMove[];
+  failed: WriteMove[];
+  error: string;
+  canUndo: boolean;
 }
