@@ -288,7 +288,11 @@ func (a *API) PlanSprint(team, sprintID string, assume *Assumption) (*PlanSprint
 	if err != nil {
 		return nil, err
 	}
-	return c.view(team, assume)
+	v, err := c.view(team, assume)
+	if err == nil {
+		v.WriteUndo = len(a.writebackMoved(team, sprintID)) > 0
+	}
+	return v, err
 }
 
 func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
@@ -305,6 +309,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	if v.Source == "tracker" && tm.Tracker.Kind == "jira" {
 		v.TrackerName = "Jira"
 	}
+	v.WriteBack = c.writeEnabled()
 	v.Days = workdays(c)
 	v.Stage = c.stage()
 	v.Absences = absenceName(s)
@@ -951,27 +956,6 @@ func (a *API) SetProductionPT(team, sprintID string, value *float64) error {
 	})
 }
 
-// SetEarmark earmarks a ticket for a sprint; an empty sprint removes the earmark.
-func (a *API) SetEarmark(team, ticket, sprintID string) error {
-	c, err := a.planContext(team, firstSprint(a, team, sprintID))
-	if err != nil {
-		return err
-	}
-	if c.data.TicketByKey(ticket) == nil {
-		return errors.New(i18n.T("The ticket {key} does not exist.", "key", ticket))
-	}
-	pp := c.data.Preplan
-	pp.Earmarks = removeEarmark(pp.Earmarks, ticket)
-	if sprintID != "" {
-		pp.Earmarks = append(pp.Earmarks, model.Earmark{Ticket: ticket, Sprint: sprintID})
-	}
-	if _, err := c.repo.SavePreplan(team, pp); err != nil {
-		return err
-	}
-	storage.ClearTeamCache()
-	return nil
-}
-
 func firstSprint(a *API, team, sprintID string) string {
 	if sprintID != "" {
 		return sprintID
@@ -980,16 +964,6 @@ func firstSprint(a *API, team, sprintID string) string {
 		return s[0].ID
 	}
 	return sprintID
-}
-
-func removeEarmark(list []model.Earmark, ticket string) []model.Earmark {
-	out := list[:0:0]
-	for _, e := range list {
-		if e.Ticket != ticket {
-			out = append(out, e)
-		}
-	}
-	return out
 }
 
 // SetProductionPercent sets the production share of a ticket (0 to 100) in Foresprint; nil
@@ -1072,7 +1046,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
-		s.Removed = nil // the minutes list them from here on
+		// s.Removed stays: the write-back to the tracker needs to know what the team took out.
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {

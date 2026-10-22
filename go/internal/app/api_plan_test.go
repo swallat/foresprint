@@ -89,10 +89,10 @@ func TestEarmarkAndPreplanned(t *testing.T) {
 			break
 		}
 	}
-	if err := api.SetEarmark(team, "T-1", next); err != nil {
+	if err := api.EarmarkTicket(team, "T-1", next, ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := api.SetEarmark(team, "T-2", next); err != nil {
+	if err := api.EarmarkTicket(team, "T-2", next, ""); err != nil {
 		t.Fatal(err)
 	}
 	v, _ := api.PlanSprint(team, next, nil)
@@ -121,7 +121,7 @@ func TestEarmarkAndPreplanned(t *testing.T) {
 	if err := api.SetPreplanned(team, next, v.Products[0].ID, &neg); err == nil {
 		t.Error("negative amount accepted")
 	}
-	if err := api.SetEarmark(team, "T-1", ""); err != nil {
+	if err := api.EarmarkTicket(team, "T-1", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	v, _ = api.PlanSprint(team, next, nil)
@@ -140,7 +140,7 @@ func TestProductionShareSources(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
 	half := 50.0
 	if err := api.SetProductionPercent(team, "T-1", &half); err != nil {
 		t.Fatal(err)
@@ -220,8 +220,8 @@ func TestFreezeAndReopen(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
-	_ = api.SetEarmark(team, "T-2", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
+	_ = api.EarmarkTicket(team, "T-2", next, "")
 	name, err := api.FreezePlan(team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}})
 	if err != nil || name == "" {
 		t.Fatalf("freeze: %q %v", name, err)
@@ -261,8 +261,8 @@ func TestRemovedTicketsLeaveTheLaneAndStayListed(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
-	_ = api.SetEarmark(team, "T-2", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
+	_ = api.EarmarkTicket(team, "T-2", next, "")
 	if err := api.SetRemoved(team, next, "T-1", true); err != nil {
 		t.Fatal(err)
 	}
@@ -313,5 +313,45 @@ func TestSprintPreplannedForTeamsWithoutProducts(t *testing.T) {
 	v, _ := api.PlanSprint(team, next, nil)
 	if v.SprintPre != nil {
 		t.Errorf("sprintPre = %v", v.SprintPre)
+	}
+}
+
+func TestProductionCapLowersWhatIsAvailable(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	tm := data.Team
+	tm.Features.Production = true
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	people := data.People
+	people[0].ProductionAccess = true
+	if _, err := repo.SavePeople(team, people); err != nil {
+		t.Fatal(err)
+	}
+	before, err := api.PlanSprint(team, next, nil)
+	if err != nil || before.Prod == nil || before.Prod.Time <= 0 {
+		t.Fatalf("no production time to compare with: %+v %v", before.Prod, err)
+	}
+	half := 50.0
+	tm.Features.ProductionMax = &half
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	after, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Prod.CapPercent != 50 || math.Abs(after.Prod.Available-before.Prod.Time/2) > 1e-9 {
+		t.Errorf("cap %v, available %v of %v", after.Prod.CapPercent, after.Prod.Available, before.Prod.Time)
 	}
 }

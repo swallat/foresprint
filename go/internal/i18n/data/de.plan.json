@@ -14,6 +14,12 @@
   "Plannable": "Verplanbar",
   "Tickets": "Tickets",
   "Agreed tickets": "Vereinbarte Tickets",
-  "Adjust in the tracker": "Im Tracker anpassen"
+  "Adjust in the tracker": "Im Tracker anpassen",
+  "Writing the sprint back works with Jira only.": "Das Zurückschreiben des Sprints funktioniert nur mit Jira.",
+  "The sprint {id} has started; its plan cannot be written to the tracker any more.": "Der Sprint {id} hat begonnen; sein Plan lässt sich nicht mehr in den Tracker schreiben.",
+  "Freeze the plan first; only the agreed tickets are written to the tracker.": "Friere zuerst den Plan ein; nur die vereinbarten Tickets werden in den Tracker geschrieben.",
+  "Writing the sprint back to the tracker is not switched on.": "Das Zurückschreiben des Sprints in den Tracker ist nicht eingeschaltet.",
+  "There is nothing to take back.": "Es gibt nichts zurückzunehmen.",
+  "The tracker returned no tickets; nothing is written. Check the query and the permissions of the token.": "Der Tracker hat keine Tickets geliefert; es wird nichts geschrieben. Prüfe die Abfrage und die Rechte des Tokens."
  }
 }
