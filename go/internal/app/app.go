@@ -45,6 +45,8 @@ type API struct {
 	undo    []projectSnapshot
 	// demo is the demo mode (api_demo.go).
 	demo demoState
+	// enterMu serialises EnterDemo.
+	enterMu sync.Mutex
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
@@ -61,6 +63,7 @@ func New(version, dataDir string) *API {
 	if dataDir == "" {
 		dataDir, _ = config.DataDir()
 	}
+	sweepDemos()
 	return &API{Version: version, dataDir: dataDir, data: datasvc.New(dataDir)}
 }
 

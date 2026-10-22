@@ -75,3 +75,28 @@ func TestDemoServesTheGuidedFlows(t *testing.T) {
 		t.Errorf("overview %v", err)
 	}
 }
+
+func TestDemoEnteredTwiceAndDataDirChange(t *testing.T) {
+	home := t.TempDir()
+	a := newAPI(t, home)
+	if _, err := a.EnterDemo("en"); err != nil {
+		t.Fatal(err)
+	}
+	first := a.DataDir()
+	if _, err := a.EnterDemo("en"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(first); !os.IsNotExist(err) {
+		t.Error("first demo folder leaked")
+	}
+	if err := a.LeaveDemo(); err != nil || a.DataDir() != home {
+		t.Fatalf("back to %q: %v", a.DataDir(), err)
+	}
+	if _, err := a.EnterDemo("en"); err != nil {
+		t.Fatal(err)
+	}
+	other := t.TempDir()
+	if err := a.SetDataDir(other); err != nil || a.InDemo() || a.DataDir() != other {
+		t.Errorf("SetDataDir in demo: %v %v %q", err, a.InDemo(), a.DataDir())
+	}
+}

@@ -218,6 +218,8 @@ export async function leaveDemo(): Promise<void> {
 let timer: ReturnType<typeof setInterval> | undefined;
 
 export async function start(): Promise<void> {
+  // A reload of the window must not leave the core in demo mode while the window looks real.
+  if (inProgram && (await api.InDemo())) await api.LeaveDemo();
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
   await loadPrefs();
