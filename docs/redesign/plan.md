@@ -61,7 +61,7 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 | Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf dem Windows-Rechner des Maintainers; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
 | Portierung nach Go verändert Ergebnisse (Feiertage, Monte-Carlo-Zufall) | Vergleichstests gegen die Python-Ergebnisse auf echten Daten vor dem Umstieg |
 | Programm zu groß oder zu langsam beim Start | Messen im Wails-Prototyp unter Windows (Größe, Start bis nutzbar unter 3 s) |
-| Unsigniertes Programm wird blockiert | Frage 6 (Zertifikat) früh klären |
+| Unsigniertes Programm wird blockiert | Signierung nach Entscheidung 6 und Abschnitt 7; bis dahin Hinweise zu SmartScreen und Gatekeeper in der Doku |
 | Wegfall der Plugins | Excel-Import als Skill für Agenten; Plugin-Schnittstelle erst nach 1.0 neu bewerten |
 
 ## 6. Entscheidungen (Stand 21.10.2026)
@@ -71,7 +71,7 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 3. Hülle und Kern: Wails mit vollständig nach Go portiertem Kern; Verteilung über GitHub-Releases; Plugins entfallen in 1.0.
 4. Jira-Rückschreiben: Reihenfolge nein. Label `planned_for_<sprint>` optional; Sprintzuordnung des geplanten Sprints als Team-Option (Standard aus, nur per Knopf mit Vorschau und Rückgängig, Entscheidung 21.10.2026, siehe flows.md Entscheidung 10).
 5. WebView2 unter Windows vorausgesetzt (bestätigt); macOS und Linux siehe Abschnitt 2.
-6. Code-Signing: der Maintainer klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
+6. Code-Signing (22.10.2026): kein kostenpflichtiges Zertifikat. Windows über die SignPath Foundation (kostenlos für Open Source), sobald das Projekt bekannt genug ist; bis dahin unsigniert mit Hinweisen in der Doku. macOS: Apple Developer Program (Einzelperson) erst, wenn Mac-Nutzer da sind. Linux: `checksums.txt` plus cosign (keyless) im Release-Workflow. Details in Abschnitt 7.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
 9. Datenhaltung: Git bleibt in 1.0 der Speicher (Historie, Datenintegrität), mit allen Git-Abläufen inklusive erzwungener Merge Requests. Ein geteilter Ordner (Fileserver, SharePoint) kommt nach 1.0 über dieselbe Schnittstelle (`storage-interface.md`).
@@ -81,3 +81,15 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 12. Geführte Abläufe (22.10.2026): Die Schritt-für-Schritt-Abläufe der Mocks bleiben in 1.0 als Tutorial erhalten (Hilfe > Geführte Abläufe, auf dem Demo-Team, nie auf echten Daten). Siehe flows.md Entscheidung 13.
 
 Offen: GitHub-Projekt als Tafel anlegen (Maintainer).
+
+## 7. Code-Signing: was der Maintainer tut
+
+Das Projekt hat keine Firma im Rücken. Es gibt kein bezahltes Zertifikat. Azure Artifact Signing steht Einzelpersonen in der EU nicht offen, ein EV-Zertifikat bringt bei SmartScreen keinen Vorteil mehr.
+
+| Wann | Was der Maintainer tut |
+| --- | --- |
+| Jetzt, vor dem ersten Release | Quelltext-Lizenz ist OSI-anerkannt und liegt im Repo (`LICENSE`). Eine Seite „Code-Signing-Richtlinie“ in der Doku/README verlinken (Vorlage: bei SignPath-Projekten üblich: wer signiert, wer freigibt, was signiert wird, Datenschutz). Der Release-Faden hält die Doku-Hinweise zu SmartScreen (Windows) und Systemeinstellungen > Datenschutz & Sicherheit (macOS) bereit. |
+| Nach dem ersten öffentlichen Release (v1.0.0) | Prüfen, ob das Projekt SignPaths Bedingungen erfüllt: aktiv gepflegt, bereits veröffentlicht, Funktionen auf der Download-Seite beschrieben, Build vollautomatisch in GitHub Actions. Aktuelle Bedingungen auf https://signpath.org lesen (nicht geprüft, Stand der Recherche kann abweichen). |
+| Sobald Nutzer und Sterne vorhanden sind (Bekanntheit verlangt SignPath laut Erwartung des Maintainers; Schwelle offen) | Antrag bei der SignPath Foundation stellen (Formular auf signpath.org). Dafür braucht es: Repo-Link, Lizenz, Release-Link, Beschreibung, Kontakt. Bei Zusage: SignPath-Projekt anlegen, GitHub-Action im Release-Workflow ergänzen (Entwurf macht der Release-Faden), Secret `SIGNPATH_API_TOKEN` hinterlegen, Freigaben pro Release bestätigen. Bei Ablehnung: unsigniert weiter, nach einigen Monaten erneut versuchen; kein Kauf. |
+| Sobald ein Mac-Nutzer da ist | Apple Developer Program als Einzelperson (ca. 99 USD/Jahr, Preis in Euro beim Anmelden prüfen). Der Klarname erscheint als Herausgeber. Zertifikat „Developer ID Application“ und App-spezifisches Passwort als Secrets, Notarisierung im Release-Workflow. |
+| Parallel (Release-Faden) | `checksums.txt` signieren (cosign keyless oder GitHub-Attestierung); das Selbst-Update prüft die Signatur der Prüfsummen. |
