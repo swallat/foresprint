@@ -338,7 +338,7 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	bare.SetAbsencesConfirmed(true)
 	out.CapacityBase = capacity.Sprint(&data.Team, data.People, bare, 0).Capacity
 
-	abs := ReadyItem{Kind: "absences", State: ReadyOpen, Count: out.Sprint.Entries}
+	abs := ReadyItem{Kind: "absences", State: ReadyOpen, Count: out.Sprint.Entries, Names: []string{}}
 	if out.Sprint.State == AbsenceConfirmed {
 		abs.State = ReadyDone
 	}

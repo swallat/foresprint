@@ -394,7 +394,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 }
 
 func assumptionOf(p model.Prognosis) Assumption {
-	as := Assumption{Label: labelOf(p), Commitment: p.Commitment, NotDone: p.NotDone, Extra: p.AdditionalDone, RestNext: p.RestNext}
+	as := Assumption{Label: labelOf(p), Commitment: p.Commitment, NotDone: p.NotDone, Extra: p.AdditionalDone, RestNext: p.RestNext, Carry: []CarryInput{}}
 	for _, it := range p.Carry {
 		as.Carry = append(as.Carry, CarryInput{Ticket: str(it.Ticket), Rest: it.Rest, Target: it.Target})
 	}
