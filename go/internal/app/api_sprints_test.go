@@ -241,8 +241,14 @@ func TestSprintOverview(t *testing.T) {
 	if len(o.Rows) < 4 || o.Reference <= 0 || o.CurrentIndex < 0 {
 		t.Fatalf("overview = %d rows, reference %v, current %d", len(o.Rows), o.Reference, o.CurrentIndex)
 	}
-	pastRows := 0
+	pastRows, spans := 0, 0
 	for _, r := range o.Rows {
+		if r.PlanLow != nil && r.PlanHigh != nil && r.Plan != nil {
+			spans++
+			if *r.PlanLow > *r.PlanHigh || *r.Plan < *r.PlanLow-1 || *r.Plan > *r.PlanHigh+1 {
+				t.Errorf("plan %v outside %v-%v", *r.Plan, *r.PlanLow, *r.PlanHigh)
+			}
+		}
 		if r.State == SprintPast {
 			pastRows++
 			if r.Next != NextNone || r.Plan != nil {
@@ -252,6 +258,9 @@ func TestSprintOverview(t *testing.T) {
 				t.Errorf("rate missing in %+v", r)
 			}
 		}
+	}
+	if spans == 0 {
+		t.Error("no row has a PLAN range")
 	}
 	if pastRows != 5 {
 		t.Errorf("%d past rows, want the last 5", pastRows)

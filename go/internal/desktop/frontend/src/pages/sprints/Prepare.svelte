@@ -116,7 +116,7 @@
           <dd class="data">{days(info.capacityBase)} {t('PD')}{#if info.planBase !== null}{' · '}{days(info.planBase)} {unit}{/if}</dd>
           <dt>{t('With absence')}</dt>
           <dd class="data">
-            <strong>{days(info.sprint.capacity)} {t('PD')}</strong>{#if info.sprint.plan !== null}{' · '}<strong class="fc">{days(info.sprint.plan)} {unit}</strong>{/if}
+            <strong>{days(info.sprint.capacity)} {t('PD')}</strong>{#if info.sprint.plan !== null}{' · '}<strong class="fc">{days(info.sprint.plan)} {unit}</strong>{#if info.sprint.planLow !== null && info.sprint.planHigh !== null && info.sprint.planLow < info.sprint.planHigh}{' '}<span class="muted">({days(info.sprint.planLow)}–{days(info.sprint.planHigh)})</span>{/if}{/if}
           </dd>
           <dt>{t('Change')}</dt>
           <dd class="data">
