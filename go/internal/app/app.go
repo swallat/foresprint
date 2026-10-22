@@ -44,9 +44,14 @@ type API struct {
 
 	mu      sync.Mutex
 	dataDir string
+<<<<<<< HEAD
 	// teamUndo is the last step of the Team area per team (undo.go).
 	teamUndo undoLog
 	undo     []projectSnapshot
+=======
+	run     trackerRun
+	undo    []projectSnapshot
+>>>>>>> origin/v1
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
@@ -105,6 +110,7 @@ type Prefs struct {
 	Languages      []Choice `json:"languages"`
 	Theme          string   `json:"theme"`
 	Themes         []Choice `json:"themes"`
+	Density        string   `json:"density"` // "compact", "normal" or "roomy"
 	DataDir        string   `json:"dataDir"`
 	RecentDataDirs []string `json:"recentDataDirs"`
 }
@@ -114,6 +120,7 @@ func (a *API) Prefs() Prefs {
 	p := Prefs{
 		Language:       savedLanguage(),
 		Theme:          config.Theme(),
+		Density:        config.Density(),
 		DataDir:        a.DataDir(),
 		RecentDataDirs: config.RecentDataDirs(),
 	}
@@ -131,6 +138,9 @@ func (a *API) SetLanguage(code string) error { return config.SaveLanguage(code) 
 
 // SetTheme saves the theme ("system", "light", "dark").
 func (a *API) SetTheme(code string) error { return config.SaveTheme(code) }
+
+// SetDensity saves the density of tables ("compact", "normal", "roomy").
+func (a *API) SetDensity(code string) error { return config.SaveDensity(code) }
 
 // Texts returns the texts of the window for a language: English source text to translation.
 // A text without entry is shown in English by the frontend.
