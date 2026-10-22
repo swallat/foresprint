@@ -6,13 +6,15 @@
 // Never use emojis in the UI.
 
 import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
-import i_archive from '@material-symbols/svg-400/outlined/archive.svg?raw';
+import i_add_link from '@material-symbols/svg-400/outlined/add_link.svg?raw';
 import i_add_circle from '@material-symbols/svg-400/outlined/add_circle.svg?raw';
+import i_archive from '@material-symbols/svg-400/outlined/archive.svg?raw';
 import i_arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?raw';
 import i_arrow_downward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw';
 import i_arrow_forward from '@material-symbols/svg-400/outlined/arrow_forward.svg?raw';
 import i_arrow_upward from '@material-symbols/svg-400/outlined/arrow_upward.svg?raw';
 import i_attach_file from '@material-symbols/svg-400/outlined/attach_file.svg?raw';
+import i_block from '@material-symbols/svg-400/outlined/block.svg?raw';
 import i_bookmark_add from '@material-symbols/svg-400/outlined/bookmark_add.svg?raw';
 import i_calculate from '@material-symbols/svg-400/outlined/calculate.svg?raw';
 import i_calendar_month from '@material-symbols/svg-400/outlined/calendar_month.svg?raw';
@@ -31,6 +33,7 @@ import i_cloud_done from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import i_cloud_download from '@material-symbols/svg-400/outlined/cloud_download.svg?raw';
 import i_cloud_off from '@material-symbols/svg-400/outlined/cloud_off.svg?raw';
 import i_cloud_upload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw';
+import i_computer from '@material-symbols/svg-400/outlined/computer.svg?raw';
 import i_confirmation_number from '@material-symbols/svg-400/outlined/confirmation_number.svg?raw';
 import i_content_copy from '@material-symbols/svg-400/outlined/content_copy.svg?raw';
 import i_contrast from '@material-symbols/svg-400/outlined/contrast.svg?raw';
@@ -48,9 +51,11 @@ import i_drag_indicator from '@material-symbols/svg-400/outlined/drag_indicator.
 import i_edit from '@material-symbols/svg-400/outlined/edit.svg?raw';
 import i_edit_note from '@material-symbols/svg-400/outlined/edit_note.svg?raw';
 import i_error from '@material-symbols/svg-400/outlined/error.svg?raw';
+import i_event from '@material-symbols/svg-400/outlined/event.svg?raw';
 import i_event_available from '@material-symbols/svg-400/outlined/event_available.svg?raw';
 import i_event_repeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw';
 import i_event_busy from '@material-symbols/svg-400/outlined/event_busy.svg?raw';
+import i_filter_alt_off from '@material-symbols/svg-400/outlined/filter_alt_off.svg?raw';
 import i_fact_check from '@material-symbols/svg-400/outlined/fact_check.svg?raw';
 import i_filter_list from '@material-symbols/svg-400/outlined/filter_list.svg?raw';
 import i_fit_screen from '@material-symbols/svg-400/outlined/fit_screen.svg?raw';
@@ -65,14 +70,17 @@ import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
 import i_history from '@material-symbols/svg-400/outlined/history.svg?raw';
 import i_inbox from '@material-symbols/svg-400/outlined/inbox.svg?raw';
 import i_info from '@material-symbols/svg-400/outlined/info.svg?raw';
+import i_inventory_2 from '@material-symbols/svg-400/outlined/inventory_2.svg?raw';
 import i_key from '@material-symbols/svg-400/outlined/key.svg?raw';
 import i_key_off from '@material-symbols/svg-400/outlined/key_off.svg?raw';
 import i_keyboard_arrow_down from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw';
 import i_keyboard_arrow_up from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw';
 import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
 import i_light_mode from '@material-symbols/svg-400/outlined/light_mode.svg?raw';
+import i_link from '@material-symbols/svg-400/outlined/link.svg?raw';
 import i_lock from '@material-symbols/svg-400/outlined/lock.svg?raw';
 import i_lock_open from '@material-symbols/svg-400/outlined/lock_open.svg?raw';
+import i_logout from '@material-symbols/svg-400/outlined/logout.svg?raw';
 import i_low_priority from '@material-symbols/svg-400/outlined/low_priority.svg?raw';
 import i_menu from '@material-symbols/svg-400/outlined/menu.svg?raw';
 import i_merge from '@material-symbols/svg-400/outlined/merge.svg?raw';
@@ -83,6 +91,7 @@ import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?ra
 import i_pending from '@material-symbols/svg-400/outlined/pending.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
 import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
+import i_person_remove from '@material-symbols/svg-400/outlined/person_remove.svg?raw';
 import i_pin from '@material-symbols/svg-400/outlined/pin.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
 import i_playlist_add from '@material-symbols/svg-400/outlined/playlist_add.svg?raw';
@@ -92,10 +101,12 @@ import i_radio_button_unchecked from '@material-symbols/svg-400/outlined/radio_b
 import i_refresh from '@material-symbols/svg-400/outlined/refresh.svg?raw';
 import i_restart_alt from '@material-symbols/svg-400/outlined/restart_alt.svg?raw';
 import i_route from '@material-symbols/svg-400/outlined/route.svg?raw';
+import i_rule from '@material-symbols/svg-400/outlined/rule.svg?raw';
 import i_save from '@material-symbols/svg-400/outlined/save.svg?raw';
 import i_schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw';
 import i_school from '@material-symbols/svg-400/outlined/school.svg?raw';
 import i_search from '@material-symbols/svg-400/outlined/search.svg?raw';
+import i_send from '@material-symbols/svg-400/outlined/send.svg?raw';
 import i_sell from '@material-symbols/svg-400/outlined/sell.svg?raw';
 import i_settings from '@material-symbols/svg-400/outlined/settings.svg?raw';
 import i_settings_backup_restore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw';
@@ -103,11 +114,14 @@ import i_skip_next from '@material-symbols/svg-400/outlined/skip_next.svg?raw';
 import i_sort from '@material-symbols/svg-400/outlined/sort.svg?raw';
 import i_stop from '@material-symbols/svg-400/outlined/stop.svg?raw';
 import i_sync from '@material-symbols/svg-400/outlined/sync.svg?raw';
+import i_sync_disabled from '@material-symbols/svg-400/outlined/sync_disabled.svg?raw';
+import i_sync_problem from '@material-symbols/svg-400/outlined/sync_problem.svg?raw';
 import i_task_alt from '@material-symbols/svg-400/outlined/task_alt.svg?raw';
 import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
 import i_unarchive from '@material-symbols/svg-400/outlined/unarchive.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
+import i_unfold_more from '@material-symbols/svg-400/outlined/unfold_more.svg?raw';
 import i_upload from '@material-symbols/svg-400/outlined/upload.svg?raw';
 import i_verified_user from '@material-symbols/svg-400/outlined/verified_user.svg?raw';
 import i_view_list from '@material-symbols/svg-400/outlined/view_list.svg?raw';
@@ -117,13 +131,15 @@ import i_warning from '@material-symbols/svg-400/outlined/warning.svg?raw';
 
 const icons = {
   add: i_add,
-  archive: i_archive,
+  add_link: i_add_link,
   add_circle: i_add_circle,
+  archive: i_archive,
   arrow_back: i_arrow_back,
   arrow_downward: i_arrow_downward,
   arrow_forward: i_arrow_forward,
   arrow_upward: i_arrow_upward,
   attach_file: i_attach_file,
+  block: i_block,
   bookmark_add: i_bookmark_add,
   calculate: i_calculate,
   calendar_month: i_calendar_month,
@@ -142,6 +158,7 @@ const icons = {
   cloud_download: i_cloud_download,
   cloud_off: i_cloud_off,
   cloud_upload: i_cloud_upload,
+  computer: i_computer,
   confirmation_number: i_confirmation_number,
   content_copy: i_content_copy,
   contrast: i_contrast,
@@ -159,9 +176,11 @@ const icons = {
   edit: i_edit,
   edit_note: i_edit_note,
   error: i_error,
+  event: i_event,
   event_available: i_event_available,
   event_repeat: i_event_repeat,
   event_busy: i_event_busy,
+  filter_alt_off: i_filter_alt_off,
   fact_check: i_fact_check,
   filter_list: i_filter_list,
   fit_screen: i_fit_screen,
@@ -176,14 +195,17 @@ const icons = {
   history: i_history,
   inbox: i_inbox,
   info: i_info,
+  inventory_2: i_inventory_2,
   key: i_key,
   key_off: i_key_off,
   keyboard_arrow_down: i_keyboard_arrow_down,
   keyboard_arrow_up: i_keyboard_arrow_up,
   language: i_language,
   light_mode: i_light_mode,
+  link: i_link,
   lock: i_lock,
   lock_open: i_lock_open,
+  logout: i_logout,
   low_priority: i_low_priority,
   menu: i_menu,
   merge: i_merge,
@@ -194,6 +216,7 @@ const icons = {
   pending: i_pending,
   person: i_person,
   person_add: i_person_add,
+  person_remove: i_person_remove,
   pin: i_pin,
   play_arrow: i_play_arrow,
   playlist_add: i_playlist_add,
@@ -203,10 +226,12 @@ const icons = {
   refresh: i_refresh,
   restart_alt: i_restart_alt,
   route: i_route,
+  rule: i_rule,
   save: i_save,
   schedule: i_schedule,
   school: i_school,
   search: i_search,
+  send: i_send,
   sell: i_sell,
   settings: i_settings,
   settings_backup_restore: i_settings_backup_restore,
@@ -214,11 +239,14 @@ const icons = {
   sort: i_sort,
   stop: i_stop,
   sync: i_sync,
+  sync_disabled: i_sync_disabled,
+  sync_problem: i_sync_problem,
   task_alt: i_task_alt,
   today: i_today,
   tune: i_tune,
   unarchive: i_unarchive,
   undo: i_undo,
+  unfold_more: i_unfold_more,
   upload: i_upload,
   verified_user: i_verified_user,
   view_list: i_view_list,

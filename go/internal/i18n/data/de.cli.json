@@ -151,6 +151,8 @@
   "Day": "Tag",
   "Who": "Wer",
   "A team folder or file, relative to the data folder (default: everything).": "Ein Teamordner oder eine Datei, relativ zum Datenordner (Standard: alles).",
-  "Number of entries (default 40).": "Anzahl der Einträge (Standard 40)."
+  "Number of entries (default 40).": "Anzahl der Einträge (Standard 40).",
+  "Plannable = rounded down((Forecast PLAN − carry-over) × plannable share, {digits} digit(s))": "Verplanbar = abgerundet((Forecast-PLAN − Übertrag) × verplanbarer Anteil, {digits} Stelle(n))",
+  "Small items = Forecast PLAN − carry-over − plannable": "Kleinkram = Forecast-PLAN − Übertrag − Verplanbar"
  }
 }

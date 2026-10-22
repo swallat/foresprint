@@ -5,8 +5,10 @@
 import { api, inProgram, setDemo } from './api';
 import { t, useLanguage } from './i18n.svelte';
 import { go } from './router.svelte';
-import { applyTheme } from './theme';
+import { applyDensity, applyFeatures, applyTheme } from './theme';
+import type { PendingTag } from './types.data';
 import type { Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { Features } from './types.settings';
 
 export interface Toast {
   id: number;
@@ -22,6 +24,8 @@ export const app = $state({
   team: '',
   sprints: [] as SprintInfo[],
   sprint: '',
+  /** Optional parts of the team (ticket source, products, production); hidden when not used. */
+  features: undefined as Features | undefined,
   status: {
     storage: 'saved',
     detail: '',
@@ -33,6 +37,8 @@ export const app = $state({
   busy: '' as '' | 'save' | 'refresh' | 'sync',
   /** Data errors that stopped Save; the dialog offers to fix them or to save anyway. */
   findings: undefined as string[] | undefined,
+  /** Tags a sprint review asked for; the next Save sets them. */
+  pendingTags: [] as PendingTag[],
   /** Counts up after every Save or Refresh, so that open pages of the area Data reload. */
   rev: 0,
   toasts: [] as Toast[],
@@ -91,6 +97,7 @@ export function dismissToast(id: number): void {
 export async function loadPrefs(): Promise<void> {
   app.prefs = await api.Prefs();
   applyTheme(app.prefs.theme);
+  applyDensity(app.prefs.density);
   await useLanguage(app.prefs.language);
 }
 
@@ -102,6 +109,18 @@ export async function setLanguage(code: string): Promise<void> {
 export async function setTheme(code: string): Promise<void> {
   await api.SetTheme(code);
   await loadPrefs();
+}
+
+export async function setDensity(code: string): Promise<void> {
+  await api.SetDensity(code);
+  await loadPrefs();
+}
+
+/** Reads which optional parts the team uses and tells the styles (data-trk and friends). Call it
+ * after settings changed. */
+export async function loadFeatures(): Promise<void> {
+  app.features = app.team ? await api.TeamFeatures(app.team).catch(() => undefined) : undefined;
+  applyFeatures(app.features);
 }
 
 /** Reads the teams of the data folder and keeps (or picks) the selected team and sprint. */
@@ -127,6 +146,7 @@ export async function selectTeam(key: string): Promise<void> {
   const pick =
     app.sprints.find((s) => s.id === wanted) ?? app.sprints.find((s) => s.state === 'current') ?? app.sprints.at(-1);
   app.sprint = pick?.id ?? '';
+  await loadFeatures();
 }
 
 export function selectSprint(id: string): void {
@@ -136,9 +156,16 @@ export function selectSprint(id: string): void {
 
 export async function refreshStatus(): Promise<void> {
   try {
-    app.status = await api.Status();
+    const status = await api.Status();
+    const tracker = app.team ? await api.TrackerInfo(app.team).catch(() => undefined) : undefined;
+    app.status = tracker ? { ...status, tracker } : status;
   } catch {
     /* keep the last known state; a failing status call must not break the window */
+  }
+  try {
+    app.pendingTags = await api.PendingTags();
+  } catch {
+    app.pendingTags = [];
   }
 }
 
@@ -188,7 +215,7 @@ export const saveAnyway = () => run('save', () => api.SaveAnyway());
 /** Fetch changes of others (top bar). */
 export const refresh = () => run('refresh', () => api.Refresh());
 /** Fetch tickets from the tracker now (top bar). */
-export const syncTracker = () => run('sync', () => api.SyncTracker());
+export const syncTracker = () => run('sync', () => api.SyncTracker(app.team));
 
 /** Opens the ticket in the side panel. */
 export function openTicket(key: string): void {

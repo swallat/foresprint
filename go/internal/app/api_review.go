@@ -18,6 +18,7 @@ import (
 	"github.com/swallat/foresprint/internal/protocol"
 	"github.com/swallat/foresprint/internal/report"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/ticketimport"
 )
 
 // The area Review and minutes: closing a sprint (velocity from commitment, not done and
@@ -252,6 +253,15 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 	}
 	out.CommitmentSet = s.Commitment != nil || out.Tickets
 	out.AdditionalDone = val(s.AdditionalDone)
+	out.Pulled, out.NoEstimate = []string{}, []string{}
+	if out.Tickets && !out.Reviewed {
+		extra := ticketimport.AdditionalDoneOf(s.CommittedTickets, data.Tickets, s.ID)
+		if s.AdditionalDone == nil {
+			out.Pulled = append(out.Pulled, extra.Keys...)
+			out.NoEstimate = append(out.NoEstimate, extra.NoEstimate...)
+			out.AdditionalDone = extra.Points
+		}
+	}
 	if out.Reviewed {
 		// A closed Review shows what was stored, whatever the tickets say today.
 		out.NotDone = val(s.NotDone)
@@ -633,4 +643,22 @@ func (a *API) MinutesText(team, file string) (MinutesText, error) {
 		return MinutesText{}, err
 	}
 	return MinutesText{Text: string(b), Path: path}, nil
+}
+
+// PendingTag is a tag a Review asked for; it is set with the next Save.
+type PendingTag struct {
+	Name string `json:"name"`
+	// Ready: the name is valid and free, so the next Save sets it. Otherwise the tag is dropped
+	// at the Save without being set.
+	Ready bool `json:"ready"`
+}
+
+// PendingTags lists the tags that wait for the next Save.
+func (a *API) PendingTags() []PendingTag {
+	usable := a.usableTags()
+	out := []PendingTag{}
+	for _, name := range a.pendingTags() {
+		out = append(out, PendingTag{Name: name, Ready: contains(usable, name)})
+	}
+	return out
 }
