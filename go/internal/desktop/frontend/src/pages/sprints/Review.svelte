@@ -11,6 +11,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
 
   let { params }: PageProps = $props();
@@ -163,6 +164,7 @@
     {/if}
   {/snippet}
 </PageHead>
+<StageNav stage="review" />
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>
