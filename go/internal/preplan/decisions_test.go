@@ -1,6 +1,7 @@
 package preplan
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -112,5 +113,31 @@ func TestCarryRestWithoutProductIsSplit(t *testing.T) {
 	}
 	if sum != 4 || got.Amount[keyOf("s3", nil)] != 0 {
 		t.Fatalf("rest must be split over the products, got %v", got.Amount)
+	}
+}
+
+func TestSplitByShare(t *testing.T) {
+	d := decisionData() // products a and b without fixed shares
+	got := SplitByShare(d, model.Sprint{ID: "s"}, 10)
+	if len(got) != 2 || got["a"] != 5 || got["b"] != 5 {
+		t.Fatalf("%v", got)
+	}
+	d.Team.Features.Products = false
+	if got := SplitByShare(d, model.Sprint{ID: "s"}, 10); len(got) != 0 {
+		t.Fatalf("without products: %v", got)
+	}
+}
+
+func TestSplitByShareAddsUp(t *testing.T) {
+	d := decisionData()
+	d.Products = []model.Product{{ID: "a", Share: model.Ptr(0.3)}, {ID: "b", Share: model.Ptr(0.5)}}
+	got := SplitByShare(d, model.Sprint{ID: "s"}, 8)
+	if got["a"]+got["b"] != 8 || got["a"] != 3 {
+		t.Fatalf("fixed shares below 100 %% must still add up: %v", got)
+	}
+	d.Products = []model.Product{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	got = SplitByShare(d, model.Sprint{ID: "s"}, 8)
+	if math.Abs(got["a"]+got["b"]+got["c"]-8) > 1e-9 {
+		t.Fatalf("thirds: %v", got)
 	}
 }

@@ -157,7 +157,7 @@ func (a *API) loadReviewSprint(team, sprintID string) (*storage.TeamData, *forec
 
 // reviewTargets are the places the rest of a ticket can continue: the next sprints and the
 // backlog.
-func reviewTargets(fc *forecast.Forecast, s model.Sprint) []ReviewTarget {
+func reviewTargets(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) []ReviewTarget {
 	out := []ReviewTarget{}
 	n := 0
 	for i := range fc.Entries {
@@ -169,7 +169,7 @@ func reviewTargets(fc *forecast.Forecast, s model.Sprint) []ReviewTarget {
 		if n == 0 {
 			id = ""
 		}
-		out = append(out, ReviewTarget{ID: id, Name: sprintName(e)})
+		out = append(out, ReviewTarget{ID: id, Name: displayName(data, fc, e)})
 		if n++; n == 4 {
 			break
 		}
@@ -196,7 +196,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 		Tickets:     data.Team.Features.Tickets && len(s.CommittedTickets) > 0,
 		PlannedDays: col.Capacity,
 		FrozenDays:  col.Capacity,
-		Targets:     reviewTargets(fc, s),
+		Targets:     reviewTargets(data, fc, s),
 		List:        []ReviewTicket{},
 		Products:    []ReviewProduct{},
 		Tag:         team + "/" + s.ID,

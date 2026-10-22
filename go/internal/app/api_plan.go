@@ -503,7 +503,7 @@ func (c *planCtx) fillProjects(v *PlanSprint) {
 		if p.Closed() {
 			continue
 		}
-		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total}
+		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total, UsedPD: preplan.ContingentStatusOf(p.Contingent).Used}
 		byProject[p.ID] = pp
 		if !c.tickets() {
 			if vals, ok := c.sprint.Projects[p.ID]; ok && vals.Preplanned != nil {
@@ -1007,6 +1007,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	var commit float64
 	planned := map[string]float64{}
 	prodPlanned := map[string]float64{}
+	var noProduct, noProductProd float64
 	if c.tickets() {
 		keys := []string{}
 		for _, k := range in.Tickets {
@@ -1016,10 +1017,23 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			}
 			keys = append(keys, k)
 			commit += sizeOf(t)
+			if t.Product == "" && c.data.Team.Features.Products {
+				noProduct += sizeOf(t)
+				noProductProd += sizeOf(t) * t.ProdPct / 100
+				continue
+			}
 			planned[t.Product] += sizeOf(t)
 			prodPlanned[t.Product] += sizeOf(t) * t.ProdPct / 100
 		}
+		// Tickets without a product are split over the products by their shares.
+		for id, v := range preplan.SplitByShare(c.data, s, noProduct) {
+			planned[id] += v
+		}
+		for id, v := range preplan.SplitByShare(c.data, s, noProductProd) {
+			prodPlanned[id] += v
+		}
 		s.CommittedTickets = keys
+		s.Removed = nil // the minutes list them from here on
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {
