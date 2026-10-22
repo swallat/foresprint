@@ -11,6 +11,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import FieldMapping from './FieldMapping.svelte';
+  import PackageImport from './PackageImport.svelte';
 
   let { params }: PageProps = $props();
   void params;
@@ -199,6 +200,7 @@
       </div>
       <p class="small muted">{t('Keys look like AP-424. Leave empty for AP.')}</p>
     </div>
+    <PackageImport ready={applied.source === 'packages'} />
   {:else if draft.source === 'none'}
     <Banner>
       <strong>{t('No tickets:')}</strong>

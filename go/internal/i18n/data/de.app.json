@@ -4,6 +4,7 @@
  "texts": {
   "'{text}' is not a date (YYYY-MM-DD).": "'{text}' ist kein Datum (JJJJ-MM-TT).",
   "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",
+  "A finished sprint is locked.": "Ein abgeschlossener Sprint ist gesperrt.",
   "A project named {name} exists already.": "Ein Projekt namens {name} gibt es schon.",
   "A sync is already running.": "Ein Abruf läuft schon.",
   "Absence days and focus must not be negative.": "Abwesenheitstage und Fokus dürfen nicht negativ sein.",
@@ -21,6 +22,7 @@
   "End date": "Enddatum",
   "Enter a name for the team.": "Gib dem Team einen Namen.",
   "Enter a number of days from 0 to the working days of the sprint.": "Bitte eine Zahl von 0 bis zu den Arbeitstagen des Sprints eingeben.",
+  "Enter a valid last day.": "Gib einen gültigen letzten Tag ein.",
   "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein.",
   "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
   "Enter the address of the tracker first.": "Gib zuerst die Adresse des Trackers ein.",
@@ -130,6 +132,7 @@
   "announced only ({count} people)": "nur angekündigt ({count} Personen)",
   "not entered yet": "noch nicht eingetragen",
   "rest {rest}": "Rest {rest}",
+  "unknown placeholder {name} in sprint naming pattern": "Unbekannter Platzhalter {name} im Benennungsmuster der Sprints.",
   "{count} files need your decision.": "{count} Dateien warten auf deine Entscheidung.",
   "{count} tickets read, no changes.": "{count} Tickets gelesen, keine Änderungen.",
   "{count} tickets read, {changes} changes.": "{count} Tickets gelesen, {changes} Änderungen.",
@@ -144,6 +147,15 @@
   "Row {row}: {msg}": "Zeile {row}: {msg}",
   "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet.",
   "The file is not a regular file or larger than 20 MB.": "Die Datei ist keine normale Datei oder größer als 20 MB.",
-  "… and {n} more rows": "… und {n} weitere zeilen"
+  "… and {n} more rows": "… und {n} weitere zeilen",
+  "Choose the table of work packages": "Tabelle mit Arbeitspaketen wählen",
+  "The table changed since the preview. Choose it again.": "Die Tabelle hat sich seit der Vorschau geändert. Bitte erneut wählen.",
+  "No changes compared to the existing work packages.": "Keine Änderungen gegenüber den vorhandenen Arbeitspaketen.",
+  "{count} work packages imported.": "{count} Arbeitspakete importiert.",
+  "This team does not keep work packages in Foresprint.": "Dieses Team führt seine Arbeitspakete nicht in Foresprint.",
+  "The file is too large for a table of work packages.": "Die Datei ist zu groß für eine Tabelle mit Arbeitspaketen.",
+  "This is not a file.": "Das ist keine Datei.",
+  "The workbook is too large": "Die Arbeitsmappe ist zu groß.",
+  "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen)."
  }
 }

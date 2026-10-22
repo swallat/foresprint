@@ -79,9 +79,21 @@ func AbsenceSprints(data *storage.TeamData, fc *forecast.Forecast, count, past i
 		sprint = following
 		if stored := data.SprintByID(following.ID); stored != nil {
 			sprint = stored.Clone()
+		} else if stored := savedStartingAt(data, following.Start); stored != nil {
+			sprint = stored.Clone() // a saved sprint with another name than the pattern gives
 		}
 	}
 	return result, nil
+}
+
+// savedStartingAt is the saved sprint that begins on the day, nil if there is none.
+func savedStartingAt(data *storage.TeamData, start time.Time) *model.Sprint {
+	for i := range data.Sprints {
+		if data.Sprints[i].Start.Equal(start) {
+			return &data.Sprints[i]
+		}
+	}
+	return nil
 }
 
 // Row is one line of the sprint calendar.
