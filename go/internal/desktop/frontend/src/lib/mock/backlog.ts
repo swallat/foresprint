@@ -261,6 +261,16 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       if (i >= 0) rows.splice(i, 1);
       rows.forEach((x) => (x.dependsOn = x.dependsOn.filter((k) => k !== key)));
     },
+    async MoveWorkPackage(_team, key, before, after) {
+      const order = [...rows].sort((a, b) => a.rank - b.rank).filter((x) => x.key !== key);
+      const moving = rows.find((x) => x.key === key);
+      if (!moving || key === before) return;
+      const found = before === '' ? order.length : order.findIndex((x) => x.key === before);
+      const at = found + (after && before !== '' ? 1 : 0);
+      if (found < 0) throw new Error(`${before} is not in the backlog.`);
+      order.splice(at, 0, moving);
+      order.forEach((x, i) => (x.rank = (i + 1) * 10));
+    },
   };
 }
 

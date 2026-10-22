@@ -2,6 +2,7 @@
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
   import { app, syncTracker } from '../../lib/app.svelte';
+  import { tick } from 'svelte';
   import { language } from '../../lib/i18n.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -11,7 +12,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -114,6 +115,7 @@
   function dragEnd(): void {
     dragKeys = [];
     overZone = '';
+    overRow = '';
   }
   function dragOver(e: DragEvent, zone: string): void {
     if (dragKeys.length === 0) return;
@@ -131,6 +133,42 @@
     const next = neighbour(laneIds, tk.earmark, by);
     if (next === undefined) return;
     await earmark([tk.key], next);
+    document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
+  }
+
+  // Reordering: only work packages (a tracker keeps its own order), in the planning order, ungrouped.
+  const canReorder = $derived(packages && ui.sort === 'order' && ui.group === 'none');
+  let overRow = $state('');
+  function rowOver(e: DragEvent, tk: BacklogTicket): void {
+    if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
+    if (!items.some((i) => i.key === dragKeys[0]) || !items.some((i) => i.key === tk.key)) return; // a sprint lane row: the lane's drop earmarks
+    e.preventDefault();
+    e.stopPropagation();
+    overRow = tk.key;
+  }
+  async function rowDrop(e: DragEvent, tk: BacklogTicket): Promise<void> {
+    if (overRow !== tk.key || dragKeys.length !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const key = dragKeys[0] ?? '';
+    dragEnd();
+    overRow = '';
+    await reorder(key, tk.key);
+  }
+  async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
+    if (!canReorder || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    const i = items.findIndex((x) => x.key === tk.key);
+    if (i < 0) return;
+    e.preventDefault();
+    if (e.key === 'ArrowUp') {
+      if (!items[i - 1]) return;
+      await reorder(tk.key, items[i - 1]!.key);
+    } else {
+      if (!items[i + 1]) return;
+      shown = Math.max(shown, i + 3);
+      await reorder(tk.key, items[i + 1]!.key, true);
+    }
+    await tick();
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
 
@@ -307,7 +345,7 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -444,6 +482,8 @@
 
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
   {#if view}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="slot" class:over={overRow === tk.key} ondragover={(e) => rowOver(e, tk)} ondragleave={() => { if (overRow === tk.key) overRow = ''; }} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
     <TicketRow
       ticket={tk}
       {view}
@@ -458,10 +498,14 @@
       ondragend={dragEnd}
       onstep={(by) => step(tk, by)}
     />
+    </div>
   {/if}
 {/snippet}
 
 <style>
+  .slot.over {
+    box-shadow: 0 -2px 0 0 var(--primary);
+  }
   .board {
     display: grid;
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
