@@ -38,12 +38,12 @@
     </div>
     <div class="field">
       <label for="p-calc">{t('Calculations next to numbers')}</label>
-      <select id="p-calc" class="input" value={app.calcMode} onchange={(e) => setCalcMode(e.currentTarget.value as CalcMode)}>
+      <select id="p-calc" class="input" aria-describedby="p-calc-hint" value={app.calcMode} onchange={(e) => setCalcMode(e.currentTarget.value as CalcMode)}>
         <option value="off">{t('Hidden')}</option>
         <option value="icon">{t('Calculator icon')}</option>
         <option value="inline">{t('Always shown')}</option>
       </select>
-      <p class="muted small">{t('Help > Calculations explains every formula in any case.')}</p>
+      <p id="p-calc-hint" class="muted small">{t('Help > Calculations explains every formula in any case.')}</p>
     </div>
     <p class="muted small">{t('Density follows with the settings package.')}</p>
   </div>

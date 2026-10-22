@@ -3,6 +3,7 @@
   import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
+  import { link } from '../router.svelte';
 
   interface Props {
     /** What the number is, for the button's name and the panel title ("Forecast PLAN"). */
@@ -16,7 +17,7 @@
 
   let open = $state(false);
   const id = $props.id();
-  const helpHref = $derived(`#/help/calculations${topic ? `?topic=${encodeURIComponent(topic)}` : ''}`);
+  const helpHref = $derived(link('/help/calculations', {}, topic ? { topic } : {}));
 </script>
 
 <!-- The personal setting decides: hidden, a calculator button that opens the calculation in
@@ -26,7 +27,7 @@
     type="button"
     class="btn ghost icon calc-btn"
     aria-expanded={open}
-    aria-controls={id}
+    aria-controls={open ? id : undefined}
     aria-label={t('Calculation of {name}', { name: label })}
     title={t('Calculation of {name}', { name: label })}
     onclick={() => (open = !open)}
@@ -40,8 +41,8 @@
     </div>
   {/if}
 {:else if app.calcMode === 'inline'}
-  <div class="calc-panel inline" {id} role="group" aria-label={t('Calculation of {name}', { name: label })}>
-    <div class="small muted title"><Icon name="calculate" size={16} /> {t('Calculation of {name}', { name: label })}</div>
+  <div class="calc-panel inline" {id} role="group" aria-labelledby="{id}-title">
+    <div class="small muted title" id="{id}-title"><Icon name="calculate" size={16} /> {t('Calculation of {name}', { name: label })}</div>
     <div class="body">{@render children()}</div>
     <a class="small" href={helpHref}>{t('Formula and special cases')}</a>
   </div>
