@@ -1,3 +1,15 @@
+api_backlog.go change
+api_backlog.go cycles
+api_backlog.go estimateSource
+api_backlog.go lanes
+api_backlog.go lanesShown
+api_backlog.go loadTickets
+api_backlog.go namedProducts
+api_backlog.go namedProjects
+api_backlog.go newBacklogContext
+api_backlog.go nextPackageKey
+api_backlog.go rankFirst
+api_backlog.go writePackages
 api_data.go adopt
 api_data.go nilIfEmpty
 api_forecast.go simulationRuns

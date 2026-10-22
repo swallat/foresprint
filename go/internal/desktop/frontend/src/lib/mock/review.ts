@@ -119,6 +119,8 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       commitmentSet: true,
       notDone,
       additionalDone: additional,
+      pulled: [],
+      noEstimate: [],
       restNext: input?.restNext ?? 0,
       velocity,
       list: rows,
