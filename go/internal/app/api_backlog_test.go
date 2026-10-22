@@ -300,3 +300,147 @@ func TestBacklogDriftComparesFrozenListOfRunningSprint(t *testing.T) {
 		t.Errorf("the running sprint is S1, got %+v", d)
 	}
 }
+
+func TestMoveToProFormaKeepsOnlyWhatDiffersFromTracker(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	data.Team.Sprint.ProForma = []string{"Refinement"}
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	refinement, running := "Refinement", "2026.1"
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "Free", EstimateSource: model.EstimateNone},
+		{Key: "X-2", Title: "In refinement", SprintName: &refinement, EstimateSource: model.EstimateNone},
+		{Key: "X-3", Title: "In a sprint", InSprint: &running, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	inPro := func(view *BacklogView) string {
+		var keys []string
+		for _, tk := range view.ProForma[0].Tickets {
+			keys = append(keys, tk.Key)
+		}
+		return strings.Join(keys, ",")
+	}
+	if err := api.MoveToProForma("t", "X-1", "refinement"); err != nil {
+		t.Fatal(err)
+	}
+	view, _ := api.Backlog("t")
+	if inPro(view) != "X-1,X-2" || len(view.Adjust) != 1 || view.Adjust[0].Key != "X-1" || view.Adjust[0].To != "Refinement" || view.Adjust[0].From != "" {
+		t.Fatalf("pro-forma %s adjust %+v", inPro(view), view.Adjust)
+	}
+	if err := api.MoveToProForma("t", "X-2", ""); err != nil {
+		t.Fatal(err)
+	}
+	view, _ = api.Backlog("t")
+	if inPro(view) != "X-1" || len(view.Adjust) != 2 || view.Adjust[1].From != "Refinement" || view.Adjust[1].To != "" {
+		t.Fatalf("pro-forma %s adjust %+v", inPro(view), view.Adjust)
+	}
+	// Back to what the tracker says: nothing is left to adjust for the ticket.
+	if err := api.MoveToProForma("t", "X-2", "Refinement"); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.MoveToProForma("t", "X-1", ""); err != nil {
+		t.Fatal(err)
+	}
+	view, _ = api.Backlog("t")
+	if len(view.Adjust) != 0 {
+		t.Errorf("adjust %+v", view.Adjust)
+	}
+	// Earmarking a ticket the tracker has in Refinement takes it out of there (to be adjusted).
+	if err := api.EarmarkTicket("t", "X-2", "2026.5", ""); err != nil {
+		t.Fatal(err)
+	}
+	view, _ = api.Backlog("t")
+	if len(view.ProForma[0].Tickets) != 0 || len(view.Adjust) != 1 || view.Adjust[0].Key != "X-2" || view.Adjust[0].To != "" {
+		t.Errorf("pro-forma %s adjust %+v", inPro(view), view.Adjust)
+	}
+	if err := api.MoveToProForma("t", "X-3", "Refinement"); err == nil {
+		t.Error("a ticket in a real sprint stays there")
+	}
+	if err := api.MoveToProForma("t", "X-1", "Nowhere"); err == nil {
+		t.Error("an unknown pro-forma sprint should be refused")
+	}
+}
+
+func TestStaleProFormaPlacementsDoNotCount(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	data.Team.Sprint.ProForma = []string{"Refinement"}
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	refinement, running := "Refinement", "2026.1"
+	save := func(tickets ...model.Ticket) {
+		tf := storage.TicketsFile{Tickets: tickets, Imported: func() *time.Time { n := time.Now(); return &n }()}
+		if _, err := repo.SaveTickets("t", tf); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save(model.Ticket{Key: "X-1", Title: "Free", EstimateSource: model.EstimateNone})
+	if err := api.MoveToProForma("t", "X-1", "Refinement"); err != nil {
+		t.Fatal(err)
+	}
+	// The tracker now agrees: nothing is left to adjust.
+	save(model.Ticket{Key: "X-1", Title: "Free", SprintName: &refinement, EstimateSource: model.EstimateNone})
+	view, _ := api.Backlog("t")
+	if len(view.Adjust) != 0 || len(view.ProForma[0].Tickets) != 1 {
+		t.Errorf("adjust %+v", view.Adjust)
+	}
+	// The tracker put it into a real sprint: that wins over the placement.
+	save(model.Ticket{Key: "X-1", Title: "Free", InSprint: &running, EstimateSource: model.EstimateNone})
+	view, _ = api.Backlog("t")
+	if len(view.Adjust) != 0 || len(view.ProForma[0].Tickets) != 0 {
+		t.Errorf("adjust %+v pro-forma %+v", view.Adjust, view.ProForma)
+	}
+}
+
+func TestMoveTrackerTicketKeepsOwnOrderBesideTrackerRank(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	r1, r2, r3 := "0|a", "0|b", "0|c"
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "One", Rank: &r1, EstimateSource: model.EstimateNone},
+		{Key: "X-2", Title: "Two", Rank: &r2, EstimateSource: model.EstimateNone},
+		{Key: "X-3", Title: "Three", Rank: &r3, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	keys := func() string {
+		view, err := api.Backlog("t")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, tk := range view.Tickets {
+			out = append(out, tk.Key)
+		}
+		return strings.Join(out, ",")
+	}
+	if got := keys(); got != "X-1,X-2,X-3" {
+		t.Fatalf("order %s", got)
+	}
+	if err := api.MoveWorkPackage("t", "X-3", "X-1", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "X-3,X-1,X-2" {
+		t.Fatalf("order %s", got)
+	}
+	// The tracker's rank is untouched; a new ticket from a later fetch comes after the own order.
+	after, _ := repo.Load("t")
+	if after.TicketByKey("X-3").Rank == nil || *after.TicketByKey("X-3").Rank != "0|c" {
+		t.Errorf("tracker rank changed: %+v", after.TicketByKey("X-3").Rank)
+	}
+}

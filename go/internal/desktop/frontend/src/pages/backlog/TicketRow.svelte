@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmt } from '../../lib/format';
   // One ticket in a list or a lane: handle, selection, key, title, chips, estimate. Click on the
   // title (or Enter) opens the ticket panel; Alt+Right/Left earmarks for the next sprint or back
   // (the keyboard way of dragging).
@@ -102,8 +103,8 @@
     {#if tk.refined}<span class="chip ok"><Icon name="check" size={14} />{t('Refined')}</span>{:else}<span class="chip">{t('Not refined')}</span>{/if}
     {#if showProduct && view.multi && product}<span class="chip" title={product.name}><span class="dot" style:background={productColor(view, product.id)}></span>{product.name}</span>{/if}
     {#if showProject && project}<span class="chip" title={project.name}><Icon name="flag" size={14} />{project.name}</span>{/if}
-    {#if view.production && tk.production}<span class="chip" title={t('Share that needs production access')}><span class="data">{tk.production} %</span> {t('Prod')}</span>{/if}
-    <span class="est" class:muted={tk.size == null} title={tk.size == null ? t('No estimate') : ''}>{tk.size ?? '?'}</span>
+    {#if view.production && tk.production}<span class="chip" title={t('Share that needs production access')}><span class="data">{fmt(tk.production)} %</span> {t('Prod')}</span>{/if}
+    <span class="est" class:muted={tk.size == null} title={tk.size == null ? t('No estimate') : ''}>{tk.size == null ? '?' : fmt(tk.size)}</span>
   </span>
 </div>
 
