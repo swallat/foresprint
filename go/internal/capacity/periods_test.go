@@ -44,7 +44,8 @@ func TestApplyPeriods(t *testing.T) {
 			"b": {{From: day(2026, 10, 10), To: day(2026, 10, 12)}},
 		}, "a", "b")
 		got := capacity.ApplyPeriods(&team, people, periods, sprint).Sprint
-		if got.Absences["a"] != 3 || got.ExpectedAbsences["a"] != 1 || got.ExpectedAbsences["b"] != 1 {
+		// confirmed makes the sprint confirmed, so announced days count with the absences
+		if got.Absences["a"] != 4 || got.Absences["b"] != 1 || got.ExpectedAbsences != nil {
 			t.Errorf("absences %v expected %v", got.Absences, got.ExpectedAbsences)
 		}
 		if sprint.Absences != nil || sprint.ExpectedAbsences != nil {

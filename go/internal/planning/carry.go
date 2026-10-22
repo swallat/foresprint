@@ -58,6 +58,9 @@ func carryOf(s model.Sprint, label string) ([]model.CarryItem, bool) {
 	if s.RestNext != nil {
 		return []model.CarryItem{{Rest: *s.RestNext}}, false
 	}
+	if s.Velocity != nil { // reviewed: nothing carried over is the definitive result
+		return nil, false
+	}
 	p := pick(s.Prognoses, label)
 	if p == nil {
 		return nil, false

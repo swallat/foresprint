@@ -4,7 +4,7 @@ import "github.com/swallat/foresprint/internal/model"
 
 // UnitAt is the estimation unit that applies to a sprint (decision 19): the unit of the team
 // until a UnitChange takes over from its first sprint on. order lists the sprint ids from the
-// oldest to the newest; an id that is not in it gets the unit of the first sprint.
+// oldest to the newest; an id that is not in it gets the unit and factor of the team.
 func UnitAt(team *model.Team, order []string, id string) model.Unit {
 	unit, _ := settingAt(team, order, id)
 	return unit

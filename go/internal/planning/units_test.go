@@ -90,6 +90,11 @@ func TestCarryInto(t *testing.T) {
 	if in := planning.CarryInto(sprints, "s4", "B"); in.Rest != 6 {
 		t.Errorf("B into s4: %+v", in)
 	}
+	// a reviewed sprint without carry has the definitive rest 0
+	reviewed := []model.Sprint{{ID: "r1", Velocity: fp(10), Prognoses: []model.Prognosis{{RestNext: fp(5)}}}, {ID: "r2"}}
+	if in := planning.CarryInto(reviewed, "r2", ""); in.Rest != 0 || in.Assumed {
+		t.Errorf("reviewed without carry: %+v", in)
+	}
 	// definitive rest of s2 replaces the assumption
 	sprints[1].RestNext = fp(5)
 	if in := planning.CarryInto(sprints, "s3", "A"); in.Rest != 5 || in.Assumed {

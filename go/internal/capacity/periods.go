@@ -94,6 +94,14 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 			}
 		}
 	}
+	if len(applied.Absences) > 0 {
+		// One confirmed absence makes the sprint's absences confirmed (as typed days do), and
+		// capacity then reads Absences only: the announced days count with them.
+		for id, days := range applied.ExpectedAbsences {
+			applied.Absences[id] += days
+		}
+		applied.ExpectedAbsences = nil
+	}
 	sort.Strings(result.HandWins)
 	result.HandWins = dedupe(result.HandWins)
 	if changed {
