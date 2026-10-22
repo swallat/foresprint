@@ -35,7 +35,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #101118; --surface: #181a24; --surface-2: #212433; --surface-3: #2a2e40; --border: #2d3144; --border-control: #6b7190;
-    --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #8585ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
+    --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #9494ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
     --secondary: #bb7bff; --forecast: #2ad9b5; --forecast-weak: #133a33; --highlight: #ffc233;
     --c-vel: #7b7bf5; --c-nv: #d06a22; --c-fc: #17a88b; --c-wif: #a96ef0;
     --ok: #3dc07c; --ok-weak: #15301f; --warn: #f0a81c; --warn-weak: #36290f; --bad: #ff6b7a; --bad-weak: #3a1a1f;
@@ -45,7 +45,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #101118; --surface: #181a24; --surface-2: #212433; --surface-3: #2a2e40; --border: #2d3144; --border-control: #6b7190;
-  --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #8585ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
+  --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #9494ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
   --secondary: #bb7bff; --forecast: #2ad9b5; --forecast-weak: #133a33; --highlight: #ffc233;
     --c-vel: #7b7bf5; --c-nv: #d06a22; --c-fc: #17a88b; --c-wif: #a96ef0;
   --ok: #3dc07c; --ok-weak: #15301f; --warn: #f0a81c; --warn-weak: #36290f; --bad: #ff6b7a; --bad-weak: #3a1a1f;
@@ -254,3 +254,8 @@ p .chip, .small .chip { margin-right: 2px; }
 /* Numbers in input boxes line up with plain numbers in the same column: the box reaches into the cell
    padding by exactly its own border plus inner padding (1px + 6px). */
 table.t td.num input, table.t td.num .input { padding-right: 6px; margin-right: -7px; font: inherit; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Review 22.10.: placeholders readable in both themes, prose lines kept to a readable measure, no single-word last lines */
+::placeholder { color: var(--text-muted); opacity: 1; }
+p, .lead, .banner .grow { text-wrap: pretty; }
+.page p, .banner .grow { max-width: 70ch; }
