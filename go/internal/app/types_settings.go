@@ -119,3 +119,33 @@ type Features struct {
 	Production bool   `json:"production"`
 	Projects   bool   `json:"projects"`
 }
+
+// PackageImportChange is one work package an import would add or replace.
+type PackageImportChange struct {
+	Key    string `json:"key"`
+	Title  string `json:"title"`
+	Update bool   `json:"update"`
+}
+
+// PackageImportProblem is a row of the table that is skipped.
+type PackageImportProblem struct {
+	Row int    `json:"row"`
+	Msg string `json:"msg"`
+}
+
+// PackageImportPreview is what importing a table would do; nothing has been written.
+type PackageImportPreview struct {
+	Path string `json:"path"`
+	// Hash identifies the content that was previewed; Apply refuses a changed file.
+	Hash    string                `json:"hash"`
+	Changes []PackageImportChange `json:"changes"`
+	// More counts the changes beyond the first ones that are not listed.
+	More     int                    `json:"more"`
+	New      int                    `json:"new"`
+	Updated  int                    `json:"updated"`
+	Problems []PackageImportProblem `json:"problems"`
+	// Unmapped are the column names no field was found for.
+	Unmapped []string `json:"unmapped"`
+	// Cancelled is true if the user closed the file dialog.
+	Cancelled bool `json:"cancelled"`
+}

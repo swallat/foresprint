@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { AbsencePeriod, EndResult, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
+import type { AbsencePeriod, CalendarResult, CalendarRow, CalendarView, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
 
@@ -121,7 +121,144 @@ const productsView = (): ProductsView => {
 };
 const step = (undo: number): Step => ({ view: productsView(), undo });
 
-const teamMock: TeamApi = {
+// ---- sprint calendar: 14-day sprints around the demo day, Atlas numbering 2026.18 and on ----
+const DAY = 86400000;
+const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
+const demoToday = '2026-10-22';
+const hol: Record<string, string> = { '2026-12-25': 'Weihnachtstag', '2026-12-26': 'Zweiter Weihnachtstag', '2027-01-01': 'Neujahr' };
+let cal: { id: string; start: string; last: string; saved: boolean }[] = Array.from({ length: 10 }, (_, i) => {
+  const start = ms('2026-09-30') + (i - 1) * 14 * DAY;
+  return { id: `2026.${19 + i}`, start: iso(start), last: iso(start + 13 * DAY), saved: i < 5 };
+});
+let pattern = '';
+const workdays = (a: string, b: string) => {
+  let n = 0;
+  for (let d = ms(a); d <= ms(b); d += DAY) {
+    const wd = new Date(d).getUTCDay();
+    if (wd !== 0 && wd !== 6 && !hol[iso(d)]) n++;
+  }
+  return n;
+};
+const calState = (r: { start: string; last: string; saved: boolean }): CalendarRow['state'] =>
+  r.last < demoToday ? 'finished' : r.start <= demoToday ? 'running' : r.saved ? 'open' : 'planned';
+const calView = (): CalendarView => ({
+  today: demoToday,
+  country: 'DE',
+  region: 'NW',
+  rows: cal.map((r) => ({
+    id: r.id,
+    start: r.start,
+    last: r.last,
+    workdays: workdays(r.start, r.last),
+    holidays: Object.entries(hol).filter(([d]) => d >= r.start && d <= r.last).map(([date, name]) => ({ date, name })),
+    state: calState(r),
+    locked: calState(r) === 'finished',
+    saved: r.saved,
+  })),
+  naming: pattern ? [{ from: '', pattern }] : [],
+  pattern,
+  placeholders: ['JJJJ', 'JJ', 'NN', 'N', 'LFD', 'Q', 'MM', 'KW'],
+  proForma: [],
+});
+function isoWeek(d: string): number {
+  const t = new Date(`${d}T00:00:00Z`);
+  const day = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - day + 3);
+  const first = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((t.getTime() - first.getTime()) / DAY - 3 + ((first.getUTCDay() + 6) % 7)) / 7);
+}
+function nameAll(pat: string): string[] {
+  let nn = 0;
+  let year = '';
+  return cal.map((r, i) => {
+    const y = r.start.slice(0, 4);
+    nn = i === 0 ? Number(r.id.split('.')[1]) || 1 : y !== year ? 1 : nn + 1;
+    year = y;
+    const m = Number(r.start.slice(5, 7));
+    const pad = (v: number) => String(v).padStart(2, '0');
+    return pat
+      .replace(/\{JJJJ\}/g, y)
+      .replace(/\{JJ\}/g, y.slice(2))
+      .replace(/\{NN\}/g, pad(nn))
+      .replace(/\{N\}/g, String(nn))
+      .replace(/\{LFD\}/g, String(40 + i + 1))
+      .replace(/\{Q\}/g, String(Math.ceil(m / 3)))
+      .replace(/\{MM\}/g, pad(m))
+      .replace(/\{KW\}/g, pad(isoWeek(r.start)));
+  });
+}
+function namingPreview(pat: string, from: string, all: boolean): NamingPreview {
+  const names = nameAll(pat);
+  const firstOpen = cal.findIndex((r) => calState(r) !== 'finished' && calState(r) !== 'running');
+  const fromIdx = all ? 0 : from ? cal.findIndex((r) => r.id === from) : firstOpen;
+  const rows: NamePreview[] = cal.map((r, i) => ({
+    index: i,
+    start: r.start,
+    old: r.id,
+    new: names[i] ?? r.id,
+    locked: calState(r) === 'finished' && !all,
+    saved: r.saved,
+    changes: i >= fromIdx && names[i] !== r.id,
+  }));
+  const final = rows.map((r) => (r.changes ? r.new : r.old));
+  return {
+    rows,
+    duplicate: final.find((n, i) => final.indexOf(n) !== i) ?? '',
+    noNumber: !/\{(NN|N|LFD|KW)\}/.test(pat),
+    problem: /\{(?!JJJJ\}|JJ\}|NN\}|N\}|LFD\}|Q\}|MM\}|KW\})/.test(pat) ? '{…}' : '',
+    count: rows.filter((r) => r.changes).length,
+  };
+}
+let calUndo: { token: number; cal: typeof cal } | undefined;
+function calResult(moved: number, undo: number): CalendarResult {
+  return { view: calView(), moved, undo };
+}
+
+export const teamMock: TeamApi = {
+  async Calendar() {
+    return calView();
+  },
+  async SaveLastDays(_team: string, changes: LastDay[]) {
+    const before = clone(cal);
+    let moved = 0;
+    for (const c of changes) {
+      const k = cal.findIndex((r) => r.id === c.id);
+      const row = cal[k];
+      if (!row) throw new Error('Enter a valid last day.');
+      if (calState(row) === 'finished') throw new Error('A finished sprint is locked.');
+      if (c.last < row.start) throw new Error(`Sprint ${row.id}: last day is before the start ${row.start}`);
+      row.last = c.last;
+      for (let j = k + 1; j < cal.length; j++) {
+        const prev = cal[j - 1]!;
+        const cur = cal[j]!;
+        const len = ms(cur.last) - ms(cur.start);
+        const start = iso(ms(prev.last) + DAY);
+        if (start !== cur.start) moved++;
+        cur.start = start;
+        cur.last = iso(ms(start) + len);
+      }
+    }
+    calUndo = { token: ++tokens, cal: before };
+    return calResult(moved, calUndo.token);
+  },
+  async NamingPreview(_team: string, pat: string, from: string, all: boolean) {
+    return namingPreview(pat, from, all);
+  },
+  async ApplyNaming(_team: string, pat: string, from: string, all: boolean) {
+    const prev = namingPreview(pat, from, all);
+    if (prev.problem) throw new Error(`unknown placeholder ${prev.problem} in sprint naming pattern`);
+    for (const r of prev.rows) if (r.changes && cal[r.index]) cal[r.index]!.id = r.new;
+    pattern = pat;
+    return calResult(prev.count, 0);
+  },
+  async RenameSprint(_team: string, id: string, newId: string) {
+    if (!newId.trim()) throw new Error('Please enter a new sprint ID.');
+    if (cal.some((r) => r.id === newId && r.id !== id)) throw new Error(`Sprint ID '${newId}' is already taken (by an earlier sprint).`);
+    const row = cal.find((r) => r.id === id);
+    if (row) row.id = newId.trim();
+    return calResult(0, 0);
+  },
   async Products() {
     return productsView();
   },
@@ -174,6 +311,11 @@ const teamMock: TeamApi = {
     return step(undo);
   },
   async Undo(_team, token) {
+    if (calUndo && calUndo.token === token) {
+      cal = calUndo.cal;
+      calUndo = undefined;
+      return;
+    }
     if (!lastUndo || lastUndo.token !== token) throw new Error('This change can no longer be undone.');
     products = lastUndo.products;
     owners = lastUndo.owners;

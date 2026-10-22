@@ -4,6 +4,7 @@
 import type { Prefs, Result } from '../types';
 import { demo } from './shared';
 import type {
+  PackageImportPreview,
   Connection,
   Features,
   QueryCheck,
@@ -149,6 +150,26 @@ const settingsMock: SettingsApi = {
   },
   async SetDensity(code) {
     demo.prefs = { ...demo.prefs, density: code as Prefs['density'] };
+  },
+  async PackageImportPreview(): Promise<PackageImportPreview> {
+    return {
+      path: 'work-packages.csv',
+      hash: 'demo',
+      changes: [
+        { key: 'AP-12', title: 'Export as PDF', update: false },
+        { key: 'AP-13', title: 'Search in the backlog', update: false },
+        { key: 'AP-7', title: 'Login page', update: true },
+      ],
+      more: 0,
+      new: 2,
+      updated: 1,
+      problems: [{ row: 5, msg: 'No title' }],
+      unmapped: ['Remark'],
+      cancelled: false,
+    };
+  },
+  async PackageImportApply(): Promise<Result> {
+    return { ok: true, message: '3 work packages imported.' };
   },
   async SyncTracker(): Promise<Result> {
     tracker = { ...tracker, imported: new Date().toISOString() };
