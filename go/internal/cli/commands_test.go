@@ -283,7 +283,9 @@ func TestSprintNaming(t *testing.T) {
 	data := t.TempDir()
 	copyTree(t, demoTeams, data)
 	base := []string{"--data", data, "--as-of", "2026-10-15", "sprint-naming", "demo"}
-	with := func(extra ...string) (int, string, string) { return run(t, append(append([]string{}, base...), extra...)...) }
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
 
 	if code, out, _ := with(); code != 0 || !strings.Contains(out, "named by their ID") {
 		t.Fatalf("show: %d %q", code, out)
