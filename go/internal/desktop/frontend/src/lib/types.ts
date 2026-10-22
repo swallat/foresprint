@@ -22,6 +22,7 @@ export interface Prefs {
   languages: Choice[];
   theme: string;
   themes: Choice[];
+  density: 'compact' | 'normal' | 'roomy';
   dataDir: string;
   recentDataDirs: string[];
 }

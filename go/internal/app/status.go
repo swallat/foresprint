@@ -132,13 +132,6 @@ func (a *API) Refresh() (Result, error) {
 	return resultOf(a.data.Refresh(), true), nil
 }
 
-// SyncTracker fetches the tickets from the tracker now.
-//
-// Placeholder, see Status.
-func (a *API) SyncTracker() (Result, error) {
-	return Result{OK: true, Message: i18n.T("Tracker synced.")}, nil
-}
-
 // resultOf turns the result of the storage into the short answer of the top bar. refresh says
 // the action was Refresh, which changes the words for "nothing to do".
 func resultOf(r datasvc.Result, refresh bool) Result {

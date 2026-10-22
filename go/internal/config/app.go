@@ -62,6 +62,40 @@ func SaveTheme(code string) error {
 	return &Error{msg: i18n.T("Allowed: {values}", "values", strings.Join(codes, ", "))}
 }
 
+// Densities of tables (personal setting of the window). The codes are fixed, the window
+// translates the labels.
+var (
+	Densities = []string{"compact", "normal", "roomy"}
+)
+
+// DefaultDensity is the density without a saved choice.
+const DefaultDensity = "normal"
+
+func choiceOf(key string, allowed []string, def string) string {
+	value := String(key)
+	for _, a := range allowed {
+		if a == value {
+			return value
+		}
+	}
+	return def
+}
+
+func saveChoice(key string, allowed []string, code string) error {
+	for _, a := range allowed {
+		if a == code {
+			return Update(map[string]any{key: code})
+		}
+	}
+	return &Error{msg: i18n.T("Allowed: {values}", "values", strings.Join(allowed, ", "))}
+}
+
+// Density is the saved density of tables.
+func Density() string { return choiceOf("density", Densities, DefaultDensity) }
+
+// SaveDensity saves the density of tables.
+func SaveDensity(code string) error { return saveChoice("density", Densities, code) }
+
 // DataDir is the remembered data folder, if it still exists.
 func DataDir() (string, bool) {
 	dir := String("data_dir")

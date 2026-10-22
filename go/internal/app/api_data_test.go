@@ -97,3 +97,56 @@ func TestOpeningAFolderMakesItTheDataFolder(t *testing.T) {
 		t.Fatalf("data folder %q, store %q, want %q", api.DataDir(), api.data.Folder(), o.Folder)
 	}
 }
+
+func TestOpenFileOnlyInsideTheDataFolder(t *testing.T) {
+	a, dir := dataAPI(t)
+	var opened string
+	a.OpenPath = func(p string) error { opened = p; return nil }
+	file := filepath.Join(dir, "a", "team.yaml")
+	if err := a.OpenFile(file); err != nil {
+		t.Fatal(err)
+	}
+	if want, _ := filepath.EvalSymlinks(file); opened != want {
+		t.Fatalf("opened %q, want %q", opened, want)
+	}
+	opened = ""
+	for _, bad := range []string{filepath.Join(dir, "..", "server.git", "HEAD"), filepath.Join(dir, "a"), filepath.Join(dir, "missing.md")} {
+		if err := a.OpenFile(bad); err == nil || opened != "" {
+			t.Fatalf("%s: err=%v opened=%q", bad, err, opened)
+		}
+	}
+}
+
+func TestPendingTagsShowWhatTheNextSaveSets(t *testing.T) {
+	a, _ := dataAPI(t)
+	a.addTag("a", "2026.22", "2026.22")
+	got := a.PendingTags()
+	if len(got) != 1 || got[0].Name != "2026.22" || !got[0].Ready {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestOpenFileRefusesProgramsAndGit(t *testing.T) {
+	a, dir := dataAPI(t)
+	called := false
+	a.OpenPath = func(string) error { called = true; return nil }
+	for _, name := range []string{"run.bat", "tool.exe", "x.desktop", ".git/config"} {
+		gittest.Write(t, filepath.Join(dir, name), "x")
+		if err := a.OpenFile(filepath.Join(dir, name)); err == nil || called {
+			t.Fatalf("%s: err=%v called=%v", name, err, called)
+		}
+	}
+}
+
+func TestPendingTagsGoWithTheDataFolder(t *testing.T) {
+	a, dir := dataAPI(t)
+	a.addTag("a", "2026.22", "2026.22")
+	other := t.TempDir()
+	if err := a.SetDataDir(other); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.PendingTags(); len(got) != 0 {
+		t.Fatalf("%+v", got)
+	}
+	_ = dir
+}

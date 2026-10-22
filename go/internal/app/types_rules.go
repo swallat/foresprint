@@ -3,7 +3,7 @@ package app
 // RuleOwner names who a rule belongs to, so that the preview can tell which other rules would
 // also take a ticket and which tickets are assigned differently today.
 type RuleOwner struct {
-	Kind string `json:"kind"` // "product" or "project"
+	Kind string `json:"kind"` // "product", "project", or "setting" (a rule of the settings page, which has no other rules to clash with)
 	ID   string `json:"id"`
 }
 

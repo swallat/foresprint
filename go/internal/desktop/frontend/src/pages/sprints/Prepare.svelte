@@ -11,6 +11,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
 
   let { params }: PageProps = $props();
@@ -74,6 +75,13 @@
 </script>
 
 <PageHead title={t('Prepare sprint')} lead={t('Enter the absences of the next sprints, then check what is still open. Nothing is locked.')} />
+<StageNav
+  stage="prepare"
+  missing={{
+    prepare: info && info.sprint.state !== 'confirmed' ? t('Absences are not confirmed.') : '',
+    preplan: info?.ready.some((r) => r.kind === 'preplan' && r.state === 'open') ? t('An amount is missing for some products.') : '',
+  }}
+/>
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>

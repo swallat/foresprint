@@ -39,6 +39,10 @@ export interface SprintReview {
   commitmentSet: boolean;
   notDone: number;
   additionalDone: number;
+  /** Done tickets pulled in after the freeze; their estimates prefill additionalDone. */
+  pulled: string[];
+  /** Among them those without an estimate. */
+  noEstimate: string[];
   /** Without tickets: the part of "not done" that continues in the next sprint. */
   restNext: number;
   velocity: number;
