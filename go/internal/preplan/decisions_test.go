@@ -59,3 +59,13 @@ func TestProductionShareOf(t *testing.T) {
 		t.Fatalf("off: %v %v", v, src)
 	}
 }
+
+func TestEffectiveProjectID(t *testing.T) {
+	d := decisionData()
+	if id := effectiveProjectID(model.Ticket{Key: "X", Project: sp("ghost")}, d); id == nil || *id != "ghost" {
+		t.Fatalf("unknown project id must be kept, got %v", id)
+	}
+	if id := effectiveProjectID(model.Ticket{Key: "X", Project: sp("old")}, d); id != nil {
+		t.Fatalf("closed project must drop, got %v", *id)
+	}
+}

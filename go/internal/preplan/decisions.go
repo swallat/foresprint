@@ -85,11 +85,21 @@ func clampPercent(v float64) float64 {
 	return v
 }
 
-// effectiveProjectID is the id of ProjectOf, nil for daily business.
+// effectiveProjectID is the project id the distribution groups a ticket by: the override, else
+// the id the rules found (kept even when unknown, as the checks report it); nil for daily
+// business and for tickets of closed projects.
 func effectiveProjectID(ticket model.Ticket, data *storage.TeamData) *string {
-	if p := ProjectOf(ticket, data); p != nil {
-		id := p.ID
-		return &id
+	id := ticket.Project
+	if o := data.Preplan.OverrideFor(ticket.Key); o != nil {
+		switch {
+		case o.Daily:
+			return nil
+		case o.Project != nil && *o.Project != "":
+			id = o.Project
+		}
 	}
-	return nil
+	if p := findProject(data, id); p != nil && p.Closed() {
+		return nil
+	}
+	return id
 }

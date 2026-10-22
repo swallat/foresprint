@@ -84,10 +84,14 @@ func checkV1(data *storage.TeamData, today time.Time, r *reporter) {
 		}
 		periods := slices.Clone(e.Value)
 		slices.SortFunc(periods, func(a, b model.AbsencePeriod) int { return a.From.Compare(b.From) })
+		last := 0
 		for i := 1; i < len(periods); i++ {
-			if !periods[i].From.After(periods[i-1].To) {
+			if !periods[i].From.After(periods[last].To) {
 				r.warn(where, msg("the periods {a} and {b} overlap",
-					"a", day(periods[i-1].From)+" – "+day(periods[i-1].To), "b", day(periods[i].From)+" – "+day(periods[i].To)))
+					"a", day(periods[last].From)+" – "+day(periods[last].To), "b", day(periods[i].From)+" – "+day(periods[i].To)))
+			}
+			if periods[i].To.After(periods[last].To) {
+				last = i
 			}
 		}
 	}
@@ -224,9 +228,21 @@ func checkPlanDecisions(data *storage.TeamData, today time.Time, r *reporter, ti
 
 	open := map[string]int{}
 	for _, tk := range data.Tickets {
-		if tk.Project != nil {
-			if pr, ok := projects[*tk.Project]; ok && pr.Closed() {
-				open[*tk.Project]++
+		if tk.Done {
+			continue
+		}
+		id := tk.Project
+		if o := data.Preplan.OverrideFor(tk.Key); o != nil {
+			if o.Daily {
+				continue
+			}
+			if o.Project != nil && *o.Project != "" {
+				id = o.Project
+			}
+		}
+		if id != nil {
+			if pr, ok := projects[*id]; ok && pr.Closed() {
+				open[*id]++
 			}
 		}
 	}

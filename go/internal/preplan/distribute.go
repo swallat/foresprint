@@ -3,6 +3,7 @@ package preplan
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -245,11 +246,11 @@ func ProductConflict(ticket model.Ticket, data *storage.TeamData) *string {
 		return nil
 	}
 	own := project.Products()
-	if len(own) != 1 {
+	if len(own) == 0 {
 		return nil
 	}
 	other, _ := assign.Project(ticket.Facts(), candidatesOf(data.Products), data.Team.Tracker.ProjectMatchOrder)
-	if other != "" && other != own[0] {
+	if other != "" && !slices.Contains(own, other) {
 		return &other
 	}
 	return nil
@@ -779,6 +780,9 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 	}
 	length := data.Team.Sprint.LengthDays
 	for _, pr := range ProjectOrder(data.Projects) {
+		if pr.Closed() {
+			continue
+		}
 		result.Projects = append(result.Projects, TrafficLight(pr, result, sprints, length, current, &today))
 	}
 	result.Refinement = refinementList(data, result, sprints)
