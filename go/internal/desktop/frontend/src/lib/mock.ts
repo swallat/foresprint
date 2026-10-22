@@ -2,6 +2,7 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { bindSprints, planMock } from './mock.plan';
 import { projectsMock } from './mock.projects';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
@@ -28,6 +29,8 @@ const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
     state: end.getTime() < now ? 'past' : start.getTime() <= now ? 'current' : 'future',
   } satisfies SprintInfo;
 });
+
+bindSprints(() => sprints);
 
 let prefs: Prefs = {
   language: navigator.language.startsWith('de') ? 'de' : 'en',
@@ -141,6 +144,7 @@ export const mockApi: Api = {
   ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
+  ...planMock,
   ...teamMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
