@@ -17,6 +17,11 @@ def german_by_default(monkeypatch: pytest.MonkeyPatch):
     defaults to "de" (tests using the ``english`` fixture or FORESPRINT_LANG=en are
     unaffected)."""
     monkeypatch.setattr(i18n, "DEFAULT", "de")
+    # AppTest runs store the resolved language as a process-wide override; without this reset it
+    # leaks into later tests of the same process (parallel runs with xdist made that visible).
+    i18n.set_language(None)
+    yield
+    i18n.set_language(None)
 
 
 @pytest.fixture(autouse=True)
