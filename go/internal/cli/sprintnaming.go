@@ -53,7 +53,8 @@ func sprintNamingCommand(env *Env) *cobra.Command {
 				if i := slices.IndexFunc(rules, at); i >= 0 {
 					team.Sprint.Naming[i] = rule
 				} else {
-					team.Sprint.Naming = append(rules, rule)
+					rules = append(rules, rule)
+					team.Sprint.Naming = rules
 				}
 			}
 			after := *data
