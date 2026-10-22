@@ -387,7 +387,10 @@ type xmlSheetRow struct {
 
 func readSheet(z zipFiles, part string, shared []string, styles []styleKind, epoch time.Time) (*worksheet, error) {
 	var doc struct {
-		Rows []xmlSheetRow `xml:"sheetData>row"`
+		Rows   []xmlSheetRow `xml:"sheetData>row"`
+		Merged []struct {
+			Ref string `xml:"ref,attr"`
+		} `xml:"mergeCells>mergeCell"`
 	}
 	if err := z.xml(part, &doc); err != nil {
 		return nil, err
@@ -427,7 +430,7 @@ func readSheet(z zipFiles, part string, shared []string, styles []styleKind, epo
 					return nil, err
 				}
 				value = n
-				if c.S > 0 && c.S < len(styles) && styles[c.S] != plainStyle {
+				if c.S >= 0 && c.S < len(styles) && styles[c.S] != plainStyle {
 					if d, ok := fromExcel(n, epoch, styles[c.S] == durationStyle); ok {
 						value = d
 					} else {
@@ -464,6 +467,22 @@ func readSheet(z zipFiles, part string, shared []string, styles []styleKind, epo
 			ws.rows[r][col] = value
 			if r > ws.last {
 				ws.last = r
+			}
+		}
+	}
+	// openpyxl turns every cell of a merged range but the first into an empty cell.
+	for _, m := range doc.Merged {
+		first, last, ok := strings.Cut(m.Ref, ":")
+		if !ok {
+			continue
+		}
+		r1, c1 := colIndex(first)
+		r2, c2 := colIndex(last)
+		for r := r1; r <= r2; r++ {
+			for c := c1; c <= c2; c++ {
+				if (r != r1 || c != c1) && ws.rows[r] != nil {
+					delete(ws.rows[r], c)
+				}
 			}
 		}
 	}

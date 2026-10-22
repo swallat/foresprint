@@ -1,6 +1,7 @@
 package excel
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -152,7 +153,12 @@ func parseFloat(text string) (float64, bool) {
 	if v, ok := sources.PyFloat(text); ok {
 		return v, true
 	}
-	switch strings.ToLower(pytext.Strip(text)) {
+	stripped := pytext.Strip(text)
+	if v, err := strconv.ParseFloat(stripped, 64); err != nil && errors.Is(err, strconv.ErrRange) &&
+		!strings.ContainsAny(stripped, "xXpP_") {
+		return v, true // float("1e400") is inf in Python
+	}
+	switch strings.ToLower(stripped) {
 	case "inf", "+inf", "infinity", "+infinity":
 		return math.Inf(1), true
 	case "-inf", "-infinity":

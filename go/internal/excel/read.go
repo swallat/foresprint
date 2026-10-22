@@ -172,7 +172,7 @@ func peopleOf(sh sheet0) ([]model.Person, error) {
 			if name != nil && *name != "" {
 				person.Name = *name
 			}
-			if c := strings.ToUpper(strOf(country)); c != "" {
+			if c := strings.ToUpper(strings.ReplaceAll(strOf(country), "ß", "SS")); c != "" {
 				person.Country = &c
 			}
 			people[*pid] = person
