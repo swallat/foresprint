@@ -153,20 +153,42 @@ export function sortTickets(items: BacklogTicket[], by: Sort): BacklogTicket[] {
       return out.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
     case 'title':
       return out.sort((a, b) => a.title.localeCompare(b.title));
+    default:
+      return items;
   }
 }
 
 const customKey = (team: string): string => `backlog.views.${team}`;
 
-/** Reads the custom views of a team from a string store (bad data gives an empty list). */
+const SORTS: Sort[] = ['order', 'size-desc', 'size-asc', 'key', 'title'];
+const GROUPS: Group[] = ['none', 'project', 'product'];
+
+/** Reads the custom views of a team from a string store; bad data gives an empty list, and a
+ * stored entry gets defaults for what it lacks (so an old or edited entry cannot break the page). */
 export function readCustom(raw: string): CustomView[] {
   try {
     const list: unknown = JSON.parse(raw || '[]');
     if (!Array.isArray(list)) return [];
-    return list.filter((v): v is CustomView => !!v && typeof v.id === 'string' && typeof v.name === 'string' && !!v.filter);
+    return list
+      .filter((v) => !!v && typeof v.id === 'string' && typeof v.name === 'string' && !!v.filter && typeof v.filter === 'object')
+      .map((v): CustomView => {
+        const { q: _q, ...base } = blank();
+        return {
+          id: v.id,
+          name: v.name,
+          filter: { ...base, ...v.filter },
+          group: GROUPS.includes(v.group) ? v.group : 'none',
+          sort: SORTS.includes(v.sort) ? v.sort : 'order',
+        };
+      });
   } catch {
     return [];
   }
+}
+
+/** The custom view that equals the current filter, grouping and sorting (the search text does not count). */
+export function activeCustom(list: CustomView[], f: Filter, group: Group, sort: Sort): CustomView | undefined {
+  return list.find((v) => v.group === group && v.sort === sort && signature({ ...blank(), ...v.filter }) === signature(f));
 }
 
 /** Adds a view, or replaces the one with the same name (ignoring case). Empty names are refused. */

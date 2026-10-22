@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
-import { activeView, addCustom, applyView, blank, group, hasOpenPoint, matches, neighbour, readCustom, removeCustom, sortTickets, sum, unassigned } from './backlog';
+import { activeCustom, activeView, addCustom, applyView, blank, group, hasOpenPoint, matches, neighbour, readCustom, removeCustom, sortTickets, sum, unassigned } from './backlog';
 
 const t = (key: string, o: Partial<BacklogTicket> = {}): BacklogTicket => ({
   key, title: `Title ${key}`, status: '', type: '', priority: '', assignee: '', url: '', size: 3, sizeSource: 'refined',
@@ -117,5 +117,13 @@ describe('custom views', () => {
     expect(readCustom(JSON.stringify(list))).toEqual(list);
     expect(readCustom('{oops')).toEqual([]);
     expect(readCustom('[1,{"id":"x"}]')).toEqual([]);
+  });
+  it('fills in defaults for incomplete entries and finds the active view by filter, group and sort', () => {
+    const list = readCustom('[{"id":"x","name":"X","filter":{"flag":"open"},"sort":"bogus"}]');
+    expect(list[0]).toMatchObject({ group: 'none', sort: 'order', filter: { flag: 'open', products: [] } });
+    const big = addCustom([], 'Big', blank(), 'none', 'size-desc');
+    expect(activeCustom(big, blank(), 'none', 'size-desc')?.id).toBe('big');
+    expect(activeCustom(big, blank(), 'none', 'order')).toBeUndefined();
+    expect(sortTickets([t('A-1')], 'bogus' as never)).toHaveLength(1);
   });
 });

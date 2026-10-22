@@ -10,7 +10,7 @@
   import type { BacklogTicket } from '../../lib/types.backlog';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
-  import { VIEWS, activeView, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
+  import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
   import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
@@ -77,7 +77,7 @@
     ['key', t('Key')],
     ['title', t('Title')],
   ]);
-  const currentCustom = $derived(current === '' ? ui.custom.find((v) => JSON.stringify([v.filter, v.group, v.sort]) === JSON.stringify([(({ q: _q, ...f }) => f)(ui.filter), ui.group, ui.sort])) : undefined);
+  const currentCustom = $derived(activeCustom(ui.custom, ui.filter, ui.group, ui.sort));
   let naming = $state(false);
   let newName = $state('');
   function saveView(): void {
@@ -202,9 +202,9 @@
         <a
           href="#/backlog"
           role="tab"
-          aria-selected={current === v.id}
-          class:active={current === v.id}
-          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.selection = []; }}
+          aria-selected={!currentCustom && current === v.id}
+          class:active={!currentCustom && current === v.id}
+          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.sort = 'order'; ui.group = 'none'; ui.selection = []; }}
         >{viewName[v.id]}</a>
       {/each}
       {#each ui.custom as v (v.id)}
@@ -307,7 +307,7 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}

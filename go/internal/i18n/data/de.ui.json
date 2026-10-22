@@ -1081,6 +1081,7 @@
   "Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.": "Einige Tickets hängen im Kreis voneinander ab. Sie bleiben in der Liste, lassen sich aber nicht verteilen. Öffne sie und entferne eine Abhängigkeit.",
   "Someone else deleted this file.": "Jemand anderes hat diese Datei gelöscht.",
   "Sort by": "Sortieren nach",
+  "Sorted by your choice. Choose the planning order to see the list as planned.": "Nach deiner Wahl sortiert. Wähle die Planungsreihenfolge, um die Liste wie geplant zu sehen.",
   "Source": "Quelle",
   "Source of the product": "Quelle für das Produkt",
   "Source of the production share": "Quelle für den Prod-Anteil",
