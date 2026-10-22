@@ -7,6 +7,7 @@ package app
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -940,7 +941,7 @@ func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 		// The new order must show; otherwise priority, project or a dependency keeps the package
 		// where it is. Nothing is saved then.
 		reordered, rest := preplan.OrderTickets(data)
-		got := append(reordered, rest...)
+		got := slices.Concat(reordered, rest)
 		for i := range got {
 			if got[i].Key != key {
 				continue
