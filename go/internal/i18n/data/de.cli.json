@@ -153,6 +153,14 @@
   "A team folder or file, relative to the data folder (default: everything).": "Ein Teamordner oder eine Datei, relativ zum Datenordner (Standard: alles).",
   "Number of entries (default 40).": "Anzahl der Einträge (Standard 40).",
   "Plannable = rounded down((Forecast PLAN − carry-over) × plannable share, {digits} digit(s))": "Verplanbar = abgerundet((Forecast-PLAN − Übertrag) × verplanbarer Anteil, {digits} Stelle(n))",
-  "Small items = Forecast PLAN − carry-over − plannable": "Kleinkram = Forecast-PLAN − Übertrag − Verplanbar"
+  "Small items = Forecast PLAN − carry-over − plannable": "Kleinkram = Forecast-PLAN − Übertrag − Verplanbar",
+  "Sprint {sprint}: no sprint of the tracker belongs to it": "Sprint {sprint}: Dazu gehört kein Sprint des Trackers",
+  "Sprint {sprint}: the tracker's sprint “{name}” is closed": "Sprint {sprint}: Der Tracker-Sprint „{name}“ ist geschlossen",
+  "{key}: not in the ticket list, cannot be moved": "{key}: nicht in der Ticketliste, kann nicht verschoben werden",
+  "Sprint {sprint}: the next sprint does not exist in the tracker, taken-out tickets stay where they are": "Sprint {sprint}: Der nächste Sprint existiert im Tracker nicht, herausgenommene Tickets bleiben, wo sie sind",
+  "{key}: its earlier place is unknown, it stays where it is": "{key}: Der frühere Platz ist unbekannt, das Ticket bleibt, wo es ist",
+  "{key}: its earlier sprint “{name}” is closed, it stays where it is": "{key}: Der frühere Sprint „{name}“ ist geschlossen, das Ticket bleibt, wo es ist",
+  "No pro-forma sprint exists in the tracker, taken-out tickets stay where they are": "Im Tracker gibt es keinen Pro-forma-Sprint, herausgenommene Tickets bleiben, wo sie sind",
+  "Sprint “{name}” has no usable id": "Der Sprint „{name}“ hat keine nutzbare Nummer"
  }
 }

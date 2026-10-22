@@ -254,6 +254,16 @@ func trackerExtrasFrom(d *yamlx.Map, tr *model.TrackerSettings, at string) error
 	if t := text(get(d, "package_prefix")); t != nil {
 		tr.PackagePrefix = *t
 	}
+	if v := get(d, "board_id"); !isEmptyText(v) {
+		n, err := intOf(v, at, "board_id", 0)
+		if err != nil {
+			return err
+		}
+		if n < 1 {
+			return dataErr("{where}: 'board_id' must be a positive whole number", "where", at)
+		}
+		tr.BoardID = &n
+	}
 	return nil
 }
 
@@ -281,6 +291,9 @@ func trackerExtrasTo(out *yamlx.Map, tr model.TrackerSettings) {
 	}
 	if tr.PackagePrefix != "" {
 		put(out, "package_prefix", tr.PackagePrefix)
+	}
+	if tr.BoardID != nil {
+		put(out, "board_id", *tr.BoardID)
 	}
 }
 
