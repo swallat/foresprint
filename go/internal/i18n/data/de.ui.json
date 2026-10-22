@@ -576,6 +576,7 @@
   "Points to person days for contingents and production time.": "Für Punkte in Personentage bei Kontingenten und Produktionszeit.",
   "Pre-plan": "Vorplanen",
   "Pre-planned": "Vorgeplant",
+  "Pre-planned amount of the sprint ({unit})": "Vorgeplante Menge des Sprints ({unit})",
   "Pre-planned {pre} and earmarked {ear} are above the upper end {high} of the Forecast PLAN ({plan}). This is only a warning; the team decides in the planning.": "Vorgeplant {pre} und vorgemerkt {ear} liegen über der oberen Grenze {high} des Forecast PLAN ({plan}). Das ist nur eine Warnung; im Planning entscheidet das Team.",
   "Pre-planned {product}": "Vorgeplant {product}",
   "Pre-planning": "Vorplanung",

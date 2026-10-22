@@ -70,6 +70,8 @@ const base: T[] = [
 let tickets: T[] = structuredClone(base);
 let pre: Record<string, Record<string, number>> = {};
 let projAmt: Record<string, Record<string, number>> = {};
+let sprintPre: Record<string, number> = {};
+let removedMock: Record<string, string[]> = {};
 let prodPT: Record<string, number> = {};
 let saved: Record<string, Assumption[]> = {};
 let frozen: Record<string, { keys: string[]; commitment: number }> = {};
@@ -182,7 +184,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     absences: idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
     plan, planOriginal: f.plan, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
     split: { plan, carryIn: rest, plannable: free, smallStuff: Math.max(plan - rest, 0) - free, overbooked: rest > plan },
-    carryLater: use?.later ?? sw?.later ?? 0, preplanned: preSum, earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
+    carryLater: use?.later ?? sw?.later ?? 0, preplanned: multi ? preSum : (sprintPre[sid] ?? 0), removed: removedMock[sid] ?? [], sprintPre: multi ? null : (sprintPre[sid] ?? null), earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
     committed: frozen[sid]?.commitment ?? null, products, tickets: lane, candidates: cand, projects,
     prod: multi ? {
       people: [{ name: 'Jonas Weber', capacity: 6.2, absence: 1 }, { name: 'Tarek Aydin', capacity: 5.2, absence: 0 }], time: avail, capPercent: 100, available: avail,
@@ -211,6 +213,15 @@ export const planMock: PlanApi = {
     if (value != null && value < 0) throw new Error('The amount must be a number of 0 or more.');
     (pre[sprint] ??= {})[product] = value as number;
     if (value == null) delete pre[sprint]![product];
+  },
+  async SetSprintPreplanned(_t, sprint, value) {
+    if (value != null && value < 0) throw new Error('The amount must be a number of 0 or more.');
+    if (value == null) delete sprintPre[sprint];
+    else sprintPre[sprint] = value;
+  },
+  async SetRemoved(_t, sprint, ticket, removed) {
+    const rest = (removedMock[sprint] ?? []).filter((k) => k !== ticket);
+    removedMock[sprint] = removed ? [...rest, ticket] : rest;
   },
   async TakeEarmarks(_t, sprint) {
     const v = view(sprint, null);
@@ -242,6 +253,7 @@ export const planMock: PlanApi = {
     const lane = tickets.filter((x) => input.tickets.includes(x.key));
     const commit = noT ? (input.commitment ?? Object.values(input.amounts).reduce((a, v) => a + v, 0)) : lane.reduce((a, x) => a + (x.est ?? 0), 0);
     frozen[sprint] = { keys: input.tickets, commitment: commit };
+    removedMock[sprint] = [];
     planned[sprint] = noT ? input.amounts : {};
     if (!noT) for (const x of lane) planned[sprint]![x.product] = (planned[sprint]![x.product] ?? 0) + (x.est ?? 0);
     return `${sprint}-planning-20261022-140500.md`;
@@ -255,5 +267,5 @@ export const planMock: PlanApi = {
 /** Resets the answers (tests). */
 export function resetPlanMock(): void {
   tickets = structuredClone(base);
-  pre = {}; projAmt = {}; prodPT = {}; saved = {}; frozen = {}; planned = {};
+  pre = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {};
 }
