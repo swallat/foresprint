@@ -4,6 +4,7 @@
 // one product without PO and production).
 
 import type { SprintInfo } from '../types';
+import backlog from './backlog';
 import type {
   Assumption,
   FreezeInput,
@@ -14,6 +15,7 @@ import type {
   PlanTicket,
   RunningTicket,
   WhatIf,
+  WriteMove,
 } from '../types.plan';
 
 const mode = (): string => new URLSearchParams(location.search).get('mock') ?? 'tracker';
@@ -69,6 +71,7 @@ const base: T[] = [
 
 let tickets: T[] = structuredClone(base);
 let pre: Record<string, Record<string, number>> = {};
+let matrixMock: Record<string, Record<string, Record<string, number>>> = {};
 let projAmt: Record<string, Record<string, number>> = {};
 let sprintPre: Record<string, number> = {};
 let removedMock: Record<string, string[]> = {};
@@ -76,6 +79,7 @@ let prodPT: Record<string, number> = {};
 let saved: Record<string, Assumption[]> = {};
 let frozen: Record<string, { keys: string[]; commitment: number }> = {};
 let planned: Record<string, Record<string, number>> = {};
+let writeDone: Record<string, WriteMove[]> = {};
 
 let sprintsOf: () => SprintInfo[] = () => [];
 export function bindSprints(fn: () => SprintInfo[]): void {
@@ -90,6 +94,10 @@ const curId = () => sprintsOf().find((s) => s.state === 'current')?.id ?? '';
 const nextOf = (id: string) => sprintsOf()[idx(id) + 1]?.id ?? '';
 const resolve = (s: string) => (s === '$cur' ? curId() : s === '$next' ? nextOf(curId()) : s);
 const round1 = (v: number) => Math.round(v * 10) / 10;
+
+function moveOf(key: string, reason: WriteMove['reason'], from: string, to: string): WriteMove {
+  return { key, title: tickets.find((x) => x.key === key)?.title ?? key, reason, from, to, fromKnown: true };
+}
 
 function ticketOf(x: T): PlanTicket {
   const size = x.est;
@@ -179,13 +187,14 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const st = sp?.state === 'past' ? 'past' : sp?.state === 'current' ? 'current' : frozen[sid] ? 'planned' : 'open';
   return {
     team: 'atlas', sprint: sid, start: sp?.start ?? '', end: sp?.end ?? '', days: 10, stage: st,
-    unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '',
+    unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
     absences: idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
     plan, planOriginal: f.plan, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
     split: { plan, carryIn: rest, plannable: free, smallStuff: Math.max(plan - rest, 0) - free, overbooked: rest > plan },
     carryLater: use?.later ?? sw?.later ?? 0, preplanned: multi ? preSum : (sprintPre[sid] ?? 0), removed: removedMock[sid] ?? [], sprintPre: multi ? null : (sprintPre[sid] ?? null), earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
     committed: frozen[sid]?.commitment ?? null, products, tickets: lane, candidates: cand, projects,
+    matrix: multi ? { projects: PROJECTS.map((p) => ({ id: p.id, name: p.name })), cells: Object.entries(matrixMock[sid] ?? {}).flatMap(([product, row]) => Object.entries(row).map(([project, value]) => ({ product, project, value }))) } : null,
     prod: multi ? {
       people: [{ name: 'Jonas Weber', capacity: 6.2, absence: 1 }, { name: 'Tarek Aydin', capacity: 5.2, absence: 0 }], time: avail, capPercent: 100, available: avail,
       demand, demandSet: noT ? prodPT[sid] != null : true, demandAmount: noT ? demand * rate : demandAmount, load, manual: prodPT[sid] ?? null,
@@ -194,6 +203,13 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     frozen: frozen[sid] ? { tickets: frozen[sid]!.keys.length, commitment: frozen[sid]!.commitment } : null,
     assumptions: savedA, running: curId() && nextOf(curId()) === sid ? curId() : '', notes: [],
   };
+}
+
+/** Earmarks a ticket of the Plan mock (the Backlog mock keeps its own list); false if unknown. */
+export function planEarmark(ticket: string, sprint: string): boolean {
+  const x = tickets.find((q) => q.key === ticket);
+  if (x) x.sprint = sprint;
+  return !!x;
 }
 
 export const planMock: PlanApi = {
@@ -234,13 +250,24 @@ export const planMock: PlanApi = {
   async SetProjectAmount(_t, sprint, project, value) {
     (projAmt[sprint] ??= {})[project] = value ?? 0;
   },
+  async SetMatrixCell(_t, sprint, product, project, value) {
+    const row = ((matrixMock[sprint] ??= {})[product] ??= {});
+    if (value) row[project] = value;
+    else delete row[project];
+  },
+  async UseMatrix(_t, sprint) {
+    const cols: Record<string, number> = {};
+    for (const [product, row] of Object.entries(matrixMock[sprint] ?? {})) {
+      const sum = Object.values(row).reduce((a, v) => a + v, 0);
+      for (const [project, v] of Object.entries(row)) cols[project] = (cols[project] ?? 0) + v;
+      const cur = (pre[sprint] ??= {})[product];
+      if (cur == null || cur < sum) pre[sprint]![product] = sum;
+    }
+    for (const [project, v] of Object.entries(cols)) (projAmt[sprint] ??= {})[project] = v;
+  },
   async SetProductionPT(_t, sprint, value) {
     if (value == null) delete prodPT[sprint];
     else prodPT[sprint] = value;
-  },
-  async SetEarmark(_t, ticket, sprint) {
-    const x = tickets.find((q) => q.key === ticket);
-    if (x) x.sprint = sprint;
   },
   async SetProductionPercent(_t, ticket, percent) {
     const x = tickets.find((q) => q.key === ticket);
@@ -253,7 +280,6 @@ export const planMock: PlanApi = {
     const lane = tickets.filter((x) => input.tickets.includes(x.key));
     const commit = noT ? (input.commitment ?? Object.values(input.amounts).reduce((a, v) => a + v, 0)) : lane.reduce((a, x) => a + (x.est ?? 0), 0);
     frozen[sprint] = { keys: input.tickets, commitment: commit };
-    removedMock[sprint] = [];
     planned[sprint] = noT ? input.amounts : {};
     if (!noT) for (const x of lane) planned[sprint]![x.product] = (planned[sprint]![x.product] ?? 0) + (x.est ?? 0);
     return `${sprint}-planning-20261022-140500.md`;
@@ -262,12 +288,48 @@ export const planMock: PlanApi = {
     delete frozen[sprint];
     delete planned[sprint];
   },
+  async PlanWritePreview(_t, sprint) {
+    const fz = frozen[sprint];
+    const moves: WriteMove[] = fz
+      ? [
+          ...fz.keys.filter((k) => !tickets.find((x) => x.key === k)?.sprint.startsWith('$cur')).map((k) => moveOf(k, 'committed', '', sprint)),
+          ...(removedMock[sprint] ?? []).map((k) => moveOf(k, 'taken_out', sprint, '')),
+        ]
+      : [];
+    return {
+      enabled: true, sprint, removedTarget: 'backlog', moves,
+      problems: fz ? [] : ['Freeze the plan first; only the agreed tickets are written to the tracker.'], canUndo: (writeDone[sprint] ?? []).length > 0,
+    };
+  },
+  async PlanWriteApply(_t, sprint, approved) {
+    const p = await planMock.PlanWritePreview(_t, sprint);
+    const done = p.moves.filter((m) => approved.includes(m.key));
+    writeDone[sprint] = [...(writeDone[sprint] ?? []), ...done];
+    return { done, failed: [], error: '', canUndo: writeDone[sprint]!.length > 0 };
+  },
+  async PlanWriteUndo(_t, sprint) {
+    const done = (writeDone[sprint] ?? []).map((m): WriteMove => ({ ...m, reason: 'undo', from: m.to, to: m.from }));
+    delete writeDone[sprint];
+    return { done, failed: [], error: '', canUndo: false };
+  },
 };
 
 /** Resets the answers (tests). */
 export function resetPlanMock(): void {
   tickets = structuredClone(base);
-  pre = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {};
+  pre = {}; matrixMock = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {}; writeDone = {};
 }
 
-export default planMock;
+/** One earmark for both pages: the Backlog and the Plan mock keep their own tickets. */
+const earmark = {
+  async EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void> {
+    const inPlan = planEarmark(key, sprint);
+    try {
+      await backlog.EarmarkTicket(team, key, sprint, note);
+    } catch (e) {
+      if (!inPlan) throw e;
+    }
+  },
+};
+
+export default { ...planMock, ...earmark };

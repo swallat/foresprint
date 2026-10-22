@@ -36,6 +36,8 @@ type API struct {
 	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFile func(title string) (string, error)
+	// ChooseTable opens the file dialog for a CSV or Excel table and returns the chosen path.
+	ChooseTable func(title string) (string, error)
 	// OpenPath opens a file with the program of the system; nil = the default of the platform.
 	OpenPath func(path string) error
 
@@ -158,11 +160,18 @@ func (a *API) SetDataDir(path string) error {
 	if err != nil || !info.IsDir() {
 		return errors.New(i18n.T("The folder {path} does not exist.", "path", path))
 	}
+	// The window shows the demo banner; the person leaves it on purpose.
+	if err := a.demoRefusal(); err != nil {
+		return err
+	}
 	if err := config.SaveDataDir(path); err != nil {
 		return err
 	}
 	a.mu.Lock()
-	a.demoDropLocked() // a new data folder ends the demo
+	if a.demo.on { // the demo started while the folder was being saved
+		a.mu.Unlock()
+		return a.demoRefusal()
+	}
 	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()

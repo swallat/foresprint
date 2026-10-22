@@ -108,7 +108,79 @@ export interface Step {
   undo: number;
 }
 
+export interface Holiday {
+  date: string;
+  name: string;
+}
+
+export type CalendarState = 'finished' | 'running' | 'open' | 'planned';
+
+export interface CalendarRow {
+  id: string;
+  start: string;
+  /** The last day (the stored end is the day after). */
+  last: string;
+  workdays: number;
+  holidays: Holiday[];
+  state: CalendarState;
+  /** Finished sprints are locked. */
+  locked: boolean;
+  /** Has a sprint file. */
+  saved: boolean;
+}
+
+export interface NamingRule {
+  from: string;
+  pattern: string;
+}
+
+export interface CalendarView {
+  today: string;
+  country: string;
+  region: string;
+  rows: CalendarRow[];
+  naming: NamingRule[];
+  /** The pattern that names the next sprint, "" = none. */
+  pattern: string;
+  placeholders: string[];
+  proForma: string[];
+}
+
+export interface LastDay {
+  id: string;
+  last: string;
+}
+
+export interface CalendarResult {
+  view: CalendarView;
+  moved: number;
+  undo: number;
+}
+
+export interface NamePreview {
+  index: number;
+  start: string;
+  old: string;
+  new: string;
+  locked: boolean;
+  saved: boolean;
+  changes: boolean;
+}
+
+export interface NamingPreview {
+  rows: NamePreview[];
+  duplicate: string;
+  noNumber: boolean;
+  problem: string;
+  count: number;
+}
+
 export interface TeamApi {
+  Calendar(team: string, count: number): Promise<CalendarView>;
+  SaveLastDays(team: string, changes: LastDay[], count: number): Promise<CalendarResult>;
+  NamingPreview(team: string, pattern: string, from: string, all: boolean, count: number): Promise<NamingPreview>;
+  ApplyNaming(team: string, pattern: string, from: string, all: boolean, count: number): Promise<CalendarResult>;
+  RenameSprint(team: string, sprintId: string, newId: string, count: number): Promise<CalendarResult>;
   Products(team: string): Promise<ProductsView>;
   SaveProducts(team: string, products: Product[]): Promise<ProductsView>;
   EndProduct(team: string, id: string, lastDay: string, shares: Record<string, number>, target: string): Promise<EndResult>;

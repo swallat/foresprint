@@ -1,6 +1,7 @@
 // The state and the course of a guided flow (Help > Guided flows). A tour always runs on the demo
 // team: starting one switches the window to it, ending it switches back if the tour did so.
 
+import { api } from '../api';
 import { app, enterDemo, leaveDemo, selectSprint } from '../app.svelte';
 import { registerCommands } from '../commands';
 import { t } from '../i18n.svelte';
@@ -9,6 +10,8 @@ import { flowById, flows, type Flow, type SprintPick, type Step } from './flows'
 
 export const tour = $state({
   flow: undefined as Flow | undefined,
+  /** The steps shown: those of the flow that fit the team (a team without tracker skips some). */
+  steps: [] as Step[],
   index: 0,
   /** The element of the current step was not found: the step is shown without a mark. */
   unmarked: false,
@@ -28,7 +31,7 @@ export function pickSprint(pick: SprintPick, sprints: { id: string; state: strin
 }
 
 export function currentStep(): Step | undefined {
-  return tour.flow?.steps[tour.index];
+  return tour.steps[tour.index];
 }
 
 function unmark(): void {
@@ -62,6 +65,18 @@ async function show(): Promise<void> {
   tour.unmarked = true;
 }
 
+/** The steps of a flow for the team shown: steps about the tracker are left out without one. */
+async function stepsFor(flow: Flow): Promise<Step[]> {
+  let source = 'tracker';
+  try {
+    source = (await api.Today(app.team)).source;
+  } catch {
+    /* keep all steps */
+  }
+  if (source === 'tracker') return flow.steps;
+  return flow.withoutTracker ?? flow.steps.filter((s) => !s.trackerOnly);
+}
+
 /** Starts a flow on the demo team. */
 export async function startTour(id: string): Promise<void> {
   const flow = flowById(id);
@@ -71,6 +86,7 @@ export async function startTour(id: string): Promise<void> {
     await enterDemo();
     enteredDemo = true;
   }
+  tour.steps = await stepsFor(flow);
   tour.flow = flow;
   tour.index = 0;
   await show();
@@ -78,7 +94,7 @@ export async function startTour(id: string): Promise<void> {
 
 export async function nextStep(): Promise<void> {
   if (!tour.flow) return;
-  if (tour.index >= tour.flow.steps.length - 1) {
+  if (tour.index >= tour.steps.length - 1) {
     await endTour();
     return;
   }
@@ -97,6 +113,7 @@ export async function endTour(): Promise<void> {
   run++;
   unmark();
   tour.flow = undefined;
+  tour.steps = [];
   tour.index = 0;
   tour.unmarked = false;
   if (enteredDemo) {

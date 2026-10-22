@@ -327,6 +327,61 @@ func normalize(name string, raw *yamlx.Map, key string) (*yamlx.Map, error) {
 	return storage.SprintToDict(sprint), nil
 }
 
+// carryOver takes what the workbook cannot hold from the existing files, so that reading it back
+// does not delete it: the product owners, the estimation unit, the sprint naming and the
+// pro-forma sprints of the team, the kind of each person, the rule of each product, and the
+// hand-given name and pre-planning details of each sprint (matching ids). Values the workbook
+// does hold (a cell can be cleared) are never carried over.
+func carryOver(data, existing *storage.TeamData) {
+	data.Team.ProductOwners = existing.Team.ProductOwners
+	data.Team.Estimation = existing.Team.Estimation
+	data.Team.Sprint.Naming = existing.Team.Sprint.Naming
+	data.Team.Sprint.ProForma = existing.Team.Sprint.ProForma
+	kinds := map[string]model.PersonKind{}
+	for _, p := range existing.People {
+		kinds[p.ID] = p.Kind
+	}
+	for i := range data.People {
+		if kind, ok := kinds[data.People[i].ID]; ok {
+			data.People[i].Kind = kind
+		}
+	}
+	rules := map[string]*model.Rule{}
+	for _, p := range existing.Products {
+		rules[p.ID] = p.Match
+	}
+	for i := range data.Products {
+		if rule, ok := rules[data.Products[i].ID]; ok {
+			data.Products[i].Match = rule
+		}
+	}
+	old := map[string]*model.Sprint{}
+	for i := range existing.Sprints {
+		old[existing.Sprints[i].ID] = &existing.Sprints[i]
+	}
+	for i := range data.Sprints {
+		s := &data.Sprints[i]
+		o, ok := old[s.ID]
+		if !ok {
+			continue
+		}
+		s.Name = o.Name
+		if s.Preplanned == nil {
+			s.Preplanned = o.Preplanned
+		}
+		s.Matrix, s.Removed, s.Projects = o.Matrix, o.Removed, o.Projects
+		s.CommittedTickets, s.Carry, s.RestNext = o.CommittedTickets, o.Carry, o.RestNext
+		for j := range s.Prognoses {
+			for _, op := range o.Prognoses {
+				if op.At.Equal(s.Prognoses[j].At) {
+					s.Prognoses[j].Label, s.Prognoses[j].Finish = op.Label, op.Finish
+					s.Prognoses[j].Carry, s.Prognoses[j].RestNext = op.Carry, op.RestNext
+				}
+			}
+		}
+	}
+}
+
 // Plan compares the workbook with the existing files: list of changes per file and value. It
 // rejects an invalid key, invalid ids, values that cannot be loaded and data with validation
 // errors up front; nothing is written.
@@ -343,6 +398,7 @@ func Plan(repo *storage.Repository, data *storage.TeamData, today time.Time) (*I
 		// The workbook never contains the tracker section: the existing one is carried over.
 		data.Team.Tracker = existing.Team.Tracker
 		data.Team.TrackerRaw = existing.Team.TrackerRaw
+		carryOver(data, existing)
 	}
 	if _, err := CheckValid(data, today, existing); err != nil {
 		return nil, err

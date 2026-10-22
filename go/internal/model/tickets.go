@@ -172,6 +172,9 @@ type TrackerSettings struct {
 	RemovedTarget string
 	// PackagePrefix starts the keys of work packages; empty = DefaultPackagePrefix.
 	PackagePrefix string
+	// BoardID is the Jira board whose sprints the write-back looks up, so that a future sprint
+	// without any ticket is found too; nil = only sprints met in fetched tickets are known.
+	BoardID *int
 }
 
 // NewTrackerSettings returns the defaults.
@@ -405,5 +408,5 @@ func (t TrackerSettings) IsDefault() bool {
 		t.DependencyGap == d.DependencyGap && t.BudgetBasis == d.BudgetBasis && t.RoughFactor == d.RoughFactor &&
 		t.WriteLabels == d.WriteLabels && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
 		t.RuleFields.Len() == 0 && samePtr(t.ProductionLabel, d.ProductionLabel) &&
-		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == ""
+		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == "" && t.BoardID == nil
 }

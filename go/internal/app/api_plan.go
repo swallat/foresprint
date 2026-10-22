@@ -288,7 +288,11 @@ func (a *API) PlanSprint(team, sprintID string, assume *Assumption) (*PlanSprint
 	if err != nil {
 		return nil, err
 	}
-	return c.view(team, assume)
+	v, err := c.view(team, assume)
+	if err == nil {
+		v.WriteUndo = len(a.writebackMoved(team, sprintID)) > 0
+	}
+	return v, err
 }
 
 func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
@@ -305,6 +309,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	if v.Source == "tracker" && tm.Tracker.Kind == "jira" {
 		v.TrackerName = "Jira"
 	}
+	v.WriteBack = c.writeEnabled()
 	v.Days = workdays(c)
 	v.Stage = c.stage()
 	v.Absences = absenceName(s)
@@ -379,6 +384,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	}
 	c.fillProducts(v)
 	c.fillProjects(v)
+	c.fillMatrix(v)
 	v.Prod = c.production(v)
 	if s.CommittedTickets != nil || (v.Source == "none" && s.Commitment != nil && v.Stage != "past") {
 		v.Frozen = &PlanFrozen{Tickets: len(s.CommittedTickets), Commitment: s.Commitment}
@@ -951,27 +957,6 @@ func (a *API) SetProductionPT(team, sprintID string, value *float64) error {
 	})
 }
 
-// SetEarmark earmarks a ticket for a sprint; an empty sprint removes the earmark.
-func (a *API) SetEarmark(team, ticket, sprintID string) error {
-	c, err := a.planContext(team, firstSprint(a, team, sprintID))
-	if err != nil {
-		return err
-	}
-	if c.data.TicketByKey(ticket) == nil {
-		return errors.New(i18n.T("The ticket {key} does not exist.", "key", ticket))
-	}
-	pp := c.data.Preplan
-	pp.Earmarks = removeEarmark(pp.Earmarks, ticket)
-	if sprintID != "" {
-		pp.Earmarks = append(pp.Earmarks, model.Earmark{Ticket: ticket, Sprint: sprintID})
-	}
-	if _, err := c.repo.SavePreplan(team, pp); err != nil {
-		return err
-	}
-	storage.ClearTeamCache()
-	return nil
-}
-
 func firstSprint(a *API, team, sprintID string) string {
 	if sprintID != "" {
 		return sprintID
@@ -980,16 +965,6 @@ func firstSprint(a *API, team, sprintID string) string {
 		return s[0].ID
 	}
 	return sprintID
-}
-
-func removeEarmark(list []model.Earmark, ticket string) []model.Earmark {
-	out := list[:0:0]
-	for _, e := range list {
-		if e.Ticket != ticket {
-			out = append(out, e)
-		}
-	}
-	return out
 }
 
 // SetProductionPercent sets the production share of a ticket (0 to 100) in Foresprint; nil
@@ -1072,7 +1047,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
-		s.Removed = nil // the minutes list them from here on
+		// s.Removed stays: the write-back to the tracker needs to know what the team took out.
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {
@@ -1176,6 +1151,124 @@ func (a *API) ReopenPlan(team, sprintID string) error {
 			setProductValue(s, id, func(x *model.ProductValues) { *x = v })
 		}
 		s.Commitment = nil
+		return nil
+	})
+}
+
+// fillMatrix lists the cells of the table product x project.
+func (c *planCtx) fillMatrix(v *PlanSprint) {
+	if !c.data.Team.Features.Products {
+		return
+	}
+	m := &PlanMatrix{Projects: []PlanRef{}, Cells: []PlanCell{}}
+	for _, p := range c.data.Projects {
+		if !p.Closed() {
+			m.Projects = append(m.Projects, PlanRef{ID: p.ID, Name: p.Name})
+		}
+	}
+	if len(m.Projects) == 0 || len(v.Products) == 0 {
+		return
+	}
+	for _, p := range v.Products {
+		if !p.Active {
+			continue
+		}
+		for _, pr := range m.Projects {
+			if x := c.sprint.Matrix[p.ID][pr.ID]; x != 0 {
+				m.Cells = append(m.Cells, PlanCell{Product: p.ID, Project: pr.ID, Value: x})
+			}
+		}
+	}
+	v.Matrix = m
+}
+
+// SetMatrixCell sets (or, with nil or 0, clears) the amount of a product in a project.
+func (a *API) SetMatrixCell(team, sprintID, product, project string, value *float64) error {
+	if err := planNonNegative(value); err != nil {
+		return err
+	}
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		if err := c.knownProduct(product); err != nil {
+			return err
+		}
+		p := c.data.ProjectByID(project)
+		if p == nil {
+			return errors.New(i18n.T("The project {id} does not exist.", "id", project))
+		}
+		clearing := value == nil || *value == 0
+		if p.Closed() && !clearing { // a cell of a closed project can still be cleared
+			return errors.New(i18n.T("The project {id} is closed.", "id", project))
+		}
+		if clearing {
+			delete(s.Matrix[product], project)
+			if len(s.Matrix[product]) == 0 {
+				delete(s.Matrix, product)
+			}
+			if len(s.Matrix) == 0 {
+				s.Matrix = nil
+			}
+			return nil
+		}
+		if s.Matrix == nil {
+			s.Matrix = map[string]map[string]float64{}
+		}
+		if s.Matrix[product] == nil {
+			s.Matrix[product] = map[string]float64{}
+		}
+		s.Matrix[product][project] = *value
+		return nil
+	})
+}
+
+// UseMatrix takes the sums of the table as the pre-planned amounts. Only the open projects and
+// the active products count, and amounts are only raised, never lowered: a product keeps the
+// budget it has (pre-planned or standard) when its row is smaller, and a project amount that
+// is higher stays. Project amounts are for teams without tickets; with tickets they come from
+// the tickets.
+func (a *API) UseMatrix(team, sprintID string) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		v, err := c.view(team, nil)
+		if err != nil {
+			return err
+		}
+		budget := map[string]float64{}
+		for _, p := range v.Products {
+			if p.Active {
+				budget[p.ID] = p.Budget
+			}
+		}
+		cols := map[string]float64{}
+		for product, row := range s.Matrix {
+			b, active := budget[product]
+			if !active {
+				continue
+			}
+			sum := 0.0
+			for project, x := range row {
+				if pr := c.data.ProjectByID(project); pr == nil || pr.Closed() {
+					continue
+				}
+				sum += x
+				cols[project] += x
+			}
+			if sum = math.Round(sum*100) / 100; sum > b+1e-9 {
+				setProductValue(s, product, func(v *model.ProductValues) { v.Preplanned = &sum })
+			}
+		}
+		if c.tickets() {
+			return nil
+		}
+		for project, sum := range cols {
+			sum = math.Round(sum*100) / 100
+			if s.Projects == nil {
+				s.Projects = map[string]model.ProductValues{}
+			}
+			pv := s.Projects[project]
+			if pv.Preplanned == nil || *pv.Preplanned < sum {
+				pv.Preplanned = &sum
+				s.Projects[project] = pv
+			}
+		}
 		return nil
 	})
 }

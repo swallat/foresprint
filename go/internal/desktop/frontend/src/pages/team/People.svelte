@@ -8,8 +8,10 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import { fmtDay, fmtNum, fmtShort, parseNum } from '../../lib/team/format';
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
+  import { inverse, type Inverse } from '../../lib/team/undo';
   import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
   import AbsencePanel from './AbsencePanel.svelte';
+  import OwnersCard from './OwnersCard.svelte';
   import TimesPanel from './TimesPanel.svelte';
 
   let { params }: PageProps = $props();
@@ -55,13 +57,31 @@
     }
   });
 
-  /** Saves a new list of people; the old list is what Undo brings back. */
+  const personFields: (keyof Person)[] = ['name', 'kind', 'production', 'memberships', 'region', 'country', 'workweek'];
+
+  async function undoChange(undo: Inverse<Person>) {
+    const { list, ok } = undo(view?.people ?? []);
+    if (!ok) {
+      toast(t('This change can no longer be undone.'), 'bad');
+      return;
+    }
+    await save(list, t('Change undone.'), false);
+    absences = await api.AbsencePeriods(app.team); // a removed person comes back without absences
+  }
+
+  /** Called by the PO card after one of its steps. */
+  async function poStep() {
+    await load();
+  }
+
+  /** Saves a new list of people. Undo takes back this one change only (see lib/team/undo.ts). */
   async function save(next: Person[], message: string, undoable = true) {
     const before = view?.people ?? [];
     try {
       view = await api.SavePeople(app.team, next);
       if (message) {
-        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void save(before, t('Change undone.'), false) } : undefined);
+        const undo = inverse(before, view.people, personFields);
+        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void undoChange(undo) } : undefined);
       }
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
@@ -248,6 +268,8 @@
     <p class="small muted">{t('The production access column appears when the feature is switched on in Settings, Team.')}</p>
   {/if}
 {/if}
+
+<OwnersCard people={view} onchange={poStep} />
 
 {#if view && panel}
   {@const person = view.people.find((p) => p.id === panel!.id)}

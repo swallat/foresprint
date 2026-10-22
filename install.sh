@@ -88,7 +88,18 @@ if [ "$os" = darwin ]; then
     xattr -d com.apple.quarantine "$BIN/foresprint" 2> /dev/null || true
 fi
 
-if [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
+libs_missing=
+if [ "$os" = linux ] && command -v ldd > /dev/null 2>&1; then
+    libs_missing=$(ldd "$BIN/foresprint" 2> /dev/null | grep "not found" || true)
+fi
+if [ -n "$libs_missing" ]; then
+    say "Linux: the program needs system libraries that are not installed:"
+    say "$libs_missing"
+    say "  Debian/Ubuntu: sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0"
+    say "  Fedora:        sudo dnf install gtk3 webkit2gtk4.1"
+    say "  Arch:          sudo pacman -S gtk3 webkit2gtk-4.1"
+    say "Install them, then run: foresprint shortcut"
+elif [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
     "$BIN/foresprint" shortcut || say "(no launcher created; foresprint shortcut tries again)"
 fi
 
