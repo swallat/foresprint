@@ -27,6 +27,8 @@
   let frozen = $state('0');
   let production = $state('0');
   let rows = $state<ReviewTicket[]>([]);
+  let rests = $state<Record<string, string>>({});
+  let commitment = $state('0');
   let done = $state<Record<string, string>>({});
   let prod = $state<Record<string, string>>({});
   let tagOn = $state(true);
@@ -42,6 +44,8 @@
     frozen = fmt(r.frozenDays);
     production = fmt(r.production);
     rows = r.list.map((x) => ({ ...x }));
+    rests = Object.fromEntries(r.list.map((x) => [x.key, fmt(x.rest)]));
+    commitment = fmt(r.commitment);
     done = Object.fromEntries(r.products.map((p) => [p.id, fmt(p.done)]));
     prod = Object.fromEntries(r.products.map((p) => [p.id, fmt(p.prodDone)]));
     tagName = r.tag;
@@ -63,6 +67,7 @@
 
   $effect(() => {
     void [app.team, app.sprint];
+    info = undefined; // the old sprint's numbers are not editable while the new one loads
     void load();
   });
 
@@ -71,10 +76,14 @@
   const n = (text: string) => parseDays(text);
   const valid = (text: string) => Number.isFinite(n(text)) && n(text) >= 0;
 
-  const notDoneNow = $derived(info?.tickets ? rows.filter((r) => !r.done).reduce((sum, r) => sum + r.estimate, 0) : n(notDone));
-  const velocity = $derived(info ? info.commitment - notDoneNow + n(additional) : 0);
+  const commitmentNow = $derived(!info ? 0 : info.commitmentSet ? info.commitment : n(commitment));
+  const notDoneNow = $derived(
+    info?.reviewed ? info.notDone : info?.tickets ? rows.filter((r) => !r.done).reduce((sum, r) => sum + r.estimate, 0) : n(notDone),
+  );
+  // A closed Review shows what was stored; only an open one calculates while typing.
+  const velocity = $derived(!info ? 0 : info.reviewed ? info.velocity : commitmentNow - notDoneNow + n(additional));
   const frozenDays = $derived(n(frozen));
-  const rate = $derived(frozenDays > 0 ? velocity / frozenDays : null);
+  const rate = $derived(info?.reviewed ? info.rate : frozenDays > 0 ? velocity / frozenDays : null);
   const doneSum = $derived(info ? info.products.reduce((sum, p) => sum + n(done[p.id] ?? '0'), 0) : 0);
   const prodSum = $derived(info ? info.products.reduce((sum, p) => sum + n(prod[p.id] ?? '0'), 0) : 0);
   const plannedSum = $derived(info ? info.products.reduce((sum, p) => sum + p.planned, 0) : 0);
@@ -83,20 +92,23 @@
   const problems = $derived.by(() => {
     if (!info) return [] as string[];
     const out: string[] = [];
-    const typed = [notDone, additional, restNext, frozen, production, ...Object.values(done), ...Object.values(prod)];
+    const typed = [notDone, additional, restNext, frozen, production, commitment, ...Object.values(done), ...Object.values(prod), ...rows.filter((r) => !r.done).map((r) => rests[r.key] ?? '0')];
     if (!typed.every(valid)) out.push(t('Enter numbers of 0 or more.'));
     if (!info.tickets && n(restNext) > n(notDone)) out.push(t('The rest that continues cannot be more than what was not done.'));
-    if (notDoneNow > info.commitment) out.push(t('Not done cannot be more than the commitment.'));
+    if (notDoneNow > commitmentNow) out.push(t('Not done cannot be more than the commitment.'));
     return out;
   });
 
   async function close() {
     if (!info || problems.length > 0) return;
+    const team = app.team;
+    const sprint = app.sprint;
     const input: ReviewInput = {
+      commitment: info.commitmentSet ? null : n(commitment),
       notDone: n(notDone),
       additionalDone: n(additional),
       restNext: n(restNext),
-      list: rows,
+      list: rows.map((r) => ({ ...r, rest: n(rests[r.key] ?? '0') })),
       frozenDays: frozenDays,
       products: info.products.map((p) => ({ ...p, done: n(done[p.id] ?? '0'), prodDone: n(prod[p.id] ?? '0') })),
       production: n(production),
@@ -104,7 +116,8 @@
     };
     busy = true;
     try {
-      const res = await api.CloseReview(app.team, app.sprint, input);
+      const res = await api.CloseReview(team, sprint, input);
+      if (team !== app.team || sprint !== app.sprint) return; // the page moved on; it loads its own sprint
       fill(res.review);
       error = '';
       toast(res.tag ? t('Sprint {id} closed. Minutes written; tag {tag} is set with the next save.', { id: res.review.sprint.name, tag: res.tag }) : t('Sprint {id} closed. Minutes written.', { id: res.review.sprint.name }), 'ok');
@@ -117,9 +130,13 @@
   }
 
   async function reopen() {
+    const team = app.team;
+    const sprint = app.sprint;
     busy = true;
     try {
-      fill((await api.ReopenReview(app.team, app.sprint)).review);
+      const res = await api.ReopenReview(team, sprint);
+      if (team !== app.team || sprint !== app.sprint) return;
+      fill(res.review);
       error = '';
       toast(t('Review reopened. Its minutes stay as an obsolete file.'));
       await refreshStatus();
@@ -173,15 +190,21 @@
         <span class="big data" data-testid="velocity">{days(velocity)}</span>
         <span class="muted">{unit} {t('done')}</span>
         <Calc label={t('Velocity')} topic="rate">
-          {days(info.commitment)} − {days(notDoneNow)} + {days(n(additional))} = {days(velocity)} {unit}
+          {days(commitmentNow)} − {days(notDoneNow)} + {days(n(additional))} = {days(velocity)} {unit}
         </Calc>
       </div>
-      <p class="small muted">{t('Commitment {n} minus not done plus done in addition.', { n: days(info.commitment) })}</p>
+      <p class="small muted">{t('Commitment {n} minus not done plus done in addition.', { n: days(commitmentNow) })}</p>
     </section>
 
     <section class="card" aria-labelledby="scope-h">
       <h2 id="scope-h">{t('Scope change')}</h2>
       <div class="row fields">
+        {#if !info.commitmentSet}
+          <div class="field">
+            <label for="rv-commit">{t('Commitment')} ({unit})</label>
+            <input id="rv-commit" class="input data" inputmode="decimal" bind:value={commitment} disabled={locked} />
+          </div>
+        {/if}
         {#if !info.tickets}
           <div class="field">
             <label for="rv-notdone">{t('Not done')} ({unit})</label>
@@ -234,8 +257,7 @@
                 <td class="num">{days(r.estimate)}</td>
                 <td class="num">
                   {#if r.done}<span class="muted">–</span>{:else}
-                    <input class="input data narrow" inputmode="decimal" value={fmt(r.rest)} disabled={locked} aria-label={t('Rest of {key}', { key: r.key })}
-                      oninput={(e) => (r.rest = n(e.currentTarget.value))} />
+                    <input class="input data narrow" inputmode="decimal" bind:value={rests[r.key]} disabled={locked} aria-label={t('Rest of {key}', { key: r.key })} />
                   {/if}
                 </td>
                 <td>

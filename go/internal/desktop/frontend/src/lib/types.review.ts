@@ -35,6 +35,8 @@ export interface SprintReview {
   /** The team commits to tickets: the list below replaces the typed numbers. */
   tickets: boolean;
   commitment: number;
+  /** False for a sprint without a recorded commitment: the page asks for it. */
+  commitmentSet: boolean;
   notDone: number;
   additionalDone: number;
   /** Without tickets: the part of "not done" that continues in the next sprint. */
@@ -56,6 +58,8 @@ export interface ReviewInput {
   notDone: number;
   additionalDone: number;
   restNext: number;
+  /** Taken only where the sprint has no commitment recorded. */
+  commitment: number | null;
   list: ReviewTicket[];
   frozenDays: number;
   products: ReviewProduct[];

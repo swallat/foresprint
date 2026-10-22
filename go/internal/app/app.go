@@ -41,6 +41,9 @@ type API struct {
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
 	tagMu sync.Mutex
 	tags  []string
+	// sprintTags remembers the tag each Review asked for, by team/sprint, so that reopening can
+	// take back the right one.
+	sprintTags map[string]string
 }
 
 // New returns the API for a data folder; "" takes the remembered one.

@@ -39,9 +39,11 @@ type SprintReview struct {
 	// Reviewed is true once the Review was closed (the velocity is recorded).
 	Reviewed bool `json:"reviewed"`
 	// Reopenable is true for the latest reviewed sprint.
-	Reopenable     bool            `json:"reopenable"`
-	Tickets        bool            `json:"tickets"` // the team commits to tickets
-	Commitment     float64         `json:"commitment"`
+	Reopenable bool    `json:"reopenable"`
+	Tickets    bool    `json:"tickets"` // the team commits to tickets
+	Commitment float64 `json:"commitment"`
+	// CommitmentSet is false for a sprint without a recorded commitment: the page asks for it.
+	CommitmentSet  bool            `json:"commitmentSet"`
 	NotDone        float64         `json:"notDone"`
 	AdditionalDone float64         `json:"additionalDone"`
 	RestNext       float64         `json:"restNext"` // without tickets: rest that continues in the next sprint
@@ -61,13 +63,15 @@ type SprintReview struct {
 
 // ReviewInput is what Close takes from the page.
 type ReviewInput struct {
-	NotDone        float64         `json:"notDone"`
-	AdditionalDone float64         `json:"additionalDone"`
-	RestNext       float64         `json:"restNext"`
-	List           []ReviewTicket  `json:"list"`
-	FrozenDays     float64         `json:"frozenDays"`
-	Products       []ReviewProduct `json:"products"`
-	Production     float64         `json:"production"`
+	NotDone        float64 `json:"notDone"`
+	AdditionalDone float64 `json:"additionalDone"`
+	RestNext       float64 `json:"restNext"`
+	// Commitment is taken only where the sprint has none recorded.
+	Commitment *float64        `json:"commitment"`
+	List       []ReviewTicket  `json:"list"`
+	FrozenDays float64         `json:"frozenDays"`
+	Products   []ReviewProduct `json:"products"`
+	Production float64         `json:"production"`
 	// Tag names the state with the Review at the next Save; empty = no tag.
 	Tag string `json:"tag"`
 }

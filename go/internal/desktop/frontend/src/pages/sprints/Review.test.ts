@@ -66,6 +66,14 @@ describe('Review page', () => {
     expect(button(/Close sprint|Sprint abschließen/).disabled).toBe(true);
   });
 
+  it('keeps a typed rest that is not a number from being saved', async () => {
+    await show(Review, running);
+    await type(field('rv-notdone'), '1');
+    await type(field('rv-rest'), 'abc');
+    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    expect(button(/Close sprint|Sprint abschließen/).disabled).toBe(true);
+  });
+
   it('says a sprint that has not begun cannot be reviewed', async () => {
     await show(Review, future);
     expect(host.textContent).toMatch(/has not begun|noch nicht begonnen/);
@@ -93,9 +101,9 @@ describe('Minutes page', () => {
     const list = await mockApi.Sprints('atlas');
     const past = [...list].reverse().find((s) => s.state === 'past')!.id;
     await api.ReopenReview('atlas', past).catch(() => undefined);
-    await api.CloseReview('atlas', past, { notDone: 1, additionalDone: 0, restNext: 0, list: [], frozenDays: 45, products: [], production: 0, tag: '' });
+    await api.CloseReview('atlas', past, { commitment: null, notDone: 1, additionalDone: 0, restNext: 0, list: [], frozenDays: 45, products: [], production: 0, tag: '' });
     await api.ReopenReview('atlas', past);
-    await api.CloseReview('atlas', past, { notDone: 3, additionalDone: 0, restNext: 0, list: [], frozenDays: 45, products: [], production: 0, tag: '' });
+    await api.CloseReview('atlas', past, { commitment: null, notDone: 3, additionalDone: 0, restNext: 0, list: [], frozenDays: 45, products: [], production: 0, tag: '' });
 
     await show(Minutes, past);
     await vi.waitFor(() => expect(host.querySelectorAll('tbody tr').length).toBeGreaterThanOrEqual(2), { timeout: 3000 });

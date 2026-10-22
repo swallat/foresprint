@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/git"
+	"github.com/swallat/foresprint/internal/gitsync"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/protocol"
@@ -28,6 +31,52 @@ func (a *API) pendingTags() []string {
 	return append([]string(nil), a.tags...)
 }
 
+// tagRoot is the Git repository of the data folder; "" if there is none.
+func (a *API) tagRoot() string {
+	root, err := gitsync.Root(context.Background(), a.DataDir())
+	if err != nil {
+		return ""
+	}
+	return root
+}
+
+// usableTags are the pending tags that can be set now: a valid name that does not exist yet.
+func (a *API) usableTags() []string {
+	pending := a.pendingTags()
+	if len(pending) == 0 {
+		return nil
+	}
+	root := a.tagRoot()
+	if root == "" {
+		return nil
+	}
+	var out []string
+	for _, tag := range pending {
+		if git.ValidTagName(context.Background(), root, tag) != nil {
+			continue
+		}
+		if c, err := git.TagCommit(context.Background(), root, tag); err == nil && c == "" {
+			out = append(out, tag)
+		}
+	}
+	return out
+}
+
+// dropSetTags forgets the pending tags that exist now or can never be set (invalid name).
+func (a *API) dropSetTags() {
+	pending := a.pendingTags()
+	root := a.tagRoot()
+	var done []string
+	for _, tag := range pending {
+		if root == "" || git.ValidTagName(context.Background(), root, tag) != nil {
+			done = append(done, tag)
+		} else if c, err := git.TagCommit(context.Background(), root, tag); err == nil && c != "" {
+			done = append(done, tag)
+		}
+	}
+	a.dropTags(done)
+}
+
 func (a *API) dropTags(done []string) {
 	a.tagMu.Lock()
 	defer a.tagMu.Unlock()
@@ -40,12 +89,35 @@ func (a *API) dropTags(done []string) {
 	a.tags = keep
 }
 
-func (a *API) addTag(tag string) {
+// addTag asks for a tag at the next Save; a Review asks for one tag only.
+func (a *API) addTag(team, sprint, tag string) {
 	a.tagMu.Lock()
 	defer a.tagMu.Unlock()
+	a.takeBack(team, sprint)
+	if a.sprintTags == nil {
+		a.sprintTags = map[string]string{}
+	}
+	a.sprintTags[team+"/"+sprint] = tag
 	if !contains(a.tags, tag) {
 		a.tags = append(a.tags, tag)
 	}
+}
+
+// takeBack drops the tag the Review of the sprint asked for (tagMu is held).
+func (a *API) takeBack(team, sprint string) {
+	key := team + "/" + sprint
+	old, ok := a.sprintTags[key]
+	if !ok {
+		return
+	}
+	delete(a.sprintTags, key)
+	keep := a.tags[:0]
+	for _, t := range a.tags {
+		if t != old {
+			keep = append(keep, t)
+		}
+	}
+	a.tags = keep
 }
 
 func contains(list []string, v string) bool {
@@ -105,6 +177,15 @@ func reviewTargets(fc *forecast.Forecast, s model.Sprint) []ReviewTarget {
 	return append(out, ReviewTarget{ID: model.CarryBacklog})
 }
 
+func hasTarget(list []ReviewTarget, id string) bool {
+	for _, t := range list {
+		if t.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) SprintReview {
 	col := column(data, fc, s)
 	out := SprintReview{
@@ -160,14 +241,26 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				out.NotDone += r.Estimate
 			}
 		}
+		// A target that is not among the offered places stays selectable.
+		for _, r := range out.List {
+			if !r.Done && !hasTarget(out.Targets, r.Target) {
+				out.Targets = append(out.Targets, ReviewTarget{ID: r.Target, Name: r.Target})
+			}
+		}
 	} else {
-		out.NotDone = val(s.NotDone)
 		out.RestNext = val(s.RestNext)
 	}
+	out.CommitmentSet = s.Commitment != nil || out.Tickets
 	out.AdditionalDone = val(s.AdditionalDone)
-	out.Velocity = out.Commitment - out.NotDone + out.AdditionalDone
-	if s.Velocity != nil && !out.Tickets {
+	if out.Reviewed {
+		// A closed Review shows what was stored, whatever the tickets say today.
+		out.NotDone = val(s.NotDone)
 		out.Velocity = *s.Velocity
+	} else {
+		if !out.Tickets {
+			out.NotDone = val(s.NotDone)
+		}
+		out.Velocity = out.Commitment - out.NotDone + out.AdditionalDone
 	}
 	if out.FrozenDays > 0 {
 		r := out.Velocity / out.FrozenDays
@@ -243,7 +336,26 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 	}
 	s := found.Clone()
 	view := buildReview(team, data, fc, s)
+	if view.Reviewed && !view.Reopenable {
+		return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Only the latest reviewed sprint can be reopened."))
+	}
+	if tag := strings.TrimSpace(in.Tag); tag != "" {
+		if err := git.CheckName(tag); err != nil {
+			return ReviewClosed{}, err
+		}
+		if root := a.tagRoot(); root != "" {
+			if err := git.ValidTagName(context.Background(), root, tag); err != nil {
+				return ReviewClosed{}, err
+			}
+		}
+	}
 	commitment := view.Commitment
+	if !view.CommitmentSet && in.Commitment != nil {
+		if err := nonNegative(*in.Commitment); err != nil {
+			return ReviewClosed{}, err
+		}
+		commitment = *in.Commitment
+	}
 	s.Commitment = model.Ptr(commitment)
 	s.Carry, s.RestNext = nil, nil
 	notDone := in.NotDone
@@ -263,6 +375,9 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			}
 			if err := nonNegative(got.Rest); err != nil {
 				return ReviewClosed{}, err
+			}
+			if !knownTarget(data, fc, got.Target) {
+				return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", got.Target))
 			}
 			notDone += row.Estimate
 			key := row.Key
@@ -333,10 +448,22 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 		}
 	}
 	if tag := strings.TrimSpace(in.Tag); tag != "" {
-		a.addTag(tag)
+		a.addTag(team, sprintID, tag)
 		out.Tag = tag
 	}
 	return out, nil
+}
+
+// knownTarget says whether a carry target is the next sprint, the backlog, a pro-forma sprint or a
+// sprint of the team.
+func knownTarget(data *storage.TeamData, fc *forecast.Forecast, id string) bool {
+	if id == "" || id == model.CarryBacklog || strings.HasPrefix(id, model.CarryProForma) {
+		return true
+	}
+	if data.SprintByID(id) != nil {
+		return true
+	}
+	return fc.Entry(id) != nil
 }
 
 func hasProduct(data *storage.TeamData, id string) bool {
@@ -384,7 +511,8 @@ func (a *API) ReopenReview(team, sprintID string) (ReviewClosed, error) {
 	}
 	s := found.Clone()
 	s.Velocity, s.NotDone, s.AdditionalDone, s.ScopeCreep = nil, nil, nil, nil
-	s.Carry, s.RestNext, s.Capacity, s.ProductionDone = nil, nil, nil, nil
+	// The frozen capacity and absences stay: they are what planning froze, too.
+	s.Carry, s.RestNext, s.ProductionDone = nil, nil, nil
 	for id, v := range s.Products {
 		v.Done, v.ProductionDone = nil, nil
 		s.Products[id] = v
@@ -396,7 +524,9 @@ func (a *API) ReopenReview(team, sprintID string) (ReviewClosed, error) {
 	if err != nil {
 		return ReviewClosed{}, err
 	}
-	a.dropTags([]string{team + "/" + sprintID})
+	a.tagMu.Lock()
+	a.takeBack(team, sprintID)
+	a.tagMu.Unlock()
 	data, err = repo.Load(team)
 	if err != nil {
 		return ReviewClosed{}, err

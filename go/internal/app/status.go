@@ -107,11 +107,9 @@ func (a *API) SaveAnyway() (Result, error) {
 
 // save runs Save with the tags the Review asked for; they are dropped once a save went through.
 func (a *API) save(anyway bool) Result {
-	tags := a.pendingTags()
+	tags := a.usableTags()
 	r := a.data.Save(datasvc.SaveOptions{SaveAnyway: anyway, Tags: tags})
-	if r.Outcome == datasvc.OutcomeSaved {
-		a.dropTags(tags)
-	}
+	a.dropSetTags() // whatever a commit made is a tag now; a failed save keeps the wish
 	return resultOf(r, false)
 }
 

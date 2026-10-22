@@ -3,6 +3,7 @@ package app
 import (
 	"math"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -194,5 +195,96 @@ tickets:
 	text, _ := api.MinutesText(team, closed.Minutes)
 	if !strings.Contains(text.Text, "T-3") || !strings.Contains(text.Text, "T-1") {
 		t.Fatalf("minutes without the tickets:\n%s", text.Text)
+	}
+}
+
+func TestReviewTagsFollowTheReview(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	id := latestPast(t, api, team)
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.CloseReview(team, id, ReviewInput{Tag: "-x"}); err == nil {
+		t.Error("an invalid tag name was accepted")
+	}
+	// Closing again with another name replaces the wish; reopening takes it back.
+	if _, err := api.CloseReview(team, id, ReviewInput{Tag: "release-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.CloseReview(team, id, ReviewInput{Tag: "release-2"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := api.pendingTags(); len(got) != 1 || got[0] != "release-2" {
+		t.Fatalf("pending %v", got)
+	}
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	if got := api.pendingTags(); len(got) != 0 {
+		t.Fatalf("the custom tag stayed: %v", got)
+	}
+}
+
+func TestReviewKeepsStoredNumbersAndCapacity(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	id := latestPast(t, api, team)
+	r, _ := api.SprintReview(team, id)
+	// The stored velocity is shown as it is, and the frozen days survive a reopen.
+	frozen := r.FrozenDays
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := api.SprintReview(team, id); after.FrozenDays != frozen {
+		t.Fatalf("frozen days %v, was %v", after.FrozenDays, frozen)
+	}
+	if _, err := api.CloseReview(team, id, ReviewInput{NotDone: 1, FrozenDays: 33}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := api.SprintReview(team, id); after.FrozenDays != 33 {
+		t.Fatalf("frozen days %v after reopen, the Review froze 33", after.FrozenDays)
+	}
+	// An older reviewed sprint cannot be closed again past a later one.
+	o, _ := api.SprintOverview(team, 3)
+	if len(o.Rows) > 2 {
+		if _, err := api.CloseReview(team, o.Rows[0].ID, ReviewInput{}); err == nil {
+			t.Error("an older reviewed sprint was closed again")
+		}
+	}
+}
+
+func TestPendingTagsAgainstGit(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	dir := copyDemo(t)
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@example.com"}, args...)...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "-q")
+	run("add", "-A")
+	run("commit", "-q", "-m", "start")
+	api := newAPI(t, dir)
+	api.addTag("t", "s1", "sprint-1")
+	api.addTag("t", "s2", "has space")
+	if got := api.usableTags(); len(got) != 1 || got[0] != "sprint-1" {
+		t.Fatalf("usable %v: an invalid name must not reach the save", got)
+	}
+	run("tag", "sprint-1") // a save made the tag
+	if got := api.usableTags(); len(got) != 0 {
+		t.Fatalf("a tag that exists is offered again: %v", got)
+	}
+	api.dropSetTags()
+	if got := api.pendingTags(); len(got) != 0 {
+		t.Fatalf("pending %v after the tag exists and the invalid one can never be set", got)
 	}
 }

@@ -29,6 +29,7 @@
       rows = next;
       error = '';
       loaded = true;
+      shown++; // a file asked for before the list changed is not shown
       open = undefined;
     } catch (e) {
       if (mine === seq) error = String(e);
@@ -42,9 +43,13 @@
 
   const kindName = (k: MinutesRow['kind']) => (k === 'review' ? t('Review') : k === 'planning' ? t('Sprint planning') : t('Pre-planning'));
 
+  let shown = 0;
   async function show(row: MinutesRow) {
+    const mine = ++shown;
     try {
-      open = { row, text: await api.MinutesText(app.team, row.file) };
+      const text = await api.MinutesText(app.team, row.file);
+      if (mine !== shown) return; // another file was asked for meanwhile
+      open = { row, text };
       error = '';
     } catch (e) {
       error = String(e);
