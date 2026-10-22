@@ -13,7 +13,10 @@ import type {
   Decision,
   Done,
   Label,
+  LineEndings,
   LostFile,
+  UnsavedFile,
+  ValueRef,
   Problem,
   StorageSettings,
   Version,
@@ -23,9 +26,11 @@ type Sim = 'saved' | 'incoming' | 'conflict' | 'offline' | 'mr' | 'findings';
 
 const s = {
   sim: 'incoming' as Sim,
+  putBack: {} as Record<string, number>,
+  lineFixed: false,
   unsaved: ['teams/atlas/people.yaml', 'teams/atlas/sprints/2026.22.yaml'] as string[],
   pending: 0,
-  decided: {} as Record<string, 'ours' | 'theirs'>,
+  decided: {} as Record<string, 'ours' | 'theirs' | 'custom'>,
   token: true,
   name: 'Kim Berger',
   email: 'kim.berger@atlas.example',
@@ -195,6 +200,35 @@ export const dataMock: DataApi = {
   async Lost(files: string[]) {
     const list: LostFile[] = s.unsaved.filter((f) => files.length === 0 || files.includes(f)).map((file, i) => ({ status: 'M', file, added: 2 + i, removed: 1 }));
     return list;
+  },
+  async UnsavedChanges() {
+    const list: UnsavedFile[] = s.unsaved.map((file, i) => ({
+      file,
+      status: 'M',
+      whole: false,
+      values: [
+        { path: ['members', '[ana]', 'fte'], label: 'Ana: capacity', kind: 'changed', before: '0.8', after: '1.0', hasBefore: true, hasAfter: true },
+        ...(i === 0 ? [{ path: ['members', '[ben]'], label: 'Ben', kind: 'added' as const, before: '', after: 'name: Ben', hasBefore: false, hasAfter: true }] : []),
+      ],
+    }));
+    return list;
+  },
+  async DiscardValues(items: ValueRef[]) {
+    // One value at a time: the file is clean when its last value is put back.
+    for (const it of items) {
+      const n = (s.putBack[it.file] ?? 0) + 1;
+      s.putBack[it.file] = n;
+      if (n >= (it.file.endsWith('people.yaml') ? 2 : 1)) s.unsaved = s.unsaved.filter((f) => f !== it.file);
+    }
+    return { ...done(), warning: 'What was put back is kept in /demo/.foresprint-trash.' };
+  },
+  async LineEndings(): Promise<LineEndings> {
+    return s.lineFixed ? { needed: false, file: '.gitattributes', rules: [], affected: [] } : { needed: true, file: '.gitattributes', rules: ['*.yaml text eol=lf'], affected: ['teams/atlas/people.yaml'] };
+  },
+  async ApplyLineEndings(): Promise<LineEndings> {
+    s.lineFixed = true;
+    if (!s.unsaved.includes('.gitattributes')) s.unsaved = [...s.unsaved, '.gitattributes'];
+    return { needed: false, file: '.gitattributes', rules: [], affected: [] };
   },
   async Labels() {
     return labels;

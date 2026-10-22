@@ -36,4 +36,15 @@ describe('data helpers', () => {
       { file: 'teams/atlas/team.yaml', path: [], choice: 'theirs' },
     ]);
   });
+
+  it('treats an own value as decided only when something is written', () => {
+    const k = entryKey('teams/atlas/absences.yaml', { path: ['a'] });
+    const choices = { [k]: 'custom' as const };
+    expect(openCount(conflicts, choices, {})).toBe(3);
+    expect(openCount(conflicts, choices, { [k]: '  ' })).toBe(3);
+    expect(openCount(conflicts, choices, { [k]: '5' })).toBe(2);
+    expect(decisionsOf(conflicts, choices, { [k]: '5' })).toEqual([
+      { file: 'teams/atlas/absences.yaml', path: ['a'], choice: 'custom', value: '5' },
+    ]);
+  });
 });
