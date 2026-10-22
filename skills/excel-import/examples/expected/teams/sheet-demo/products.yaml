@@ -1,0 +1,3 @@
+products:
+- {id: storefront, name: Storefront, po: Lena, from: null, to: null}
+- {id: ops-console, name: Ops console, po: Lena, share: 0.1, from: null, to: null}

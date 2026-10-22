@@ -1,0 +1,151 @@
+# Foresprint file formats (for importers)
+
+Condensed from `docs/data-format.md`, which is authoritative. All files are YAML, UTF-8, LF line
+endings, keys in English. Empty/unknown = `null`. Paths: `<data-dir>/teams/<team-id>/...`.
+
+```
+teams/<team-id>/
+  team.yaml            required
+  people.yaml          required for capacity from people (recommended)
+  products.yaml        optional (features.products)
+  sprints/<id>.yaml    one file per sprint, e.g. sprints/2026.3.yaml
+  projects.yaml        optional (features.tickets)
+```
+
+## team.yaml
+
+Only `name` is required.
+
+```yaml
+name: Harbor Crew
+unit: SP                  # PT (person days) | SP (story points). Capacity is always in PT.
+features:                 # all false for new teams; set true only what you import
+  products: true
+  po: true                # product owner per product
+  production: false
+  tickets: false
+sprint:
+  length_days: 14
+  numbering: yearly       # yearly: 2026.1, 2026.2 ... | sequential: 1, 2, 3 ...
+forecast:
+  reference_capacity: 17  # person days of a typical full team; normalizes velocity. Not in most
+                          # sheets: ask, or propose the typical sprint capacity; must be > 0
+capacity:
+  country: DE             # ISO code, public holidays and weekend come from it
+  region: HH              # state/province code, e.g. NW, BY, HH, CA, ON
+  workweek: auto          # auto | mon-fri | sun-thu | mon-sat
+  overhead_share: 0.0     # optional flat deduction for ceremonies (0..1)
+```
+
+Other forecast keys (`window`, `roadmap_share`, `trend_mode`, `horizon`) have good defaults;
+leave them out unless the sheet defines them.
+
+## people.yaml
+
+People are never deleted; end the membership with `to:`.
+
+```yaml
+people:
+- id: rana                # unique lowercase slug
+  name: Rana
+  region: BY              # optional own region; country: optional own country
+  workweek: mon,tue,wed,thu   # optional own working week
+  production_access: true # optional
+  memberships:            # periods in the team; to: null = still member
+  - {from: 2025-09-01, to: null, fte: 0.6}
+```
+
+`fte` is between 0 and 1: the share of the person's working days spent in the team. Use `fte`
+**or** a shorter `workweek`, not both (the deduction would apply twice). A change of share is a new
+membership entry with its own period.
+
+## products.yaml (features.products)
+
+```yaml
+products:
+- {id: storefront, name: Storefront, po: Lena, from: null, to: null}
+- {id: ops-console, name: Ops console, po: Lena, share: 0.1, from: null, to: null}
+```
+
+`share` (0..1) is an optional fixed capacity share; fixed shares must not sum above 1. Never
+delete a product; set `to:`.
+
+## sprints/<id>.yaml
+
+One file per sprint. The id is a quoted string. File name = id + `.yaml`.
+
+```yaml
+id: '2026.3'
+start: 2026-02-02
+end: 2026-02-16            # start of the next sprint (exclusive)
+absences: {mia: 5, rana: 0.5}   # working days per person ID, no public holidays
+absence_state: confirmed   # unknown | expected | confirmed
+capacity: null             # leave null; set only for a capacity frozen in the review
+forecast_ist: 21           # commitment at planning
+velocity: 15               # what was finished (sprints that have ended)
+scope_creep: 0.18          # share added during the sprint, 0.18 = 18 %; null if unknown
+products:                  # optional, per product ID
+  storefront: {done: 11}   # also: preplanned, planned, production_planned, production_done
+  ops-console: {done: 4}
+```
+
+Meaning and rules:
+
+- **forecast_ist** = commitment, **velocity** = done, in the team's `unit`. Future sprints have both `null`.
+- **absence_state**: `confirmed` when the sheet has absence data for that sprint (also "nobody was
+  absent" when the sheet clearly says so); `unknown` when the sheet has nothing, then leave
+  `absences` empty. Announced, not yet confirmed absences of an upcoming sprint go under
+  `expected_absences:` (same shape as `absences`) with `absence_state: expected`, and `absences`
+  stays empty: any entry in `absences` makes the sprint count as confirmed.
+- **absences** keys must be existing person IDs. Entries for people outside their membership give a warning.
+- **Never enter public holidays** as absences.
+- Values must not be negative. A velocity above twice the commitment is flagged as a probable typo.
+- **Sprint calendar**: sprints must not overlap, `end` > `start`. Consecutive sprints share
+  the boundary date (end of one = start of the next).
+- Optional planning fields (`planning: {carryover, backlog, corrections: []}`, `forecast_plan`,
+  `not_done`, `additional_done`, `prognoses`) only if the sheet has exactly these figures and the
+  user confirms their meaning; otherwise omit them.
+- Without any sprint file, `sprint.first: {id, start}` in `team.yaml` defines the first sprint.
+  With sprint files it is not needed.
+
+## Tickets and projects
+
+Only with `features.tickets: true` and a `tracker:` section in `team.yaml`.
+
+- `tickets.yaml` is generated by the import; do not write it. `preplan.yaml` holds the PO's manual earmarks and estimates; leave it out. For a ticket list in the
+  workbook, write a CSV (header names as in a Jira export: `Issue key`, `Summary`, `Status`,
+  `Issue Type`, `Priority`, `Labels`, `Component/s`, `Sprint`, plus an estimate column) and
+  configure `tracker: {kind: csv, fields: {estimate: <column title>}}`. Then
+  `foresprint tickets TEAM --import FILE.csv` shows a preview and `--apply` writes. Semicolon or
+  comma delimiters and decimal comma are accepted.
+- `projects.yaml` (written by hand is fine):
+
+```yaml
+schema: 1
+projects:
+- id: payment-v2
+  name: Payment processing v2
+  product: storefront     # required when features.products is on, must be empty when off
+  target: 2027-03-31
+  priority: 1
+  match:                  # which tickets belong here; short form = OR of leaves
+    epic: [ABC-100]
+    label: [payment]
+```
+
+Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, `in_sprint`.
+Details: `docs/data-format.md`, section "Ticket pre-planning".
+
+## Already a Foresprint workbook?
+
+If the workbook is a Foresprint export (written by `foresprint excel`), do not use this skill:
+`foresprint excel-import TEAM FILE` (preview) and `--apply` read it back directly.
+
+## Maintenance
+
+- Source of truth: `docs/data-format.md`. When it changes, update this file and the example in
+  `examples/expected/`; the test `tests/test_skill_excel_import.py` fails if the example no
+  longer passes `foresprint check`.
+- Do not invent fields that `docs/data-format.md` does not list. If the format gains fields
+  (for example for projects), add them to the relevant section above and add matching questions
+  to `questions.md`.
