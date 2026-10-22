@@ -3,7 +3,9 @@
 
 import type { Api } from './api';
 import type { ForecastRow, ForecastView, WhatIfRow, WhenDoneView } from './types.forecast';
-import type { Prefs, Result, SprintInfo, Status } from './types';
+import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import type { Prefs, SprintInfo } from './types';
+import type { TodayData, TodaySprint } from './types.today';
 
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
@@ -34,15 +36,6 @@ let prefs: Prefs = {
   dataDir: '/demo/teams',
   recentDataDirs: ['/demo/teams'],
 };
-
-let incoming = 2;
-const status = (): Status => ({
-  storage: incoming > 0 ? 'incoming' : 'saved',
-  detail: '',
-  incoming,
-  findings: 1,
-  tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '' },
-});
 
 // Forecast of Team Atlas: 10 completed sprints, the current one and 4 coming ones.
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -76,9 +69,55 @@ function forecastView(): ForecastView {
   return { team: 'atlas', today: iso(base + 10 * 14 * day + 3 * day), referenceCapacity: ref, window: 6, roadmapShare: 0.8, trendMode: 'flat', horizon: 4, rounding: 0, samples: 6, fewSamples: false, rate: nvTrend / ref, past, upcoming };
 }
 
-const ok = (message: string): Result => ({ ok: true, message });
+function today(): TodayData {
+  const day = new Date().toISOString().slice(0, 10);
+  const at = Math.max(0, sprints.findIndex((s) => s.state === 'current'));
+  const left = (s: SprintInfo) => Math.max(0, Math.round((Date.parse(s.end) - Date.now()) / 86400000));
+  const toStart = (s: SprintInfo) => Math.max(0, Math.round((Date.parse(s.start) - Date.now()) / 86400000));
+  const [cur, nxt, later] = [sprints[at], sprints[at + 1], sprints[at + 2]];
+  const out: TodaySprint[] = [];
+  if (cur) out.push({ ...cur, state: 'running', daysLeft: left(cur), daysToStart: 0, steps: [{ key: 'review', state: 'open', detail: '' }] });
+  if (nxt)
+    out.push({
+      ...nxt,
+      state: 'next',
+      daysLeft: 0,
+      daysToStart: toStart(nxt),
+      steps: [
+        { key: 'absences', state: 'open', detail: 'announced only (3 people)' },
+        { key: 'preplan', state: 'open', detail: '2 of 4 products' },
+        { key: 'plan', state: 'open', detail: '' },
+      ],
+    });
+  if (later)
+    out.push({
+      ...later,
+      state: 'later',
+      daysLeft: 0,
+      daysToStart: toStart(later),
+      steps: [
+        { key: 'absences', state: 'open', detail: 'not entered yet' },
+        { key: 'preplan', state: 'open', detail: '' },
+        { key: 'plan', state: 'open', detail: '' },
+      ],
+    });
+  return {
+    date: day,
+    team: 'atlas',
+    name: 'Team Atlas',
+    source: 'tracker',
+    sprints: out,
+    errors: 0,
+    notices: 2,
+    findings: [
+      { level: 'notice', where: 'sprints/2026.22.yaml', message: 'Absences are announced only.', route: '/sprint/prepare' },
+      { level: 'notice', where: 'products.yaml: platform', message: 'The product has no share in the sprint.', route: '/team/products' },
+    ],
+  };
+}
 
 export const mockApi: Api = {
+  ...dataMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -112,15 +151,16 @@ export const mockApi: Api = {
     return status();
   },
   async Save() {
-    incoming = 0;
-    return ok('Saved.');
+    return saveMock(false);
   },
   async Refresh() {
-    incoming = 0;
-    return ok('Up to date.');
+    return refreshMock();
+  },
+  async Today() {
+    return today();
   },
   async SyncTracker() {
-    return ok('Tracker synced.');
+    return { ok: true, message: 'Tracker synced.' };
   },
   async Forecast() {
     return forecastView();

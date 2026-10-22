@@ -9,6 +9,22 @@
   "No folder dialog in this build.": "Dieser Build hat keinen Ordnerdialog.",
   "Choose the data folder": "Datenordner wählen",
   "Absence days and focus must not be negative.": "Abwesenheitstage und Fokus dürfen nicht negativ sein.",
-  "Remaining work must not be negative and the share must be between 0 and 100.": "Der Rest darf nicht negativ sein und der Anteil muss zwischen 0 und 100 liegen."
+  "Remaining work must not be negative and the share must be between 0 and 100.": "Der Rest darf nicht negativ sein und der Anteil muss zwischen 0 und 100 liegen.",
+  "announced only ({count} people)": "nur angekündigt ({count} Personen)",
+  "not entered yet": "noch nicht eingetragen",
+  "{done} of {total} products": "{done} von {total} Produkten",
+  "announced only (1 person)": "nur angekündigt (1 Person)",
+  "Nothing to save.": "Es gibt nichts zu speichern.",
+  "Done. Took over 1 change from others.": "Fertig. 1 Änderung von anderen übernommen.",
+  "Done. Took over {count} changes from others.": "Fertig. {count} Änderungen von anderen übernommen.",
+  "The data has errors. Fix them or save anyway.": "In den Daten gibt es Fehler. Korrigiere sie oder speichere trotzdem.",
+  "{count} files need your decision.": "{count} Dateien warten auf deine Entscheidung.",
+  "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",
+  "Saved on this computer. It is shared when the connection is back.": "Auf diesem Rechner gespeichert. Es geht ans Team, sobald die Verbindung wieder da ist.",
+  "No connection. You keep working with the last state.": "Keine Verbindung. Du arbeitest mit dem letzten Stand.",
+  "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
+  "You may not write to this storage.": "Du darfst in diesen Speicher nicht schreiben.",
+  "Saving did not work.": "Speichern hat nicht geklappt.",
+  "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe."
  }
 }
