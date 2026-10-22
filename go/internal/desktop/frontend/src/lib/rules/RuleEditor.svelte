@@ -42,6 +42,8 @@
       valid = true;
       return;
     }
+    // Until the answer for this text is in, it does not count as a rule (Save must wait).
+    valid = false;
     const timer = setTimeout(async () => {
       try {
         const result = await api.CheckRule(team, text, owner);
@@ -53,6 +55,7 @@
       } catch (e) {
         if (mine !== run) return;
         failed = e instanceof Error ? e.message : String(e);
+        preview = undefined;
         valid = false;
       }
     }, 200);
@@ -60,9 +63,24 @@
   });
 
   $effect(() => {
-    if (fields.length) return;
-    api.RuleFields(team).then((list) => (fields = list)).catch(() => {});
+    const forTeam = team;
+    api
+      .RuleFields(forTeam)
+      .then((list) => {
+        if (forTeam === team) fields = list;
+      })
+      .catch(() => {});
   });
+
+  /** Short text for screen readers; the banner below has the details. */
+  const status = $derived(
+    failed ||
+      (preview && !preview.valid
+        ? `${t('Rule is not complete')}: ${preview.error ?? ''}`
+        : preview
+          ? t('{count} tickets match ({points} points).', { count: preview.matches, points: preview.points })
+          : ''),
+  );
 
   function insert(field: string) {
     if (!area) return;
@@ -99,7 +117,8 @@
     · {t('Operators')} <span class="data">= != ~ !~ IN NOT IN AND OR NOT ( )</span>
   </div>
 
-  <div id="rp-{uid}" aria-live="polite">
+  <span class="sr-only" aria-live="polite">{status}</span>
+  <div id="rp-{uid}">
     {#if failed}
       <div class="banner bad"><Icon name="error" /><div class="grow">{failed}</div></div>
     {:else if preview && !preview.valid}
@@ -115,10 +134,13 @@
       <div class="banner info">
         <Icon name="preview" />
         <div class="grow">
-          <strong class="data">{preview.matches}</strong>
-          {t('tickets match')} (<span class="data">{preview.points}</span>
-          {t('points')}){#if preview.moved > 0}, <span class="data">{preview.moved}</span>
-            {t('of them are assigned differently today')}{/if}.
+          {#if preview.matches === 1 && preview.moved === 0}
+            {t('One ticket matches ({points} points).', { points: preview.points })}
+          {:else if preview.moved > 0}
+            {t('{count} tickets match ({points} points), {moved} of them are assigned differently today.', { count: preview.matches, points: preview.points, moved: preview.moved })}
+          {:else}
+            {t('{count} tickets match ({points} points).', { count: preview.matches, points: preview.points })}
+          {/if}
           {#if preview.clash > 0}
             <span class="chip warn">{t('{count} also match another rule', { count: preview.clash })}</span>
           {/if}
@@ -143,6 +165,14 @@
     font-variant-ligatures: none;
     font-feature-settings: 'calt' 0, 'liga' 0;
     resize: vertical;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .sample {
     margin-top: 4px;
