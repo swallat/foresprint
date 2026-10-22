@@ -73,6 +73,61 @@ jobs:
           version: v2.5.0
           working-directory: go
 
+  # The window (go/internal/desktop): the frontend is checked, tested and built, then the program
+  # with the window is built on all three platforms (one program: command line and window).
+  desktop:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: go
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: go/internal/desktop/frontend/package-lock.json
+      - name: Frontend (check, test, build)
+        working-directory: go/internal/desktop/frontend
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+      - name: Web view libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev xvfb
+      - name: Build the program with the window
+        shell: bash
+        run: |
+          tags=desktop,production
+          if [ "$RUNNER_OS" = "Linux" ]; then tags=$tags,webkit2_41; fi
+          # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
+          if [ "$RUNNER_OS" = "macOS" ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
+          exe=foresprint; if [ "$RUNNER_OS" = "Windows" ]; then exe=foresprint.exe; fi
+          go build -tags "$tags" -o "../dist/$exe" ./cmd/foresprint
+          "../dist/$exe" version
+      - name: The window opens (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # The program runs until it is stopped: exit code 124 of timeout means that it did.
+          code=0
+          xvfb-run -a timeout 10 ../dist/foresprint --data ../examples/teams || code=$?
+          test "$code" = 124
+      - uses: actions/upload-artifact@v4
+        with:
+          name: foresprint-${{ runner.os }}
+          path: dist/foresprint*
+          retention-days: 7
+
   build:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
