@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -42,7 +43,7 @@ func TestLinux(t *testing.T) {
 	if !strings.Contains(string(text), `Exec="/opt/fs/foresprint"`) || !strings.Contains(string(text), "Name=Foresprint") {
 		t.Errorf("entry: %s", text)
 	}
-	if info, _ := os.Stat(paths[0]); info.Mode()&0o100 == 0 {
+	if info, _ := os.Stat(paths[0]); runtime.GOOS != "windows" && info.Mode()&0o100 == 0 { // no execute bit there
 		t.Error("the launcher must be executable")
 	}
 }
