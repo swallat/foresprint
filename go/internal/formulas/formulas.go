@@ -158,7 +158,7 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 	case engine.SourceRecorded:
 		return step(f.t("Recorded in the sprint file (frozen at the review)"), same)
 	case engine.SourcePeople:
-		b := capacity.Sprint(team, fc.Data.People, e.Sprint, 0)
+		b := capacity.Sprint(team, fc.Data.People, forecast.EffectiveSprint(fc.Data, e.Sprint), 0)
 		parts := make([]string, len(b.People))
 		for i, p := range b.People {
 			parts[i] = fmt.Sprintf("%s (%d − %d − %s) × %s", f.code(p.Person.Name, code), p.Workdays,

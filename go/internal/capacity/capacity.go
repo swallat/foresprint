@@ -311,30 +311,10 @@ func ProductionTimeOf(team *model.Team, people []model.Person, sprint model.Spri
 // does not have a working day on it. Sprints without a working day in the period are left out.
 func PeriodDays(team *model.Team, person model.Person, from, to time.Time, sprints []model.Sprint) map[string]float64 {
 	result := map[string]float64{}
-	if to.Before(from) {
-		return result
-	}
-	country := text(person.Country)
-	if country == "" {
-		country = team.Capacity.Country
-	}
-	region := text(person.Region)
-	if region == "" && text(person.Country) == "" {
-		region = text(team.Capacity.Region)
-	}
-	weekend := calendar.PersonWeekend(team, person)
+	period := model.AbsencePeriod{From: from, To: to}
 	for _, s := range sprints {
-		count := 0
-		for _, d := range calendar.Workdays(s.Start, s.End, weekend) {
-			if d.Before(from) || d.After(to) || person.FTEOn(d) <= 0 {
-				continue
-			}
-			if !calendar.IsHoliday(d, region, country) {
-				count++
-			}
-		}
-		if count > 0 {
-			result[s.ID] = float64(count)
+		if n := len(periodDaySet(team, person, period, s)); n > 0 {
+			result[s.ID] = float64(n)
 		}
 	}
 	return result
