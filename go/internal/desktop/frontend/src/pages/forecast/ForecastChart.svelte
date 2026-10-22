@@ -9,8 +9,10 @@
     whatIf?: WhatIfRow[];
     /** How many completed sprints to show. */
     shown?: number;
+    /** Decimals of the plan numbers (the team's rounding). */
+    digits?: number;
   }
-  let { past, upcoming, whatIf = [], shown = 10 }: Props = $props();
+  let { past, upcoming, whatIf = [], shown = 10, digits = 0 }: Props = $props();
 
   const W = 760;
   const H = 300;
@@ -92,10 +94,10 @@
   {#if planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
 
   {#each nvPts as p (p.r.id)}
-    <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{p.r.id}: {t('Normalized velocity')} {fmt(p.r.normalizedVelocity)}</title></rect>
+    <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmt(p.r.normalizedVelocity) })}</title></rect>
   {/each}
   {#each velocityPts as p (p.r.id)}
-    <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{p.r.id}: {t('Velocity')} {fmt(p.r.velocity)}</title></circle>
+    <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{t('{id}: velocity {n}', { id: p.r.id, n: fmt(p.r.velocity) })}</title></circle>
   {/each}
 
   {#each planPts as p (p.r.id)}
@@ -105,14 +107,16 @@
       <line x1={p.x - 5} x2={p.x + 5} y1={y(p.r.low)} y2={y(p.r.low)} class="s fc" />
     {/if}
     <polygon points={diamond(p.x, p.y, 7)} class="o fc">
-      <title>{p.r.id}: {t('Forecast PLAN')} {fmt(p.r.plan)}{p.r.low !== null ? `, ${t('Range')} ${fmt(p.r.low)} – ${fmt(p.r.high)}` : ''}</title>
+      <title>{p.r.low !== null
+        ? t('{id}: Forecast PLAN {plan}, range {low} – {high}', { id: p.r.id, plan: fmt(p.r.plan, digits), low: fmt(p.r.low, digits), high: fmt(p.r.high, digits) })
+        : t('{id}: Forecast PLAN {plan}', { id: p.r.id, plan: fmt(p.r.plan, digits) })}</title>
     </polygon>
-    <text x={p.x + 11} y={p.y + 4} class="value">{fmt(p.r.plan, 0)}</text>
+    <text x={p.x + 11} y={p.y + 4} class="value">{fmt(p.r.plan, digits)}</text>
   {/each}
 
   {#each wiPts as p (p.w.id)}
-    <polygon points={triangle(p.x, p.y, 7)} class="o wif"><title>{p.w.id}: {t('What if')} {fmt(p.w.forecast)}</title></polygon>
-    <text x={p.x + 11} y={p.y + 4} class="value wiftext">{fmt(p.w.forecast, 0)}</text>
+    <polygon points={triangle(p.x, p.y, 7)} class="o wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
+    <text x={p.x + 11} y={p.y + 4} class="value wiftext">{fmt(p.w.forecast, digits)}</text>
   {/each}
 </svg>
 

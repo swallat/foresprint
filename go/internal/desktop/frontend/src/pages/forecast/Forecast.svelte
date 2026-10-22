@@ -18,17 +18,21 @@
 
   $effect(() => {
     const team = app.team;
+    let stale = false;
     view = undefined;
     problem = '';
     if (!team) return;
     api
       .Forecast(team)
       .then((v) => {
-        if (team === app.team) view = v;
+        if (!stale) view = v;
       })
       .catch((e) => {
-        if (team === app.team) problem = String(e);
+        if (!stale) problem = String(e);
       });
+    return () => {
+      stale = true;
+    };
   });
 
   // What if: fewer person days and a different focus; nothing is saved.
@@ -44,13 +48,21 @@
       whatIf = [];
       return;
     }
+    let stale = false;
     const timer = setTimeout(() => {
       api
         .ForecastWhatIf(team, days, f)
-        .then((rows) => (whatIf = rows))
-        .catch(() => (whatIf = []));
+        .then((rows) => {
+          if (!stale) whatIf = rows;
+        })
+        .catch(() => {
+          if (!stale) whatIf = [];
+        });
     }, 150);
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
   });
   const whatIfById = $derived(new Map(whatIf.map((r) => [r.id, r])));
 
@@ -59,17 +71,23 @@
   let share = $state(50);
   let done = $state<WhenDoneView>();
   let doneProblem = $state('');
+  let asked = 0;
   async function ask(): Promise<void> {
+    const team = app.team;
+    const id = ++asked;
     doneProblem = '';
     try {
-      done = await api.ForecastWhenDone(app.team, remaining, share);
+      const result = await api.ForecastWhenDone(team, remaining, share);
+      if (id === asked && team === app.team) done = result;
     } catch (e) {
-      doneProblem = String(e);
+      if (id === asked && team === app.team) doneProblem = String(e);
     }
   }
   $effect(() => {
     void app.team;
+    asked++;
     done = undefined;
+    doneProblem = '';
   });
 
   const next = $derived(view?.upcoming.find((r) => r.plan !== null));
@@ -85,6 +103,13 @@
     }
   }
   const sum = (rows: (number | null)[]): number => rows.reduce<number>((a, v) => a + (v ?? 0), 0);
+  function totalRange(rows: { low: number | null; high: number | null }[], digits: number): string {
+    const lo = total(rows.map((r) => r.low), digits);
+    return lo === '–' ? lo : `${lo} – ${total(rows.map((r) => r.high), digits)}`;
+  }
+  /** The sum of a column, or "–" if a row has no value (a partial sum would mislead). */
+  const total = (rows: (number | null)[], digits: number): string =>
+    rows.length > 0 && rows.every((v) => v !== null) ? fmt(sum(rows), digits) : '–';
 </script>
 
 <PageHead title={t('Forecast')} lead={t('How many points the coming sprints can take, with a range.')} />
@@ -105,7 +130,7 @@
   <div class="stack-lg">
     <section class="card" aria-labelledby="fc-chart">
       <h2 id="fc-chart">{t('Velocity and Forecast PLAN')}</h2>
-      <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} />
+      <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} digits={view.rounding} />
       {#if view.rate !== null}
         <p class="small muted rate">
           {t('Team rate: {rate} points per person day (estimate from the last sprints).', { rate: fmt(view.rate, 2) })}
@@ -147,15 +172,15 @@
                   {#if r.unsure}<span class="chip warn">{t('unsure')}</span>{/if}
                 </td>
                 <td class="num">{fmt(r.trend)}</td>
-                <td class="num"><strong>{fmt(r.plan, 0)}</strong></td>
-                <td class="num">{r.low !== null ? `${fmt(r.low, 0)} – ${fmt(r.high, 0)}` : '–'}</td>
-                <td class="num">{fmt(r.plannable, 0)}</td>
-                <td class="num">{fmt(r.small, 0)}</td>
+                <td class="num"><strong>{fmt(r.plan, view.rounding)}</strong></td>
+                <td class="num">{r.low !== null ? `${fmt(r.low, view.rounding)} – ${fmt(r.high, view.rounding)}` : '–'}</td>
+                <td class="num">{fmt(r.plannable, view.rounding)}</td>
+                <td class="num">{fmt(r.small, view.rounding)}</td>
                 {#if whatIf.length > 0}
                   <td class="num">
                     {#if w}
-                      <strong class="wif">{fmt(w.forecast, 0)}</strong>
-                      <span class="small" class:neg={w.delta < 0}>({w.delta > 0 ? '+' : ''}{fmt(w.delta, 0)})</span>
+                      <strong class="wif">{fmt(w.forecast, view.rounding)}</strong>
+                      <span class="small" class:neg={w.delta < 0}>({w.delta > 0 ? '+' : ''}{fmt(w.delta, view.rounding)})</span>
                     {:else}–{/if}
                   </td>
                 {/if}
@@ -165,7 +190,7 @@
                       {#if r.planSource === 'projection' && r.trend !== null && r.capacity !== null}
                         <div class="data">
                           {fmt(r.trend)} ÷ {fmt(view.referenceCapacity, 0)} × {fmt(r.capacity)} = {fmt((r.trend / view.referenceCapacity) * r.capacity, 2)}
-                          → {fmt(r.plan, 0)}
+                          → {fmt(r.plan, view.rounding)}
                         </div>
                         <div class="muted">
                           {t('Trend of the normalized velocity ÷ reference capacity × capacity of the sprint, rounded down.')}
@@ -188,11 +213,11 @@
                 <td class="num">{fmt(sum(view.upcoming.map((r) => r.capacity)))}</td>
                 <td></td>
                 <td></td>
-                <td class="num">{fmt(sum(view.upcoming.map((r) => r.plan)), 0)}</td>
-                <td class="num">{fmt(sum(view.upcoming.map((r) => r.low)), 0)} – {fmt(sum(view.upcoming.map((r) => r.high)), 0)}</td>
-                <td class="num">{fmt(sum(view.upcoming.map((r) => r.plannable)), 0)}</td>
-                <td class="num">{fmt(sum(view.upcoming.map((r) => r.small)), 0)}</td>
-                {#if whatIf.length > 0}<td class="num">{fmt(sum(whatIf.map((r) => r.forecast)), 0)}</td>{/if}
+                <td class="num">{total(view.upcoming.map((r) => r.plan), view.rounding)}</td>
+                <td class="num">{totalRange(view.upcoming, view.rounding)}</td>
+                <td class="num">{total(view.upcoming.map((r) => r.plannable), view.rounding)}</td>
+                <td class="num">{total(view.upcoming.map((r) => r.small), view.rounding)}</td>
+                {#if whatIf.length > 0}<td class="num">{fmt(sum(whatIf.map((r) => r.forecast)), view.rounding)}</td>{/if}
                 <td></td>
               </tr>
             {/if}
@@ -220,8 +245,8 @@
           <p>
             {t('Over {n} sprints the forecast changes from {a} to {b} points.', {
               n: whatIf.length,
-              a: fmt(sum(whatIf.map((r) => r.base)), 0),
-              b: fmt(sum(whatIf.map((r) => r.forecast)), 0),
+              a: fmt(sum(whatIf.map((r) => r.base)), view.rounding),
+              b: fmt(sum(whatIf.map((r) => r.forecast)), view.rounding),
             })}
           </p>
         {/if}
@@ -247,15 +272,24 @@
           </div>
           <button class="btn primary" type="submit">{t('Calculate')}</button>
         </form>
+        <div aria-live="polite">
         {#if doneProblem}
           <Banner tone="bad">{doneProblem}</Banner>
         {:else if done && !done.available}
-          <Banner tone="info">{t('There are too few sprints with a velocity to simulate. At least 2 are needed.')}</Banner>
+          <Banner tone="info">
+            {#if done.remaining <= 0 || done.share <= 0}
+              {t('Enter the remaining work and a share above 0 to simulate.')}
+            {:else}
+              {t('There are too few sprints with a velocity to simulate. At least 2 are needed.')}
+            {/if}
+          </Banner>
         {:else if done}
-          <div aria-live="polite">
+          <div>
             <p>
-              {#if done.p50}
-                {t('Done in sprint {p50} in half of the runs, in sprint {p85} in 85 % of them.', { p50: done.p50, p85: done.p85 || t('later than the period') })}
+              {#if done.p50 && done.p85}
+                {t('Done in sprint {p50} in half of the runs, in sprint {p85} in 85 % of them.', { p50: done.p50, p85: done.p85 })}
+              {:else if done.p50}
+                {t('Done in sprint {p50} in half of the runs; in 85 % of them not within the simulated period.', { p50: done.p50 })}
               {:else}
                 {t('Not done within the simulated period.')}
               {/if}
@@ -288,6 +322,7 @@
             </p>
           </div>
         {/if}
+        </div>
       </section>
     </div>
 
@@ -314,9 +349,9 @@
                 <tr>
                   <td><span class="data">{r.id}</span> <span class="small muted data">{shortDate(r.start)} – {shortDate(r.end)}</span></td>
                   <td class="num">{fmt(r.capacity)}</td>
-                  <td class="num">{fmt(r.commitment, 0)}</td>
-                  <td class="num">{fmt(r.velocity, 0)}</td>
-                  <td class="num">{r.fulfillment !== null ? `${fmt(r.fulfillment, 0)} %` : '–'}</td>
+                  <td class="num">{fmt(r.commitment)}</td>
+                  <td class="num">{fmt(r.velocity)}</td>
+                  <td class="num">{pct(r.fulfillment)}</td>
                   <td class="num">{fmt(r.normalizedVelocity)}</td>
                   <td class="num">{fmt(r.trend)}</td>
                 </tr>

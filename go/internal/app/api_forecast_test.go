@@ -29,6 +29,10 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 			t.Errorf("%s: unchanged assumptions change the forecast by %v", r.ID, r.Delta)
 		}
 	}
+	focused, _ := api.ForecastWhatIf(key, 0, 90)
+	if len(focused) > 0 && focused[0].Forecast > focused[0].Base {
+		t.Errorf("a lower focus must not raise the forecast: %v > %v", focused[0].Forecast, focused[0].Base)
+	}
 	less, _ := api.ForecastWhatIf(key, 3, 100)
 	if len(less) > 0 && less[0].Delta >= 0 {
 		t.Errorf("fewer person days must lower the forecast, delta %v", less[0].Delta)

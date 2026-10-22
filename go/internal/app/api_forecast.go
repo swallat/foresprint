@@ -142,7 +142,7 @@ func (a *API) ForecastWhatIf(team string, extraAbsenceDays, focusPercent float64
 			continue
 		}
 		capacity := max(0, *r.PlanCapacity-extraAbsenceDays)
-		forecastValue := engine.RoundDown(analysis.PlanAt(s, *r.NormalizedVelocity.Trend, capacity)*focusPercent/100, s.Rounding)
+		forecastValue := engine.RoundDown(*r.NormalizedVelocity.Trend/s.ReferenceCapacity*capacity*focusPercent/100, s.Rounding)
 		out = append(out, WhatIfRow{ID: e.Sprint.ID, Capacity: capacity, Forecast: forecastValue, Base: *r.Plan, Delta: forecastValue - *r.Plan})
 	}
 	return out, nil

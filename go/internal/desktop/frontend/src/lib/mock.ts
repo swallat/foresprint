@@ -60,7 +60,7 @@ function forecastView(): ForecastView {
       id: `2026.${12 + i}`, start: iso(base + i * 14 * day), end: iso(base + i * 14 * day + 11 * day), state, recorded: i < 11,
       capacity: caps[i] ?? 39, capacitySource: i < 10 ? 'recorded' : 'people list', unsure: false,
       commitment: v !== null ? v + 2 : null, velocity: v, normalizedVelocity: nv, average: nv, trend: nv,
-      fulfillment: v !== null ? round1((v / (v + 2)) * 100) : null, plan: null, planSource: '', low: null, high: null, plannable: null, small: null,
+      fulfillment: v !== null ? Math.round((v / (v + 2)) * 1000) / 1000 : null, plan: null, planSource: '', low: null, high: null, plannable: null, small: null,
     };
   };
   const past = Array.from({ length: 10 }, (_, i) => row(i, 'past'));
