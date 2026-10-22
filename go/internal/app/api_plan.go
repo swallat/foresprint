@@ -801,7 +801,7 @@ func (a *API) planEdit(team, sprintID string, fn func(c *planCtx, s *model.Sprin
 	return nil
 }
 
-func nonNegative(v *float64) error {
+func planNonNegative(v *float64) error {
 	if v != nil && (*v < 0 || math.IsNaN(*v) || math.IsInf(*v, 0)) {
 		return errors.New(i18n.T("The amount must be a number of 0 or more."))
 	}
@@ -832,7 +832,7 @@ func setProductValue(s *model.Sprint, product string, f func(v *model.ProductVal
 
 // SetPreplanned sets (or, with nil, clears) the pre-planned amount of a product in a sprint.
 func (a *API) SetPreplanned(team, sprintID, product string, value *float64) error {
-	if err := nonNegative(value); err != nil {
+	if err := planNonNegative(value); err != nil {
 		return err
 	}
 	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
@@ -880,7 +880,7 @@ func (a *API) UseDefaults(team, sprintID string) error {
 // SetProjectAmount sets (or clears) the part of a sprint's amount that goes to a project; used
 // by teams without tickets.
 func (a *API) SetProjectAmount(team, sprintID, project string, value *float64) error {
-	if err := nonNegative(value); err != nil {
+	if err := planNonNegative(value); err != nil {
 		return err
 	}
 	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
@@ -903,7 +903,7 @@ func (a *API) SetProjectAmount(team, sprintID, project string, value *float64) e
 
 // SetProductionPT sets the production work of a sprint in person days (teams without tickets).
 func (a *API) SetProductionPT(team, sprintID string, value *float64) error {
-	if err := nonNegative(value); err != nil {
+	if err := planNonNegative(value); err != nil {
 		return err
 	}
 	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
@@ -992,7 +992,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	if c.stage() == "past" || c.stage() == "current" {
 		return "", errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
 	}
-	if err := nonNegative(in.Commitment); err != nil {
+	if err := planNonNegative(in.Commitment); err != nil {
 		return "", err
 	}
 	s := c.sprint.Clone()
