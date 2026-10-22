@@ -34,6 +34,21 @@
   "No file dialog in this build.": "Dieser Build hat keinen Dateidialog.",
   "Choose the folder for the export": "Ordner für den Export wählen",
   "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
-  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut."
+  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut.",
+  "Numbers in the Review must not be negative.": "Zahlen im Review dürfen nicht negativ sein.",
+  "Sprint {id} has not begun; it cannot be reviewed yet.": "Der Sprint {id} hat noch nicht begonnen; sein Review ist noch nicht möglich.",
+  "The rest that continues cannot be more than what was not done.": "Der Rest, der weiterläuft, kann nicht größer sein als das Nicht-Erledigte.",
+  "Not done cannot be more than the commitment.": "Nicht erledigt kann nicht mehr sein als die Zusage.",
+  "Only the latest reviewed sprint can be reopened.": "Nur der zuletzt abgeschlossene Sprint lässt sich wieder öffnen.",
+  "This is not a minutes file.": "Das ist keine Protokolldatei.",
+  "Commitment of the sprint": "Zusage des Sprints",
+  "Not done": "Nicht erledigt",
+  "Done in addition": "Zusätzlich erledigt",
+  "Velocity": "Velocity",
+  "Person days (frozen)": "Personentage (eingefroren)",
+  "Rate per person day": "Rate je Personentag",
+  "rest {rest}": "Rest {rest}",
+  "Done tickets": "Erledigte Tickets",
+  "Carried over": "Übertragen"
  }
 }
