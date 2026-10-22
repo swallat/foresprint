@@ -43,19 +43,23 @@ type SprintReview struct {
 	Tickets    bool    `json:"tickets"` // the team commits to tickets
 	Commitment float64 `json:"commitment"`
 	// CommitmentSet is false for a sprint without a recorded commitment: the page asks for it.
-	CommitmentSet  bool            `json:"commitmentSet"`
-	NotDone        float64         `json:"notDone"`
-	AdditionalDone float64         `json:"additionalDone"`
-	RestNext       float64         `json:"restNext"` // without tickets: rest that continues in the next sprint
-	Velocity       float64         `json:"velocity"`
-	List           []ReviewTicket  `json:"list"`
-	Targets        []ReviewTarget  `json:"targets"`
-	PlannedDays    float64         `json:"plannedDays"`
-	FrozenDays     float64         `json:"frozenDays"`
-	Rate           *float64        `json:"rate"` // velocity per person day, nil without days
-	Products       []ReviewProduct `json:"products"`
-	ProductsOn     bool            `json:"productsOn"`
-	ProductionOn   bool            `json:"productionOn"`
+	CommitmentSet  bool    `json:"commitmentSet"`
+	NotDone        float64 `json:"notDone"`
+	AdditionalDone float64 `json:"additionalDone"`
+	// Pulled are the done tickets pulled in after the freeze; their estimates prefill AdditionalDone
+	// of an open Review. NoEstimate are those among them without an estimate.
+	Pulled       []string        `json:"pulled"`
+	NoEstimate   []string        `json:"noEstimate"`
+	RestNext     float64         `json:"restNext"` // without tickets: rest that continues in the next sprint
+	Velocity     float64         `json:"velocity"`
+	List         []ReviewTicket  `json:"list"`
+	Targets      []ReviewTarget  `json:"targets"`
+	PlannedDays  float64         `json:"plannedDays"`
+	FrozenDays   float64         `json:"frozenDays"`
+	Rate         *float64        `json:"rate"` // velocity per person day, nil without days
+	Products     []ReviewProduct `json:"products"`
+	ProductsOn   bool            `json:"productsOn"`
+	ProductionOn bool            `json:"productionOn"`
 	// Production is the done amount with production access for a team without products.
 	Production float64 `json:"production"`
 	Tag        string  `json:"tag"`

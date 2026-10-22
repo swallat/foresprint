@@ -17,15 +17,15 @@ import (
 	"github.com/swallat/foresprint/internal/workpackages"
 )
 
-// maxImportBytes is the largest file the import reads.
-const maxImportBytes = 20 << 20
+// csvimportMaxBytes is the largest file the import reads.
+const csvimportMaxBytes = 20 << 20
 
-func isCSV(path string) bool {
+func csvimportIs(path string) bool {
 	return strings.EqualFold(filepath.Ext(path), ".csv")
 }
 
-// packageImport is a CSV table read against the work packages of a team.
-type packageImport struct {
+// csvimportPlan is a CSV table read against the work packages of a team.
+type csvimportPlan struct {
 	data     *storage.TeamData
 	merged   []model.Ticket
 	changes  []ImportChange
@@ -34,24 +34,24 @@ type packageImport struct {
 	hash     string
 }
 
-// readImportFile reads a regular file of reasonable size.
-func readImportFile(path string) ([]byte, error) {
+// csvimportRead reads a regular file of reasonable size.
+func csvimportRead(path string) ([]byte, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
-	if !info.Mode().IsRegular() || info.Size() > maxImportBytes {
+	if !info.Mode().IsRegular() || info.Size() > csvimportMaxBytes {
 		return nil, errors.New(i18n.T("The file is not a regular file or larger than 20 MB."))
 	}
 	return os.ReadFile(path)
 }
 
-// planPackages reads the CSV table and merges it with the work packages of the team. Only a
+// csvimportPlanOf reads the CSV table and merges it with the work packages of the team. Only a
 // team that keeps its work packages in Foresprint takes a table; a tracker team gets its tickets
 // from the tracker. The hash covers the table and the current work packages, so apply refuses
 // when either changed since the preview.
-func (a *API) planPackages(team, path string) (*packageImport, error) {
-	raw, err := readImportFile(path)
+func (a *API) csvimportPlanOf(team, path string) (*csvimportPlan, error) {
+	raw, err := csvimportRead(path)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (a *API) planPackages(team, path string) (*packageImport, error) {
 	if !res.HasLabels { // the table says nothing about labels: keep the existing ones
 		for i, p := range res.Packages {
 			if o, ok := old[p.Key]; ok {
-				res.Packages[i].Labels = unionOf(o.Labels, p.Labels)
+				res.Packages[i].Labels = csvimportUnion(o.Labels, p.Labels)
 			}
 		}
 	}
@@ -98,12 +98,12 @@ func (a *API) planPackages(team, path string) (*packageImport, error) {
 			changes = append(changes, ImportChange{File: file, Path: textfmt.BlankControls(m.Key), Old: "–", New: textfmt.BlankControls(m.Title)})
 			continue
 		}
-		changes = append(changes, packageDiff(file, o, m)...)
+		changes = append(changes, csvimportDiff(file, o, m)...)
 	}
-	return &packageImport{data: data, merged: merged, changes: changes, problem: res.Problems, unmapped: res.Unmapped, hash: hex.EncodeToString(sum.Sum(nil))}, nil
+	return &csvimportPlan{data: data, merged: merged, changes: changes, problem: res.Problems, unmapped: res.Unmapped, hash: hex.EncodeToString(sum.Sum(nil))}, nil
 }
 
-func unionOf(a, b []string) []string {
+func csvimportUnion(a, b []string) []string {
 	out := append([]string(nil), a...)
 	for _, x := range b {
 		if !slices.Contains(out, x) {
@@ -113,12 +113,12 @@ func unionOf(a, b []string) []string {
 	return out
 }
 
-// packageDiff lists the fields an import changes in an existing work package.
-func packageDiff(file string, o, n model.Ticket) []ImportChange {
+// csvimportDiff lists the fields an import changes in an existing work package.
+func csvimportDiff(file string, o, n model.Ticket) []ImportChange {
 	var out []ImportChange
 	add := func(field, before, after string) {
 		if before != after {
-			out = append(out, ImportChange{File: file, Path: textfmt.BlankControls(n.Key + "." + field), Old: textfmt.BlankControls(orDash(before)), New: textfmt.BlankControls(orDash(after))})
+			out = append(out, ImportChange{File: file, Path: textfmt.BlankControls(n.Key + "." + field), Old: textfmt.BlankControls(csvimportDash(before)), New: textfmt.BlankControls(csvimportDash(after))})
 		}
 	}
 	str := func(p *string) string {
@@ -149,15 +149,15 @@ func packageDiff(file string, o, n model.Ticket) []ImportChange {
 	return out
 }
 
-func orDash(s string) string {
+func csvimportDash(s string) string {
 	if s == "" {
 		return "–"
 	}
 	return s
 }
 
-func (a *API) previewPackages(team, path string) (ImportPreview, error) {
-	plan, err := a.planPackages(team, path)
+func (a *API) csvimportPreview(team, path string) (ImportPreview, error) {
+	plan, err := a.csvimportPlanOf(team, path)
 	if err != nil {
 		return ImportPreview{}, err
 	}
@@ -182,8 +182,8 @@ func (a *API) previewPackages(team, path string) (ImportPreview, error) {
 	return out, nil
 }
 
-func (a *API) applyPackages(team, path, hash string) ([]string, error) {
-	plan, err := a.planPackages(team, path)
+func (a *API) csvimportApply(team, path, hash string) ([]string, error) {
+	plan, err := a.csvimportPlanOf(team, path)
 	if err != nil {
 		return nil, err
 	}

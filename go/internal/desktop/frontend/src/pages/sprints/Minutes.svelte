@@ -8,6 +8,7 @@
   import { parse, type Inline } from '../../lib/markdown';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { MinutesRow, MinutesText } from '../../lib/types.review';
 
   let { params }: PageProps = $props();
@@ -56,6 +57,14 @@
     }
   }
 
+  async function openFile(path: string) {
+    try {
+      await api.OpenFile(path);
+    } catch (e) {
+      toast(String(e), 'bad');
+    }
+  }
+
   async function copyPath(path: string) {
     try {
       await navigator.clipboard.writeText(path);
@@ -71,6 +80,7 @@
 {#snippet spans(parts: Inline[])}{#each parts as p, i (i)}{#if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}{/snippet}
 
 <PageHead title={t('Sprint minutes')} lead={t('Every save of the pre-planning, the planning and the review writes a minutes file.')} />
+<StageNav stage="minutes" />
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>
@@ -133,6 +143,7 @@
       <h2 id="doc-h">{kindName(open.row.kind)} {open.row.sprint}</h2>
       {#if open.row.obsolete}<span class="chip warn"><Icon name="history" size={14} />{t('superseded')}</span>{/if}
       <span class="grow"></span>
+      <button type="button" class="btn" onclick={() => open && openFile(open.text.path)}><Icon name="open_in_new" />{t('Open as file')}</button>
       <button type="button" class="btn" onclick={() => open && copyPath(open.text.path)}><Icon name="content_copy" />{t('Copy path')}</button>
       <button type="button" class="btn ghost icon" aria-label={t('Close')} onclick={() => (open = undefined)}><Icon name="close" /></button>
     </div>

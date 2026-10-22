@@ -103,6 +103,9 @@ type CapacitySettings struct {
 	// AbsenceHistory: for future sprints without known absences, expect the average absences of
 	// the last this many sprints with confirmed absences. 0 = no estimate.
 	AbsenceHistory int
+	// ProductionCap is the most the time of the people with production access counts for
+	// production work, in percent (decision 20); 100 = no cap. See capacity.ProductionTimeOf.
+	ProductionCap float64
 }
 
 // Features are the optional areas that not every team needs. For a new team all are off.
@@ -172,6 +175,7 @@ func NewTeam(key, name string) Team {
 			Workweek:       "auto",
 			Rounding:       1,
 			AbsenceHistory: 4,
+			ProductionCap:  100,
 		},
 		Features: Features{Explicit: true},
 		Tracker:  NewTrackerSettings(),

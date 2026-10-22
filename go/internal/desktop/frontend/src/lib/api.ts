@@ -2,9 +2,13 @@
 // go/internal/app.API); in a browser (npm run dev, tests) a mock with the demo team answers.
 //
 // To add a method: add it to the Go struct (internal/app/api_<area>.go), add its signature to
-// `Api` below (or to an area interface that extends it) and an answer to the mock.
+// the interface of its area (types.<area>.ts) and an answer to the mock of the area
+// (mock/<area>.ts).
 
+import type { BacklogApi } from './types.backlog';
 import type { ForecastApi } from './types.forecast';
+import type { HelpApi } from './types.help';
+import type { SettingsApi } from './types.settings';
 import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { PlanApi } from './types.plan';
@@ -15,7 +19,9 @@ import type { SetupApi } from './types.setup';
 import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayApi, ForecastApi, TeamApi, SetupApi, PlanApi {
+// One interface per area (types.<area>.ts); only the methods of the shell are listed here.
+export interface Api
+  extends BacklogApi, DataApi, ForecastApi, HelpApi, PlanApi, ProjectsApi, ReviewApi, SettingsApi, SetupApi, SprintsApi, TeamApi, TodayApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -28,7 +34,6 @@ export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayA
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
-  SyncTracker(): Promise<Result>;
 }
 
 interface WailsWindow {

@@ -155,8 +155,8 @@ func (a *API) ExcelImportPreview(team string) (ImportPreview, error) {
 }
 
 func (a *API) previewImport(team, path string) (ImportPreview, error) {
-	if isCSV(path) {
-		return a.previewPackages(team, path)
+	if csvimportIs(path) {
+		return a.csvimportPreview(team, path)
 	}
 	plan, noTeam, hash, err := a.planImport(team, path)
 	if err != nil {
@@ -200,8 +200,8 @@ func (a *API) planImport(team, path string) (*excel.ImportPlan, bool, string, er
 // files. The window shows the preview first; hash is the one the preview returned, so a file
 // that changed in between is refused instead of writing values nobody saw.
 func (a *API) ExcelImportApply(team, path, hash string) ([]string, error) {
-	if isCSV(path) {
-		return a.applyPackages(team, path, hash)
+	if csvimportIs(path) {
+		return a.csvimportApply(team, path, hash)
 	}
 	plan, _, current, err := a.planImport(team, path)
 	if err != nil {

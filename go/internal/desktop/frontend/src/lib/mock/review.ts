@@ -3,7 +3,9 @@
 // not done + additionally done; the Review of the latest reviewed sprint can be reopened; the
 // minutes of a reopened Review stay as obsolete files.
 
-import type { SprintInfo } from './types';
+import type { SprintInfo } from '../types';
+import { sprints as demoSprints } from './shared';
+import { pendingTagNames } from './data';
 import type {
   MinutesRow,
   MinutesText,
@@ -13,7 +15,7 @@ import type {
   ReviewProduct,
   ReviewTicket,
   SprintReview,
-} from './types.review';
+} from '../types.review';
 
 const products = [
   { id: 'portal', name: 'Portal', share: 0.34 },
@@ -117,6 +119,8 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       commitmentSet: true,
       notDone,
       additionalDone: additional,
+      pulled: [],
+      noEstimate: [],
       restNext: input?.restNext ?? 0,
       velocity,
       list: rows,
@@ -177,11 +181,13 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       const text = minutesText(review);
       const same = files.find((f) => f.row.sprint === sprint && f.row.kind === 'review' && !f.row.obsolete && f.text === text);
       if (!same) files.unshift({ row: { sprint, kind: 'review', at: stamp(new Date()), file: name, obsolete: false }, text });
+      if (input.tag && !pendingTagNames.includes(input.tag)) pendingTagNames.push(input.tag);
       return { review, minutes: (same ?? files[0])?.row.file ?? '', tag: input.tag };
     },
     async ReopenReview(_team, sprint): Promise<ReviewClosed> {
       if (view(sprint).reopenable !== true) throw new Error('Only the latest reviewed sprint can be reopened.');
       closed.delete(sprint);
+      for (const f of files) if (f.row.sprint === sprint && f.row.kind === 'review') pendingTagNames.splice(0, pendingTagNames.length, ...pendingTagNames.filter((n) => n !== `atlas/${sprint}` && n !== sprint));
       for (const f of files) if (f.row.sprint === sprint && f.row.kind === 'review') f.row.obsolete = true;
       return { review: view(sprint), minutes: '', tag: '' };
     },
@@ -195,3 +201,5 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
     },
   };
 }
+
+export default createReviewMock(demoSprints);
