@@ -33,10 +33,9 @@
   const ticketsLabel = $derived(view?.source === 'packages' ? t('Work packages') : t('Tickets'));
   const unit = $derived(view?.source === 'packages' ? t('work packages') : t('tickets'));
 
-  // The default share is shown for the sprint to plan next: the second row (the first is the
-  // running sprint), or the only one.
+  // The default share is shown for the sprint to plan next: the first one that is not running.
   const defaults = $derived(view?.defaults ?? []);
-  const focus = $derived(defaults.length > 1 ? defaults[1] : defaults[0]);
+  const focus = $derived(defaults.find((d) => !d.running) ?? defaults[0]);
   const focusSum = $derived(active.reduce((n, p) => n + (focus?.values[p.id] ?? 0), 0));
 
   async function load() {
@@ -177,8 +176,8 @@
 </script>
 
 {#snippet calc(d: ProductsDefault, p: Product)}
-  {fmtNum(d.available ?? 0)}{d.roadmapShare ? ` (${t('Forecast PLAN')} ${fmtNum(d.plan ?? 0)} × ${percent(d.roadmapShare)} %)` : ''} ×
-  {p.share === null ? t('even share of the rest') : `${percent(p.share)} %`} = {fmtNum((d.values[p.id] ?? 0), 0)}
+  {#if d.roadmap}{t('Forecast PLAN')} {fmtNum(d.plan ?? 0)} × {percent(d.roadmapShare)} % = {fmtNum(d.available ?? 0)};
+  {/if}{#if p.share === null}({fmtNum(d.available ?? 0)} − {fmtNum(d.fixed)}) ÷ {d.rest} = {fmtNum(d.values[p.id] ?? 0, 0)}{:else}{fmtNum(d.available ?? 0)} × {percent(p.share)} % = {fmtNum(d.values[p.id] ?? 0, 0)}{/if}
 {/snippet}
 
 <PageHead title={t('Products')} {lead}>
@@ -240,7 +239,7 @@
                 {#if focus.values[p.id] !== undefined}
                   <span class="row nowrap end">
                     {fmtNum(focus.values[p.id]!, 0)}
-                    <Calc label={t('Default {sprint}', { sprint: focus.sprint })} topic="rate">
+                    <Calc label={t('Default {sprint}', { sprint: focus.sprint })} topic="plannable">
                       {@render calc(focus, p)}
                     </Calc>
                   </span>
@@ -328,8 +327,8 @@
                   {:else}
                     <span class="row nowrap end">
                       {fmtNum(d.plan)}
-                      <Calc label={t('Forecast PLAN {sprint}', { sprint: d.sprint })} topic="rate">
-                        {t('Forecast PLAN of {sprint}', { sprint: d.sprint })}: {fmtNum(d.plan)}{d.roadmapShare
+                      <Calc label={t('Forecast PLAN {sprint}', { sprint: d.sprint })} topic="forecast">
+                        {t('Forecast PLAN of {sprint}', { sprint: d.sprint })}: {fmtNum(d.plan)}{d.roadmap
                           ? ` × ${percent(d.roadmapShare)} % = ${fmtNum(d.available ?? 0)}`
                           : ''}
                       </Calc>

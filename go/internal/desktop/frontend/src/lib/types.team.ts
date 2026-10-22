@@ -101,9 +101,14 @@ export interface ProductsView {
 /** Default amount of one sprint: Forecast PLAN (times the plannable share on the roadmap basis) times each product's share. */
 export interface ProductsDefault {
   sprint: string;
+  running: boolean;
+  roadmap: boolean;
   plan: number | null;
   available: number | null;
   roadmapShare: number;
+  /** Sum of the fixed amounts and the number of products without a fixed share (they split the rest evenly). */
+  fixed: number;
+  rest: number;
   values: Record<string, number>;
 }
 

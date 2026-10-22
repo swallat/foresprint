@@ -118,17 +118,27 @@ const productsView = (): ProductsView => {
   const count = (id: string) => owners.length && products.filter((p) => p.po === id).length;
   owners = owners.map((o) => ({ ...o, products: count(o.id) as number }));
   const defaults: ProductsDefault[] = [
-    { sprint: '2026.19', plan: 41.6 },
-    { sprint: '2026.20', plan: 44 },
-    { sprint: '2026.21', plan: 38.4 },
-    { sprint: '2026.22', plan: null },
-  ].map(({ sprint, plan }) => ({
-    sprint,
-    plan,
-    available: plan,
-    roadmapShare: 0,
-    values: Object.fromEntries(products.filter((p) => !p.ended && plan !== null).map((p) => [p.id, Math.round(plan! * (p.share ?? 0))])),
-  }));
+    { sprint: '2026.19', plan: 41.6, running: true },
+    { sprint: '2026.20', plan: 44, running: false },
+    { sprint: '2026.21', plan: 38.4, running: false },
+    { sprint: '2026.22', plan: null, running: false },
+  ].map(({ sprint, plan, running }) => {
+    const live = products.filter((p) => !p.ended);
+    const fixed = live.reduce((n, p) => n + (p.share === null ? 0 : Math.round((plan ?? 0) * p.share * 1000) / 1000), 0);
+    const rest = live.filter((p) => p.share === null);
+    const even = Math.max((plan ?? 0) - fixed, 0) / (rest.length || 1);
+    return {
+      sprint,
+      running,
+      roadmap: false,
+      plan,
+      available: plan,
+      roadmapShare: 0,
+      fixed,
+      rest: rest.length,
+      values: Object.fromEntries(live.filter(() => plan !== null).map((p) => [p.id, Math.round(p.share === null ? even : (plan as number) * p.share)])),
+    };
+  });
   return { source: 'tracker', today: new Date().toISOString().slice(0, 10), multi: true, legacy: false, products: clone(products), owners: clone(owners), defaults };
 };
 const step = (undo: number): Step => ({ view: productsView(), undo });

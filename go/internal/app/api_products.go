@@ -50,13 +50,18 @@ func (a *API) productsView(data *storage.TeamData) ProductsView {
 // team without a calculable forecast gets no rows.
 func productsDefaults(data *storage.TeamData, today time.Time) []ProductsDefault {
 	out := []ProductsDefault{}
+	if !data.Team.Features.Products { // Plan shows no product defaults without the feature
+		return out
+	}
 	fc, err := forecast.Build(data, today)
 	if err != nil {
 		return out
 	}
 	roadmap := data.Team.Forecast.ProductBasis == model.BasisRoadmap
+	running := fc.Current()
 	for _, e := range fc.Upcoming() {
-		row := ProductsDefault{Sprint: e.Sprint.ID, Values: map[string]float64{}}
+		row := ProductsDefault{Sprint: e.Sprint.ID, Values: map[string]float64{}, Roadmap: roadmap,
+			Running: running != nil && running.Sprint.ID == e.Sprint.ID}
 		if roadmap {
 			row.RoadmapShare = data.Team.Forecast.RoadmapShare
 		}
@@ -68,9 +73,15 @@ func productsDefaults(data *storage.TeamData, today time.Time) []ProductsDefault
 			}
 			row.Available = &av
 			var active []model.Product
-			for _, p := range data.Products {
+			// the same selection as the plan page
+			for _, p := range products.SprintProducts(data.Products, e.Sprint) {
 				if p.ActiveBetween(e.Sprint.Start, e.Sprint.End) {
 					active = append(active, p)
+					if p.Share == nil {
+						row.Rest++
+					} else {
+						row.Fixed += av * *p.Share
+					}
 				}
 			}
 			for id, v := range products.StandardShares(active, &av) {
