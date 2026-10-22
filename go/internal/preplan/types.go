@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 )
 
 // Traffic lights of a project, from good to bad (empty = project without open tickets), and
@@ -122,6 +123,11 @@ type Budget struct {
 	// ProductionAvailable is what the people with production access can do in the sprint (only
 	// reported, never added).
 	ProductionAvailable *float64 `json:"production_available"`
+	// ProductionLoad sets the production part of the tickets in this cell (share per ticket,
+	// decision 20) against ProductionAvailable; a hint, it never blocks. Nil without the
+	// production feature or without production time to compare with. Not part of the JSON the
+	// golden tests compare with the Python reference; callers read it from the struct.
+	ProductionLoad *planning.Production `json:"-"`
 }
 
 // Limit is the plannable amount by basis ("" = the team's basis).

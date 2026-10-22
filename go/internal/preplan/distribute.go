@@ -13,6 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 	"github.com/swallat/foresprint/internal/products"
 	"github.com/swallat/foresprint/internal/pytext"
 	"github.com/swallat/foresprint/internal/storage"
@@ -567,6 +568,8 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 		resolved[tk.Key] = p
 		return p
 	}
+	carry := carryInsOf(data, sprints, resolve)
+	applyCarry(budgetList, carry, data)
 
 	gap := data.Team.Tracker.DependencyGap
 	var current *model.Sprint
@@ -634,6 +637,9 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 		earmark := data.Preplan.EarmarkFor(tk.Key)
 		var sprint, reason string
 		switch {
+		case carry.Target[tk.Key] != "":
+			// Its rest continues here (counted in the budget by the carry-over).
+			sprint, reason = carry.Target[tk.Key], ReasonFixedSprint
 		case tk.InSprint != nil && *tk.InSprint != "" && !ended(*tk.InSprint):
 			// A sprint of the tracker that is over does not count: earmark or distribution apply.
 			sprint, reason = *tk.InSprint, ReasonFixedSprint
@@ -647,7 +653,7 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 		placements[tk.Key] = &Placement{Ticket: tk.Key, Sprint: strPtr(sprint), Reason: reason, Size: size,
 			Source: source, Project: tk.Project, Product: resolve(tk)}
 		key, _ := productKey(sprint, tk)
-		if cell := byCell[key]; cell != nil && size != nil {
+		if cell := byCell[key]; cell != nil && size != nil && carry.Target[tk.Key] == "" {
 			cell.Fixed += *size
 		}
 	}
@@ -773,6 +779,32 @@ func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time,
 	for _, b := range budgetList {
 		if b.Plan > eps {
 			result.NoForecast = false
+		}
+	}
+	if data.Team.Features.Production {
+		demand := map[cellKey]float64{}
+		for k, v := range carry.Production {
+			demand[k] += v
+		}
+		for _, tk := range openTickets {
+			if carry.Target[tk.Key] != "" {
+				continue // its rest is in the carry-over
+			}
+			p := placements[tk.Key]
+			if p == nil || p.Sprint == nil || p.Size == nil {
+				continue
+			}
+			if share, _ := ProductionShareOf(tk, data); share > 0 {
+				demand[keyOf(*p.Sprint, p.Product)] += *p.Size * share / 100
+			}
+		}
+		for i := range budgetList {
+			b := &budgetList[i]
+			if b.ProductionAvailable == nil {
+				continue
+			}
+			load := planning.Compare(demand[keyOf(b.Sprint, b.Product)], *b.ProductionAvailable)
+			b.ProductionLoad = &load
 		}
 	}
 	if lookupErr != nil {
