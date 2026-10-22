@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { app } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
@@ -23,7 +23,7 @@
 
   $effect(() => {
     if (app.paletteOpen) {
-      void loadTicketIndex().then(() => ticketsLoaded++);
+      void untrack(() => loadTicketIndex()).then(() => ticketsLoaded++);
       query = '';
       index = 0;
       void tick().then(() => input?.focus());
