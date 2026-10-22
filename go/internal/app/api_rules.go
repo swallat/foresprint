@@ -1,6 +1,8 @@
 package app
 
 import (
+	"errors"
+
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/rules"
 	"github.com/swallat/foresprint/internal/storage"
@@ -32,7 +34,8 @@ func checkRule(data *storage.TeamData, text string, owner RuleOwner) RulePreview
 	rule, err := rules.ParseRule(text, fields)
 	if err != nil {
 		out.Error = err.Error()
-		if se, ok := err.(*rules.SyntaxError); ok {
+		var se *rules.SyntaxError
+		if errors.As(err, &se) {
 			out.Pos = se.Position
 		}
 		return out
