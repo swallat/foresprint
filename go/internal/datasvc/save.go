@@ -215,7 +215,8 @@ func (s *Store) ResolveConflicts(decisions []Decision) Result {
 		case Mine, Theirs:
 		case Custom:
 			// The value the person typed; a text that is no YAML is refused before anything happens.
-			if _, _, err := yamlmerge.CustomValue(yamlmerge.CustomChoice(d.Value)); err != nil {
+			// The content of a whole file is not checked: it need not be YAML.
+			if _, _, err := yamlmerge.CustomValue(yamlmerge.CustomChoice(d.Value)); err != nil && len(d.Path) > 0 {
 				return s.failed(git.New(i18n.T("The value you entered cannot be read: {error}", "error", err.Error()), "error", ""))
 			}
 			choice = yamlmerge.CustomChoice(d.Value)
