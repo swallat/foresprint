@@ -36,6 +36,8 @@ type API struct {
 	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFile func(title string) (string, error)
+	// ChooseTable opens the file dialog for a CSV or Excel table and returns the chosen path.
+	ChooseTable func(title string) (string, error)
 	// OpenPath opens a file with the program of the system; nil = the default of the platform.
 	OpenPath func(path string) error
 
@@ -46,6 +48,10 @@ type API struct {
 	dataDir string
 	run     trackerRun
 	undo    []projectSnapshot
+	// demo is the demo mode (api_demo.go).
+	demo demoState
+	// enterMu serialises EnterDemo.
+	enterMu sync.Mutex
 	// teamUndo is the last step of the Team area per team (undo.go).
 	teamUndo undoLog
 	// data is the storage of the data folder (area Data, api_data.go).
@@ -64,6 +70,7 @@ func New(version, dataDir string) *API {
 	if dataDir == "" {
 		dataDir, _ = config.DataDir()
 	}
+	demoSweep()
 	return &API{Version: version, dataDir: dataDir, data: datasvc.New(dataDir)}
 }
 
@@ -153,10 +160,18 @@ func (a *API) SetDataDir(path string) error {
 	if err != nil || !info.IsDir() {
 		return errors.New(i18n.T("The folder {path} does not exist.", "path", path))
 	}
+	// The window shows the demo banner; the person leaves it on purpose.
+	if err := a.demoRefusal(); err != nil {
+		return err
+	}
 	if err := config.SaveDataDir(path); err != nil {
 		return err
 	}
 	a.mu.Lock()
+	if a.demo.on { // the demo started while the folder was being saved
+		a.mu.Unlock()
+		return a.demoRefusal()
+	}
 	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()

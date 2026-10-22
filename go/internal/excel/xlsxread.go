@@ -56,6 +56,9 @@ func (wb *workbook) has(name string) bool {
 	return ok
 }
 
+// maxPartBytes caps one unpacked part of a workbook, so that a small crafted file cannot fill memory.
+const maxPartBytes = 256 << 20
+
 type zipFiles map[string][]byte
 
 func readZip(data []byte) (zipFiles, error) {
@@ -72,10 +75,13 @@ func readZip(data []byte) (zipFiles, error) {
 		if err != nil {
 			return nil, err
 		}
-		b, err := io.ReadAll(rc)
+		b, err := io.ReadAll(io.LimitReader(rc, maxPartBytes+1))
 		_ = rc.Close()
 		if err != nil {
 			return nil, err
+		}
+		if len(b) > maxPartBytes {
+			return nil, errors.New("The workbook is too large") //nolint:staticcheck // shown to the user
 		}
 		files[f.Name] = b
 	}
@@ -478,10 +484,15 @@ func readSheet(z zipFiles, part string, shared []string, styles []styleKind, epo
 		}
 		r1, c1 := colIndex(first)
 		r2, c2 := colIndex(last)
-		for r := r1; r <= r2; r++ {
-			for c := c1; c <= c2; c++ {
-				if (r != r1 || c != c1) && ws.rows[r] != nil {
-					delete(ws.rows[r], c)
+		// Only cells that exist can be emptied; walking the cells instead of the range keeps a
+		// huge merged range cheap.
+		for r, cols := range ws.rows {
+			if r < r1 || r > r2 {
+				continue
+			}
+			for c := range cols {
+				if c >= c1 && c <= c2 && (r != r1 || c != c1) {
+					delete(cols, c)
 				}
 			}
 		}

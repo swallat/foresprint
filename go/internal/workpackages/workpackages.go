@@ -112,6 +112,9 @@ type Result struct {
 	Problems []Problem
 	// Unmapped are header names no field was found for (shown so the user can correct the file).
 	Unmapped []string
+	// HasLabels is true if the table has a labels column; without it the labels of a package
+	// are not part of the table and an update must keep the existing ones.
+	HasLabels bool
 }
 
 // ParseTable turns a table (header row first) into work packages. Rows without a title are
@@ -139,6 +142,7 @@ func ParseTable(rows [][]string, opts Options) Result {
 			res.Unmapped = append(res.Unmapped, pytext.Strip(h))
 		}
 	}
+	_, res.HasLabels = columns["labels"]
 	if _, ok := columns["title"]; !ok {
 		res.Problems = append(res.Problems, Problem{Row: 1, Msg: sources.T("The table has no column for the title (expected one of: {names}).",
 			"names", strings.Join(Columns["title"], ", "))})
@@ -303,7 +307,7 @@ type Change struct {
 }
 
 // Merge combines imported packages with the existing ones: a key that exists is updated (the
-// fields of the table win, what the table does not carry stays), a new key is added at the end.
+// fields of the table win, labels are only added, what the table does not carry stays), a new key is added at the end.
 // It returns the new list of packages and the changes for the preview.
 func Merge(existing, imported []model.Ticket) ([]model.Ticket, []Change) {
 	out := append([]model.Ticket(nil), existing...)
@@ -342,8 +346,12 @@ func mergeOne(old, in model.Ticket) model.Ticket {
 	if in.Estimate != nil {
 		out.Estimate = in.Estimate
 	}
-	if len(in.Labels) > 0 {
-		out.Labels = in.Labels
+	// A table adds labels but never takes one away: a table without a Labels column must not wipe
+	// what the package has (the column "refined" alone only adds the refined label).
+	for _, l := range in.Labels {
+		if !slices.Contains(out.Labels, l) {
+			out.Labels = append(slices.Clone(out.Labels), l)
+		}
 	}
 	if len(in.DependsOn) > 0 {
 		out.DependsOn = in.DependsOn

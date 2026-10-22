@@ -321,9 +321,13 @@ func pushMergeRequest(ctx context.Context, root string, current SyncState, title
 		if proc, err = git.Run(ctx, root, git.Opts{Network: true}, args(nil)...); err != nil {
 			return "", "", err
 		}
+		options = nil
 		message = outputMessage(proc)
 	}
 	if proc.Code != 0 {
+		if message == "" {
+			message = git.SilentFailure(args(options), proc.Code)
+		}
 		return "", "", git.Classify(message, git.ClassifyOpts{URL: current.URL, Cwd: root})
 	}
 	if found := prURLRe.FindString(proc.Stderr + proc.Stdout); found != "" {

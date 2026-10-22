@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -412,12 +413,36 @@ func With(ctx context.Context, cwd string, opts Opts, args ...string) (string, e
 		if message == "" {
 			message = pytext.Strip(proc.Stdout)
 		}
+		if message == "" {
+			message = SilentFailure(args, proc.Code)
+		}
 		return "", Classify(message, ClassifyOpts{URL: opts.URL, Cwd: cwd})
 	}
 	if opts.Keep {
 		return proc.Stdout, nil
 	}
 	return pytext.Strip(proc.Stdout), nil
+}
+
+// SilentFailure describes a Git call that failed without any output, so that the message says
+// which call it was: the subcommand, the option names and the exit code. Values and positional
+// arguments (addresses, titles, paths) are left out: they may carry credentials.
+func SilentFailure(args []string, code int) string {
+	var shown []string
+	for i, a := range args {
+		switch {
+		case i == 0 && !strings.HasPrefix(a, "-"):
+			shown = append(shown, a)
+		case a == "--":
+			return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
+		case strings.HasPrefix(a, "--"):
+			name, _, _ := strings.Cut(a, "=")
+			shown = append(shown, name)
+		case strings.HasPrefix(a, "-"):
+			shown = append(shown, a[:min(len(a), 2)]) // a short option may carry its value: -oValue
+		}
+	}
+	return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
 }
 
 // Bytes is like Git, but returns the raw output (e.g. an archive).

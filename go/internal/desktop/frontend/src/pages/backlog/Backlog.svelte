@@ -10,8 +10,8 @@
   import type { BacklogTicket } from '../../lib/types.backlog';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
-  import { VIEWS, activeView, applyView, blank, group, matches, neighbour, sum, type Group } from './backlog';
-  import { NEW, allTickets, earmark, loadBacklog, openPresent, store, t, toggleSelected, ui } from './store.svelte';
+  import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -27,6 +27,7 @@
   $effect(() => {
     void app.team;
     void loadBacklog();
+    loadCustomViews();
   });
 
   // "Earmarked" lists the earmarked tickets too; every other view lists the backlog.
@@ -34,7 +35,7 @@
     if (!view) return [] as BacklogTicket[];
     return ui.filter.flag === 'earmarked' ? allTickets(view).filter((tk) => tk.earmark) : view.tickets;
   });
-  const items = $derived(pool.filter((tk) => matches(tk, ui.filter, names, view?.multi ?? false)));
+  const items = $derived(sortTickets(pool.filter((tk) => matches(tk, ui.filter, names, view?.multi ?? false)), ui.sort));
   // Long lists render in steps (a sentinel at the end asks for the next step as it scrolls into
   // view), so that the filter stays instant with thousands of tickets.
   const STEP = 60;
@@ -46,6 +47,7 @@
     void ui.filter.refined;
     void ui.filter.flag;
     void ui.group;
+    void ui.sort;
     shown = STEP;
   });
   const visible = $derived(items.slice(0, shown));
@@ -66,7 +68,23 @@
     refinement: t('Refinement'),
     unassigned: t('Unassigned'),
     earmarked: t('Earmarked'),
+    open: t('Open points'),
   });
+  const sortNames = $derived<[Sort, string][]>([
+    ['order', t('Planning order')],
+    ['size-desc', t('Largest first')],
+    ['size-asc', t('Smallest first')],
+    ['key', t('Key')],
+    ['title', t('Title')],
+  ]);
+  const currentCustom = $derived(activeCustom(ui.custom, ui.filter, ui.group, ui.sort));
+  let naming = $state(false);
+  let newName = $state('');
+  function saveView(): void {
+    saveCustomView(newName);
+    naming = false;
+    newName = '';
+  }
 
   function toggle(list: string[], value: string): string[] {
     return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -184,10 +202,19 @@
         <a
           href="#/backlog"
           role="tab"
-          aria-selected={current === v.id}
-          class:active={current === v.id}
-          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.selection = []; }}
+          aria-selected={!currentCustom && current === v.id}
+          class:active={!currentCustom && current === v.id}
+          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.sort = 'order'; ui.group = 'none'; ui.selection = []; }}
         >{viewName[v.id]}</a>
+      {/each}
+      {#each ui.custom as v (v.id)}
+        <a
+          href="#/backlog"
+          role="tab"
+          aria-selected={currentCustom?.id === v.id}
+          class:active={currentCustom?.id === v.id}
+          onclick={(e) => { e.preventDefault(); applyCustomView(v); }}
+        >{v.name}</a>
       {/each}
     </div>
 
@@ -209,6 +236,10 @@
         <span class="small muted gap">{t('Progress')}</span>
         <button type="button" class="chip filter" class:on={ui.filter.refined === 'yes'} aria-pressed={ui.filter.refined === 'yes'} onclick={() => (ui.filter.refined = ui.filter.refined === 'yes' ? 'all' : 'yes')}>{t('Refined')}</button>
         <button type="button" class="chip filter" class:on={ui.filter.refined === 'open'} aria-pressed={ui.filter.refined === 'open'} onclick={() => (ui.filter.refined = ui.filter.refined === 'open' ? 'all' : 'open')}><Icon name="help" size={14} />{t('Still open')}</button>
+        <span class="small muted gap">{t('Sort by')}</span>
+        <select class="input sort" aria-label={t('Sort by')} bind:value={ui.sort}>
+          {#each sortNames as [value, label] (value)}<option {value}>{label}</option>{/each}
+        </select>
         <span class="small muted gap">{t('Group by')}</span>
         {#each [['none', t('Nothing')], ['project', t('Project')], ...(view.multi ? [['product', t('Product')]] : [])] as [value, label] (value)}
           <button type="button" class="chip filter" class:on={ui.group === value} aria-pressed={ui.group === value} onclick={() => (ui.group = value as Group)}>{label}</button>
@@ -219,6 +250,17 @@
           <Icon name="search" size={16} />
           <input class="input" type="search" bind:value={ui.filter.q} placeholder={t('Search: key, title, product, project')} autocomplete="off" aria-label={t('Search')} />
         </label>
+        {#if currentCustom}
+          <button class="btn ghost" type="button" onclick={() => deleteCustomView(currentCustom.id)}><Icon name="delete" />{t('Delete view “{name}”', { name: currentCustom.name })}</button>
+        {:else if naming}
+          <form class="row" onsubmit={(e) => { e.preventDefault(); saveView(); }}>
+            <input class="input" bind:value={newName} placeholder={t('Name of the view')} aria-label={t('Name of the view')} autocomplete="off" />
+            <button class="btn primary" type="submit" disabled={!newName.trim()}>{t('Save view')}</button>
+            <button class="btn ghost" type="button" onclick={() => { naming = false; newName = ''; }}>{t('Cancel')}</button>
+          </form>
+        {:else}
+          <button class="btn ghost" type="button" onclick={() => (naming = true)}><Icon name="bookmark_add" />{t('Save as view…')}</button>
+        {/if}
       </div>
     </div>
 
@@ -265,7 +307,7 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}

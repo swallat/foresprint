@@ -53,7 +53,14 @@ func Run(version, dataDir string) error {
 			api.ChooseFile = func(title string) (string, error) {
 				return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
 					Title:   title,
-					Filters: []runtime.FileFilter{{DisplayName: "Excel (*.xlsx)", Pattern: "*.xlsx"}},
+					Filters: []runtime.FileFilter{{DisplayName: "Excel, CSV (*.xlsx, *.csv)", Pattern: "*.xlsx;*.csv"}},
+				})
+			}
+			api.ChooseTable = func(title string) (string, error) {
+				return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+					Title: title,
+					Filters: []runtime.FileFilter{
+						{DisplayName: "Excel / CSV (*.xlsx, *.csv)", Pattern: "*.xlsx;*.csv;*.txt"}},
 				})
 			}
 		},

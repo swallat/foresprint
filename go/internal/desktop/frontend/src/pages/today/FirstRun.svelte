@@ -314,9 +314,12 @@
           trackerUrl: d.trackerUrl,
           trackerQuery: d.trackerQuery,
         });
-        await loadTeams();
-        await selectTeam(made.key);
-      } else {
+        // In a guided flow the wizard only pretends: the team it "made" exists in the mock only.
+        if (!app.demo) {
+          await loadTeams();
+          await selectTeam(made.key);
+        }
+      } else if (!app.demo) {
         await loadTeams();
         await selectTeam(d.existing);
       }

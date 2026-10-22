@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+// Limits of a table: a cell far away from the others must not make a huge grid.
+const (
+	maxTableWidth = 1024
+	maxTableRows  = 200000
+)
+
 // Table reads one sheet of a workbook as rows of text (cached values, as a user sees them):
 // the first sheet when name is empty. Empty rows at the end are dropped, rows are padded to the
 // same width. The names of the sheets are returned too, for a choice.
@@ -28,6 +34,10 @@ func Table(source []byte, name string) (rows [][]string, sheets []string, err er
 		for c := range cols {
 			width = max(width, c+1)
 		}
+	}
+	if width > maxTableWidth || ws.last > maxTableRows {
+		return nil, sheets, dataErr("The sheet is too large for a table (at most {cols} columns and {rows} rows).",
+			"cols", maxTableWidth, "rows", maxTableRows)
 	}
 	for r := 1; r <= ws.last; r++ {
 		row := make([]string, width)
