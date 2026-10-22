@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 func TestReportsOfTheDemoTeam(t *testing.T) {
@@ -78,5 +80,81 @@ func TestProductsOverTimeNeedsSeveralProducts(t *testing.T) {
 		if v.Enabled && (len(v.Lines) < team.Products || len(v.Lines[0].Cells) != len(v.Sprints)) {
 			t.Errorf("%s: %d lines, %d cells for %d sprints", team.Key, len(v.Lines), len(v.Lines[0].Cells), len(v.Sprints))
 		}
+	}
+}
+
+func TestCSVImportOfWorkPackages(t *testing.T) {
+	dir := t.TempDir()
+	copyTree(t, demoDir(t), dir)
+	api := newAPI(t, dir)
+	key := api.Teams()[0].Key
+	csvFile := filepath.Join(t.TempDir(), "ap.csv")
+	// Windows-1252 text with semicolons and a decimal comma, as German Excel writes it.
+	table := "Schlüssel;Titel;Schätzung;Status\r\nAP-1;Anmeldung bauen;2,5;offen\r\nAP-2;;1;offen\r\nAP-3;Bericht;3;erledigt\r\n"
+	enc, err := charmap.Windows1252.NewEncoder().String(table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(csvFile, []byte(enc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A team with a tracker refuses the table.
+	if _, err := api.previewImport(key, csvFile); err == nil {
+		t.Error("a tracker team accepted a CSV table")
+	}
+
+	teamFile := filepath.Join(dir, key, "team.yaml")
+	raw, err := os.ReadFile(teamFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = []byte(strings.Replace(string(raw), "features:\n", "features:\n  tickets: true\n", 1))
+	if err := os.WriteFile(teamFile, append(raw, []byte("tracker:\n  kind: packages\n")...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	pv, err := api.previewImport(key, csvFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pv.Kind != "packages" || len(pv.Changes) != 2 || len(pv.Problems) != 1 {
+		t.Fatalf("preview %+v", pv)
+	}
+	if pv.Changes[0].New != "Anmeldung bauen" || pv.Changes[0].Old != "–" {
+		t.Errorf("first change %+v", pv.Changes[0])
+	}
+	if _, err := os.Stat(filepath.Join(dir, key, "arbeitspakete.yaml")); err == nil {
+		t.Fatal("the preview wrote a file")
+	}
+
+	if _, err := api.ExcelImportApply(key, csvFile, "wrong"); err == nil {
+		t.Error("a changed file was applied")
+	}
+	files, err := api.ExcelImportApply(key, csvFile, pv.Hash)
+	if err != nil || len(files) != 1 || files[0] != "arbeitspakete.yaml" {
+		t.Fatalf("apply %v %v", files, err)
+	}
+
+	// Importing the same table again changes nothing.
+	again, err := api.previewImport(key, csvFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.Changes) != 0 {
+		t.Errorf("an identical table changes %+v", again.Changes)
+	}
+
+	// A new estimate shows as a change of that field; labels stay without a labels column.
+	enc2, _ := charmap.Windows1252.NewEncoder().String("Schlüssel;Titel;Schätzung\r\nAP-1;Anmeldung bauen;5\r\n")
+	if err := os.WriteFile(csvFile, []byte(enc2), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	next, err := api.previewImport(key, csvFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(next.Changes) != 1 || next.Changes[0].Path != "AP-1.estimate" || next.Changes[0].Old != "2.5" || next.Changes[0].New != "5" {
+		t.Errorf("changes %+v", next.Changes)
 	}
 }
