@@ -13,8 +13,8 @@ import (
 
 // protectedRe recognises the answers of servers that do not accept a direct upload to the main
 // branch (D4).
-var protectedRe = regexp.MustCompile(`(?i)protected branch|GH006|not allowed to push|pre-receive hook declined|` +
-	`push to .* is not allowed|branch protection`)
+var protectedRe = regexp.MustCompile(`(?i)protected branch|GH006|not allowed to push code to protected|` +
+	`branch protection`)
 
 // Save makes the work visible to the team: it commits, takes over what others did meanwhile and
 // uploads, in one step (D2). If the server only takes merge requests, the work goes to a branch of
@@ -36,9 +36,9 @@ func (s *Store) messageOf(message string) string {
 }
 
 func (s *Store) share(opts gitsync.SyncOptions) Result {
-	dir := s.Folder()
-	if dir == "" {
-		return s.failed(git.New(i18n.T("No data folder chosen."), "path", ""))
+	dir, err := s.folder()
+	if err != nil {
+		return s.failed(err)
 	}
 	opts.Today = s.today()
 	ctx := s.ctx()
@@ -48,18 +48,36 @@ func (s *Store) share(opts gitsync.SyncOptions) Result {
 		return s.failed(err)
 	}
 	// D4: a server that refuses the direct upload gets the work on an own branch instead.
+	switched := false
 	if e := res.Error; e != nil && e.Kind == "denied" && !opts.PullOnly && protectedRe.MatchString(e.Error()) {
 		if root, rerr := gitsync.Root(ctx, dir); rerr == nil {
-			if mode, _ := gitsync.ShareMode(ctx, root); mode != gitsync.ShareMergeRequest {
-				if gitsync.SetShareMode(ctx, root, gitsync.ShareMergeRequest) == nil {
-					if res, err = gitsync.Sync(ctx, dir, opts); err != nil {
+			if mode, _ := gitsync.ShareMode(ctx, root); mode != gitsync.ShareMergeRequest &&
+				gitsync.SetShareMode(ctx, root, gitsync.ShareMergeRequest) == nil {
+				second, err := gitsync.Sync(ctx, dir, opts)
+				if err != nil || second.Error != nil && second.Error.Kind == "denied" {
+					_ = gitsync.SetShareMode(ctx, root, mode) // it did not help: leave the setting as it was
+					if err != nil {
 						return s.failed(err)
 					}
+				} else {
+					switched = true
+					second.Pulled = append(res.Pulled, second.Pulled...)
+					second.PulledFiles = append(res.PulledFiles, second.PulledFiles...)
+					second.Notes = append(res.Notes, second.Notes...)
+					if second.Committed == "" {
+						second.Committed = res.Committed
+					}
+					second.Merged = second.Merged || res.Merged
+					res = second
 				}
 			}
 		}
 	}
-	return s.resultOf(res, before.Unsaved == 0 && before.Pending == 0 && before.Incoming == 0)
+	out := s.resultOf(res, before.Unsaved == 0 && before.Pending == 0 && before.Incoming == 0, opts.PullOnly)
+	if switched {
+		out.Notes = append(out.Notes, i18n.T("The server only takes changes through a merge request; saves now go to a branch of your own."))
+	}
+	return out
 }
 
 func (s *Store) failed(err error) Result {
@@ -67,18 +85,19 @@ func (s *Store) failed(err error) Result {
 }
 
 // resultOf maps the result of the sync; idle says there was nothing to save, share or take over.
-func (s *Store) resultOf(res *gitsync.SyncResult, idle bool) Result {
+func (s *Store) resultOf(res *gitsync.SyncResult, idle, pullOnly bool) Result {
 	out := Result{Taken: changes(res.Pulled), Notes: res.Notes, Findings: res.Validation}
 	if res.MergeRequestURL != "" {
 		s.setReview(res.MergeRequestURL)
 	}
 	out.Link = res.MergeRequestURL
 	out.Conflicts = countOpen(res.Conflicts)
+	status := s.Status()
 	switch e := res.Error; {
 	case e == nil && res.MergeRequestBranch != "":
 		out.Outcome = OutcomeWaitingForReview
 		if out.Link == "" {
-			out.Link = s.Status().Link
+			out.Link = status.Link
 		}
 	case e == nil && idle && res.Committed == "" && !res.Merged && len(res.Pulled) == 0:
 		out.Outcome = OutcomeNothing
@@ -88,8 +107,15 @@ func (s *Store) resultOf(res *gitsync.SyncResult, idle bool) Result {
 		out.Outcome = OutcomeConflict
 	case e.Kind == "invalid":
 		out.Outcome = OutcomeFindings
-	case e.Kind == "offline" && res.Committed != "":
+	case e.Kind == "no_remote" || e.Kind == "nothing_to_share":
+		// Saved on this computer, nothing to share with.
+		out.Outcome = OutcomeSaved
+		if res.Committed == "" || pullOnly {
+			out.Outcome = OutcomeNothing
+		}
+	case e.Kind == "offline" && status.Configured:
 		out.Outcome = OutcomeOffline
+		out.Problem = problemOf(e)
 	case e.Kind == "not_writable":
 		out.Outcome = OutcomeReadOnly
 		out.Problem = problemOf(e)
@@ -97,13 +123,10 @@ func (s *Store) resultOf(res *gitsync.SyncResult, idle bool) Result {
 		out.Outcome = OutcomeProblem
 		out.Problem = problemOf(e)
 	}
-	if out.Outcome == OutcomeOffline {
-		out.Problem = problemOf(res.Error)
-	}
 	if out.Taken == nil {
 		out.Taken = []Change{}
 	}
-	out.Status = s.Status()
+	out.Status = status
 	return out
 }
 
@@ -120,8 +143,8 @@ func countOpen(files []gitsync.ConflictFile) int {
 // Conflicts lists what two people changed in different ways and needs a decision (D3). It is
 // empty when no merge waits.
 func (s *Store) Conflicts() []Conflict {
-	dir := s.Folder()
-	if dir == "" {
+	dir, err := s.folder()
+	if err != nil {
 		return []Conflict{}
 	}
 	ctx := s.ctx()
@@ -157,9 +180,14 @@ func (s *Store) Conflicts() []Conflict {
 func show(v any) string {
 	switch x := v.(type) {
 	case nil:
-		return ""
+		return "null"
 	case string:
 		return x
+	case bool:
+		if x {
+			return "true"
+		}
+		return "false"
 	case *yamlx.Map, []any:
 		text, err := yamlx.Dump(x)
 		if err != nil {
@@ -176,7 +204,10 @@ func show(v any) string {
 // ResolveConflicts records the decisions. Entries without a decision stay open; the result says
 // how many files still wait. When none do, Save finishes the merge (D3).
 func (s *Store) ResolveConflicts(decisions []Decision) Result {
-	dir := s.Folder()
+	dir, err := s.folder()
+	if err != nil {
+		return s.failed(err)
+	}
 	choices := gitsync.Choices{}
 	for _, d := range decisions {
 		if d.Choice != Mine && d.Choice != Theirs {
@@ -192,7 +223,7 @@ func (s *Store) ResolveConflicts(decisions []Decision) Result {
 		return s.failed(err)
 	}
 	git.InvalidateStatus()
-	out := Result{Outcome: OutcomeSaved, Taken: []Change{}, Conflicts: countOpen(remaining)}
+	out := Result{Outcome: OutcomeDecided, Taken: []Change{}, Conflicts: countOpen(remaining)}
 	if out.Conflicts > 0 {
 		out.Outcome = OutcomeConflict
 	}
@@ -215,7 +246,9 @@ func (s *Store) TakeTheirs() Result {
 // AbortMerge gives up an unfinished merge from outside the app and returns to the state before
 // it; the own work stays.
 func (s *Store) AbortMerge() Status {
-	_ = gitsync.AbortUnfinished(s.ctx(), s.Folder())
+	if dir, err := s.folder(); err == nil {
+		_ = gitsync.AbortUnfinished(s.ctx(), dir)
+	}
 	git.InvalidateStatus()
 	return s.Status()
 }

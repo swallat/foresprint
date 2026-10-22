@@ -16,6 +16,7 @@ import (
 
 // Chip states, in the order they win when several apply.
 const (
+	ChipDecided          = "decided"            // all conflicts decided; Save finishes the merge
 	ChipConflict         = "conflict"           // red: the same value was changed by two people
 	ChipProblem          = "problem"            // the storage cannot be used (no Git, no folder ...)
 	ChipOffline          = "offline"            // the server is not reachable; saving works locally
@@ -36,6 +37,7 @@ const (
 	OutcomeOffline          = "offline"            // saved locally, shared with the next Refresh
 	OutcomeWaitingForReview = "waiting_for_review" // saved on the server's own branch, see Link
 	OutcomeReadOnly         = "read_only"          // the person may not write
+	OutcomeDecided          = "decided"            // all conflicts decided; Save finishes
 	OutcomeProblem          = "problem"
 )
 
@@ -134,7 +136,8 @@ const (
 
 // Conflict is one value (or one file) that two people changed.
 type Conflict struct {
-	// File is the file, relative to the data folder.
+	// File is the file, relative to the root of the data repository (the same form that
+	// ResolveConflicts and Version.Files use).
 	File string `json:"file"`
 	// Entries are the values to decide; empty with Whole set.
 	Entries []ConflictEntry `json:"entries"`
@@ -167,12 +170,13 @@ type Decision struct {
 
 // Version is one entry of the history.
 type Version struct {
-	ID      string   `json:"id"`
-	Short   string   `json:"short"`
-	Who     string   `json:"who"`
-	Day     string   `json:"day"`
-	Summary string   `json:"summary"`
-	Files   []string `json:"files"`
+	ID      string `json:"id"`
+	Short   string `json:"short"`
+	Who     string `json:"who"`
+	Day     string `json:"day"`
+	Summary string `json:"summary"`
+	// Files are relative to the root of the data repository, not to the data folder.
+	Files []string `json:"files"`
 	// Merge entries cannot be taken back.
 	Merge bool `json:"merge"`
 	// Tags name the entry (Git tags), empty = none.

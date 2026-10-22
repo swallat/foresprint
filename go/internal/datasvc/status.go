@@ -16,11 +16,11 @@ func (s *Store) Capabilities() Capabilities {
 // Status is the state of the storage without network access (what the last check found). Call
 // CheckForChanges to ask the server first.
 func (s *Store) Status() Status {
-	dir := s.Folder()
 	out := Status{Kind: "git", Writable: true, Connected: true, Capabilities: s.Capabilities(),
 		IncomingFrom: []string{}}
-	if dir == "" {
-		return withProblem(out, git.New(i18n.T("No data folder chosen."), "path", ""))
+	dir, err := s.folder()
+	if err != nil {
+		return withProblem(out, err)
 	}
 	ctx := s.ctx()
 	st, err := gitsync.CachedState(ctx, dir)
@@ -37,8 +37,12 @@ func (s *Store) Status() Status {
 	if pending, err := git.CachedPendingChanges(ctx, dir); err == nil {
 		out.Unsaved = len(pending)
 	}
-	if st.Unfinished == "merge" && out.Conflicts == 0 {
-		out.Conflicts = 1 // an open merge always needs the person
+	decided := false
+	if st.Unfinished == "merge" {
+		// Only what still needs a decision counts; a merge with everything decided waits for Save.
+		files, _ := gitsync.PendingConflicts(ctx, dir)
+		out.Conflicts = countOpen(files)
+		decided = out.Conflicts == 0
 	}
 	if st.Behind > 0 {
 		commits, _, _ := gitsync.Incoming(ctx, dir, 20)
@@ -51,14 +55,17 @@ func (s *Store) Status() Status {
 	if viaReview {
 		out.Link = s.lastReview()
 		if out.Link == "" {
-			target := st.Upstream
-			if i := strings.Index(target, "/"); i >= 0 {
-				target = target[i+1:]
+			// Only GitHub has a link that works without the answer of the server.
+			if host, _ := gitsync.HostKind(ctx, st.Root); host == gitsync.HostGitHub {
+				target := st.Upstream
+				if i := strings.Index(target, "/"); i >= 0 {
+					target = target[i+1:]
+				}
+				out.Link = gitsync.CompareURL(info.URL, target, gitsync.MergeRequestBranch(ctx, st.Root))
 			}
-			out.Link = gitsync.CompareURL(info.URL, target, gitsync.MergeRequestBranch(ctx, st.Root))
 		}
 	}
-	out.Chip = chipFor(out, st, viaReview)
+	out.Chip = chipFor(out, st, viaReview, decided)
 	return out
 }
 
@@ -70,21 +77,25 @@ func withProblem(out Status, err error) Status {
 	return out
 }
 
-func chipFor(s Status, st gitsync.SyncState, viaReview bool) Chip {
+func chipFor(s Status, st gitsync.SyncState, viaReview, decided bool) Chip {
 	switch {
 	case s.Conflicts > 0:
 		return Chip{State: ChipConflict, Text: plural(s.Conflicts, "{count} file needs your decision", "{count} files need your decision")}
 	case st.Detached():
 		return Chip{State: ChipProblem, Text: i18n.T("The data is not on a working version.")}
+	case st.Unfinished == "rebase":
+		return Chip{State: ChipProblem, Text: i18n.T("An unfinished operation from outside blocks saving.")}
+	case decided:
+		return Chip{State: ChipDecided, Text: i18n.T("All decided: Save finishes the merge")}
 	case s.Configured && !s.Connected:
 		return Chip{State: ChipOffline, Text: i18n.T("Offline: saving works, sharing waits")}
 	case s.Incoming > 0:
 		return Chip{State: ChipIncoming, Text: plural(s.Incoming, "{count} new change from {who}", "{count} new changes from {who}",
 			"who", who(s.IncomingFrom))}
-	case viaReview:
-		return Chip{State: ChipWaitingForReview, Text: i18n.T("Waiting for review"), Link: s.Link}
 	case s.Unsaved > 0:
 		return Chip{State: ChipUnsaved, Text: plural(s.Unsaved, "{count} unsaved change", "{count} unsaved changes")}
+	case viaReview:
+		return Chip{State: ChipWaitingForReview, Text: i18n.T("Waiting for review"), Link: s.Link}
 	case !s.Configured:
 		return Chip{State: ChipLocal, Text: i18n.T("Saved on this computer only")}
 	case s.Pending > 0:
@@ -97,8 +108,7 @@ func chipFor(s Status, st gitsync.SyncState, viaReview bool) Chip {
 // taken over) and returns the new status. An unreachable server is not an error; the status then
 // says offline.
 func (s *Store) CheckForChanges() Status {
-	dir := s.Folder()
-	if dir != "" {
+	if dir, err := s.folder(); err == nil {
 		_, _ = gitsync.Fetch(s.ctx(), dir)
 		git.InvalidateStatus()
 	}
@@ -108,8 +118,8 @@ func (s *Store) CheckForChanges() Status {
 // StartBackgroundCheck starts the check for changes in the background if it is due (at start and
 // every 30 minutes) and says whether it started. The window reads Status a little later.
 func (s *Store) StartBackgroundCheck() bool {
-	dir := s.Folder()
-	if dir == "" {
+	dir, err := s.folder()
+	if err != nil {
 		return false
 	}
 	return gitsync.StartBackgroundFetch(s.ctx(), dir)
@@ -117,8 +127,8 @@ func (s *Store) StartBackgroundCheck() bool {
 
 // IncomingChanges lists what others have changed and Refresh would take over.
 func (s *Store) IncomingChanges() []Change {
-	dir := s.Folder()
-	if dir == "" {
+	dir, err := s.folder()
+	if err != nil {
 		return []Change{}
 	}
 	commits, _, err := gitsync.Incoming(s.ctx(), dir, 50)

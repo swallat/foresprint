@@ -112,7 +112,7 @@ func TestConflictIsDecidedAndSaved(t *testing.T) {
 	if e.Mine != "8" || e.Theirs != "12" || e.Before != "10" || !e.HasBefore || e.Label != "velocity" {
 		t.Fatalf("entry = %+v", e)
 	}
-	if r := w.bob.store.ResolveConflicts([]Decision{{File: list[0].File, Path: e.Path, Choice: Theirs}}); r.Conflicts != 0 {
+	if r := w.bob.store.ResolveConflicts([]Decision{{File: list[0].File, Path: e.Path, Choice: Theirs}}); r.Conflicts != 0 || r.Outcome != OutcomeDecided || r.Status.Chip.State != ChipDecided || r.Status.Conflicts != 0 {
 		t.Fatalf("resolve = %+v", r)
 	}
 	if res := w.bob.store.Save(SaveOptions{Message: "Ben"}); res.Outcome != OutcomeSaved || res.Status.Chip.State != ChipOK {
@@ -240,5 +240,112 @@ func TestOpenAndCreateFolders(t *testing.T) {
 	}
 	if opened := New("").OpenFolder(filepath.Join(w.tmp, "nowhere")); opened.Problem == nil {
 		t.Fatal("a folder that is no repository must be refused")
+	}
+}
+
+func TestSaveWithoutServerCommitsLocally(t *testing.T) {
+	w := newWorld(t)
+	s := New("")
+	created := s.CreateFolder(filepath.Join(w.tmp, "local"))
+	if created.Problem != nil {
+		t.Fatal(created.Problem)
+	}
+	gittest.Git(t, filepath.Dir(created.Folder), "config", "user.name", "Mia")
+	gittest.Git(t, filepath.Dir(created.Folder), "config", "user.email", "mia@example.org")
+	gittest.Write(t, filepath.Join(created.Folder, "a", "team.yaml"), "name: A\n")
+	git.InvalidateStatus()
+	if res := s.Save(SaveOptions{Message: "First"}); res.Outcome != OutcomeSaved || res.Problem != nil {
+		t.Fatalf("save = %+v", res)
+	}
+	if res := s.Save(SaveOptions{}); res.Outcome != OutcomeNothing || res.Problem != nil {
+		t.Fatalf("second save = %+v", res)
+	}
+	if res := s.Refresh(); res.Outcome != OutcomeNothing || res.Problem != nil {
+		t.Fatalf("refresh = %+v", res)
+	}
+	if st := s.Status(); st.Chip.State != ChipLocal {
+		t.Fatalf("status = %+v", st.Chip)
+	}
+}
+
+// Without a folder nothing may act on the repository of the current directory.
+func TestNoFolderTouchesNothing(t *testing.T) {
+	s := New("")
+	checks := map[string]bool{
+		"Save":     s.Save(SaveOptions{}).Problem != nil,
+		"Refresh":  s.Refresh().Problem != nil,
+		"Revert":   s.Revert("HEAD").Problem != nil,
+		"Restore":  s.Restore("", "HEAD", "").Problem != nil,
+		"Discard":  s.Discard(nil).Problem != nil,
+		"Reattach": s.Reattach().Problem != nil,
+		"Switch":   s.SwitchBranch("main").Problem != nil,
+		"SetLabel": s.SetLabel("x", "", "").Problem != nil,
+		"Server":   s.SaveServer("https://example.org/x.git", ServerOptions{}).Problem != nil,
+		"Storage":  s.Storage().Problem != nil && !s.Storage().Ready,
+		"Share":    s.SetShare("direct") != nil,
+	}
+	if _, err := s.History("", 0); err == nil {
+		t.Error("History worked without a folder")
+	}
+	if _, err := s.Labels(false); err == nil {
+		t.Error("Labels worked without a folder")
+	}
+	if _, err := s.Branches(); err == nil {
+		t.Error("Branches worked without a folder")
+	}
+	for name, refused := range checks {
+		if !refused {
+			t.Errorf("%s did not refuse without a folder", name)
+		}
+	}
+}
+
+// Only a refusal because of a protected branch switches to merge requests (D4).
+func TestOtherHookRefusalsKeepDirectSharing(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the server hook is a shell script")
+	}
+	w := newWorld(t)
+	hook := filepath.Join(w.remote, "hooks", "pre-receive")
+	gittest.Write(t, hook, "#!/bin/sh\necho 'remote: file too large' >&2\nexit 1\n")
+	if err := os.Chmod(hook, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w.bob.write("a/2026.2.yaml", "velocity: 7\n")
+	res := w.bob.store.Save(SaveOptions{Message: "Sprint 2"})
+	if res.Outcome != OutcomeProblem {
+		t.Fatalf("save = %+v", res)
+	}
+	if got := w.bob.store.Storage().Share; got != gitsync.ShareDirect {
+		t.Fatalf("share = %q", got)
+	}
+}
+
+func TestFallbackKeepsWhatWasTakenOver(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the server hook is a shell script")
+	}
+	w := newWorld(t)
+	w.alice.write("a/2026.3.yaml", "velocity: 9\n")
+	w.alice.store.Save(SaveOptions{Message: "Anna's change"})
+	hook := filepath.Join(w.remote, "hooks", "pre-receive")
+	gittest.Write(t, hook, "#!/bin/sh\nwhile read old new ref; do\n"+
+		"  if [ \"$ref\" = refs/heads/main ]; then echo 'remote: GitLab: You are not allowed to push code to protected branches on this project.' >&2; exit 1; fi\n"+
+		"done\n")
+	if err := os.Chmod(hook, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w.bob.write("a/2026.2.yaml", "velocity: 7\n")
+	res := w.bob.store.Save(SaveOptions{Message: "Sprint 2"})
+	if res.Outcome != OutcomeWaitingForReview || len(res.Taken) != 1 || res.Taken[0].Who != "Anna" || len(res.Notes) == 0 {
+		t.Fatalf("save = %+v", res)
+	}
+}
+
+func TestCloneUsesTheTeamsFolder(t *testing.T) {
+	w := newWorld(t)
+	cloned := New("").CloneFrom(w.remote, filepath.Join(w.tmp, "copy"))
+	if cloned.Problem != nil || !strings.HasSuffix(filepath.ToSlash(cloned.Folder), "copy/teams") {
+		t.Fatalf("clone = %+v", cloned)
 	}
 }
