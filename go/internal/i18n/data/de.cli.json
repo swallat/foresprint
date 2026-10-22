@@ -26,6 +26,8 @@
   "Installing version {latest} …": "Version {latest} wird installiert …",
   "The update failed: {error}": "Die Aktualisierung ist fehlgeschlagen: {error}",
   "Updated to version {latest}. The next start uses it.": "Auf Version {latest} aktualisiert. Der nächste Start nutzt sie.",
+  "The program path is unknown.": "Der Pfad des Programms ist unbekannt.",
+  "Double-click starts Foresprint. The data folder is set up on first start.": "Ein Doppelklick startet Foresprint. Der Datenordner wird beim ersten Start eingerichtet.",
   "{where}: unknown placeholder {name}": "{where}: unbekannter Platzhalter {name}",
   "{where}: 'share' must be between 0 and 100": "{where}: 'share' muss zwischen 0 und 100 liegen",
   "{where}: estimation.factor must be greater than 0": "{where}: estimation.factor muss größer als 0 sein",
