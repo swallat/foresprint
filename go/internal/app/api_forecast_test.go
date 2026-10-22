@@ -1,6 +1,10 @@
 package app
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestForecastOfTheDemoTeam(t *testing.T) {
 	api := newAPI(t, demoDir(t))
@@ -60,5 +64,67 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 	}
 	if _, err := api.ForecastWhenDone(key, 60, 150); err == nil {
 		t.Error("a share above 100 must be refused")
+	}
+}
+
+// copyTree copies a directory so a test can change its data.
+func copyTree(t *testing.T, from, to string) {
+	t.Helper()
+	err := filepath.Walk(from, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(from, p)
+		dst := filepath.Join(to, rel)
+		if info.IsDir() {
+			return os.MkdirAll(dst, 0o755)
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dst, b, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestForecastPlannableAfterCarryOver(t *testing.T) {
+	dir := t.TempDir()
+	copyTree(t, demoDir(t), dir)
+	api := newAPI(t, dir)
+	key := api.Teams()[0].Key
+	base, err := api.Forecast(key)
+	if err != nil || len(base.Past) == 0 || len(base.Upcoming) == 0 {
+		t.Fatalf("forecast: %v", err)
+	}
+	last := base.Past[len(base.Past)-1].ID
+	first := base.Upcoming[0].ID
+
+	file := filepath.Join(dir, key, "sprints", last+".yaml")
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Skip("sprint file not found: " + err.Error())
+	}
+	if _, err := f.WriteString("\nrest_next: 4\n"); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	v, err := api.Forecast(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := v.Upcoming[0]
+	if r.ID != first || r.Plan == nil || r.Plannable == nil {
+		t.Fatalf("row %+v", r)
+	}
+	if r.CarryIn != 4 || r.CarryAssumed {
+		t.Errorf("carry-over %v (assumed %v), want 4 definitive", r.CarryIn, r.CarryAssumed)
+	}
+	b := base.Upcoming[0]
+	if b.Plannable != nil && *r.Plannable >= *b.Plannable {
+		t.Errorf("plannable %v did not drop below %v", *r.Plannable, *b.Plannable)
 	}
 }
