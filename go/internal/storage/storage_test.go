@@ -454,3 +454,15 @@ func TestFileNameProblem(t *testing.T) {
 		t.Error("a colon is an ordinary character outside Windows")
 	}
 }
+
+func TestPreplanProFormaRoundTrip(t *testing.T) {
+	pp := model.Preplan{ProForma: []model.ProFormaPlacement{{Ticket: "X-1", Name: "Refinement"}, {Ticket: "X-2"}}}
+	d := PreplanToDict(pp)
+	got, err := PreplanFromDict(d, "preplan.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.ProForma) != 2 || got.ProForma[0] != pp.ProForma[0] || got.ProForma[1] != pp.ProForma[1] {
+		t.Errorf("got %+v", got.ProForma)
+	}
+}

@@ -96,6 +96,19 @@ type BacklogView struct {
 	// Drift is the difference between the list frozen for the running sprint and the tracker's
 	// sprint at the last fetch; nil without a tracker, a running frozen sprint or a difference.
 	Drift *BacklogDrift `json:"drift,omitempty"`
+	// Adjust lists the tickets the PO placed in (or out of) a pro-forma sprint here that the
+	// tracker still has differently: they are to be adjusted in the tracker.
+	Adjust []BacklogAdjust `json:"adjust"`
+}
+
+// BacklogAdjust is one ticket whose pro-forma sprint differs between the tool and the tracker.
+type BacklogAdjust struct {
+	Key   string `json:"key"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+	// From is the pro-forma sprint in the tracker, To the one the PO chose; "" = none (backlog).
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 // BacklogDrift says which tickets came into or left the tracker's sprint after the freeze.

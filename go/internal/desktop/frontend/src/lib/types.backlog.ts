@@ -48,6 +48,15 @@ export interface BacklogLane {
   tickets: BacklogTicket[];
 }
 
+export interface BacklogAdjust {
+  key: string;
+  title: string;
+  url: string;
+  /** Pro-forma sprint in the tracker / the one chosen here; "" = none (backlog). */
+  from: string;
+  to: string;
+}
+
 export interface ProFormaSprint {
   name: string;
   tickets: BacklogTicket[];
@@ -68,6 +77,8 @@ export interface BacklogView {
   cycles: string[][];
   /** Tickets that came into or left the tracker's sprint after the freeze (running sprint). */
   drift?: BacklogDrift;
+  /** Tickets placed in or out of a pro-forma sprint here that the tracker still has differently. */
+  adjust: BacklogAdjust[];
 }
 
 export interface BacklogDrift {
@@ -136,6 +147,7 @@ export interface BacklogApi {
   Backlog(team: string): Promise<BacklogView>;
   Ticket(team: string, key: string): Promise<TicketDetail>;
   EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
+  MoveToProForma(team: string, key: string, name: string): Promise<void>;
   SetEarmarkNote(team: string, key: string, note: string): Promise<void>;
   SetEstimate(team: string, key: string, value: number | null): Promise<void>;
   SetRefined(team: string, key: string, refined: boolean): Promise<void>;

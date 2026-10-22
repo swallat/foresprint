@@ -5,6 +5,7 @@
   "A work package cannot depend on itself.": "Ein Arbeitspaket kann nicht von sich selbst abhängen.",
   "A work package needs a title.": "Ein Arbeitspaket braucht einen Titel.",
   "Only work packages can be deleted here.": "Hier lassen sich nur Arbeitspakete löschen.",
+  "Pro-forma sprints exist only for tickets from a tracker.": "Pro-forma-Sprints gibt es nur für Tickets aus einem Tracker.",
   "Product {id} is not known.": "Das Produkt {id} ist nicht bekannt.",
   "Project {id} is not known.": "Das Projekt {id} ist nicht bekannt.",
   "Sprint {id} is not known.": "Der Sprint {id} ist nicht bekannt.",
@@ -17,10 +18,12 @@
   "Ticket {key} not found.": "Das Ticket {key} gibt es nicht.",
   "{key} has to stay where it is: priority, project or a dependency decides here. Change that in the panel first.": "{key} muss hier bleiben: Priorität, Projekt oder eine Abhängigkeit entscheidet. Ändere das zuerst im Seitenpanel.",
   "{key} is done and cannot be earmarked.": "{key} ist erledigt und lässt sich nicht vormerken.",
+  "{key} is done and cannot be moved.": "{key} ist erledigt und kann nicht verschoben werden.",
   "{key} is done and has no place in the backlog.": "{key} ist erledigt und hat keinen Platz im Backlog.",
   "{key} is in a sprint in the tracker.": "{key} liegt im Tracker in einem Sprint.",
   "{key} is not earmarked.": "{key} ist nicht vorgemerkt.",
   "{key} is not in the backlog.": "{key} steht nicht im Backlog.",
-  "{key} is refined in the tracker.": "{key} wird im Tracker refined."
+  "{key} is refined in the tracker.": "{key} wird im Tracker refined.",
+  "{name} is not a pro-forma sprint of this team.": "{name} ist kein Pro-forma-Sprint dieses Teams."
  }
 }

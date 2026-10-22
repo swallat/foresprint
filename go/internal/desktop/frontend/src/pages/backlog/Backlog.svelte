@@ -12,7 +12,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -126,7 +126,21 @@
     e.preventDefault();
     const keys = dragKeys;
     dragEnd();
-    await earmark(keys, sprint);
+    await sendTo(keys, sprint);
+  }
+  async function dropPro(e: DragEvent, name: string): Promise<void> {
+    e.preventDefault();
+    const keys = dragKeys;
+    dragEnd();
+    await toProForma(keys.filter((k) => !fixedKeys.has(k)), name);
+  }
+  // Tickets out of a pro-forma sprint go back to the backlog or into a sprint lane.
+  const fixedKeys = $derived(new Set(allTickets(view).filter((tk) => tk.fixed).map((tk) => tk.key)));
+  const proKeys = $derived(new Set((view?.proForma ?? []).flatMap((p) => p.tickets.map((tk) => tk.key))));
+  async function sendTo(keys: string[], sprint: string): Promise<void> {
+    const fromPro = keys.filter((k) => proKeys.has(k));
+    if (sprint === '' && fromPro.length) await toProForma(fromPro, '');
+    await earmark(sprint === '' ? keys.filter((k) => !proKeys.has(k)) : keys, sprint);
   }
   async function step(tk: BacklogTicket, by: -1 | 1): Promise<void> {
     if (tk.fixed) return;
@@ -247,6 +261,21 @@
       </Banner>
     {/if}
 
+    {#if view.adjust.length}
+      <Banner tone="info">
+        <strong>{t('Adjust in {tracker}: {count} tickets sit in a different pro-forma sprint here.', { tracker: view.tracker, count: view.adjust.length })}</strong>
+        <ul class="adjust">
+          {#each view.adjust as a (a.key)}
+            <li>
+              {#if a.url}<a href={a.url} target="_blank" rel="noreferrer" class="data">{a.key}</a>{:else}<span class="data">{a.key}</span>{/if}
+              {a.title}:
+              {a.from || t('Backlog')} → {a.to || t('Backlog')}
+            </li>
+          {/each}
+        </ul>
+      </Banner>
+    {/if}
+
     {#if view.cycles.length}
       <Banner tone="warn">{t('Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.')}</Banner>
     {/if}
@@ -332,7 +361,10 @@
               {#each lanes as l (l.sprint)}
                 <button class="btn" type="button" role="menuitem" onclick={() => earmark([...ui.selection], l.sprint)}><Icon name="event" />{t('Sprint {id}', { id: l.sprint })}</button>
               {/each}
-              <button class="btn" type="button" role="menuitem" onclick={() => earmark([...ui.selection], '')}><Icon name="undo" />{t('Back to the backlog')}</button>
+              {#each view.proForma as pf (pf.name)}
+                <button class="btn" type="button" role="menuitem" onclick={() => toProForma(ui.selection.filter((k) => !fixedKeys.has(k)), pf.name)}><Icon name="inventory_2" />{pf.name}</button>
+              {/each}
+              <button class="btn" type="button" role="menuitem" onclick={() => sendTo([...ui.selection], '')}><Icon name="undo" />{t('Back to the backlog')}</button>
             </span>
           {/if}
         </div>
@@ -396,7 +428,7 @@
         {#each view.proForma as pf (pf.name)}
           {@const open = ui.open[pf.name] ?? false}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane">
+          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => dragOver(e, `pf:${pf.name}`)} ondragleave={() => (overZone = '')} ondrop={(e) => dropPro(e, pf.name)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={open} aria-label={open ? t('Collapse') : t('Expand')} onclick={() => (ui.open[pf.name] = !open)}>
@@ -536,6 +568,10 @@
   }
   .gap {
     margin-left: 8px;
+  }
+  .adjust {
+    margin: var(--space-1, 4px) 0 0;
+    padding-left: 1.25rem;
   }
   .sync {
     display: flex;

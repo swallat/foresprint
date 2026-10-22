@@ -85,8 +85,17 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 	return c
 }
 
-// proFormaName is the pro-forma sprint the tracker has the ticket in, or "".
+// proFormaName is the pro-forma sprint the ticket is in: the PO's placement if there is one,
+// else the sprint the tracker has it in; "" = none.
 func (c *backlogContext) proFormaName(tk model.Ticket) string {
+	if pl := c.data.Preplan.ProFormaFor(tk.Key); pl != nil {
+		return c.proForma[strings.ToLower(strings.TrimSpace(pl.Name))]
+	}
+	return c.trackerProForma(tk)
+}
+
+// trackerProForma is the pro-forma sprint the tracker has the ticket in, or "".
+func (c *backlogContext) trackerProForma(tk model.Ticket) string {
 	for _, name := range []string{backlogStr(tk.SprintName), backlogStr(tk.InSprint)} {
 		if p, ok := c.proForma[strings.ToLower(strings.TrimSpace(name))]; ok && name != "" {
 			return p
@@ -275,6 +284,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 		Multi:      data.Team.Features.Products,
 		Production: data.Team.Features.Production,
 		Cycles:     [][]string{},
+		Adjust:     []BacklogAdjust{},
 	}
 	if data.TicketsImported != nil {
 		view.Imported = data.TicketsImported.Format(time.RFC3339)
@@ -322,6 +332,16 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	}
 	view.Lanes = lanes
 	view.Drift = backlogDrift(data, now)
+	for _, pl := range data.Preplan.ProForma {
+		tk := c.byKey[pl.Ticket]
+		if tk == nil || tk.Done {
+			continue
+		}
+		view.Adjust = append(view.Adjust, BacklogAdjust{
+			Key: tk.Key, Title: tk.Title, URL: backlogTicketURL(data.Team, tk.Key),
+			From: c.trackerProForma(*tk), To: c.proFormaName(*tk),
+		})
+	}
 	return view, nil
 }
 
@@ -581,6 +601,9 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 		if !s.End.After(today()) {
 			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is over.", "id", sprint))
 		}
+		if c := newBacklogContext(data); c.proFormaName(*tk) != "" {
+			backlogSetProForma(data, c, *tk, "") // leaves the pro-forma sprint
+		}
 		prev := ""
 		if e := data.Preplan.EarmarkFor(key); e != nil {
 			prev = backlogStr(e.Note)
@@ -590,6 +613,52 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 			note = prev
 		}
 		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: backlogStrPtr(note)})
+		return backlogSavePreplan(repo, team, data), nil
+	})
+}
+
+// backlogSetProForma records where the PO wants the ticket; the placement is kept only while
+// it differs from what the tracker has.
+func backlogSetProForma(data *storage.TeamData, c *backlogContext, tk model.Ticket, name string) {
+	pp := &data.Preplan
+	kept := pp.ProForma[:0:0]
+	for _, pl := range pp.ProForma {
+		if pl.Ticket != tk.Key {
+			kept = append(kept, pl)
+		}
+	}
+	pp.ProForma = kept
+	if name != c.trackerProForma(tk) {
+		pp.ProForma = append(pp.ProForma, model.ProFormaPlacement{Ticket: tk.Key, Name: name})
+	}
+}
+
+// MoveToProForma puts a tracker ticket into the pro-forma sprint of that name, or ("") back
+// into the backlog. The tool only remembers the decision; the list "adjust in the tracker"
+// shows what still differs from the tracker.
+func (a *API) MoveToProForma(team, key, name string) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if data.Team.Source() != model.SourceTracker {
+			return nil, fmt.Errorf("%s", i18n.T("Pro-forma sprints exist only for tickets from a tracker."))
+		}
+		c := newBacklogContext(data)
+		if name != "" {
+			canon, ok := c.proForma[strings.ToLower(strings.TrimSpace(name))]
+			if !ok {
+				return nil, fmt.Errorf("%s", i18n.T("{name} is not a pro-forma sprint of this team.", "name", name))
+			}
+			name = canon
+		}
+		if tk.Done {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is done and cannot be moved.", "key", key))
+		}
+		if backlogStr(tk.InSprint) != "" && c.trackerProForma(*tk) == "" {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is in a sprint in the tracker.", "key", key))
+		}
+		backlogSetProForma(data, c, *tk, name)
+		if name != "" {
+			backlogRemoveEarmark(&data.Preplan, key)
+		}
 		return backlogSavePreplan(repo, team, data), nil
 	})
 }

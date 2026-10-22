@@ -137,6 +137,51 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
   });
 }
 
+/** Where a ticket sits among the pro-forma sprints ("" = none). */
+function proFormaOf(view: BacklogView, key: string): string {
+  return view.proForma.find((p) => p.tickets.some((tk) => tk.key === key))?.name ?? '';
+}
+
+/** Puts tickets into a pro-forma sprint ("" = back to the backlog) and offers to undo it. */
+export async function toProForma(keys: string[], name: string): Promise<void> {
+  const view = store.view;
+  if (!view || keys.length === 0) return;
+  const before = new Map(keys.map((k) => [k, proFormaOf(view, k)]));
+  const moved: string[] = [];
+  try {
+    for (const key of keys) {
+      if (before.get(key) === name) continue;
+      await api.MoveToProForma(app.team, key, name);
+      moved.push(key);
+    }
+  } catch (e) {
+    toast(String(e), 'bad');
+  }
+  ui.selection = ui.selection.filter((k) => !moved.includes(k));
+  ui.menu = false;
+  await changed();
+  if (moved.length === 0) return;
+  const text =
+    moved.length === 1
+      ? name
+        ? t('{key} moved to {name}. Adjust it in the tracker.', { key: moved[0] ?? '', name })
+        : t('{key} is back in the backlog. Adjust it in the tracker.', { key: moved[0] ?? '' })
+      : name
+        ? t('{count} tickets moved to {name}. Adjust them in the tracker.', { count: moved.length, name })
+        : t('{count} tickets are back in the backlog. Adjust them in the tracker.', { count: moved.length });
+  toast(text, 'ok', {
+    label: t('Undo'),
+    run: async () => {
+      try {
+        for (const key of moved) await api.MoveToProForma(app.team, key, before.get(key) ?? '');
+      } catch (e) {
+        toast(String(e), 'bad');
+      }
+      await changed();
+    },
+  });
+}
+
 function usedAfter(sprint: string, moved: string[]): number {
   const view = store.view;
   if (!view) return 0;
