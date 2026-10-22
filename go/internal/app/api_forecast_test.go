@@ -110,7 +110,9 @@ func TestForecastPlannableAfterCarryOver(t *testing.T) {
 	if _, err := f.WriteString("\nrest_next: 4\n"); err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	v, err := api.Forecast(key)
 	if err != nil {
