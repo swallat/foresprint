@@ -27,6 +27,7 @@ it again updates. Settings through environment variables:
 | `FORESPRINT_VERSION` | install this version (`1.0.0`) instead of the newest |
 | `FORESPRINT_BIN` | folder for the program (default `~/.local/bin`, on Windows `%LOCALAPPDATA%\Programs\foresprint`) |
 | `FORESPRINT_NO_SHORTCUT` | do not create a launcher |
+| `FORESPRINT_VARIANT` | `cli`: Linux only, the command line without the window (see below) |
 
 Without the script: download `foresprint_<version>_<os>_<arch>` (`.zip` on Windows, `.tar.gz`
 elsewhere) from the [releases](https://github.com/swallat/foresprint/releases), unpack it and
@@ -47,6 +48,17 @@ names them. Install them with your package manager:
 | Arch | `sudo pacman -S gtk3 webkit2gtk-4.1` |
 
 The error `libwebkit2gtk-4.1.so.0: cannot open shared object file` means they are missing.
+
+### Linux without a window (servers, CI)
+
+The release has a second Linux archive without the window part: `foresprint-cli_<version>_linux_<arch>.tar.gz`.
+It is statically linked and needs no libraries. Install it with
+
+```sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | FORESPRINT_VARIANT=cli sh
+```
+
+`foresprint update` stays on this variant. It has all commands except `foresprint gui`.
 
 ## Not signed: SmartScreen and Gatekeeper
 

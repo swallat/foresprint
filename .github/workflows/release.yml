@@ -2,11 +2,12 @@ name: Release
 
 # Builds the wheel and the source distribution and writes the release page as soon as a version
 # tag (v0.4.2 …) is pushed. "Run workflow" creates the release for an existing tag after the
-# fact or, if the release page already exists, replaces its files.
+# fact or, if the release page already exists, replaces its files. Tags from v1.0.0 on belong to
+# release-app.yml (the Go program) and do not start this workflow.
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v0.*"]
   workflow_dispatch:
     inputs:
       tag:
