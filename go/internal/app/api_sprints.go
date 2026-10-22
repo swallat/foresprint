@@ -50,8 +50,9 @@ func sprintWindow(data *storage.TeamData, fc *forecast.Forecast, from string, co
 		return nil, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", from))
 	}
 	out := []model.Sprint{first.Clone()}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
 	for len(out) < count {
-		next, err := calendar.FollowingSprint(&data.Team, &out[len(out)-1])
+		next, err := chain.After(&out[len(out)-1])
 		if err != nil {
 			return nil, err
 		}

@@ -16,6 +16,7 @@ import (
 // program ends; the next step replaces it, so Undo refuses a token that is no longer the last.
 type undoEntry struct {
 	token int
+	tree  string            // a folder whose other files are removed again by Undo ("" = none)
 	files map[string][]byte // path -> content before; nil = the file did not exist
 }
 
@@ -55,6 +56,34 @@ func (a *API) forget(team string) {
 	delete(a.teamUndo.steps, team)
 }
 
+// rememberTree is remember for a step that renames files (sprints, minutes and the files that
+// refer to them): every file of the team folder is kept, and Undo also removes the files that
+// the step has made.
+func (a *API) rememberTree(team string) int {
+	root := storage.NewRepository(a.DataDir()).TeamDir(team)
+	var files []string
+	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	token := a.remember(team, files...)
+	a.teamUndo.mu.Lock()
+	e := a.teamUndo.steps[team]
+	e.tree = root
+	a.teamUndo.steps[team] = e
+	a.teamUndo.mu.Unlock()
+	return token
+}
+
 func (a *API) teamFile(team, name string) string {
 	return filepath.Join(storage.NewRepository(a.DataDir()).TeamDir(team), name)
 }
@@ -69,6 +98,23 @@ func (a *API) Undo(team string, token int) error {
 	}
 	delete(a.teamUndo.steps, team)
 	a.teamUndo.mu.Unlock()
+	if e.tree != "" {
+		_ = filepath.WalkDir(e.tree, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				if d.Name() == ".git" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if _, kept := e.files[path]; !kept {
+				_ = os.Remove(path)
+			}
+			return nil
+		})
+	}
 	for path, content := range e.files {
 		if content == nil {
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
