@@ -98,6 +98,10 @@ type JiraSource struct {
 	token    secret
 	client   *http.Client
 	fields   *resolvedFields
+	// sprintWrite allows moving tickets between sprints (EnableSprintWrite); off by default.
+	sprintWrite bool
+	// seen are the sprints met in the sprint field of fetched tickets, by Jira id.
+	seen map[string]SprintValue
 	// transport replaces the network (tests); nil = the real one.
 	transport http.RoundTripper
 }
@@ -252,6 +256,9 @@ func rootCertificates() (*x509.CertPool, error) {
 // request sends one request and returns the decoded JSON. Only GET and the label PUT are
 // allowed; every failure is an *Error whose text contains neither the token nor the answer.
 func (j *JiraSource) request(method, path string, params url.Values, body map[string]any) (any, error) {
+	if method == http.MethodPost && j.sprintWrite && len(params) == 0 && isSprintWrite(path, any(body)) {
+		return j.send(method, path, params, body)
+	}
 	if method != http.MethodGet && method != http.MethodPut {
 		return nil, fmt.Errorf("HTTP method %q is not allowed: this source only reads", method)
 	}
@@ -259,6 +266,11 @@ func (j *JiraSource) request(method, path string, params url.Values, body map[st
 		(method == http.MethodPut && (len(params) > 0 || !isLabelWrite(path, any(body)))) {
 		return nil, errors.New("Only a label change of one ticket may be written") //nolint:staticcheck // shown to the user
 	}
+	return j.send(method, path, params, body)
+}
+
+// send does the request after request has checked that it is allowed.
+func (j *JiraSource) send(method, path string, params url.Values, body map[string]any) (any, error) {
 	if j.client == nil {
 		client, err := j.newClient()
 		if err != nil {
@@ -298,8 +310,8 @@ func (j *JiraSource) request(method, path string, params url.Values, body map[st
 	if readErr != nil {
 		return nil, errorf("{text}", "text", j.failureText(readErr))
 	}
-	if method == http.MethodPut {
-		return j.decodeWrite(resp, data)
+	if method == http.MethodPut || method == http.MethodPost {
+		return j.decodeWrite(resp, data, method)
 	}
 	return j.decode(resp, data, path)
 }
@@ -358,14 +370,25 @@ func isTLSError(err error) bool {
 
 // decodeWrite handles the answer to the label PUT: 204 is success; 403 and 404 get texts that
 // fit a write.
-func (j *JiraSource) decodeWrite(resp *http.Response, data []byte) (any, error) {
+func (j *JiraSource) decodeWrite(resp *http.Response, data []byte, method string) (any, error) {
+	movingIssues := method == http.MethodPost
 	switch resp.StatusCode {
 	case http.StatusNoContent:
 		return nil, nil //nolint:nilnil // success has no content
 	case http.StatusForbidden:
+		if movingIssues {
+			return nil, errorf("Jira refuses the write (403): the account may not edit sprints (needs the right to manage sprints).")
+		}
 		return nil, errorf("Jira refuses the write (403): the account may not change labels of this ticket.")
 	case http.StatusNotFound:
+		if movingIssues {
+			return nil, errorf("The sprint or a ticket does not exist or is not visible to the account (404)")
+		}
 		return nil, errorf("The ticket does not exist or is not visible to the account (404)")
+	case http.StatusBadRequest:
+		if movingIssues {
+			return nil, errorf("Jira refuses to move the tickets (400): the sprint may be closed or a ticket is not on the board of the sprint")
+		}
 	}
 	return j.decode(resp, data, "")
 }
@@ -572,6 +595,7 @@ func (j *JiraSource) Fetch() ([]RawTicket, error) {
 	}
 	wanted := strings.Join(resolved.requested(), ",")
 	tickets := map[string]RawTicket{}
+	j.seen = nil
 	var order []string
 	start, expected := 0, -1
 	for {

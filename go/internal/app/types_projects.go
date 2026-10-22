@@ -32,8 +32,8 @@ type MonthRow struct {
 	Planned *float64 `json:"planned"`
 }
 
-// SprintRow is one row of the report for the project lead.
-type SprintRow struct {
+// ProjectSprintRow is one row of the report for the project lead.
+type ProjectSprintRow struct {
 	Sprint  string   `json:"sprint"`
 	State   string   `json:"state"`
 	Booked  float64  `json:"booked"`
@@ -112,9 +112,9 @@ type ProjectsView struct {
 // ProjectDetail is one project with its report.
 type ProjectDetail struct {
 	ProjectsView
-	Project ProjectView  `json:"project"`
-	Report  []SprintRow  `json:"report"`
-	Tickets []TicketLine `json:"tickets"`
+	Project ProjectView        `json:"project"`
+	Report  []ProjectSprintRow `json:"report"`
+	Tickets []TicketLine       `json:"tickets"`
 }
 
 // TicketLine is a ticket of the project.

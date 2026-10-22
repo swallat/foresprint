@@ -349,3 +349,92 @@ func TestCloneUsesTheTeamsFolder(t *testing.T) {
 		t.Fatalf("clone = %+v", cloned)
 	}
 }
+
+func TestUnsavedChangesComeValueByValue(t *testing.T) {
+	w := newWorld(t)
+	w.alice.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\nextra: new\n")
+	w.alice.write("a/notes.txt", "hello\n")
+	list, err := w.alice.store.UnsavedChanges()
+	if err != nil || len(list) != 2 {
+		t.Fatalf("unsaved = %+v, %v", list, err)
+	}
+	var yaml, plain UnsavedFile
+	for _, f := range list {
+		if strings.HasSuffix(f.File, ".yaml") {
+			yaml = f
+		} else {
+			plain = f
+		}
+	}
+	if yaml.Whole || len(yaml.Values) != 2 || !plain.Whole {
+		t.Fatalf("files = %+v / %+v", yaml, plain)
+	}
+	byLabel := map[string]ValueChange{}
+	for _, v := range yaml.Values {
+		byLabel[v.Label] = v
+	}
+	if v := byLabel["velocity"]; v.Kind != "changed" || v.Before != "10" || v.After != "12" {
+		t.Fatalf("velocity = %+v", v)
+	}
+	if v := byLabel["extra"]; v.Kind != "added" || v.HasBefore || v.After != "new" {
+		t.Fatalf("extra = %+v", v)
+	}
+	// Put back one value; the other change stays.
+	if d := w.alice.store.DiscardValues([]ValueRef{{File: yaml.File, Path: []string{"velocity"}}}); d.Problem != nil {
+		t.Fatalf("discard = %+v", d.Problem)
+	}
+	got, _ := os.ReadFile(filepath.Join(w.alice.root, filepath.FromSlash(yaml.File)))
+	if !strings.Contains(string(got), "velocity: 10") || !strings.Contains(string(got), "extra: new") {
+		t.Fatalf("file = %q", got)
+	}
+	if d := w.alice.store.DiscardValues([]ValueRef{{File: yaml.File, Path: []string{"extra"}}}); d.Problem != nil {
+		t.Fatalf("discard = %+v", d.Problem)
+	}
+	got, _ = os.ReadFile(filepath.Join(w.alice.root, filepath.FromSlash(yaml.File)))
+	if strings.Contains(string(got), "extra") {
+		t.Fatalf("file = %q", got)
+	}
+}
+
+func TestConflictCanBeDecidedWithAnOwnValue(t *testing.T) {
+	w := newWorld(t)
+	w.alice.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+	w.alice.store.Save(SaveOptions{Message: "Anna"})
+	w.bob.write("a/2026.1.yaml", "velocity: 8\nscope_creep: 1\n")
+	w.bob.store.Save(SaveOptions{Message: "Ben"})
+	list := w.bob.store.Conflicts()
+	if len(list) != 1 {
+		t.Fatalf("conflicts = %+v", list)
+	}
+	e := list[0].Entries[0]
+	bad := w.bob.store.ResolveConflicts([]Decision{{File: list[0].File, Path: e.Path, Choice: Custom, Value: "[unclosed"}})
+	if bad.Problem == nil {
+		t.Fatalf("an unreadable value must be refused: %+v", bad)
+	}
+	if r := w.bob.store.ResolveConflicts([]Decision{{File: list[0].File, Path: e.Path, Choice: Custom, Value: "11"}}); r.Outcome != OutcomeDecided {
+		t.Fatalf("resolve = %+v", r)
+	}
+	if res := w.bob.store.Save(SaveOptions{Message: "Ben"}); res.Outcome != OutcomeSaved {
+		t.Fatalf("save = %+v", res)
+	}
+	if got, _ := os.ReadFile(filepath.Join(w.bob.root, "teams", "a", "2026.1.yaml")); !strings.Contains(string(got), "velocity: 11") {
+		t.Fatalf("file = %q", got)
+	}
+}
+
+func TestLineEndingsOfferIsAppliedOnce(t *testing.T) {
+	w := newWorld(t)
+	offer := w.alice.store.LineEndings()
+	if offer.Problem != nil || !offer.Needed || len(offer.Rules) == 0 {
+		t.Fatalf("offer = %+v", offer)
+	}
+	if done := w.alice.store.ApplyLineEndings(); done.Problem != nil || done.Needed {
+		t.Fatalf("apply = %+v", done)
+	}
+	if again := w.alice.store.LineEndings(); again.Needed {
+		t.Fatalf("offered again: %+v", again)
+	}
+	if st := w.alice.store.Status(); st.Unsaved == 0 {
+		t.Fatalf("the rule file should be an unsaved change: %+v", st)
+	}
+}

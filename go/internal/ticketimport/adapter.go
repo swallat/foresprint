@@ -30,6 +30,7 @@ func SourceSettings(t model.TrackerSettings) sources.Settings {
 	for _, e := range t.RuleFields.Entries {
 		s.RuleFields = append(s.RuleFields, sources.RuleField{Name: e.Key, Display: e.Value})
 	}
+	s.RuleFields = append(s.RuleFields, MappedRuleFields(t)...)
 	return s
 }
 

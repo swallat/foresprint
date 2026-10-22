@@ -60,3 +60,56 @@ func FormatSprintName(pattern string, in SprintNameInput) (string, error) {
 		return values[m[1:len(m)-1]]
 	}), nil
 }
+
+// SprintDisplayName is the name shown for the sprint with the given id: the name given by hand,
+// else the naming pattern that applies from this sprint on (the newest rule whose From is this
+// sprint or an earlier one; From nil = from the first), else the id. sprints must be ordered
+// from the oldest to the newest; the number within the year counts the sprints that start in
+// the same year, the running number all sprints.
+func SprintDisplayName(team *Team, sprints []Sprint, id string) string {
+	index := -1
+	for i, s := range sprints {
+		if s.ID == id {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return id
+	}
+	s := sprints[index]
+	if s.Name != nil && *s.Name != "" {
+		return *s.Name
+	}
+	pattern, best := "", -1
+	for _, rule := range team.Sprint.Naming {
+		from := 0
+		if rule.From != nil {
+			from = -1
+			for i, c := range sprints {
+				if c.ID == *rule.From {
+					from = i
+					break
+				}
+			}
+		}
+		if from < 0 || from > index || from < best {
+			continue
+		}
+		best, pattern = from, rule.Pattern
+	}
+	if pattern == "" {
+		return id
+	}
+	number := 0
+	for _, c := range sprints[:index+1] {
+		if c.Start.Year() == s.Start.Year() {
+			number++
+		}
+	}
+	name, err := FormatSprintName(pattern, SprintNameInput{Start: s.Start, Number: number, Sequence: index + 1})
+	if err != nil {
+		return id
+	}
+	return name
+}

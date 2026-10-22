@@ -474,7 +474,7 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 	if p == nil {
 		return ProjectDetail{}, errors.New(i18n.T("The project {id} does not exist.", "id", id))
 	}
-	out := ProjectDetail{ProjectsView: c.view(), Project: c.projectView(*p), Report: []SprintRow{}, Tickets: []TicketLine{}}
+	out := ProjectDetail{ProjectsView: c.view(), Project: c.projectView(*p), Report: []ProjectSprintRow{}, Tickets: []TicketLine{}}
 	out.Report = c.report(*p)
 	for _, t := range c.data.Tickets {
 		if effectiveProject(c.data, t) != id {
@@ -498,8 +498,8 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 }
 
 // report is the booked, planned and finished amount per sprint from the running sprint on.
-func (c *projectCtx) report(p model.Project) []SprintRow {
-	rows := []SprintRow{}
+func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
+	rows := []ProjectSprintRow{}
 	var ids []string
 	for id, s := range c.sprint {
 		if s.End.After(c.today) {
@@ -551,7 +551,7 @@ func (c *projectCtx) report(p model.Project) []SprintRow {
 		if !s.Start.After(c.today) {
 			state = "current"
 		}
-		r := SprintRow{Sprint: id, State: state}
+		r := ProjectSprintRow{Sprint: id, State: state}
 		ym := monthOf(lastDay(s))
 		if v, ok := p.Contingent.PerMonth.Get(ym); ok {
 			r.Booked = round1(v / float64(perMonth[ym]))
