@@ -278,7 +278,7 @@
               <tr>
                 <td><a href={link('/projects/:id', { id: p.id })}>{p.name}</a></td>
                 <td><LightChip light={p.state === 'cancelled' ? 'warn' : 'ok'} label={p.state === 'cancelled' ? t('cancelled') : t('finished')} /></td>
-                <td class="data">{date(p.end)}</td>
+                <td class="data">{date(p.closedAt || p.end)}</td>
                 <td class="num"><Amount value={p.done} est={estimated} /></td>
                 <td class="num"><Amount value={p.booked} /></td>
                 <td><button class="btn" type="button" onclick={() => reopen(p)}><Icon name="unarchive" />{t('Reopen')}</button></td>

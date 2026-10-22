@@ -45,6 +45,9 @@
   let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.booked > 0).map((m) => [m.month, String(m.booked)])));
   let error = $state('');
   let busy = $state(false);
+  const snapshot = () => JSON.stringify([name, products, start, end, booked, used, contact, openScope, rule, note, milestones, months, usedMonths]);
+  const initial = snapshot();
+  const dirty = $derived(snapshot() !== initial);
 
   // Months of the contingent: from the start (or today) to the end, at most three years.
   const monthKeys = $derived.by(() => {
@@ -129,7 +132,7 @@
   }
 </script>
 
-<SidePanel title={p ? t('Edit project') : t('New project')} {onclose}>
+<SidePanel title={p ? t('Edit project') : t('New project')} {onclose} {dirty}>
   <form class="stack" onsubmit={submit} novalidate>
     <div class="banner info">
       <Icon name="cloud_off" />

@@ -51,11 +51,15 @@ func (a *API) today() time.Time {
 
 // projectCtx is everything the project views calculate from.
 type projectCtx struct {
-	data   *storage.TeamData
-	today  time.Time
-	dist   *preplan.Distribution // nil without tickets or when it could not be calculated
-	rate   float64               // points per person day; 0 = unknown
-	sprint map[string]model.Sprint
+	data  *storage.TeamData
+	today time.Time
+	dist  *preplan.Distribution // nil without tickets or when it could not be calculated
+	rate  float64               // mean points per person day; 0 = unknown
+	// doneRate and planRate are the rates of single sprints: the measured one (velocity per
+	// capacity) for finished work, the one of the forecast for planned work. A sprint without
+	// one uses the mean rate.
+	doneRate, planRate map[string]float64
+	sprint             map[string]model.Sprint
 	// problem says why the distribution is missing.
 	problem string
 }
@@ -87,7 +91,7 @@ func (a *API) projectContext(team string) (*projectCtx, error) {
 }
 
 func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
-	c := &projectCtx{data: data, today: now, sprint: map[string]model.Sprint{}}
+	c := &projectCtx{data: data, today: now, sprint: map[string]model.Sprint{}, doneRate: map[string]float64{}, planRate: map[string]float64{}}
 	for _, s := range data.Sprints {
 		c.sprint[s.ID] = s
 	}
@@ -102,6 +106,16 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 	for _, e := range fc.Entries {
 		if _, ok := c.sprint[e.Sprint.ID]; !ok {
 			c.sprint[e.Sprint.ID] = e.Sprint
+		}
+		r := e.Result
+		if data.Team.Unit == model.UnitPT {
+			continue // person days need no conversion
+		}
+		if r.Velocity.Value != nil && r.Capacity.Value != nil && *r.Capacity.Value > 0 && *r.Velocity.Value > 0 {
+			c.doneRate[e.Sprint.ID] = *r.Velocity.Value / *r.Capacity.Value
+		}
+		if r.Plan != nil && r.PlanCapacity != nil && *r.PlanCapacity > 0 && *r.Plan > 0 {
+			c.planRate[e.Sprint.ID] = *r.Plan / *r.PlanCapacity
 		}
 	}
 	switch {
@@ -137,11 +151,30 @@ func distributeOpen(data *storage.TeamData, now time.Time) (*preplan.Distributio
 	return dist, ""
 }
 
-func (c *projectCtx) toPD(points float64) *float64 {
+// pd converts points of one sprint to person days with the rate of that sprint; planned says
+// whether the points are planned (forecast rate) or finished (measured rate). Without a
+// rate of its own the sprint takes the mean rate.
+func (c *projectCtx) pd(points float64, sprint string, planned bool) float64 {
+	rates := c.doneRate
+	if planned {
+		rates = c.planRate
+	}
+	r := rates[sprint]
+	if r <= 0 {
+		r = c.rate
+	}
+	if r <= 0 {
+		return 0
+	}
+	return points / r
+}
+
+// pdPtr is a sum of person days, nil while the team has no rate yet.
+func (c *projectCtx) pdPtr(sum float64) *float64 {
 	if c.rate <= 0 {
 		return nil
 	}
-	return model.Ptr(round1(points / c.rate))
+	return model.Ptr(round1(sum))
 }
 
 func round1(v float64) float64 { return math.Round(v*10) / 10 }
@@ -233,7 +266,7 @@ func ruleText(r *model.Rule) string {
 func (c *projectCtx) projectView(p model.Project) ProjectView {
 	v := ProjectView{
 		ID: p.ID, Name: p.Name, Products: p.Products(), Start: day(p.Start), End: day(p.End), Rule: ruleText(p.Match),
-		Priority: p.Priority, Booked: p.Contingent.Total, OpenScope: p.OpenScope, State: string(p.State), Light: "none",
+		Priority: p.Priority, Booked: p.Contingent.Total, OpenScope: p.OpenScope, State: string(p.State), ClosedAt: day(p.ClosedAt), Light: "none",
 		Milestones: []MilestoneView{}, Months: []MonthRow{},
 	}
 	if p.Note != nil {
@@ -256,7 +289,7 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 	}
 	cs := preplan.ContingentStatusOf(p.Contingent)
 	v.Used, v.Remaining, v.UsedStatus, v.UsedHand = cs.Used, cs.Remaining, string(cs.Status), p.Contingent.Used
-	var plannedPts, donePts float64
+	var plannedPts, donePts, plannedPD, donePD float64
 	hasDone := false
 	for _, t := range c.data.Tickets {
 		if effectiveProject(c.data, t) != p.ID {
@@ -267,6 +300,11 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 			hasDone = true
 			if t.Estimate != nil {
 				donePts += *t.Estimate
+				sprint := ""
+				if t.InSprint != nil {
+					sprint = *t.InSprint
+				}
+				donePD += c.pd(*t.Estimate, sprint, false)
 			}
 		}
 	}
@@ -295,16 +333,17 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 		for _, pl := range c.placements(p.ID) {
 			if pl.Sprint != nil && pl.Size != nil {
 				plannedPts += *pl.Size
+				plannedPD += c.pd(*pl.Size, *pl.Sprint, true)
 			}
 		}
 	}
 	v.DonePoints, v.PlannedPoints = round1(donePts), round1(plannedPts)
 	if c.data.Team.Features.Tickets {
 		if hasDone || plannedPts > 0 {
-			v.Done = c.toPD(donePts)
+			v.Done = c.pdPtr(donePD)
 		}
 		if c.dist != nil && !p.Closed() {
-			v.Planned = c.toPD(plannedPts)
+			v.Planned = c.pdPtr(plannedPD)
 		}
 	}
 	v.Months = c.monthRows(p)
@@ -320,7 +359,7 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 			continue
 		}
 		if s, ok := c.sprint[*pl.Sprint]; ok {
-			planned[monthOf(lastDay(s))] += *pl.Size
+			planned[monthOf(lastDay(s))] += c.pd(*pl.Size, s.ID, true)
 		}
 	}
 	for _, t := range c.data.Tickets {
@@ -328,7 +367,7 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 			continue
 		}
 		if s, ok := c.sprint[*t.InSprint]; ok {
-			done[monthOf(lastDay(s))] += *t.Estimate
+			done[monthOf(lastDay(s))] += c.pd(*t.Estimate, s.ID, false)
 		}
 	}
 	// Months with planned or finished work but no booking belong in the table too: that is where
@@ -364,8 +403,8 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 			r.Used, r.Remaining, r.Status = st.Used, st.Remaining, string(st.Status)
 		}
 		if c.data.Team.Features.Tickets {
-			r.Done = c.toPD(done[ym])
-			r.Planned = c.toPD(planned[ym])
+			r.Done = c.pdPtr(done[ym])
+			r.Planned = c.pdPtr(planned[ym])
 		}
 		rows = append(rows, r)
 	}
@@ -548,13 +587,13 @@ func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
 	planned := map[string]float64{}
 	for _, pl := range c.placements(p.ID) {
 		if pl.Sprint != nil && pl.Size != nil {
-			planned[*pl.Sprint] += *pl.Size
+			planned[*pl.Sprint] += c.pd(*pl.Size, *pl.Sprint, true)
 		}
 	}
 	done := map[string]float64{}
 	for _, t := range c.data.Tickets {
 		if t.Done && t.Estimate != nil && t.InSprint != nil && effectiveProject(c.data, t) == p.ID {
-			done[*t.InSprint] += *t.Estimate
+			done[*t.InSprint] += c.pd(*t.Estimate, *t.InSprint, false)
 		}
 	}
 	for _, id := range ids {
@@ -572,8 +611,8 @@ func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
 			r.Booked = round1(*p.Contingent.Total / float64(inWindow))
 		}
 		if c.data.Team.Features.Tickets {
-			r.Planned = c.toPD(planned[id])
-			r.Done = c.toPD(done[id])
+			r.Planned = c.pdPtr(planned[id])
+			r.Done = c.pdPtr(done[id])
 		}
 		rows = append(rows, r)
 	}
@@ -887,7 +926,10 @@ func (a *API) CloseProject(team string, in CloseInput) error {
 				return errors.New(i18n.T("The project {id} does not exist.", "id", in.MoveTo))
 			}
 		}
-		p.State, p.End = state, end
+		p.State, p.ClosedAt = state, end
+		if p.End == nil {
+			p.End = end
+		}
 		if data.Team.Features.Tickets {
 			// Without a decision the core treats the tickets of a closed project as daily
 			// business; a target project is a decision of the PO per ticket.
@@ -927,7 +969,7 @@ func (a *API) ReopenProject(team, id string) error {
 		if p == nil {
 			return errors.New(i18n.T("The project {id} does not exist.", "id", id))
 		}
-		p.State = model.ProjectOpen
+		p.State, p.ClosedAt = model.ProjectOpen, nil
 		return nil
 	})
 }

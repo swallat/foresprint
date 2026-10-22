@@ -82,8 +82,9 @@ type ProjectView struct {
 	OpenScope  *float64        `json:"openScope"`
 	Open       int             `json:"open"` // open tickets
 	Milestones []MilestoneView `json:"milestones"`
-	// State is "", "finished" or "cancelled"; ClosedAt is the end date of a closed project.
-	State string `json:"state"`
+	// State is "", "finished" or "cancelled"; ClosedAt is the day a closed project ended.
+	State    string `json:"state"`
+	ClosedAt string `json:"closedAt"`
 	// History is true when ending the project closes it instead of deleting it.
 	History bool `json:"history"`
 }
