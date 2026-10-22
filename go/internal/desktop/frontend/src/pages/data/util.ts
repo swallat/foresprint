@@ -28,17 +28,28 @@ export function allEntries(conflicts: Conflict[]): { file: string; entry: Confli
   return conflicts.flatMap((c) => c.entries.map((entry) => ({ file: c.file, entry })));
 }
 
+export type Choice = 'ours' | 'theirs' | 'custom';
+
+/** An own value counts only when something is written. */
+const decided = (choice: Choice | undefined, value: string | undefined): boolean =>
+  choice === 'custom' ? !!value?.trim() : !!choice;
+
 /** How many entries still lack a decision. */
-export function openCount(conflicts: Conflict[], choices: Record<string, 'ours' | 'theirs'>): number {
-  return allEntries(conflicts).filter(({ file, entry }) => !choices[entryKey(file, entry)]).length;
+export function openCount(conflicts: Conflict[], choices: Record<string, Choice>, values: Record<string, string> = {}): number {
+  return allEntries(conflicts).filter(({ file, entry }) => {
+    const k = entryKey(file, entry);
+    return !decided(choices[k], values[k]);
+  }).length;
 }
 
 /** The decisions to send, one per decided entry. */
-export function decisionsOf(conflicts: Conflict[], choices: Record<string, 'ours' | 'theirs'>): Decision[] {
+export function decisionsOf(conflicts: Conflict[], choices: Record<string, Choice>, values: Record<string, string> = {}): Decision[] {
   const out: Decision[] = [];
   for (const { file, entry } of allEntries(conflicts)) {
-    const choice = choices[entryKey(file, entry)];
-    if (choice) out.push({ file, path: entry.path, choice });
+    const k = entryKey(file, entry);
+    const choice = choices[k];
+    if (!decided(choice, values[k])) continue;
+    out.push(choice === 'custom' ? { file, path: entry.path, choice, value: values[k] } : { file, path: entry.path, choice: choice! });
   }
   return out;
 }
