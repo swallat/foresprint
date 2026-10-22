@@ -45,13 +45,6 @@ func problem(p *datasvc.Problem) error {
 	return &Fail{Msg: strings.Join(lines, "\n")}
 }
 
-func yesNo(ok bool) string {
-	if ok {
-		return i18n.P("yes")
-	}
-	return i18n.P("no")
-}
-
 func showStorage(env *Env) error {
 	s := env.store()
 	st := s.Storage()
