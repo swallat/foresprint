@@ -2,7 +2,9 @@ package app
 
 import (
 	"errors"
+	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -195,13 +197,22 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 	}
 	repo := storage.NewRepository(a.DataDir())
 	team := model.NewTeam(teamKey(name, repo), name)
+	if req.LengthDays < 0 || req.LengthDays > 56 {
+		return TeamSummary{}, errors.New(i18n.T("A sprint lasts between 1 and 56 days."))
+	}
 	if req.LengthDays > 0 {
 		team.Sprint.LengthDays = req.LengthDays
 	}
 	if req.Country != "" {
+		if !knownCountry(req.Country) {
+			return TeamSummary{}, errors.New(i18n.T("Unknown country: {country}", "country", req.Country))
+		}
 		team.Capacity.Country = req.Country
 	}
 	if req.Region != "" {
+		if !slices.Contains(holidays.Subdivisions(team.Capacity.Country), req.Region) {
+			return TeamSummary{}, errors.New(i18n.T("Unknown region: {region}", "region", req.Region))
+		}
 		r := req.Region
 		team.Capacity.Region = &r
 	}
@@ -223,24 +234,21 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 	if err := applySource(&team, req.Source, req.TrackerURL, req.TrackerQuery); err != nil {
 		return TeamSummary{}, err
 	}
-	if _, err := repo.SaveTeam(team); err != nil {
-		return TeamSummary{}, err
-	}
-	if _, err := repo.SavePeople(team.Key, nil); err != nil {
-		return TeamSummary{}, err
-	}
-	// The first sprint and the two after it, so that the start page and the calendar have
-	// something to show.
+	// All sprints are made before anything is written, and a failed write leaves nothing behind.
+	var sprints []model.Sprint
 	var previous *model.Sprint
 	for i := 0; i < 3; i++ {
 		s, err := calendar.FollowingSprint(&team, previous)
 		if err != nil {
 			return TeamSummary{}, err
 		}
-		if _, err := repo.SaveSprint(team.Key, &s); err != nil {
-			return TeamSummary{}, err
-		}
-		previous = &s
+		sprints = append(sprints, s)
+		previous = &sprints[i]
+	}
+	if err := writeNewTeam(repo, team, sprints); err != nil {
+		_ = os.RemoveAll(repo.TeamDir(team.Key))
+		storage.ClearTeamCache()
+		return TeamSummary{}, err
 	}
 	storage.ClearTeamCache()
 	for _, t := range a.Teams() {
@@ -249,4 +257,29 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 		}
 	}
 	return TeamSummary{Key: team.Key, Name: team.Name}, nil
+}
+
+// writeNewTeam saves the team, its empty people list and its first sprints.
+func writeNewTeam(repo *storage.Repository, team model.Team, sprints []model.Sprint) error {
+	if _, err := repo.SaveTeam(team); err != nil {
+		return err
+	}
+	if _, err := repo.SavePeople(team.Key, nil); err != nil {
+		return err
+	}
+	for i := range sprints {
+		if _, err := repo.SaveSprint(team.Key, &sprints[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func knownCountry(code string) bool {
+	for _, c := range holidays.Countries() {
+		if c.Code == code {
+			return true
+		}
+	}
+	return false
 }

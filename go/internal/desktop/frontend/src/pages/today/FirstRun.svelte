@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { api } from '../../lib/api';
-  import { enterDemo, loadTeams, selectTeam } from '../../lib/app.svelte';
+  import { app, enterDemo, leaveDemo, loadTeams, selectTeam } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import { isDay, joinPath, needsToken, repoName, suggestedSprintId, suggestedStart } from '../../lib/setup';
+  import { isDay, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
   import type { Problem, Region, SetupKind, SetupState } from '../../lib/types.setup';
   import type { TicketSource } from '../../lib/types.today';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -88,10 +88,12 @@
   let message = $state('');
   let serverOk = $state('');
   let busy = $state(false);
-  let applied = $state(false);
+  // What the data folder was made from (kind, address, target); the same choice is not made twice.
+  let applied = '';
 
   $effect(() => {
-    const snapshot = JSON.stringify(d);
+    // An address with credentials in it is never written down (the core rejects it anyway).
+    const snapshot = JSON.stringify({ ...d, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
       localStorage.setItem(KEY, snapshot);
     } catch {
@@ -99,13 +101,34 @@
     }
   });
 
+  // A new step is announced: focus moves to its heading.
+  let first = true;
+  $effect(() => {
+    void d.step;
+    if (first) {
+      first = false;
+      return;
+    }
+    void tick().then(() => {
+      const h = document.querySelector<HTMLElement>('.wizard h2');
+      h?.setAttribute('tabindex', '-1');
+      h?.focus();
+    });
+  });
+
   onMount(async () => {
-    info = await api.SetupState();
-    regions = await api.SetupRegions();
-    os = (await api.Info()).os;
-    d.name ||= info.name;
-    d.email ||= info.email;
-    if (info.teams.some((x) => !x.problem) && d.kind === 'clone' && !d.address) d.kind = 'keep';
+    try {
+      // The wizard works on the real data folder, never on the demo team.
+      if (app.demo) await leaveDemo();
+      info = await api.SetupState();
+      regions = await api.SetupRegions();
+      os = (await api.Info()).os;
+      d.name ||= info.name;
+      d.email ||= info.email;
+      if (info.teams.some((x) => !x.problem) && d.kind === 'clone' && !d.address) d.kind = 'keep';
+    } catch (e) {
+      fail(null, String(e));
+    }
   });
 
   const hasTeams = $derived((info?.teams ?? []).filter((x) => !x.problem));
@@ -164,16 +187,22 @@
     username = g.username;
   }
 
-  async function testToken(): Promise<void> {
+  /** Hands the token to the credential helper; returns whether the server takes it. */
+  async function testToken(): Promise<boolean> {
     fail(null);
+    const was = busy;
     busy = true;
     try {
       const p = await api.SetupSignIn(d.address, username, token);
-      token = ''; // never kept in the window
       tokenOk = !p;
-      fail(p);
+      return !fail(p);
+    } catch (e) {
+      tokenOk = false;
+      fail(null, String(e));
+      return false;
     } finally {
-      busy = false;
+      token = ''; // never kept in the window
+      busy = was;
     }
   }
 
@@ -184,10 +213,13 @@
 
   /** Makes the data folder as chosen. Runs once, on leaving the step that needs it. */
   async function applyStorage(): Promise<boolean> {
-    if (applied || d.kind === 'keep') return true;
-    const r = await api.SetupStorage(d.kind, d.address, d.kind === 'clone' ? cloneTarget : d.folder);
+    if (d.kind === 'keep') return true;
+    const target = d.kind === 'clone' ? cloneTarget : d.folder;
+    const key = [d.kind, d.address, target].join('|');
+    if (applied === key) return true;
+    const r = await api.SetupStorage(d.kind, d.address, target);
     if (fail(r.problem)) return false;
-    applied = true;
+    applied = key;
     info = await api.SetupState();
     const usable = info.teams.filter((x) => !x.problem);
     if (usable.length > 0) {
@@ -232,6 +264,7 @@
         if (d.kind === 'clone') await guideFor();
         d.step = d.kind === 'clone' || !d.name ? 'signin' : 'team';
       } else if (d.step === 'signin') {
+        if (token && !(await testToken())) return;
         if (!(await saveIdentity())) return;
         if (d.kind === 'clone' && !(await applyStorage())) {
           if (problem?.kind === 'auth') tokenOk = false;
@@ -239,6 +272,7 @@
         }
         d.step = 'team';
       } else if (d.step === 'team') {
+        if (d.team === 'existing' && !hasTeams.some((x) => x.key === d.existing)) d.existing = hasTeams[0]?.key ?? '';
         if (fail(null, missingTeam())) return;
         d.step = d.team === 'new' ? 'tickets' : 'done';
       } else if (d.step === 'tickets') {
@@ -252,8 +286,6 @@
 
   function goTo(step: Step): void {
     fail(null);
-    // The data folder is made once; going back to the first step lets the person choose again.
-    if (step === 'storage') applied = false;
     d.step = step;
   }
 
@@ -368,7 +400,7 @@
                 <span class="field"><label for="su-addr">{t('Address')}</label><input id="su-addr" class="input data" bind:value={d.address} placeholder="https://git.example.com/team/data.git" oninput={() => (serverOk = '')} /></span>
                 <span class="row">
                   <button class="btn" type="button" disabled={busy || !d.address.trim()} onclick={checkServer}><Icon name="network_check" />{t('Test connection')}</button>
-                  {#if serverOk}<span class="chip ok"><Icon name="check_circle" size={14} />{serverOk}</span>{/if}
+                  {#if serverOk}<span class="chip ok" role="status"><Icon name="check_circle" size={14} />{serverOk}</span>{/if}
                 </span>
                 <span class="row">
                   <button class="btn" type="button" onclick={pickParent}><Icon name="folder_open" />{t('Choose where to copy it')}</button>
@@ -399,7 +431,7 @@
           </span>
         </div>
         <div class="opt off" aria-disabled="true">
-          <input type="radio" disabled />
+          <input type="radio" disabled aria-label={t('Shared folder')} />
           <span><strong>{t('Shared folder')}</strong> <span class="chip">{t('after 1.0')}</span><span class="block small muted">{t('A file server or SharePoint follows after 1.0.')}</span></span>
         </div>
       </div>
@@ -414,7 +446,7 @@
             </div>
             <div class="row">
               <button class="btn" type="button" disabled={busy || !token} onclick={testToken}><Icon name="verified_user" />{t('Test sign-in')}</button>
-              {#if tokenOk}<span class="chip ok"><Icon name="check_circle" size={14} />{t('Sign-in works')}</span>{/if}
+              {#if tokenOk}<span class="chip ok" role="status"><Icon name="check_circle" size={14} />{t('Sign-in works')}</span>{/if}
             </div>
             <p class="small muted">{t('The token goes to the credential helper of your system, not into the team data. A server that can be read without sign-in needs none; skip this part then.')}</p>
             {#if guide}<p class="small guide">{guide}</p>{/if}

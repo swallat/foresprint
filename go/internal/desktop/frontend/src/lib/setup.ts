@@ -43,3 +43,11 @@ export function isDay(text: string): boolean {
   const date = new Date(Date.UTC(y, mo - 1, d));
   return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
 }
+
+/** Whether an address may be remembered in the draft: no user info, query or fragment, which could hold a secret. */
+export function safeToStore(address: string): boolean {
+  const a = address.trim();
+  if (/[?#]/.test(a)) return false;
+  const rest = a.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  return !rest.split('/')[0]?.includes('@') || !/^[a-z][a-z0-9+.-]*:\/\//i.test(a);
+}
