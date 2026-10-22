@@ -250,3 +250,6 @@ p .chip, .small .chip { margin-right: 2px; }
 .t tr.former td { color: var(--text-muted); }
 /* Ticket source: hide what needs a tracker or tickets */
 [data-trk="local"] .only-jira, [data-trk="none"] .only-jira, [data-trk="none"] .need-tickets { display: none !important; }
+/* Numbers in input boxes line up with plain numbers in the same column: the box reaches into the cell
+   padding by exactly its own border plus inner padding (1px + 6px). */
+table.t td.num input, table.t td.num .input { padding-right: 6px; margin-right: -7px; font: inherit; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
