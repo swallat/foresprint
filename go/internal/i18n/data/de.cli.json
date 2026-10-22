@@ -16,15 +16,23 @@
   "The keychain is not available on this computer. Set the environment variable {variable} instead.": "Der Schlüsselbund ist auf diesem Rechner nicht verfügbar. Setze stattdessen die Umgebungsvariable {variable}.",
   "Write a team's Excel list (formulas, trend chart, split per product).": "Excel-Liste eines Teams schreiben (Formeln, Trend-Diagramm, Aufteilung je Produkt).",
   "{path}: not readable ({reason})": "{path}: nicht lesbar ({reason})",
+  "Update foresprint to the latest version.": "Foresprint auf die neueste Version aktualisieren.",
+  "Version {version} – a development build does not update itself. Install a release from https://github.com/{repo}/releases.": "Version {version} – ein Entwicklungsstand aktualisiert sich nicht selbst. Eine Version von https://github.com/{repo}/releases installieren.",
+  "The newest version could not be determined: {error}": "Die neueste Version konnte nicht ermittelt werden: {error}",
+  "Version {version} is the latest.": "Version {version} ist die neueste.",
+  "Version {latest} is available (installed: {version}). Update with: {command}": "Version {latest} ist verfügbar (installiert: {version}). Aktualisieren mit: {command}",
+  "Installing version {latest} …": "Version {latest} wird installiert …",
+  "The update failed: {error}": "Die Aktualisierung ist fehlgeschlagen: {error}",
+  "Updated to version {latest}. The next start uses it.": "Auf Version {latest} aktualisiert. Der nächste Start nutzt sie.",
   "{where}: unknown placeholder {name}": "{where}: unbekannter Platzhalter {name}",
   "{where}: 'share' must be between 0 and 100": "{where}: 'share' muss zwischen 0 und 100 liegen",
   "{where}: estimation.factor must be greater than 0": "{where}: estimation.factor muss größer als 0 sein",
+  "{where}: factor must be greater than 0": "{where}: factor muss größer als 0 sein",
   "{where}: 'to' lies before 'from'": "{where}: 'to' liegt vor 'from'",
   "{where}: fields 'from' and 'to' are required": "{where}: die Felder 'from' und 'to' sind nötig",
   "{where}: mapping with from/unit expected": "{where}: Abschnitt mit from/unit erwartet",
   "{where}: mapping with ticket/rest/target expected": "{where}: Abschnitt mit ticket/rest/target erwartet",
   "{where}: mapping with author/text expected": "{where}: Abschnitt mit author/text erwartet",
-  "external person without an end date": "externe Person ohne Enddatum",
-  "{where}: factor must be greater than 0": "{where}: factor muss größer als 0 sein"
+  "external person without an end date": "externe Person ohne Enddatum"
  }
 }
