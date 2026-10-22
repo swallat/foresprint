@@ -247,7 +247,7 @@
           </button>
         </div>
       </div>
-      {#if app.prefs && app.prefs.recentDataDirs.length > 1}
+      {#if app.prefs?.recentDataDirs && app.prefs.recentDataDirs.length > 1}
         <h3 class="small muted">{t('Recently used folders')}</h3>
         <ul class="plain">
           {#each app.prefs.recentDataDirs as dir (dir)}

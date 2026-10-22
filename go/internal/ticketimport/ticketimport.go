@@ -9,6 +9,7 @@
 package ticketimport
 
 import (
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -347,7 +348,11 @@ func sprintOpen(id string, env Env) bool {
 func note(s string) *string { return &s }
 
 func clonePreplan(p model.Preplan) model.Preplan {
-	out := model.Preplan{}
+	// Everything beside earmarks and estimates is the PO's own and must survive a fetch.
+	out := model.Preplan{
+		Production: slices.Clone(p.Production), Overrides: slices.Clone(p.Overrides),
+		ProForma: slices.Clone(p.ProForma), Order: slices.Clone(p.Order),
+	}
 	for _, e := range p.Earmarks {
 		c := e
 		c.Note = cloneStringPtr(e.Note)

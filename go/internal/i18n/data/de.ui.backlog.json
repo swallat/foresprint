@@ -2,6 +2,8 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "Adjust in the tracker: the pro-forma sprint differs for {count} tickets.": "Im Tracker anpassen: Der Pro-forma-Sprint weicht bei {count} Tickets ab.",
+  "Back to the order of the tracker": "Zurück zur Reihenfolge des Trackers",
   "Delete view “{name}”": "Ansicht „{name}“ löschen",
   "Key": "Schlüssel",
   "Largest first": "Größte zuerst",
@@ -10,7 +12,8 @@
   "Not in the last fetch: {keys}.": "Nicht im letzten Abruf: {keys}.",
   "Open Plan": "Plan öffnen",
   "Open points": "Offene Punkte",
-  "Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.": "Reihenfolge: Priorität, dann Projekt, dann Rang. Ein Paket auf ein anderes ziehen setzt es davor, oder Alt+Pfeil hoch bzw. runter. Alt+Pfeil rechts merkt für den nächsten Sprint vor.",
+  "Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.": "Reihenfolge: Priorität, dann Projekt, dann deine Reihenfolge. Ein Ticket auf ein anderes ziehen, um es davor zu setzen, oder Alt+Pfeil hoch bzw. runter. Alt+Pfeil rechts merkt für den nächsten Sprint vor.",
+  "Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.": "Reihenfolge: Priorität, dann Projekt, dann deine Reihenfolge. Zum Umordnen die Liste ohne Gruppierung zeigen. Alt+Pfeil rechts merkt für den nächsten Sprint vor.",
   "Planning order": "Planungsreihenfolge",
   "Pulled in after the freeze: {keys}.": "Nach dem Festschreiben nachgezogen: {keys}.",
   "Save as view…": "Als Ansicht speichern …",
@@ -18,6 +21,10 @@
   "Smallest first": "Kleinste zuerst",
   "Sort by": "Sortieren nach",
   "Sorted by your choice. Choose the planning order to see the list as planned.": "Nach deiner Wahl sortiert. Wähle die Planungsreihenfolge, um die Liste wie geplant zu sehen.",
-  "Sprint {id}: the tracker differs from the frozen plan.": "Sprint {id}: Der Tracker weicht vom festgeschriebenen Plan ab."
+  "Sprint {id}: the tracker differs from the frozen plan.": "Sprint {id}: Der Tracker weicht vom festgeschriebenen Plan ab.",
+  "{count} tickets are back in the backlog. Adjust them in the tracker.": "{count} Tickets sind zurück im Backlog. Im Tracker anpassen.",
+  "{count} tickets moved to {name}. Adjust them in the tracker.": "{count} Tickets nach {name} verschoben. Im Tracker anpassen.",
+  "{key} is back in the backlog. Adjust it in the tracker.": "{key} ist zurück im Backlog. Im Tracker anpassen.",
+  "{key} moved to {name}. Adjust it in the tracker.": "{key} nach {name} verschoben. Im Tracker anpassen."
  }
 }

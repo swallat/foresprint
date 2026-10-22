@@ -4,6 +4,11 @@ html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--text); font: 14px/20px var(--font-ui); }
 * { box-sizing: border-box; }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* The open list of a native select is drawn by the web view with its own colors (near white on
+   Windows even in the dark theme), so the options carry the theme colors themselves. */
+select { background-color: var(--surface); color: var(--text); }
+select option, select optgroup { background-color: var(--surface); color: var(--text); }
+select option:disabled { color: var(--text-muted); }
 a { color: var(--primary); }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

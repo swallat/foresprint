@@ -3,6 +3,7 @@
 // use the same state, so a change in one shows in the others.
 
 import { api } from '../../lib/api';
+import { fmt } from '../../lib/format';
 import { app, refreshStatus, toast } from '../../lib/app.svelte';
 import { language, t as translate } from '../../lib/i18n.svelte';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
@@ -85,6 +86,16 @@ export async function reorder(key: string, anchor: string, after = false): Promi
   await changed();
 }
 
+/** Takes the own order of tracker tickets away; the tracker's rank counts again. */
+export async function resetOrder(): Promise<void> {
+  try {
+    await api.ResetOrder(app.team);
+  } catch (e) {
+    toast(String(e), 'bad');
+  }
+  await changed();
+}
+
 /** Every ticket the view knows, wherever it sits. */
 export function allTickets(view: BacklogView | undefined): BacklogTicket[] {
   if (!view) return [];
@@ -99,6 +110,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
   const before = new Map(rows.map((tk) => [tk.key, tk.earmark]));
   const notes = new Map(rows.map((tk) => [tk.key, tk.earmarkNote ?? '']));
   const fixed = new Set(rows.filter((tk) => tk.fixed).map((tk) => tk.key));
+  const pro = new Map(rows.map((tk) => [tk.key, proFormaOf(view, tk.key)]));
   const moved: string[] = [];
   try {
     for (const key of keys) {
@@ -124,11 +136,65 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
         : t('{count} tickets are back in the backlog.', { count: moved.length });
   const used = lane && lane.plan != null ? usedAfter(lane.sprint, moved) : 0;
   const over = lane && lane.plan != null && used > lane.plan;
-  toast(over ? `${text} ${t('Over the Forecast PLAN: {used} of {plan}.', { used, plan: lane.plan ?? 0 })}` : text, over ? 'info' : 'ok', {
+  toast(over ? `${text} ${t('Over the Forecast PLAN: {used} of {plan}.', { used: fmt(used), plan: fmt(lane.plan ?? 0) })}` : text, over ? 'info' : 'ok', {
     label: t('Undo'),
     run: async () => {
       try {
-        for (const key of moved) await api.EarmarkTicket(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
+        for (const key of moved) {
+          await api.EarmarkTicket(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
+          if (pro.get(key)) await api.MoveToProForma(app.team, key, pro.get(key) ?? '');
+        }
+      } catch (e) {
+        toast(String(e), 'bad');
+      }
+      await changed();
+    },
+  });
+}
+
+/** Where a ticket sits among the pro-forma sprints ("" = none). */
+function proFormaOf(view: BacklogView, key: string): string {
+  return view.proForma.find((p) => p.tickets.some((tk) => tk.key === key))?.name ?? '';
+}
+
+/** Puts tickets into a pro-forma sprint ("" = back to the backlog) and offers to undo it. */
+export async function toProForma(keys: string[], name: string, quiet = false): Promise<void> {
+  const view = store.view;
+  if (!view || keys.length === 0) return;
+  const before = new Map(keys.map((k) => [k, proFormaOf(view, k)]));
+  const rows = allTickets(view);
+  const earmarks = new Map(rows.map((tk) => [tk.key, { sprint: tk.earmark, note: tk.earmarkNote ?? '' }]));
+  const moved: string[] = [];
+  try {
+    for (const key of keys) {
+      if (before.get(key) === name) continue;
+      await api.MoveToProForma(app.team, key, name);
+      moved.push(key);
+    }
+  } catch (e) {
+    toast(String(e), 'bad');
+  }
+  ui.selection = ui.selection.filter((k) => !moved.includes(k));
+  ui.menu = false;
+  await changed();
+  if (moved.length === 0 || quiet) return;
+  const text =
+    moved.length === 1
+      ? name
+        ? t('{key} moved to {name}. Adjust it in the tracker.', { key: moved[0] ?? '', name })
+        : t('{key} is back in the backlog. Adjust it in the tracker.', { key: moved[0] ?? '' })
+      : name
+        ? t('{count} tickets moved to {name}. Adjust them in the tracker.', { count: moved.length, name })
+        : t('{count} tickets are back in the backlog. Adjust them in the tracker.', { count: moved.length });
+  toast(text, 'ok', {
+    label: t('Undo'),
+    run: async () => {
+      try {
+        for (const key of moved) {
+          await api.MoveToProForma(app.team, key, before.get(key) ?? '');
+          const e = earmarks.get(key);
+          if (e?.sprint) await api.EarmarkTicket(app.team, key, e.sprint, e.note);
+        }
       } catch (e) {
         toast(String(e), 'bad');
       }
