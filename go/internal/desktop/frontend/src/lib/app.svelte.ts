@@ -2,7 +2,7 @@
 // tracker, toasts, the ticket panel. Pages read from `app` and call its functions; they do not
 // keep their own copy of these.
 
-import { api } from './api';
+import { api, setDemo } from './api';
 import { t, useLanguage } from './i18n.svelte';
 import { go } from './router.svelte';
 import { applyDensity, applyFeatures, applyTheme } from './theme';
@@ -47,6 +47,8 @@ export const app = $state({
   problem: '',
   /** Personal setting: calculations next to numbers (see lib/calc/Calc.svelte). */
   calcMode: 'icon' as CalcMode,
+  /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
+  demo: false,
 });
 
 export type CalcMode = 'off' | 'icon' | 'inline';
@@ -135,7 +137,7 @@ export async function loadTeams(): Promise<void> {
 
 export async function selectTeam(key: string): Promise<void> {
   app.team = key;
-  store.set('team', key);
+  if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
   const wanted = store.get(`sprint.${key}`);
   const pick =
@@ -146,7 +148,7 @@ export async function selectTeam(key: string): Promise<void> {
 
 export function selectSprint(id: string): void {
   app.sprint = id;
-  store.set(`sprint.${app.team}`, id);
+  if (!app.demo) store.set(`sprint.${app.team}`, id);
 }
 
 export async function refreshStatus(): Promise<void> {
@@ -210,6 +212,24 @@ export const syncTracker = () => run('sync', () => api.SyncTracker(app.team));
 /** Opens the ticket in the side panel. */
 export function openTicket(key: string): void {
   app.ticket = key;
+}
+
+/** Shows the demo team (Team Atlas) instead of the data folder, until leaveDemo(). */
+export async function enterDemo(): Promise<void> {
+  setDemo(true);
+  app.demo = true;
+  app.team = '';
+  await loadTeams();
+  await refreshStatus();
+}
+
+/** Back to the data folder. */
+export async function leaveDemo(): Promise<void> {
+  setDemo(false);
+  app.demo = false;
+  app.team = '';
+  await loadTeams();
+  await refreshStatus();
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;

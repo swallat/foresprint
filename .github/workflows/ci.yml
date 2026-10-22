@@ -118,10 +118,11 @@ jobs:
       - name: The window opens (Linux)
         if: runner.os == 'Linux'
         run: |
-          # The program runs until it is stopped: exit code 124 of timeout means that it did.
+          # The program runs until it is stopped: exit code 124 of timeout means that it did (137:
+          # it had to be killed after ten more seconds, which must not hold up the job).
           code=0
-          xvfb-run -a timeout 10 ../dist/foresprint --data ../examples/teams || code=$?
-          test "$code" = 124
+          xvfb-run -a timeout -k 10 10 ../dist/foresprint --data ../examples/teams || code=$?
+          test "$code" = 124 || test "$code" = 137
       - uses: actions/upload-artifact@v4
         with:
           name: foresprint-${{ runner.os }}
