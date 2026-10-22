@@ -56,7 +56,35 @@ export interface SprintPrepare {
   ready: ReadyItem[];
 }
 
+export type SprintState = 'past' | 'current' | 'planned' | 'future';
+export type NextStep = 'none' | 'review' | 'frozen' | 'absences' | 'preplan' | 'plan';
+
+export interface SprintRow {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  state: SprintState;
+  absences: AbsenceState;
+  capacity: number | null;
+  plan: number | null;
+  commitment: number | null;
+  velocity: number | null;
+  normalized: number | null;
+  rate: number | null;
+  next: NextStep;
+}
+
+export interface SprintOverview {
+  rows: SprintRow[];
+  reference: number;
+  unit: 'SP' | 'PT';
+  currentIndex: number;
+}
+
 export interface SprintsApi {
+  /** Finished sprints (the last `past`, -1 = all), the running and the coming ones. */
+  SprintOverview(team: string, past: number): Promise<SprintOverview>;
   /** Absences of `count` consecutive sprints from sprint `from` ("" = running or next). */
   AbsenceGrid(team: string, from: string, count: number): Promise<AbsenceGrid>;
   /** Sets the days of one person (half days; 0 removes); typing keeps a confirmed cell confirmed. */

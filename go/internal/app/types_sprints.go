@@ -80,3 +80,46 @@ type SprintPrepare struct {
 	Unit         string        `json:"unit"`         // "SP" or "PT"
 	Ready        []ReadyItem   `json:"ready"`
 }
+
+// Sprint states of the overview.
+const (
+	SprintPast    = "past"
+	SprintCurrent = "current"
+	SprintPlanned = "planned" // the plan is frozen
+	SprintFuture  = "future"
+)
+
+// Next steps of a sprint in the overview; the window words them.
+const (
+	NextNone     = "none"     // finished
+	NextReview   = "review"   // running: prepare the review
+	NextFrozen   = "frozen"   // the plan is frozen
+	NextAbsences = "absences" // confirm the absences
+	NextPreplan  = "preplan"  // enter the pre-planned amounts
+	NextPlan     = "plan"
+)
+
+// SprintRow is one sprint of the overview.
+type SprintRow struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Start      string   `json:"start"`
+	End        string   `json:"end"` // last day
+	State      string   `json:"state"`
+	Absences   string   `json:"absences"` // AbsenceUnknown, AbsenceAnnounced or AbsenceConfirmed
+	Capacity   *float64 `json:"capacity"`
+	Plan       *float64 `json:"plan"`
+	Commitment *float64 `json:"commitment"`
+	Velocity   *float64 `json:"velocity"`
+	Normalized *float64 `json:"normalized"` // velocity at the reference capacity
+	Rate       *float64 `json:"rate"`       // velocity per person day
+	Next       string   `json:"next"`
+}
+
+// SprintOverview is the table of all sprints.
+type SprintOverview struct {
+	Rows         []SprintRow `json:"rows"`
+	Reference    float64     `json:"reference"` // reference capacity of the normalized velocity
+	Unit         string      `json:"unit"`
+	CurrentIndex int         `json:"currentIndex"` // row of the running or next sprint, -1 if none
+}

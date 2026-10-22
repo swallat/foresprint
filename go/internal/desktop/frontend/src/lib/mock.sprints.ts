@@ -2,7 +2,18 @@
 // The same rules as go/internal/app/api_sprints.go: half days, cut to the working days, an entry
 // in a frozen sprint stays confirmed, "unknown" while nothing is entered.
 
-import type { AbsenceColumn, AbsenceGrid, AbsenceState, CellState, ReadyItem, SprintPrepare, SprintsApi } from './types.sprints';
+import type {
+  AbsenceColumn,
+  AbsenceGrid,
+  AbsenceState,
+  CellState,
+  NextStep,
+  ReadyItem,
+  SprintOverview,
+  SprintPrepare,
+  SprintRow,
+  SprintsApi,
+} from './types.sprints';
 import type { SprintInfo } from './types';
 
 const people = [
@@ -73,6 +84,33 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
   };
 
   return {
+    async SprintOverview(_team, past): Promise<SprintOverview> {
+      const finished = sprints.filter((s) => s.state === 'past');
+      const shown = [...(past < 0 ? finished : finished.slice(-past)), ...sprints.filter((s) => s.state !== 'past')];
+      let velocity = 31;
+      const rows = shown.map((s, i): SprintRow => {
+        const col = column(s);
+        const done = s.state === 'past';
+        velocity = done ? 29 + ((i * 7) % 6) : velocity;
+        const next: NextStep = done ? 'none' : s.state === 'current' ? 'review' : col.state !== 'confirmed' ? 'absences' : 'plan';
+        return {
+          id: s.id,
+          name: s.id,
+          start: s.start,
+          end: s.end,
+          state: done ? 'past' : s.state === 'current' ? 'current' : 'future',
+          absences: col.state,
+          capacity: col.capacity,
+          plan: col.plan,
+          commitment: done || s.state === 'current' ? velocity + 2 : null,
+          velocity: done ? velocity : null,
+          normalized: done ? Math.round(((velocity / col.capacity) * fullCapacity()) * 10) / 10 : null,
+          rate: done ? Math.round((velocity / col.capacity) * 100) / 100 : null,
+          next,
+        };
+      });
+      return { rows, reference: fullCapacity(), unit: 'SP', currentIndex: rows.findIndex((r) => r.state !== 'past') };
+    },
     async AbsenceGrid(_team, from, count): Promise<AbsenceGrid> {
       const cols = window(from, count);
       return {

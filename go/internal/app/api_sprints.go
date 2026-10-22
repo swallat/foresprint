@@ -366,3 +366,84 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	}
 	return out, nil
 }
+
+// SprintOverview lists the finished sprints (the last past ones), the running one and the
+// coming ones with capacity, Forecast PLAN, commitment and velocity, and the next step of each.
+func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
+	data, err := storage.NewRepository(a.DataDir()).Load(team)
+	if err != nil {
+		return SprintOverview{}, err
+	}
+	fc, err := forecast.Build(data, today())
+	if err != nil {
+		return SprintOverview{}, err
+	}
+	out := SprintOverview{Rows: []SprintRow{}, Reference: data.Team.Forecast.ReferenceCapacity, Unit: string(data.Team.Unit), CurrentIndex: -1}
+	firstPast := 0
+	if n := len(fc.History()); past >= 0 && n > past {
+		firstPast = n - past
+	}
+	pastSeen := 0
+	for i := range fc.Entries {
+		e := &fc.Entries[i]
+		s := e.Sprint
+		isPast := !s.End.After(fc.Today)
+		if isPast {
+			pastSeen++
+			if pastSeen <= firstPast {
+				continue
+			}
+		}
+		row := SprintRow{
+			ID: s.ID, Name: sprintName(s), Start: s.Start.Format("2006-01-02"),
+			End: s.End.Add(-24 * time.Hour).Format("2006-01-02"), Absences: absenceState(s),
+			Capacity: e.Result.Input.Capacity, Commitment: e.Result.Commitment.Value, Velocity: e.Result.Velocity.Value,
+		}
+		if !isPast {
+			row.Plan = e.Result.Plan
+		}
+		if row.Velocity != nil && row.Capacity != nil && *row.Capacity > 0 {
+			rate := *row.Velocity / *row.Capacity
+			row.Rate = &rate
+			norm := rate * out.Reference
+			row.Normalized = &norm
+		}
+		switch {
+		case isPast:
+			row.State = SprintPast
+		case !s.Start.After(fc.Today):
+			row.State = SprintCurrent
+		case s.Commitment != nil || s.Planning != nil || len(s.CommittedTickets) > 0:
+			row.State = SprintPlanned
+		default:
+			row.State = SprintFuture
+		}
+		row.Next = nextStep(data, s, row.State)
+		if out.CurrentIndex < 0 && !isPast {
+			out.CurrentIndex = len(out.Rows)
+		}
+		out.Rows = append(out.Rows, row)
+	}
+	return out, nil
+}
+
+// nextStep is what the sprint needs next: the first open item of Prepare, then Plan.
+func nextStep(data *storage.TeamData, s model.Sprint, state string) string {
+	switch state {
+	case SprintPast:
+		return NextNone
+	case SprintCurrent:
+		return NextReview
+	case SprintPlanned:
+		return NextFrozen
+	}
+	if s.AbsenceStatus() != model.AbsencesConfirmed {
+		return NextAbsences
+	}
+	for _, p := range data.Products {
+		if data.Team.Features.Products && p.ActiveBetween(s.Start, s.End) && s.Products[p.ID].Preplanned == nil {
+			return NextPreplan
+		}
+	}
+	return NextPlan
+}

@@ -145,6 +145,27 @@
   "Still open": "Offen",
   "Frozen with the sprint. Open the sprint to change the lock.": "Mit dem Sprint festgeschrieben. Öffne den Sprint, um das Schloss zu ändern.",
   "Confirmed. A click makes it announced again.": "Bestätigt. Ein Klick macht es wieder zu angekündigt.",
-  "Announced. A click confirms it.": "Angekündigt. Ein Klick bestätigt es."
+  "Announced. A click confirms it.": "Angekündigt. Ein Klick bestätigt es.",
+  "Prepare the review": "Review vorbereiten",
+  "Plan is frozen": "Plan eingefroren",
+  "Confirm absences": "Abwesenheiten bestätigen",
+  "Finished": "Abgeschlossen",
+  "Running": "Läuft",
+  "Planned": "Geplant",
+  "Coming": "Kommend",
+  "All sprints at a glance. Open any stage of any sprint from here; nothing is locked.": "Alle Sprints auf einen Blick. Von hier springst du in jede Stufe, auch in spätere Sprints. Nichts ist gesperrt.",
+  "Show fewer finished sprints": "Weniger abgeschlossene Sprints zeigen",
+  "Show all finished sprints": "Alle abgeschlossenen Sprints zeigen",
+  "Period": "Zeitraum",
+  "Status": "Status",
+  "Commitment": "Commitment",
+  "Velocity": "Velocity",
+  "Normalized velocity": "Normierte Velocity",
+  "Next step": "Nächster Schritt",
+  "Open stage": "Stufe öffnen",
+  "per PD": "je PT",
+  "Normalized velocity is the velocity at the full team capacity without absences ({ref} {unit}), so sprints with and without absences can be compared. In brackets the rate per person day that the forecast calculates with.": "Normierte Velocity = Velocity bei voller Teamkapazität ohne Abwesenheit ({ref} {unit}), damit Sprints mit und ohne Urlaub vergleichbar sind. In Klammern die Rate je Personentag, aus der der Forecast rechnet.",
+  "person days": "Personentage",
+  "The selected sprint is highlighted. Capacity and Forecast PLAN follow the absences at once.": "Der gewählte Sprint ist hervorgehoben. Kapazität und Forecast PLAN folgen den Abwesenheiten sofort."
  }
 }

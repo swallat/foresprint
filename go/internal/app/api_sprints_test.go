@@ -230,3 +230,37 @@ func TestAbsenceCellsAreLockedOneByOne(t *testing.T) {
 		t.Errorf("a frozen sprint keeps its cells confirmed: %+v %v", cell(1), err)
 	}
 }
+
+func TestSprintOverview(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	o, err := api.SprintOverview(team, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(o.Rows) < 4 || o.Reference <= 0 || o.CurrentIndex < 0 {
+		t.Fatalf("overview = %d rows, reference %v, current %d", len(o.Rows), o.Reference, o.CurrentIndex)
+	}
+	pastRows := 0
+	for _, r := range o.Rows {
+		if r.State == SprintPast {
+			pastRows++
+			if r.Next != NextNone || r.Plan != nil {
+				t.Errorf("past row %+v", r)
+			}
+			if r.Velocity != nil && r.Capacity != nil && (r.Rate == nil || r.Normalized == nil) {
+				t.Errorf("rate missing in %+v", r)
+			}
+		}
+	}
+	if pastRows != 5 {
+		t.Errorf("%d past rows, want the last 5", pastRows)
+	}
+	cur := o.Rows[o.CurrentIndex]
+	if cur.State != SprintCurrent && cur.State != SprintFuture && cur.State != SprintPlanned {
+		t.Errorf("row at CurrentIndex is %+v", cur)
+	}
+	if all, _ := api.SprintOverview(team, -1); len(all.Rows) <= len(o.Rows) {
+		t.Errorf("past -1 should list all finished sprints: %d vs %d", len(all.Rows), len(o.Rows))
+	}
+}
