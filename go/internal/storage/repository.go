@@ -123,6 +123,10 @@ func read(path string) (*yamlx.Map, error) {
 	return m, nil
 }
 
+// ReadFile is read for the packages that compare files with new content: a YAML file as a
+// mapping.
+func ReadFile(path string) (*yamlx.Map, error) { return read(path) }
+
 func utf8Valid(b []byte) bool { return bytes.Equal([]byte(strings.ToValidUTF8(string(b), "�")), b) }
 
 // DumpYAML writes a document the way all files are written (merging and saving write the

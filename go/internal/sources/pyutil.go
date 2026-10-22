@@ -90,6 +90,10 @@ func pyFloat(text string) (float64, bool) {
 	return v, true
 }
 
+// PyFloat parses text like Python's float() for finite numbers (other texts and "inf" or "nan"
+// are not a number here), for the packages that read values from sheets.
+func PyFloat(text string) (float64, bool) { return pyFloat(text) }
+
 // pyFloatRepr is repr(float): the shortest text that reads back as the same number, in fixed
 // notation for exponents from -4 up to 15 and in scientific notation otherwise.
 func pyFloatRepr(v float64) string {

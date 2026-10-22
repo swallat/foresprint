@@ -120,7 +120,7 @@ type xmlStyles struct {
 	} `xml:"cellXfs>xf"`
 }
 
-var builtinFormats = map[int]string{0: "General", 1: "0", 2: "0.00", 3: "#,##0", 4: "#,##0.00", 9: "0%", 10: "0.00%", 14: "mm-dd-yy"}
+var dumpFormats = map[int]string{0: "General", 1: "0", 2: "0.00", 3: "#,##0", 4: "#,##0.00", 9: "0%", 10: "0.00%", 14: "mm-dd-yy"}
 
 func rgb6(s string) any {
 	if len(s) < 6 {
@@ -131,7 +131,7 @@ func rgb6(s string) any {
 
 func (s *xmlStyles) look(index int) map[string]any {
 	xf := s.XFs[index]
-	nf := builtinFormats[xf.NumFmt]
+	nf := dumpFormats[xf.NumFmt]
 	for _, n := range s.NumFmts {
 		if n.ID == xf.NumFmt {
 			nf = n.Code
