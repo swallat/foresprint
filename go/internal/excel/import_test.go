@@ -24,18 +24,20 @@ type scenario struct {
 		FileTeam *string           `json:"file_team"`
 		Error    *string           `json:"error"`
 	} `json:"read"`
-	Plan *struct {
-		Changes []struct {
-			File string `json:"file"`
-			Path string `json:"path"`
-			Old  any    `json:"old"`
-			New  any    `json:"new"`
-		} `json:"changes"`
-		Files     []string          `json:"files"`
-		Untouched []string          `json:"untouched"`
-		Written   map[string]string `json:"written"`
-		Error     *string           `json:"error"`
-	} `json:"plan"`
+	Plan *importPlan `json:"plan"`
+}
+
+type importPlan struct {
+	Changes []struct {
+		File string `json:"file"`
+		Path string `json:"path"`
+		Old  any    `json:"old"`
+		New  any    `json:"new"`
+	} `json:"changes"`
+	Files     []string          `json:"files"`
+	Untouched []string          `json:"untouched"`
+	Written   map[string]string `json:"written"`
+	Error     *string           `json:"error"`
 }
 
 // jsonValue is a change value the way the Python reference writes it.
@@ -135,6 +137,7 @@ func TestImportMatchesPython(t *testing.T) {
 				return
 			}
 			today, _ := time.Parse("2006-01-02", sc.Today)
+			dropMatchDeletions(sc.Plan)
 			plan, err := Plan(repo, data, today)
 			if sc.Plan.Error != nil {
 				if err == nil || err.Error() != *sc.Plan.Error {
@@ -197,4 +200,34 @@ func readGolden(t *testing.T, name string) []byte {
 		t.Fatal(err)
 	}
 	return raw
+}
+
+// dropMatchDeletions adjusts the Python reference at its one deliberate difference: the Python
+// import deleted the product rules ("match"), which the workbook cannot hold; the Go import
+// keeps them (see carryOver). A product file whose only changes were those deletions is no
+// longer written.
+func dropMatchDeletions(plan *importPlan) {
+	kept := plan.Changes[:0]
+	touched := map[string]bool{}
+	for _, c := range plan.Changes {
+		if c.File == "products.yaml" && strings.Contains(c.Path, ".match.") {
+			continue
+		}
+		touched[c.File] = true
+		kept = append(kept, c)
+	}
+	if len(kept) == len(plan.Changes) {
+		return
+	}
+	plan.Changes = kept
+	if !touched["products.yaml"] {
+		files := plan.Files[:0]
+		for _, f := range plan.Files {
+			if f != "products.yaml" {
+				files = append(files, f)
+			}
+		}
+		plan.Files = files
+		delete(plan.Written, "products.yaml")
+	}
 }

@@ -20,8 +20,11 @@ var (
 	}
 	settingFloats = []string{
 		"forecast.reference_capacity", "forecast.roadmap_share", "capacity.overhead_share",
-		"capacity.overhead_days",
+		"capacity.overhead_days", "capacity.production_cap", "features.production_max",
 	}
+	// settingsKept are written to the Settings sheet for information but are lists the cells
+	// cannot edit: reading skips them and the import keeps the existing values (carryOver).
+	settingsKept = []string{"sprint.naming", "sprint.pro_forma", "estimation.factor", "estimation.changes"}
 	settingFlags = []string{"features.products", "features.po", "features.production", "features.tickets", "features.projects"}
 	settingDates = []string{"sprint.first.start"}
 	settingTexts = []string{
@@ -69,6 +72,9 @@ func settingsOf(sh sheet0) (*yamlx.Map, error) {
 	for _, r := range sh.rows(SettingsFirstRow) {
 		pathV := sh.get(r, 2)
 		path, isStr := pathV.(string)
+		if isStr && slices.Contains(settingsKept, path) {
+			continue
+		}
 		if !isStr || !knownSetting(path) {
 			if isStr && path != "" && sh.get(r, 1) != nil && strings.Contains(path, ".") {
 				return nil, dataErr("{where}: unknown key {key}", "where", sh.where(r.number, 2), "key", yamlx.PyRepr(path))
