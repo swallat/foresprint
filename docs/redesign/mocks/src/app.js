@@ -85,7 +85,11 @@
   FS.refinedChip = (t) => (t.refined ? "" : `<span class="chip warn" title="Nicht refined">${FS.icon("help")}offen</span>`);
   // Production share: part of a ticket's estimate that needs people with production access (0 to 100 %; 100 = production only).
   // From the tracker field configured under Tickets und Tracker; a value set in Foresprint wins (kept in the team data).
-  FS.prodPct = (t) => FS.state.prodOver?.[t.key] ?? t.prod ?? 0;
+  // Order: value set in Foresprint, then the tracker field (if one is mapped), then the first matching rule, else 0.
+  FS.prodFieldOn = () => FS.trk() !== "jira" || !/^kein Feld/.test(FS.state.jira?.map?.prod || "");
+  FS.prodRule = (t) => (FS.state.prodRules || []).find((r) => FS.ruleMatches(r.expr).includes(t));
+  FS.prodSrc = (t) => (FS.state.prodOver?.[t.key] != null ? "set" : t.prod != null && FS.prodFieldOn() ? "field" : FS.trk() === "jira" && FS.prodRule(t) ? "rule" : "none");
+  FS.prodPct = (t) => { const s = FS.prodSrc(t); return s === "set" ? FS.state.prodOver[t.key] : s === "field" ? t.prod : s === "rule" ? FS.prodRule(t).pct : 0; };
   FS.prodPts = (l) => FS.sum(l, (t) => ((t.est || 0) * FS.prodPct(t)) / 100);
   FS.prodChip = (t) => (FS.prodOn() && FS.prodPct(t) ? `<span class="prod-sub" title="${FS.prodPct(t)} % der Schätzung brauchen Produktionszugang">${FS.icon("dns", "small")}Prod ${FS.prodPct(t)} %</span>` : "");
   FS.setProd = (t, v, file) => { const was = FS.prodPct(t); if (v === was) return; if (FS.trk() === "local") t.prod = v; else (FS.state.prodOver ??= {})[t.key] = v; FS.addUnsaved?.(`${FS.dk(t.key)}: Prod-Anteil`, `${was} %`, `${v} %`, file); };
@@ -244,7 +248,7 @@
         <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod"><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
         <dt>Projekt</dt><dd><select class="input" id="tp-project"><option value="">Tagesgeschäft</option>${opts(D.projects, t.project)}</select></dd>
         <dt>Schätzung</dt><dd class="data">${t.est ?? "keine"} Punkte <span class="muted small">aus ${D.team.tracker}</span></dd>
-        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% · ${FS.state.prodOver?.[t.key] != null ? "in Foresprint gesetzt" : t.prod != null ? `aus ${D.team.tracker}` : "fehlt in " + D.team.tracker + ", gilt 0"}</span></dd>` : ""}
+        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% · ${{ set: "in Foresprint gesetzt", field: `aus ${D.team.tracker}`, rule: `per Regel ${FS.esc(FS.prodRule(t)?.expr || "")}`, none: "kein Wert, gilt 0" }[FS.prodSrc(t)]}</span></dd>` : ""}
         <dt>Refined</dt><dd>${t.refined ? FS.lightChip("ok", "ja") : FS.lightChip("warn", "nein")}</dd>
         <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`}</dd>
         ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
