@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
-import { activeView, applyView, blank, group, matches, neighbour, sum, unassigned } from './backlog';
+import { activeView, addCustom, applyView, blank, group, hasOpenPoint, matches, neighbour, readCustom, removeCustom, sortTickets, sum, unassigned } from './backlog';
 
 const t = (key: string, o: Partial<BacklogTicket> = {}): BacklogTicket => ({
   key, title: `Title ${key}`, status: '', type: '', priority: '', assignee: '', url: '', size: 3, sizeSource: 'refined',
@@ -74,5 +74,48 @@ describe('localTerms', () => {
   it('leaves tracker teams alone', () => {
     expect(localTerms('3 tickets', 'tracker', 'en')).toBe('3 tickets');
     expect(localTerms('3 tickets', undefined, 'de')).toBe('3 tickets');
+  });
+});
+
+describe('open points', () => {
+  it('flags unrefined, unclear, unestimated and unassigned tickets', () => {
+    expect(hasOpenPoint(t('X-1'), false)).toBe(false);
+    expect(hasOpenPoint(t('X-1', { refined: false }), false)).toBe(true);
+    expect(hasOpenPoint(t('X-1', { refinedUnclear: true }), false)).toBe(true);
+    expect(hasOpenPoint(t('X-1', { size: null }), false)).toBe(true);
+    expect(hasOpenPoint(t('X-1', { product: '' }), true)).toBe(true);
+    expect(matches(t('X-1'), { ...blank(), flag: 'open' }, names, true)).toBe(false);
+    expect(activeView(applyView('open', ''))).toBe('open');
+  });
+});
+
+describe('sort', () => {
+  const list = [t('A-10', { size: 2 }), t('A-2', { size: null, title: 'b' }), t('A-3', { size: 8, title: 'a' })];
+  it('keeps the planning order by default', () => {
+    expect(sortTickets(list, 'order')).toBe(list);
+  });
+  it('sorts by size with unestimated tickets last', () => {
+    expect(sortTickets(list, 'size-desc').map((x) => x.key)).toEqual(['A-3', 'A-10', 'A-2']);
+    expect(sortTickets(list, 'size-asc').map((x) => x.key)).toEqual(['A-10', 'A-3', 'A-2']);
+  });
+  it('sorts keys numerically and titles alphabetically, without touching the input', () => {
+    expect(sortTickets(list, 'key').map((x) => x.key)).toEqual(['A-2', 'A-3', 'A-10']);
+    expect(sortTickets(list, 'title')[0]!.title).toBe('a');
+    expect(list[0]!.key).toBe('A-10');
+  });
+});
+
+describe('custom views', () => {
+  it('saves under a name, replaces the same name, and drops bad data', () => {
+    let list = addCustom([], ' Mine ', { ...blank(), products: ['a'], q: 'x' }, 'project', 'key');
+    expect(list[0]).toMatchObject({ id: 'mine', name: 'Mine', group: 'project', sort: 'key' });
+    expect('q' in list[0]!.filter).toBe(false);
+    list = addCustom(list, 'mine', blank(), 'none', 'order');
+    expect(list).toHaveLength(1);
+    expect(addCustom(list, '  ', blank(), 'none', 'order')).toBe(list);
+    expect(removeCustom(list, 'mine')).toEqual([]);
+    expect(readCustom(JSON.stringify(list))).toEqual(list);
+    expect(readCustom('{oops')).toEqual([]);
+    expect(readCustom('[1,{"id":"x"}]')).toEqual([]);
   });
 });
