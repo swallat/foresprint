@@ -8,7 +8,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import { fmtDay, fmtNum, fmtShort, parseNum } from '../../lib/team/format';
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
-  import { inverse } from '../../lib/team/undo';
+  import { inverse, type Inverse } from '../../lib/team/undo';
   import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
   import AbsencePanel from './AbsencePanel.svelte';
   import OwnersCard from './OwnersCard.svelte';
@@ -57,6 +57,18 @@
     }
   });
 
+  const personFields: (keyof Person)[] = ['name', 'kind', 'production', 'memberships', 'region', 'country', 'workweek'];
+
+  async function undoChange(undo: Inverse<Person>) {
+    const { list, ok } = undo(view?.people ?? []);
+    if (!ok) {
+      toast(t('This change can no longer be undone.'), 'bad');
+      return;
+    }
+    await save(list, t('Change undone.'), false);
+    absences = await api.AbsencePeriods(app.team); // a removed person comes back without absences
+  }
+
   /** Called by the PO card after one of its steps. */
   async function poStep() {
     await load();
@@ -68,8 +80,8 @@
     try {
       view = await api.SavePeople(app.team, next);
       if (message) {
-        const undo = inverse(before, view.people);
-        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void save(undo(view?.people ?? []), t('Change undone.'), false) } : undefined);
+        const undo = inverse(before, view.people, personFields);
+        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void undoChange(undo) } : undefined);
       }
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');

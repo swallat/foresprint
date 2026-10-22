@@ -62,13 +62,15 @@
     ruleText = (view?.products ?? []).find((p) => p.id === id)?.rule ?? '';
   }
 
-  async function save(next: Product[], message = '') {
+  async function save(next: Product[], message = ''): Promise<boolean> {
     try {
       view = await api.SaveProducts(app.team, next);
       if (message) toast(message, 'ok');
+      return true;
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
       await load();
+      return false;
     }
   }
 
@@ -116,14 +118,20 @@
     selectRule(ruleFor);
   }
 
+  const productFields: (keyof Product)[] = ['name', 'po', 'share', 'rule', 'from', 'to'];
+
   async function remove(p: Product) {
     const rest = (view?.products ?? []).filter((x) => x.id !== p.id);
     const before = view?.products ?? [];
-    await save(rest);
-    const undo = inverse(before, view?.products ?? []);
+    if (!(await save(rest))) return;
+    const undo = inverse(before, view?.products ?? [], productFields);
     toast(t('{name} deleted.', { name: p.name }), 'ok', {
       label: t('Undo'),
-      run: () => void save(undo(view?.products ?? [])),
+      run: () => {
+        const { list, ok } = undo(view?.products ?? []);
+        if (!ok) toast(t('This change can no longer be undone.'), 'bad');
+        else void save(list, t('Change undone.'));
+      },
     });
   }
 
