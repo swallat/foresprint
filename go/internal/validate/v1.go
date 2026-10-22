@@ -62,6 +62,20 @@ func checkProjectV1(data *storage.TeamData, pr model.Project, where string, r *r
 			months = append(months, e.Value)
 		}
 	}
+	if isNeg(c.Used) {
+		r.error(where, msg("contingent.used must not be negative"))
+	}
+	for _, e := range c.UsedPerMonth.Entries {
+		switch {
+		case !monthKey.MatchString(e.Key):
+			r.error(where, msg("contingent.used_per_month: '{key}' is not a month (YYYY-MM)", "key", e.Key))
+		case e.Value < 0:
+			r.error(where, msg("contingent.used_per_month: {key} must not be negative", "key", e.Key))
+		}
+	}
+	if c.Used != nil && c.Total != nil && *c.Used > *c.Total+1e-9 {
+		r.warn(where, msg("the booked consumption ({used} PD) exceeds the contingent ({total} PD)", "used", g(*c.Used), "total", g(*c.Total)))
+	}
 	if total := pymath.Sum(months); c.Total != nil && total > *c.Total+1e-9 {
 		r.warn(where, msg("the monthly contingents ({sum} PD) exceed the total ({total} PD)", "sum", g(total), "total", g(*c.Total)))
 	}

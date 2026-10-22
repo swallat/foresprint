@@ -192,11 +192,14 @@ projects:
   state: finished
   end: 2026-11-15
   open_scope: 12
+  contact: Alex Example
   milestones:
-  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2]}
+  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2], light: yellow}
   contingent:
     total: 40
     per_month: {2026-07: 10, 2026-08: 12.5}
+    used: 14
+    used_per_month: {2026-07: 9, 2026-08: 5}
   match: {epic: [E1]}
 `
 	d := loadMap(t, text)
@@ -208,7 +211,9 @@ projects:
 	if p.Product == nil || *p.Product != "web" || len(p.AlsoProducts) != 1 || strings.Join(p.Products(), ",") != "web,app" ||
 		!p.Closed() || p.State != model.ProjectFinished || *p.OpenScope != 12 ||
 		len(p.Milestones) != 1 || len(p.Milestones[0].Tickets) != 2 ||
-		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 {
+		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 ||
+		*p.Contingent.Used != 14 || p.Contingent.UsedPerMonth.Len() != 2 ||
+		p.Milestones[0].Light != "yellow" || *p.Contact != "Alex Example" {
 		t.Fatalf("%+v", p)
 	}
 	first := DumpYAML(ProjectsToDict(projects))
