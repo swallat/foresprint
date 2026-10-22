@@ -65,6 +65,7 @@ type KeyConflict struct {
 	Path   Path
 	Ours   any // Missing = removed by me
 	Theirs any // Missing = removed by others
+	Base   any // the common state; Missing = not there before
 }
 
 // Label is the path for display; "." for the whole file.
@@ -236,7 +237,7 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 	case Ours:
 		return ours
 	}
-	m.conflicts = append(m.conflicts, KeyConflict{append(Path(nil), path...), ours, theirs})
+	m.conflicts = append(m.conflicts, KeyConflict{append(Path(nil), path...), ours, theirs, base})
 	return ours
 }
 
@@ -414,7 +415,10 @@ func (m *merger) mergePrognoses(base, ours, theirs any, path Path) (union []any,
 		default:
 			choice, decided := m.choices[sub.Key()]
 			if !decided {
-				c := KeyConflict{Path: sub, Ours: Missing, Theirs: Missing}
+				c := KeyConflict{Path: sub, Ours: Missing, Theirs: Missing, Base: Missing}
+				if hasB {
+					c.Base = b.item
+				}
 				if hasO {
 					c.Ours = o.item
 				}
