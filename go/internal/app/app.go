@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/config"
+	"github.com/swallat/foresprint/internal/datasvc"
 	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/storage"
@@ -35,6 +36,8 @@ type API struct {
 
 	mu      sync.Mutex
 	dataDir string
+	// data is the storage of the data folder (area Data, api_data.go).
+	data *datasvc.Store
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
@@ -43,7 +46,7 @@ func New(version, dataDir string) *API {
 	if dataDir == "" {
 		dataDir, _ = config.DataDir()
 	}
-	return &API{Version: version, dataDir: dataDir}
+	return &API{Version: version, dataDir: dataDir, data: datasvc.New(dataDir)}
 }
 
 // Info describes the program and the machine.
@@ -133,6 +136,7 @@ func (a *API) SetDataDir(path string) error {
 	a.mu.Lock()
 	a.dataDir = path
 	a.mu.Unlock()
+	a.data.SetFolder(path)
 	storage.ClearTeamCache()
 	return nil
 }

@@ -1,0 +1,99 @@
+package app
+
+import (
+	"context"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/swallat/foresprint/internal/datasvc"
+	"github.com/swallat/foresprint/internal/git"
+	"github.com/swallat/foresprint/internal/gitsync"
+	"github.com/swallat/foresprint/internal/gittest"
+)
+
+// dataAPI returns an API whose data folder is a Git repository with a server, and the folder.
+func dataAPI(t *testing.T) (*API, string) {
+	t.Helper()
+	gittest.Isolate(t)
+	git.ResetGitCache()
+	git.InvalidateStatus()
+	gitsync.SetCodec(gittest.FlatCodec{})
+	gitsync.SetValidator(func(context.Context, string, time.Time) ([]gitsync.Issue, error) { return nil, nil })
+	t.Cleanup(func() {
+		gitsync.SetCodec(nil)
+		gitsync.SetValidator(nil)
+		git.InvalidateStatus()
+	})
+	tmp := t.TempDir()
+	remote := filepath.Join(tmp, "server.git")
+	gittest.Git(t, tmp, "init", "-q", "--bare", "-b", "main", remote)
+	root := filepath.Join(tmp, "work")
+	gittest.Git(t, tmp, "init", "-q", "-b", "main", root)
+	gittest.Git(t, root, "config", "user.name", "Anna")
+	gittest.Git(t, root, "config", "user.email", "anna@example.org")
+	gittest.Git(t, root, "remote", "add", "origin", remote)
+	dir := filepath.Join(root, "teams")
+	gittest.Write(t, filepath.Join(dir, "a", "team.yaml"), "name: A\n")
+	git.InvalidateStatus()
+	return newAPI(t, dir), dir
+}
+
+func TestStatusAndSaveFollowTheStorage(t *testing.T) {
+	api, dir := dataAPI(t)
+	if st := api.Status(); st.Storage != StorageDirty || st.Data.Unsaved != 1 {
+		t.Fatalf("before save: %+v", st)
+	}
+	res, err := api.Save()
+	if err != nil || !res.OK || res.Outcome != datasvc.OutcomeSaved {
+		t.Fatalf("save = %+v, %v", res, err)
+	}
+	if st := api.Status(); st.Storage != StorageSaved {
+		t.Fatalf("after save: %+v", st)
+	}
+	res, _ = api.Save()
+	if res.Outcome != datasvc.OutcomeNothing || res.Message == "" {
+		t.Fatalf("second save = %+v", res)
+	}
+	gittest.Write(t, filepath.Join(dir, "a", "team.yaml"), "name: B\n")
+	git.InvalidateStatus()
+	lost, err := api.Lost([]string{}) // the window sends an empty list for "all"
+	if err != nil || len(lost) != 1 {
+		t.Fatalf("lost = %+v, %v", lost, err)
+	}
+	if d := api.Discard([]string{}); d.Problem != nil || d.Status.Unsaved != 0 {
+		t.Fatalf("discard = %+v", d)
+	}
+	versions, err := api.History("", 10)
+	if err != nil || len(versions) != 1 {
+		t.Fatalf("history = %+v, %v", versions, err)
+	}
+	if c := api.Conflicts(); len(c) != 0 {
+		t.Fatalf("conflicts = %+v", c)
+	}
+}
+
+func TestNoFolderIsAProblemNotAPanic(t *testing.T) {
+	api := newAPI(t, "")
+	api.data.SetFolder("")
+	if st := api.Status(); st.Storage != StorageProblem || st.Data.Problem == nil {
+		t.Fatalf("status = %+v", st)
+	}
+	res, err := api.Save()
+	if err != nil || res.OK || res.Message == "" {
+		t.Fatalf("save = %+v, %v", res, err)
+	}
+}
+
+func TestOpeningAFolderMakesItTheDataFolder(t *testing.T) {
+	api := newAPI(t, "")
+	gittest.Isolate(t)
+	folder := filepath.Join(t.TempDir(), "new")
+	o := api.CreateFolder(folder)
+	if o.Problem != nil || o.Folder == "" {
+		t.Fatalf("create = %+v", o)
+	}
+	if api.DataDir() != o.Folder || api.data.Folder() != o.Folder {
+		t.Fatalf("data folder %q, store %q, want %q", api.DataDir(), api.data.Folder(), o.Folder)
+	}
+}
