@@ -4,6 +4,7 @@
 
 import type {
   CloseInput,
+  HandLight,
   Light,
   MilestoneView,
   ProjectDetail,
@@ -33,7 +34,7 @@ function sprintList(): SprintInfo[] {
   return out;
 }
 
-const milestone = (id: string, name: string, date: string, light: Light, done = 0, total = 0): MilestoneView => ({
+const milestone = (id: string, name: string, date: string, light: Light, done = 0, total = 0, hand: HandLight = ''): MilestoneView => ({
   id,
   name,
   date,
@@ -41,6 +42,9 @@ const milestone = (id: string, name: string, date: string, light: Light, done = 
   done,
   total,
   light,
+  hand,
+  source: hand ? 'hand' : total > done ? 'derived' : 'none',
+  late: light === 'bad' ? ['AT-101'] : [],
 });
 
 function seed(): { open: ProjectView[]; closed: ProjectView[] } {
@@ -54,6 +58,11 @@ function seed(): { open: ProjectView[]; closed: ProjectView[] } {
     donePoints: 0,
     plannedPoints: 0,
     months: [],
+    used: null,
+    usedHand: null,
+    remaining: null,
+    usedStatus: '' as const,
+    contact: '',
     state: '' as const,
   };
   const open: ProjectView[] = [
@@ -74,14 +83,19 @@ function seed(): { open: ProjectView[]; closed: ProjectView[] } {
       open: 14,
       rule: 'epic = "Self-Service 2.0"',
       history: true,
+      used: 28,
+      usedHand: 28,
+      remaining: 32,
+      usedStatus: 'ok' as const,
+      contact: 'Dana Example',
       milestones: [
-        milestone('m1', 'Beta for pilot customers', addDays(t, 29), 'warn', 3, 6),
+        milestone('m1', 'Beta for pilot customers', addDays(t, 29), 'warn', 3, 6, 'yellow'),
         milestone('m2', 'Go-live', addDays(t, 100), 'none'),
       ],
       months: [
-        { month: addDays(t, 0).slice(0, 7), booked: 12, done: 20, planned: 4 },
-        { month: addDays(t, 31).slice(0, 7), booked: 14, done: null, planned: 6 },
-        { month: addDays(t, 62).slice(0, 7), booked: 14, done: null, planned: 4 },
+        { month: addDays(t, 0).slice(0, 7), booked: 12, done: 20, planned: 4, used: 11, remaining: 1, status: 'tight' as const },
+        { month: addDays(t, 31).slice(0, 7), booked: 14, done: null, planned: 6, used: null, remaining: null, status: '' as const },
+        { month: addDays(t, 62).slice(0, 7), booked: 14, done: null, planned: 4, used: null, remaining: null, status: '' as const },
       ],
     },
     {
@@ -236,16 +250,21 @@ export const projectsMock: ProjectsApi = {
       reason: old?.reason ?? '',
       priority: old?.priority ?? state.open.length + 1,
       booked: input.booked,
+      used: input.used ?? (Object.keys(input.usedMonths).length ? Object.values(input.usedMonths).reduce((a, b) => a + b, 0) : null),
+      usedHand: input.used,
+      remaining: input.used === null || input.booked === null ? null : input.booked - input.used,
+      usedStatus: input.used === null || input.booked === null ? '' : input.used > input.booked ? 'over' : input.used > input.booked * 0.8 ? 'tight' : 'ok',
+      contact: input.contact,
       done: old?.done ?? null,
       planned: old?.planned ?? null,
       donePoints: old?.donePoints ?? 0,
       plannedPoints: old?.plannedPoints ?? 0,
       months: Object.entries(input.months)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([month, booked]) => ({ month, booked, done: null, planned: null })),
+        .map(([month, booked]) => ({ month, booked, done: null, planned: null, used: input.usedMonths[month] ?? null, remaining: null, status: '' as const })),
       openScope: input.openScope,
       open: old?.open ?? 0,
-      milestones: input.milestones.map((m, i) => milestone(m.id || `m${i + 1}`, m.name, m.date, 'none', 0, m.tickets.length)),
+      milestones: input.milestones.map((m, i) => milestone(m.id || `m${i + 1}`, m.name, m.date, m.light === 'green' ? 'ok' : m.light === 'yellow' ? 'warn' : m.light === 'red' ? 'bad' : 'none', 0, m.tickets.length, m.light)),
       state: '',
       history: old?.history ?? false,
     };
