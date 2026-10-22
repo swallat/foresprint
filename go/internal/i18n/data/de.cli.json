@@ -1,0 +1,17 @@
+{
+ "code": "de",
+ "name": "Deutsch",
+ "texts": {
+  "Usage:": "Aufruf:",
+  "Commands:": "Befehle:",
+  "Options:": "Optionen:",
+  "Global options:": "Globale Optionen:",
+  "Use \"{command} [command] --help\" for more information about a command.": "Mehr zu einem Befehl: \"{command} [Befehl] --help\".",
+  "Help for {name}": "Hilfe zu {name}",
+  "Unknown command {name!r}. Try: {help}": "Unbekannter Befehl {name!r}. Versuchen Sie: {help}",
+  "Usage error: {error}": "Falsche Eingabe: {error}",
+  "Aborted.": "Abgebrochen.",
+  "Please enter y or n.": "Bitte j oder n eingeben.",
+  "Please select one of the available options": "Bitte eine der angebotenen Möglichkeiten wählen"
+ }
+}

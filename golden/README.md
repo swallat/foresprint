@@ -25,6 +25,13 @@ uv run python scripts/golden.py --check    # CI: fails if golden/ differs from t
 | `expected/yaml/<case>.json` | YAML round trip: load, save again. Per file `identical` or not. |
 | `expected/yaml/<case>/<file>` | The bytes Python writes for files that change on a round trip. |
 | `expected/rng/streams.json` | Streams of `random.Random(seed)`: `random()`, `getrandbits(k)`, `_randbelow(n)`, `choice`. |
+| `expected/engine/cases.json` | `engine`: rounding limits, rolling average, gaps, every trend mode on hand-made series, `compute` with gaps and plannings. |
+| `expected/pymath/cases.json` | Python's `sum`, `fsum`, `median`, `fmean`, `round` and number formats (the Go port must match to the last bit). |
+| `expected/formulas/<case>.json` | The calculation path of every sprint: steps, plain and structured explanation (English). `formulas-de/` has the German texts of four cases. |
+| `expected/forecast_api/*.json` | Current, upcoming and history entries, default sprint per purpose, sprint lookups, Planning inputs, freezing the plan, calendar error texts. |
+| `expected/products/*.json` | Product distribution of every sprint (rows, totals, production state, totals per PO), plan views, the balance over all sprints and the last three, standard shares for edge cases, labels, footnote. |
+| `expected/textfmt/cases.json` | Number formats in both languages, Markdown code spans of awkward text, the absence notes. |
+| `expected/calendar/ids.json`, `workweeks.json` | Odd sprint IDs and workweek values in every spelling. |
 | `expected/calendar/*.json` | Workdays and weekends, sprint ids, country list, holidays (a sample with names, plus a digest of every calendar of the library). |
 
 JSON files are written with Python's `json` (floats as `repr`, so they round-trip exactly). A
