@@ -225,6 +225,12 @@
           <input id="rv-extra" class="input data" inputmode="decimal" bind:value={additional} disabled={locked} />
         </div>
       </div>
+      {#if info.pulled.length > 0 && !info.reviewed}
+        <p class="small muted" data-testid="pulled">
+          {t('Prefilled from {n} done tickets pulled in after the freeze: {keys}.', { n: info.pulled.length, keys: info.pulled.join(', ') })}
+          {#if info.noEstimate.length > 0}{t('Without an estimate: {keys}.', { keys: info.noEstimate.join(', ') })}{/if}
+        </p>
+      {/if}
       <p class="small muted">
         {#if info.tickets}
           {t('Mark the tickets of the commitment that are done. What is not done is missing in full from the velocity; only its rest continues.')}

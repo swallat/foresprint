@@ -1175,6 +1175,8 @@
   "{used} of {plan} {unit}": "{used} von {plan} {unit}",
   "{used} of {plan} {unit}, range {low} to {high}": "{used} von {plan} {unit}, Spanne {low} bis {high}",
   "“Half of the runs” and “85 % of the runs” are the sprints in which the work is done that often. They are likelihoods, not commitments.": "„Hälfte der Läufe“ und „85 % der Läufe“ sind die Sprints, in denen die Arbeit so oft fertig ist. Das sind Wahrscheinlichkeiten, keine Zusagen.",
-  "… and {n} more changes": "… und {n} weitere Änderungen"
+  "… and {n} more changes": "… und {n} weitere Änderungen",
+  "Prefilled from {n} done tickets pulled in after the freeze: {keys}.": "Vorbelegt aus {n} erledigten Tickets, die nach dem Festschreiben dazukamen: {keys}.",
+  "Without an estimate: {keys}.": "Ohne Schätzung: {keys}."
  }
 }
