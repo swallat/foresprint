@@ -9,8 +9,10 @@ on:
   workflow_dispatch:
 
 # A new push to the same branch or PR cancels the superseded run; on main every run finishes.
+# Runs started by hand on v1 (the check after a merge) get a group of their own, so that the
+# next merge does not cancel them.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/v1' && github.run_id) || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Optionally on the self-hosted runner: repository variable SELF_HOSTED=true. Fork PRs always
