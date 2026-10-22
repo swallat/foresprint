@@ -18,11 +18,11 @@ import (
 	"github.com/swallat/foresprint/internal/workpackages"
 )
 
-// packageImportLimit is the number of changes the preview lists; the rest is counted.
-const packageImportLimit = 200
+// packagesImportLimit is the number of changes the preview lists; the rest is counted.
+const packagesImportLimit = 200
 
-// maxTableBytes keeps a wrong file (a video, a backup) from being read into memory.
-const maxTableBytes = 20 << 20
+// packagesMaxTableBytes keeps a wrong file (a video, a backup) from being read into memory.
+const packagesMaxTableBytes = 20 << 20
 
 // PackageImportPreview lets the user pick a CSV or Excel table of work packages and lists what
 // importing it would do. Nothing is written.
@@ -37,7 +37,7 @@ func (a *API) PackageImportPreview(team string) (PackageImportPreview, error) {
 	if path == "" {
 		return PackageImportPreview{Cancelled: true, Changes: []PackageImportChange{}, Problems: []PackageImportProblem{}, Unmapped: []string{}}, nil
 	}
-	plan, err := a.planPackages(team, path)
+	plan, err := a.packagesPlanImport(team, path)
 	if err != nil {
 		return PackageImportPreview{}, err
 	}
@@ -49,7 +49,7 @@ func (a *API) PackageImportPreview(team string) (PackageImportPreview, error) {
 		} else {
 			out.New++
 		}
-		if len(out.Changes) == packageImportLimit {
+		if len(out.Changes) == packagesImportLimit {
 			out.More++
 			continue
 		}
@@ -69,7 +69,7 @@ func (a *API) PackageImportPreview(team string) (PackageImportPreview, error) {
 // skipped). The window shows the preview first; hash is the one the preview returned, so a file
 // that changed in between is refused instead of writing values nobody saw.
 func (a *API) PackageImportApply(team, path, hash string) (Result, error) {
-	plan, err := a.planPackages(team, path)
+	plan, err := a.packagesPlanImport(team, path)
 	if err != nil {
 		return Result{}, err
 	}
@@ -86,7 +86,7 @@ func (a *API) PackageImportApply(team, path, hash string) (Result, error) {
 	return Result{OK: true, Message: i18n.T("{count} work packages imported.", "count", len(plan.changes))}, nil
 }
 
-type packagePlan struct {
+type packagesPlan struct {
 	repo     *storage.Repository
 	hash     string
 	merged   []model.Ticket
@@ -97,7 +97,7 @@ type packagePlan struct {
 	source   *string
 }
 
-func (a *API) planPackages(team, path string) (*packagePlan, error) {
+func (a *API) packagesPlanImport(team, path string) (*packagesPlan, error) {
 	repo, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (a *API) planPackages(team, path string) (*packagePlan, error) {
 	if data.Team.Source() != model.SourcePackages {
 		return nil, bad("This team does not keep work packages in Foresprint.")
 	}
-	raw, err := readTable(path)
+	raw, err := packagesReadTable(path)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +129,13 @@ func (a *API) planPackages(team, path string) (*packagePlan, error) {
 		h.Write([]byte(tk.Key + "\x00" + tk.Title))
 	}
 	h.Write([]byte(workpackages.Prefix(data.Team.Tracker)))
-	return &packagePlan{repo: repo, hash: hex.EncodeToString(h.Sum(nil)), merged: merged, changes: changes,
+	return &packagesPlan{repo: repo, hash: hex.EncodeToString(h.Sum(nil)), merged: merged, changes: changes,
 		problems: res.Problems, unmapped: res.Unmapped, imported: data.TicketsImported, source: data.TicketsSource}, nil
 }
 
-// readTable reads a regular file of at most maxTableBytes: a pipe or device would block, a file
+// packagesReadTable reads a regular file of at most packagesMaxTableBytes: a pipe or device would block, a file
 // that grows while it is read is cut off.
-func readTable(path string) ([]byte, error) {
+func packagesReadTable(path string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -148,11 +148,11 @@ func readTable(path string) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, bad("This is not a file.")
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, maxTableBytes+1))
+	raw, err := io.ReadAll(io.LimitReader(f, packagesMaxTableBytes+1))
 	if err != nil {
 		return nil, err
 	}
-	if len(raw) > maxTableBytes {
+	if len(raw) > packagesMaxTableBytes {
 		return nil, bad("The file is too large for a table of work packages.")
 	}
 	return raw, nil
