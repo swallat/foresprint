@@ -10,6 +10,7 @@
   import Palette from './shell/Palette.svelte';
   import Rail from './shell/Rail.svelte';
   import Toasts from './shell/Toasts.svelte';
+  import TourGuide from './shell/TourGuide.svelte';
   import Topbar from './shell/Topbar.svelte';
 
   const found = $derived.by(() => {
@@ -116,6 +117,7 @@
   <Palette />
   <FindingsDialog />
   <Toasts />
+  <TourGuide />
 {:else}
   <p class="boot muted">Foresprint …</p>
 {/if}
