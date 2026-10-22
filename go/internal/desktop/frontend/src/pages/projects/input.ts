@@ -11,8 +11,11 @@ export function inputOf(p: ProjectView): ProjectInput {
     note: p.note,
     rule: p.rule,
     booked: p.booked,
+    used: p.usedHand,
+    contact: p.contact,
     months: Object.fromEntries(p.months.filter((m) => m.booked > 0).map((m) => [m.month, m.booked])),
+    usedMonths: Object.fromEntries(p.months.filter((m) => m.used !== null).map((m) => [m.month, m.used as number])),
     openScope: p.openScope,
-    milestones: p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets })),
+    milestones: p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets, light: m.hand })),
   };
 }
