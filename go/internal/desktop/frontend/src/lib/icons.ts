@@ -74,6 +74,7 @@ import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
 import i_light_mode from '@material-symbols/svg-400/outlined/light_mode.svg?raw';
 import i_lock from '@material-symbols/svg-400/outlined/lock.svg?raw';
 import i_lock_open from '@material-symbols/svg-400/outlined/lock_open.svg?raw';
+import i_logout from '@material-symbols/svg-400/outlined/logout.svg?raw';
 import i_low_priority from '@material-symbols/svg-400/outlined/low_priority.svg?raw';
 import i_menu from '@material-symbols/svg-400/outlined/menu.svg?raw';
 import i_merge from '@material-symbols/svg-400/outlined/merge.svg?raw';
@@ -84,6 +85,7 @@ import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?ra
 import i_pending from '@material-symbols/svg-400/outlined/pending.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
 import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
+import i_person_remove from '@material-symbols/svg-400/outlined/person_remove.svg?raw';
 import i_pin from '@material-symbols/svg-400/outlined/pin.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
 import i_playlist_add from '@material-symbols/svg-400/outlined/playlist_add.svg?raw';
@@ -187,6 +189,7 @@ const icons = {
   light_mode: i_light_mode,
   lock: i_lock,
   lock_open: i_lock_open,
+  logout: i_logout,
   low_priority: i_low_priority,
   menu: i_menu,
   merge: i_merge,
@@ -197,6 +200,7 @@ const icons = {
   pending: i_pending,
   person: i_person,
   person_add: i_person_add,
+  person_remove: i_person_remove,
   pin: i_pin,
   play_arrow: i_play_arrow,
   playlist_add: i_playlist_add,
