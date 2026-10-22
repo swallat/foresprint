@@ -22,7 +22,6 @@
   "A file server or SharePoint follows after 1.0.": "Dateiserver oder SharePoint folgen nach 1.0.",
   "A likelihood from a simulation, not a promise.": "Eine Wahrscheinlichkeit aus einer Simulation, kein Versprechen.",
   "A merge cannot be taken back.": "Eine Zusammenführung lässt sich nicht zurücknehmen.",
-  "A milestone with tickets gets its own light from the state of its tickets. Without tickets no light is calculated.": "Ein Meilenstein mit Tickets bekommt eine eigene Ampel aus dem Stand seiner Tickets. Ohne Tickets wird keine Ampel berechnet.",
   "A repository with the data of the team is already on this computer.": "Ein Repository mit den Daten des Teams liegt schon auf diesem Rechner.",
   "A tag names a state of the data, for example the end of a sprint. Any earlier state can be chosen; tags help to find it.": "Ein Tag benennt einen Stand der Daten, zum Beispiel das Ende eines Sprints. Du kannst jeden früheren Stand wählen, Tags helfen beim Finden.",
   "Absences (people away)": "Abwesenheiten (wer fehlt)",
@@ -1150,6 +1149,21 @@
   "{used} of {plan} {unit}": "{used} von {plan} {unit}",
   "{used} of {plan} {unit}, range {low} to {high}": "{used} von {plan} {unit}, Spanne {low} bis {high}",
   "“Half of the runs” and “85 % of the runs” are the sprints in which the work is done that often. They are likelihoods, not commitments.": "„Hälfte der Läufe“ und „85 % der Läufe“ sind die Sprints, in denen die Arbeit so oft fertig ist. Das sind Wahrscheinlichkeiten, keine Zusagen.",
-  "… and {n} more changes": "… und {n} weitere Änderungen"
+  "… and {n} more changes": "… und {n} weitere Änderungen",
+  "Used {used} PD": "Verbraucht {used} PT",
+  "{n} PD left": "noch {n} PT",
+  "over the contingent": "über dem Kontingent",
+  "nearly used up": "fast aufgebraucht",
+  "within the contingent": "im Kontingent",
+  "set by hand": "von Hand gesetzt",
+  "{n} tickets late": "{n} Tickets zu spät",
+  "A light set by hand always counts. Without one, a milestone with tickets gets its light from the state of its tickets.": "Eine von Hand gesetzte Ampel gilt immer. Ohne sie bekommt ein Meilenstein mit Tickets seine Ampel aus dem Stand seiner Tickets.",
+  "used": "verbraucht",
+  "Derive from tickets": "Aus den Tickets ableiten",
+  "Traffic light of the milestone": "Ampel des Meilensteins",
+  "Used so far (person days, entered by hand)": "Bisher verbraucht (Personentage, von Hand eingetragen)",
+  "Used in {month}": "Verbraucht im {month}",
+  "Contact person (optional)": "Ansprechperson (optional)",
+  "Contact person": "Ansprechperson"
  }
 }
