@@ -55,6 +55,11 @@
     if (v === undefined) return void model.reload();
     await model.change(() => api.SetProjectAmount(app.team, d!.sprint, id, v));
   }
+  async function setSprintPre(text: string): Promise<void> {
+    const v = parseAmount(text);
+    if (v === undefined) return void model.reload();
+    await model.change(() => api.SetSprintPreplanned(app.team, d!.sprint, v));
+  }
   const takeEarmarks = () => model.change(() => api.TakeEarmarks(app.team, d!.sprint), t('Amounts taken from the earmarks.'));
   const useDefaults = () => model.change(() => api.UseDefaults(app.team, d!.sprint), t('Standard amounts taken over.'));
 
@@ -170,6 +175,10 @@
       <div class="grow">
         {t('Your team plans without products, so there is no amount per product. The plannable amount above is what the team can take on.')}
       </div>
+    </div>
+    <div class="row gap">
+      <label for="sprint-pre">{t('Pre-planned amount of the sprint ({unit})', { unit: unitName(d) })}</label>
+      <input id="sprint-pre" class="num" inputmode="decimal" value={d.sprintPre ?? ''} placeholder="–" onchange={(e) => setSprintPre(e.currentTarget.value)} />
     </div>
   {/if}
 

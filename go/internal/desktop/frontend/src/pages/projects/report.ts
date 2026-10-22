@@ -32,6 +32,6 @@ export function reportMarkdown(d: ProjectDetail): string {
     for (const r of d.report) out.push(`| ${r.sprint} | ${num(r.booked, 1)} | ${cell(r.planned)} | ${cell(r.done)} |`);
     out.push('');
   }
-  if (est) out.push(t('Values with ≈ are estimates: points divided by the team rate.'), '');
+  if (est) out.push(t('Values with ≈ are estimates: points converted with the rate of each sprint.'), '');
   return out.join('\n');
 }
