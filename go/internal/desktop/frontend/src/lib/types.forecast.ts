@@ -32,6 +32,7 @@ export interface ForecastView {
   trendMode: string;
   horizon: number;
   rounding: number;
+  products: number;
   samples: number;
   fewSamples: boolean;
   rate: number | null;
@@ -61,7 +62,58 @@ export interface WhenDoneView {
   available: boolean;
 }
 
+export interface ProductCell {
+  standard: number | null;
+  preplanned: number | null;
+  planned: number | null;
+  done: number | null;
+}
+
+export interface ProductLine {
+  id: string;
+  name: string;
+  cells: ProductCell[];
+  sprints: number;
+  standard: number;
+  done: number;
+  difference: number;
+  missing: number;
+}
+
+export interface ProductsOverTime {
+  enabled: boolean;
+  sprints: string[];
+  current: string;
+  lines: ProductLine[];
+}
+
+export interface ReportFile {
+  path: string;
+  cancelled: boolean;
+}
+
+export interface ImportChange {
+  file: string;
+  path: string;
+  old: string;
+  new: string;
+}
+
+export interface ImportPreview {
+  path: string;
+  changes: ImportChange[];
+  more: number;
+  untouched: string[];
+  noTeam: boolean;
+  cancelled: boolean;
+}
+
 export interface ForecastApi {
+  ForecastProducts(team: string): Promise<ProductsOverTime>;
+  ForecastReport(team: string): Promise<string>;
+  ForecastSave(team: string, kind: 'markdown' | 'excel'): Promise<ReportFile>;
+  ExcelImportPreview(team: string): Promise<ImportPreview>;
+  ExcelImportApply(team: string, path: string): Promise<string[]>;
   Forecast(team: string): Promise<ForecastView>;
   ForecastWhatIf(team: string, extraAbsenceDays: number, focusPercent: number): Promise<WhatIfRow[]>;
   ForecastWhenDone(team: string, remaining: number, sharePercent: number): Promise<WhenDoneView>;

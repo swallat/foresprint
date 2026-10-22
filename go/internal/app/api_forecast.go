@@ -102,6 +102,7 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 		TrendMode:         string(s.TrendMode),
 		Horizon:           s.Horizon,
 		Rounding:          s.Rounding,
+		Products:          len(data.Products),
 		Samples:           analysis.SampleCount(fc),
 		FewSamples:        analysis.FewSamples(fc),
 		Past:              []ForecastRow{},
