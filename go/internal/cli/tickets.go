@@ -221,27 +221,12 @@ func (k knownSprints) End(id string) (time.Time, bool) {
 }
 
 func ticketEnv(data *storage.TeamData, today time.Time) ticketimport.Env {
-	return ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Tickets: data.Tickets,
+	return ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Products: data.Products, Tickets: data.Tickets,
 		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: today}
 }
 
 // sourceSettings are the tracker settings as the sources need them.
-func sourceSettings(t model.TrackerSettings) sources.Settings {
-	str := func(p *string) string {
-		if p == nil {
-			return ""
-		}
-		return *p
-	}
-	s := sources.Settings{
-		Kind: t.Kind, BaseURL: str(t.BaseURL), Query: str(t.Query), LinkType: t.LinkType,
-		Fields: sources.Fields{Estimate: str(t.Fields.Estimate), Remaining: str(t.Fields.Remaining), Epic: str(t.Fields.Epic)},
-	}
-	for _, e := range t.RuleFields.Entries {
-		s.RuleFields = append(s.RuleFields, sources.RuleField{Name: e.Key, Display: e.Value})
-	}
-	return s
-}
+func sourceSettings(t model.TrackerSettings) sources.Settings { return ticketimport.SourceSettings(t) }
 
 func sourceFailed(err error) error {
 	if sources.IsSourceError(err) {

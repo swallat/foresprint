@@ -67,6 +67,8 @@ type Sprints interface {
 type Env struct {
 	Tracker  model.TrackerSettings
 	Projects []model.Project
+	// Products are matched by id or name when the product comes from a tracker field.
+	Products []model.Product
 	// Tickets are the tickets of the last import (tickets.yaml).
 	Tickets []model.Ticket
 	Preplan model.Preplan
@@ -138,6 +140,11 @@ func (p Plan) Apply(saver Saver, team string, now time.Time) ([]string, error) {
 // refined_also_if counts as refined but unclear (the label is sometimes forgotten). The label
 // without an estimate is unclear and not refined: there is nothing to calculate with.
 func IsRefined(facts model.Facts, estimate *float64, tracker model.TrackerSettings) (refined, unclear bool) {
+	if tracker.Fields.Refined != nil {
+		if mapped, ok := RefinedFromField(facts[MapRefined]); ok { // the mapped field decides
+			return mapped && estimate != nil, mapped && estimate == nil
+		}
+	}
 	label := ""
 	if tracker.RefinedLabel != nil {
 		label = *tracker.RefinedLabel
@@ -279,6 +286,11 @@ func Convert(raw sources.RawTicket, env Env) model.Ticket {
 			ticket.Extra.Set(name, cloneStrings(values))
 		}
 	}
+	for _, m := range mappedFields(tracker) {
+		if values, ok := raw.Extra[m.Name]; ok {
+			ticket.Extra.Set(m.Name, cloneStrings(values))
+		}
+	}
 	facts := ticket.Facts()
 	// The size the distribution calculates with (remaining if filled, else the estimate).
 	size := ticket.Size(tracker.PlanningUses)
@@ -296,6 +308,7 @@ func Convert(raw sources.RawTicket, env Env) model.Ticket {
 	if ticket.ProjectCandidates == nil {
 		ticket.ProjectCandidates = []string{}
 	}
+	applyMappedAssignment(&ticket, env)
 	return ticket
 }
 

@@ -189,3 +189,12 @@ func nonNil(s []string) []string {
 	}
 	return s
 }
+
+func readGolden(t *testing.T, name string) []byte {
+	t.Helper()
+	raw, err := os.ReadFile(golden.Path(t, "excel_import", "workbooks", name+".xlsx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}

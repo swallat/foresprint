@@ -157,6 +157,7 @@ func (j *JiraSource) ticket(issue any, resolved *ResolvedFields) (RawTicket, err
 		return RawTicket{}, err
 	}
 	ticket.SprintName = ChooseSprint(first(resolved.Sprint))
+	j.rememberSprints(first(resolved.Sprint))
 	if rank, ok := asString(first(resolved.Rank)); ok {
 		ticket.Rank = rank
 	}
