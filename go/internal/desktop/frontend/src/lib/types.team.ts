@@ -95,6 +95,16 @@ export interface ProductsView {
   legacy: boolean;
   products: Product[];
   owners: Owner[];
+  defaults: ProductsDefault[];
+}
+
+/** Default amount of one sprint: Forecast PLAN (times the plannable share on the roadmap basis) times each product's share. */
+export interface ProductsDefault {
+  sprint: string;
+  plan: number | null;
+  available: number | null;
+  roadmapShare: number;
+  values: Record<string, number>;
 }
 
 export interface EndResult {

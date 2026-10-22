@@ -1,6 +1,7 @@
 package app
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -218,5 +219,42 @@ func TestOwnerWorkingInTheTeam(t *testing.T) {
 	}
 	if _, err := api.SetOwnerInTeam(team, bea.ID, true, 3); err == nil {
 		t.Error("share above 1 accepted")
+	}
+}
+
+func TestProductsViewDefaultsFollowTheForecast(t *testing.T) {
+	api, team := demoCopy(t)
+	v, err := api.Products(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.Defaults) == 0 {
+		t.Fatal("no default rows")
+	}
+	var plan *ProductsDefault
+	for i := range v.Defaults {
+		if v.Defaults[i].Plan != nil {
+			plan = &v.Defaults[i]
+			break
+		}
+	}
+	if plan == nil {
+		t.Fatalf("no sprint with a forecast: %+v", v.Defaults)
+	}
+	for _, p := range v.Products {
+		if p.Ended || p.Share == nil {
+			continue
+		}
+		want := math.Round(*plan.Available * *p.Share)
+		if got, ok := plan.Values[p.ID]; !ok || got != want {
+			t.Errorf("%s: default %v (%v), want %v", p.Name, got, ok, want)
+		}
+	}
+	for _, p := range v.Products {
+		if p.Ended {
+			if _, ok := plan.Values[p.ID]; ok {
+				t.Errorf("ended product %s has a default", p.Name)
+			}
+		}
 	}
 }

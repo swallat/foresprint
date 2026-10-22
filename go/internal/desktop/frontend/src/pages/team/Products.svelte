@@ -8,7 +8,8 @@
   import { fmtDay, fmtNum, parseNum } from '../../lib/team/format';
   import { percent, shareSum } from '../../lib/team/products';
   import { inverse } from '../../lib/team/undo';
-  import type { Product, ProductsView } from '../../lib/types.team';
+  import type { Product, ProductsDefault, ProductsView } from '../../lib/types.team';
+  import Calc from '../../lib/calc/Calc.svelte';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import EndProductPanel from './EndProductPanel.svelte';
@@ -31,6 +32,12 @@
   const counts = $derived(view?.source !== 'none');
   const ticketsLabel = $derived(view?.source === 'packages' ? t('Work packages') : t('Tickets'));
   const unit = $derived(view?.source === 'packages' ? t('work packages') : t('tickets'));
+
+  // The default share is shown for the sprint to plan next: the second row (the first is the
+  // running sprint), or the only one.
+  const defaults = $derived(view?.defaults ?? []);
+  const focus = $derived(defaults.length > 1 ? defaults[1] : defaults[0]);
+  const focusSum = $derived(active.reduce((n, p) => n + (focus?.values[p.id] ?? 0), 0));
 
   async function load() {
     try {
@@ -169,6 +176,11 @@
   );
 </script>
 
+{#snippet calc(d: ProductsDefault, p: Product)}
+  {fmtNum(d.available ?? 0)}{d.roadmapShare ? ` (${t('Forecast PLAN')} ${fmtNum(d.plan ?? 0)} × ${percent(d.roadmapShare)} %)` : ''} ×
+  {p.share === null ? t('even share of the rest') : `${percent(p.share)} %`} = {fmtNum((d.values[p.id] ?? 0), 0)}
+{/snippet}
+
 <PageHead title={t('Products')} {lead}>
   {#snippet actions()}
     <button class="btn" type="button" onclick={add}><Icon name="add" />{t('Add product')}</button>
@@ -197,6 +209,7 @@
           <th>{t('Product')}</th>
           <th>{t('Product owner')}</th>
           <th class="num">{t('Share %')}</th>
+          {#if focus}<th class="num" title={t('Forecast PLAN of the sprint times the share')}>{t('Default {sprint}', { sprint: focus.sprint })}</th>{/if}
           {#if rules}<th>{t('Assignment rule')}</th>{/if}
           {#if counts}<th class="num">{ticketsLabel}</th>{/if}
           <th><span class="sr-only">{t('Actions')}</span></th>
@@ -222,6 +235,20 @@
                 onchange={(e) => setShare(p, e.currentTarget.value)}
               />
             </td>
+            {#if focus}
+              <td class="num data">
+                {#if focus.values[p.id] !== undefined}
+                  <span class="row nowrap end">
+                    {fmtNum(focus.values[p.id]!, 0)}
+                    <Calc label={t('Default {sprint}', { sprint: focus.sprint })} topic="rate">
+                      {@render calc(focus, p)}
+                    </Calc>
+                  </span>
+                {:else}
+                  <span class="muted">–</span>
+                {/if}
+              </td>
+            {/if}
             {#if rules}
               <td>
                 <span class="row nowrap">
@@ -266,6 +293,7 @@
           <td>{t('Total')}</td>
           <td></td>
           <td class="num">{sum}</td>
+          {#if focus}<td class="num data">{focus.plan === null ? '–' : fmtNum(focusSum, 0)}</td>{/if}
           {#if rules}<td></td>{/if}
           {#if counts}<td class="num">{active.reduce((n, p) => n + p.tickets, 0)}</td>{/if}
           <td></td>
@@ -277,6 +305,58 @@
     {#each view.owners as o, i (o.id)}{i ? ', ' : ''}{o.name} <span class="data">{shareSum(active.filter((p) => p.po === o.id))} %</span>{/each}.
     {t('The share is the target; what is really planned and done is in the sprint table. Create and rename POs under People and absences. To remove a product use the symbol at the end of the row; a product with history is ended, not deleted.')}
   </p>
+
+  {#if defaults.length}
+    <div class="card below" id="defaults-card">
+      <h2>{t('Default share per sprint')}</h2>
+      <p class="small muted">{t('Forecast PLAN times the share of each product, rounded to whole points. This is what Plan proposes for the product.')}</p>
+      <div class="tw">
+        <table class="t">
+          <thead>
+            <tr>
+              <th>{t('Product')}</th>
+              {#each defaults as d (d.sprint)}<th class="num">{d.sprint}</th>{/each}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{t('Forecast PLAN')}</td>
+              {#each defaults as d (d.sprint)}
+                <td class="num data">
+                  {#if d.plan === null}
+                    <span class="muted">–</span>
+                  {:else}
+                    <span class="row nowrap end">
+                      {fmtNum(d.plan)}
+                      <Calc label={t('Forecast PLAN {sprint}', { sprint: d.sprint })} topic="rate">
+                        {t('Forecast PLAN of {sprint}', { sprint: d.sprint })}: {fmtNum(d.plan)}{d.roadmapShare
+                          ? ` × ${percent(d.roadmapShare)} % = ${fmtNum(d.available ?? 0)}`
+                          : ''}
+                      </Calc>
+                    </span>
+                  {/if}
+                </td>
+              {/each}
+            </tr>
+            {#each active as p (p.id)}
+              <tr>
+                <td>{p.name}</td>
+                {#each defaults as d (d.sprint)}
+                  <td class="num data">{d.values[p.id] === undefined ? '–' : fmtNum(d.values[p.id]!, 0)}</td>
+                {/each}
+              </tr>
+            {/each}
+            <tr class="sum">
+              <td>{t('Total')}</td>
+              {#each defaults as d (d.sprint)}
+                <td class="num data">{d.plan === null ? '–' : fmtNum(active.reduce((n, p) => n + (d.values[p.id] ?? 0), 0), 0)}</td>
+              {/each}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {/if}
 
   {#if ended.length}
     <details class="card ended">
@@ -366,6 +446,9 @@
   }
   .nowrap {
     flex-wrap: nowrap;
+  }
+  .end {
+    justify-content: flex-end;
   }
   .rule-txt {
     font-variant-ligatures: none;

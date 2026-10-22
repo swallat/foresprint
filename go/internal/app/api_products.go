@@ -6,8 +6,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/products"
 	"github.com/swallat/foresprint/internal/rules"
 	"github.com/swallat/foresprint/internal/storage"
 )
@@ -21,6 +23,7 @@ func (a *API) productsView(data *storage.TeamData) ProductsView {
 		Legacy:   len(data.Team.ProductOwners) == 0,
 		Products: []ProductDTO{},
 		Owners:   ownersOf(data, today),
+		Defaults: productsDefaults(data, today),
 	}
 	counts, points := countTickets(data, today)
 	for _, p := range data.Products {
@@ -40,6 +43,43 @@ func (a *API) productsView(data *storage.TeamData) ProductsView {
 		view.Products = append(view.Products, d)
 	}
 	return view
+}
+
+// productsDefaults is the default amount per product for the running and the next sprints: the
+// Forecast PLAN of each sprint split by StandardShares, the same numbers as the plan page. A
+// team without a calculable forecast gets no rows.
+func productsDefaults(data *storage.TeamData, today time.Time) []ProductsDefault {
+	out := []ProductsDefault{}
+	fc, err := forecast.Build(data, today)
+	if err != nil {
+		return out
+	}
+	roadmap := data.Team.Forecast.ProductBasis == model.BasisRoadmap
+	for _, e := range fc.Upcoming() {
+		row := ProductsDefault{Sprint: e.Sprint.ID, Values: map[string]float64{}}
+		if roadmap {
+			row.RoadmapShare = data.Team.Forecast.RoadmapShare
+		}
+		if plan := e.Result.Plan; plan != nil {
+			row.Plan = plan
+			av := *plan
+			if roadmap {
+				av *= data.Team.Forecast.RoadmapShare
+			}
+			row.Available = &av
+			var active []model.Product
+			for _, p := range data.Products {
+				if p.ActiveBetween(e.Sprint.Start, e.Sprint.End) {
+					active = append(active, p)
+				}
+			}
+			for id, v := range products.StandardShares(active, &av) {
+				row.Values[id] = math.Round(v)
+			}
+		}
+		out = append(out, row)
+	}
+	return out
 }
 
 // countTickets counts, per active product, the tickets it takes: the first product whose rule
