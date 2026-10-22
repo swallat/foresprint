@@ -234,3 +234,46 @@ func TestPeopleKinds(t *testing.T) {
 		t.Errorf("bad kind: %d %q", code, errOut)
 	}
 }
+
+func TestAbsencePeriods(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "absences", "demo"}
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
+
+	code, out, errOut := with("--person", "anna", "--from", "2026-10-26", "--to", "2026-10-30")
+	if code != 0 || !strings.Contains(out, "Working days of Anna") {
+		t.Fatalf("add: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "abwesenheiten.yaml"))
+	if err != nil || !strings.Contains(string(raw), "2026-10-26") {
+		t.Fatalf("abwesenheiten.yaml: %v\n%s", err, raw)
+	}
+	// An adjoining period is joined with the first one.
+	if code, _, errOut := with("--person", "Anna", "--from", "2026-10-31", "--to", "2026-11-02", "--confirmed"); code != 0 {
+		t.Fatalf("join: %d %q", code, errOut)
+	}
+	_, list, _ := with("--periods")
+	if !strings.Contains(list, "26.10.2026") || !strings.Contains(list, "02.11.2026") || strings.Count(list, "Anna") != 1 {
+		t.Errorf("list:\n%s", list)
+	}
+	if code, _, errOut := with("--person", "anna", "--from", "2026-10-26", "--remove"); code != 0 {
+		t.Fatalf("remove: %d %q", code, errOut)
+	}
+	if _, list, _ := with("--periods"); !strings.Contains(list, "No absence periods") {
+		t.Errorf("after remove:\n%s", list)
+	}
+	for _, bad := range [][]string{
+		{"--person", "nobody", "--from", "2026-10-26"},
+		{"--person", "anna", "--from", "26.10.2026"},
+		{"--person", "anna", "--from", "2026-10-30", "--to", "2026-10-26"},
+		{"--person", "anna"},
+	} {
+		if code, _, _ := with(bad...); code == 0 {
+			t.Errorf("%v must fail", bad)
+		}
+	}
+}

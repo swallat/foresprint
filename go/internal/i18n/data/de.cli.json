@@ -55,6 +55,25 @@
   "The CSV file cannot be read: {error}": "Die CSV-Datei kann nicht gelesen werden: {error}",
   "The workbook has no sheet {name}.": "Die Arbeitsmappe hat kein Blatt {name}.",
   "Writing sprints back to the tracker is not switched on.": "Das Zurückschreiben von Sprints in den Tracker ist nicht eingeschaltet.",
-  "Jira refuses the write (403): the account may not edit sprints (needs the right to manage sprints).": "Jira verweigert das Schreiben (403): Das Konto darf keine Sprints bearbeiten (Recht „Sprints verwalten“ nötig)."
+  "Jira refuses the write (403): the account may not edit sprints (needs the right to manage sprints).": "Jira verweigert das Schreiben (403): Das Konto darf keine Sprints bearbeiten (Recht „Sprints verwalten“ nötig).",
+  "List the absence periods and their working days per sprint.": "Abwesenheitszeiträume auflisten.",
+  "Person (name or ID) for an absence period.": "Person (Name oder ID) für einen Abwesenheitszeitraum.",
+  "First day of the absence period, YYYY-MM-DD.": "Erster Tag des Abwesenheitszeitraums, JJJJ-MM-TT.",
+  "Last day of the absence period, YYYY-MM-DD (default: the first day).": "Letzter Tag des Abwesenheitszeitraums, JJJJ-MM-TT (Standard: der erste Tag).",
+  "Mark the period as confirmed (closed lock), otherwise it is announced.": "Zeitraum als bestätigt markieren (Schloss zu), sonst gilt er als angekündigt.",
+  "Remove the period that starts on --from.": "Den Zeitraum entfernen, der an --from beginnt.",
+  "{option} needs a date as YYYY-MM-DD.": "{option} braucht ein Datum als JJJJ-MM-TT.",
+  "An absence period needs --person and --from.": "Ein Abwesenheitszeitraum braucht --person und --from.",
+  "The last day must not be before the first day.": "Der letzte Tag darf nicht vor dem ersten liegen.",
+  "{person} has no absence period starting on {day}.": "{person} hat keinen Abwesenheitszeitraum, der am {day} beginnt.",
+  "{team}: absence periods updated": "{team}: Abwesenheitszeiträume aktualisiert",
+  "Person not found: {name}": "Person nicht gefunden: {name}",
+  "The name {name} is not unique – use the ID.": "Der Name {name} ist nicht eindeutig – bitte die ID verwenden.",
+  "The period has no working day in a known sprint.": "Der Zeitraum enthält keinen Arbeitstag in einem bekannten Sprint.",
+  "Working days of {name} in the period": "Arbeitstage von {name} im Zeitraum",
+  "Absence periods": "Abwesenheitszeiträume",
+  "From": "Von",
+  "To": "Bis",
+  "No absence periods.": "Keine Abwesenheitszeiträume."
  }
 }
