@@ -97,17 +97,38 @@ func cellState(s model.Sprint, person string) string {
 	return CellAnnounced
 }
 
-func sprintName(s model.Sprint) string {
-	if s.Name != nil && *s.Name != "" {
-		return *s.Name
+// displayName is the name of a sprint: the manual one, else the naming rule of the team, else
+// the id.
+func displayName(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) string {
+	sprints := make([]model.Sprint, len(fc.Entries), len(fc.Entries)+1)
+	known := false
+	for i := range fc.Entries {
+		sprints[i] = fc.Entries[i].Sprint
+		known = known || sprints[i].ID == s.ID
 	}
-	return s.ID
+	if !known { // beyond the forecast horizon
+		sprints = append(sprints, s)
+	}
+	return model.SprintDisplayName(&data.Team, sprints, s.ID)
+}
+
+// planSpan is the range of the Forecast PLAN of the sprint, nil without one.
+func planSpan(fc *forecast.Forecast, id string) (low, high *float64) {
+	for i := range fc.Entries {
+		if fc.Entries[i].Sprint.ID != id {
+			continue
+		}
+		if span, ok := fc.PlanSpanOf(i); ok {
+			return &span.Low, &span.High
+		}
+	}
+	return nil, nil
 }
 
 func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) AbsenceColumn {
 	col := AbsenceColumn{
 		ID:       s.ID,
-		Name:     sprintName(s),
+		Name:     displayName(data, fc, s),
 		Start:    s.Start.Format("2006-01-02"),
 		End:      s.End.Add(-24 * time.Hour).Format("2006-01-02"), // the stored end is exclusive
 		State:    absenceState(s),
@@ -126,6 +147,7 @@ func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) Absen
 		}
 		if !col.Past {
 			col.Plan = e.Result.Plan
+			col.PlanLow, col.PlanHigh = planSpan(fc, s.ID)
 		}
 	} else if s.AbsenceStatus() == model.AbsencesConfirmed {
 		col.Capacity = capacity.Sprint(&data.Team, data.People, s, 0).Capacity
@@ -390,12 +412,13 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 			}
 		}
 		row := SprintRow{
-			ID: s.ID, Name: sprintName(s), Start: s.Start.Format("2006-01-02"),
+			ID: s.ID, Name: displayName(data, fc, s), Start: s.Start.Format("2006-01-02"),
 			End: s.End.Add(-24 * time.Hour).Format("2006-01-02"), Absences: absenceState(s),
 			Capacity: e.Result.Input.Capacity, Commitment: e.Result.Commitment.Value, Velocity: e.Result.Velocity.Value,
 		}
 		if !isPast {
 			row.Plan = e.Result.Plan
+			row.PlanLow, row.PlanHigh = planSpan(fc, s.ID)
 		}
 		if row.Velocity != nil && row.Capacity != nil && *row.Capacity > 0 {
 			rate := *row.Velocity / *row.Capacity

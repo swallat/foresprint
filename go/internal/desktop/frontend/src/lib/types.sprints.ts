@@ -13,6 +13,8 @@ export interface AbsenceColumn {
   absent: number;
   capacity: number;
   plan: number | null;
+  planLow: number | null; // range of the PLAN over the window, null without a projection
+  planHigh: number | null;
   past: boolean;
 }
 
@@ -68,6 +70,8 @@ export interface SprintRow {
   absences: AbsenceState;
   capacity: number | null;
   plan: number | null;
+  planLow: number | null;
+  planHigh: number | null;
   commitment: number | null;
   velocity: number | null;
   normalized: number | null;

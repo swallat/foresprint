@@ -279,7 +279,7 @@
                   <Icon name="lock" size={16} />{t('Frozen')}
                 </button>
               {:else}
-                <button class="btn" type="button" onclick={() => freeze(c.id)} title={c.entries ? t('Confirm all entries; empty cells count as 0 days.') : t('Nobody is absent: empty cells count as 0 days.')}>
+                <button class="btn" type="button" data-tour="prepare-freeze" onclick={() => freeze(c.id)} title={c.entries ? t('Confirm all entries; empty cells count as 0 days.') : t('Nobody is absent: empty cells count as 0 days.')}>
                   <Icon name="lock_open" size={16} />{c.entries ? t('Freeze') : t('Nobody absent')}
                 </button>
               {/if}

@@ -157,7 +157,7 @@
         <Icon name="lock_open" />{t('Reopen review')}
       </button>
     {:else}
-      <button type="button" class="btn primary" disabled={busy || !info?.started || problems.length > 0} onclick={close}>
+      <button type="button" class="btn primary" data-tour="review-close" disabled={busy || !info?.started || problems.length > 0} onclick={close}>
         <Icon name="task_alt" />{t('Close sprint')}
       </button>
     {/if}
@@ -184,7 +184,7 @@
   {/if}
 
   <div class="grid cols-2 block">
-    <section class="card" aria-labelledby="vel-h">
+    <section class="card" aria-labelledby="vel-h" data-tour="review-velocity">
       <h2 id="vel-h">{t('Velocity')}</h2>
       <div class="row">
         <span class="big data" data-testid="velocity">{days(velocity)}</span>
@@ -196,7 +196,7 @@
       <p class="small muted">{t('Commitment {n} minus not done plus done in addition.', { n: days(commitmentNow) })}</p>
     </section>
 
-    <section class="card" aria-labelledby="scope-h">
+    <section class="card" aria-labelledby="scope-h" data-tour="review-scope">
       <h2 id="scope-h">{t('Scope change')}</h2>
       <div class="row fields">
         {#if !info.commitmentSet}
@@ -278,7 +278,7 @@
   {/if}
 
   {#if info.productsOn}
-    <section class="block" aria-labelledby="done-h" data-testid="done">
+    <section class="block" aria-labelledby="done-h" data-testid="done" data-tour="review-done">
       <h2 id="done-h">{t('Done per product')}</h2>
       <div class="tw">
         <table class="t">
@@ -334,7 +334,7 @@
   {/if}
 
   <div class="grid cols-2">
-    <section class="card" aria-labelledby="fz-h">
+    <section class="card" aria-labelledby="fz-h" data-tour="review-capacity">
       <h2 id="fz-h">{t('Freeze person days')}</h2>
       <div class="row fields">
         <div class="field">
@@ -354,7 +354,7 @@
       </p>
     </section>
 
-    <section class="card" aria-labelledby="tag-h">
+    <section class="card" aria-labelledby="tag-h" data-tour="review-tag">
       <h2 id="tag-h">{t('Tag and share')}</h2>
       <label class="row"><input type="checkbox" bind:checked={tagOn} disabled={locked} />{t('Tag the sprint with the next save')}</label>
       <div class="field top">
