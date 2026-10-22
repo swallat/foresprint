@@ -129,6 +129,8 @@
   "{n} earmarked tickets are not refined: {keys}.": "{n} vorgemerkte Tickets sind nicht refined: {keys}.",
   "{n} entries confirmed, all others 0 days. A click opens the sprint again.": "{n} Einträge bestätigt, alle anderen 0 Tage. Ein Klick öffnet den Sprint wieder.",
   "{n} people announced, not yet confirmed. Freeze the allocation in the table above.": "{n} Personen angekündigt, noch nicht bestätigt. Oben in der Tabelle festschreiben.",
-  "{person}, {sprint}: absence in days": "{person}, {sprint}: Abwesenheit in Tagen"
+  "{person}, {sprint}: absence in days": "{person}, {sprint}: Abwesenheit in Tagen",
+  "Absence period for": "Abwesenheitszeitraum für",
+  "Enter period": "Zeitraum eintragen"
  }
 }

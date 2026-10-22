@@ -3,7 +3,9 @@
   // sprints, the readiness list and the preview of the capacity. Nothing here is a gate: open
   // points show what is missing and planning works with the data at hand.
   import { api } from '../../lib/api';
-  import { app } from '../../lib/app.svelte';
+  import { app, toast } from '../../lib/app.svelte';
+  import AbsencePanel from '../team/AbsencePanel.svelte';
+  import { isCurrent } from '../../lib/team/people';
   import { days } from '../../lib/absences/format';
   import AbsenceGrid from '../../lib/absences/AbsenceGrid.svelte';
   import { t } from '../../lib/i18n.svelte';
@@ -13,6 +15,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
+  import type { AbsencePeriod, PeopleView } from '../../lib/types.team';
 
   let { params }: PageProps = $props();
   void params;
@@ -38,6 +41,58 @@
     void [app.team, app.sprint];
     void load();
   });
+
+  // "Enter period" (decision 23): absences as periods of a person, the same panel as Team > People.
+  let people = $state<PeopleView | undefined>();
+  let periods = $state<AbsencePeriod[]>([]);
+  let who = $state('');
+  let panelFor = $state('');
+  let gridKey = $state(0); // the grid reloads after periods changed
+  let peopleSeq = 0;
+  async function loadPeople() {
+    if (!app.team) return;
+    const mine = ++peopleSeq;
+    const team = app.team;
+    try {
+      const [p, a] = await Promise.all([api.People(team), api.AbsencePeriods(team)]);
+      if (mine !== peopleSeq) return; // the team changed meanwhile
+      people = p;
+      periods = a;
+      if (!p.people.some((x) => x.id === who && isCurrent(x, p.today))) {
+        who = p.people.find((x) => isCurrent(x, p.today))?.id ?? '';
+      }
+      if (panelFor && !p.people.some((x) => x.id === panelFor)) panelFor = '';
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+  $effect(() => {
+    void app.team;
+    void loadPeople();
+  });
+  const current = $derived((people?.people ?? []).filter((p) => isCurrent(p, people?.today ?? '')));
+  const panelPerson = $derived(people?.people.find((p) => p.id === panelFor));
+
+  // Saves run one after the other, each on the list the previous one returned.
+  let saving: Promise<void> = Promise.resolve();
+  function savePeriods(edit: (latest: AbsencePeriod[]) => AbsencePeriod[]) {
+    const team = app.team;
+    saving = saving.then(async () => {
+      try {
+        periods = await api.SaveAbsencePeriods(team, edit(periods));
+      } catch (e) {
+        toast(e instanceof Error ? e.message : String(e), 'bad');
+        try {
+          periods = await api.AbsencePeriods(team);
+        } catch {
+          /* the list stays as it was */
+        }
+      }
+      gridKey++;
+      void load();
+    });
+    return saving;
+  }
 
   /** An edit in the grid changes this page's figures only when it is the sprint in focus. */
   function changed(column: AbsenceColumn) {
@@ -95,7 +150,20 @@
     <p class="small muted hint">
       {t('Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.')}
     </p>
-    <AbsenceGrid team={app.team} from={app.sprint} count={4} focus={app.sprint} onchange={changed} />
+    {#if current.length > 0}
+      <div class="row gap period">
+        <label class="small muted" for="pp-who">{t('Absence period for')}</label>
+        <select id="pp-who" class="input" bind:value={who}>
+          {#each current as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+        </select>
+        <button type="button" class="btn" disabled={!who} onclick={() => (panelFor = who)}>
+          <Icon name="date_range" />{t('Enter period')}
+        </button>
+      </div>
+    {/if}
+    {#key gridKey}
+      <AbsenceGrid team={app.team} from={app.sprint} count={4} focus={app.sprint} onchange={changed} />
+    {/key}
   </section>
 
   {#if info}
@@ -141,7 +209,25 @@
   {/if}
 {/if}
 
+{#if panelPerson && people}
+  <AbsencePanel
+    person={panelPerson}
+    today={people.today}
+    absences={periods}
+    onclose={() => (panelFor = '')}
+    onchange={(list) => {
+      const id = panelFor;
+      // The panel sends the whole list; what it changed is only the periods of this person.
+      return savePeriods((latest) => [...latest.filter((x) => x.person !== id), ...list.filter((x) => x.person === id)]);
+    }}
+  />
+{/if}
+
 <style>
+  .period {
+    margin: 4px 0 12px;
+    align-items: center;
+  }
   .block {
     margin-bottom: 16px;
   }
