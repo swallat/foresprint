@@ -170,6 +170,9 @@ func estimationFrom(raw any, where string) (model.EstimationSettings, error) {
 		if ch.Factor, err = floatOf(get(c, "factor"), at+": factor"); err != nil {
 			return e, err
 		}
+		if ch.Factor != nil && *ch.Factor <= 0 {
+			return e, dataErr("{where}: factor must be greater than 0", "where", at)
+		}
 		e.Changes = append(e.Changes, ch)
 	}
 	return e, nil
@@ -261,7 +264,12 @@ func trackerExtrasTo(out *yamlx.Map, tr model.TrackerSettings) {
 	if len(tr.ProductionRules) > 0 {
 		list := make([]any, len(tr.ProductionRules))
 		for i, r := range tr.ProductionRules {
-			list[i] = omap("match", ruleTo(r.Match), "share", clean(r.Percent))
+			entry := &yamlx.Map{}
+			if r.Match != nil {
+				put(entry, "match", ruleTo(r.Match))
+			}
+			put(entry, "share", clean(r.Percent))
+			list[i] = entry
 		}
 		put(out, "production_rules", list)
 	}

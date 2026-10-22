@@ -348,3 +348,13 @@ func TestRepositoryV1(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestCloneCopiesPrognosisLists(t *testing.T) {
+	s := model.Sprint{Prognoses: []model.Prognosis{{Finish: []string{"A"}, Carry: []model.CarryItem{{Rest: 1}}}}}
+	c := s.Clone()
+	c.Prognoses[0].Finish[0] = "B"
+	c.Prognoses[0].Carry[0].Rest = 2
+	if s.Prognoses[0].Finish[0] != "A" || s.Prognoses[0].Carry[0].Rest != 1 {
+		t.Error("Clone shares the lists of a prognosis")
+	}
+}

@@ -195,6 +195,10 @@ func (s Sprint) Clone() Sprint {
 	c.CommittedTickets = slices.Clone(s.CommittedTickets)
 	c.Carry = slices.Clone(s.Carry)
 	c.Prognoses = slices.Clone(s.Prognoses)
+	for i := range c.Prognoses {
+		c.Prognoses[i].Finish = slices.Clone(c.Prognoses[i].Finish)
+		c.Prognoses[i].Carry = slices.Clone(c.Prognoses[i].Carry)
+	}
 	if s.Planning != nil {
 		p := *s.Planning
 		p.Corrections = slices.Clone(s.Planning.Corrections)

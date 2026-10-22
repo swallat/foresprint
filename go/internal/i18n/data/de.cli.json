@@ -24,6 +24,7 @@
   "{where}: mapping with from/unit expected": "{where}: Abschnitt mit from/unit erwartet",
   "{where}: mapping with ticket/rest/target expected": "{where}: Abschnitt mit ticket/rest/target erwartet",
   "{where}: mapping with author/text expected": "{where}: Abschnitt mit author/text erwartet",
-  "external person without an end date": "externe Person ohne Enddatum"
+  "external person without an end date": "externe Person ohne Enddatum",
+  "{where}: factor must be greater than 0": "{where}: factor muss größer als 0 sein"
  }
 }
