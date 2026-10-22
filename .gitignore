@@ -13,3 +13,4 @@ dist/
 
 # Bilder fehlgeschlagener Browsertests.
 test-results/
+!golden/expected/excel_import/workbooks/*.xlsx
