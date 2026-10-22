@@ -11,6 +11,9 @@ FS.view("flows", {
         <button type="button" class="chip filter ${FS.state.simple ? "" : "on"}" data-simple="0" aria-pressed="${!FS.state.simple}">${FS.icon("tune", "small")}Team Atlas, alle Funktionen</button>
         <button type="button" class="chip filter ${FS.state.simple ? "on" : ""}" data-simple="1" aria-pressed="${!!FS.state.simple}">${FS.icon("filter_none", "small")}Einfaches Team</button></div></div>
         <p class="small muted" style="margin:8px 0 0">${FS.state.simple ? "Einfaches Team: ein PO, ein Produkt, ohne Produktionszugang. Produktspalten, PO-Summen, Regeln je Produkt, \"davon Prod\", Bilanz je Produkt und \"Produkte im Verlauf\" sind ausgeblendet. Projekte, Kontingente und Jira bleiben. Schritte, die ausgeblendete Teile zeigen, sagen das im Text." : "Team Atlas nutzt alles: zwei POs, vier Produkte, Produktionszugang. \"Einfaches Team\" zeigt, wie dieselben Abläufe ohne diese Funktionen aussehen."}</p></div>
+      <div class="card" id="trk-mode" style="margin-bottom:16px"><div class="row"><strong style="flex:1;min-width:200px">Tickets</strong><div class="row" role="group" aria-label="Ticketquelle">
+        ${[["jira", "sync", `Mit ${DEMO.team.tracker}`], ["local", "edit_note", "Ohne Tracker, Arbeitspakete in Foresprint"], ["none", "pin", "Ohne Tickets, nur Beträge"]].map(([k, i, l]) => `<button type="button" class="chip filter ${FS.trk() === k ? "on" : ""}" data-trksel="${k}" aria-pressed="${FS.trk() === k}">${FS.icon(i, "small")}${l}</button>`).join("")}</div></div>
+        <p class="small muted" style="margin:8px 0 0">${{ jira: `Tickets kommen aus ${DEMO.team.tracker}: Backlog, Vormerkungen, Planning mit Ticketliste, nachgezogene Tickets werden erkannt.`, local: "Kein Tracker: Arbeitspakete legst du in Foresprint an (AP-01 ...). Backlog, Vormerkungen und Planning funktionieren wie mit Tracker, nur ohne Abruf und Links.", none: "Keine Tickets: Kein Backlog. Du planst Beträge je Produkt und je Projekt, die Zusage ist eine Zahl, das Was-wäre-wenn arbeitet mit Zahlen. Projekte, Kontingente, Forecast und Abwesenheiten bleiben gleich." }[FS.trk()]} Gilt für alle Seiten; dieselbe Einstellung liegt unter Einstellungen, Tickets und Tracker.</p></div>
       <div class="tw"><table class="t">
         <thead><tr><th>Ablauf</th><th>Worum es geht</th><th class="num">Schritte</th><th></th></tr></thead>
         <tbody>${flows.map((f) => `<tr><td><span class="data">${f.id}</span> ${FS.esc(f.title)}</td><td class="muted" style="white-space:normal">${FS.esc(f.summary || "")}</td><td class="num">${f.steps.length}</td>
@@ -20,6 +23,7 @@ FS.view("flows", {
   },
   wire(main) {
     main.querySelectorAll("[data-simple]").forEach((b) => (b.onclick = () => { FS.setSimple(b.dataset.simple === "1"); FS.render(); FS.toast(FS.state.simple ? "Einfaches Team: ein PO, ein Produkt, ohne Produktionszugang." : "Team Atlas mit allen Funktionen."); }));
+    main.querySelectorAll("[data-trksel]").forEach((b) => (b.onclick = () => { FS.setTrk(b.dataset.trksel); FS.render(); }));
     main.querySelectorAll("[data-flow]").forEach((b) => (b.onclick = () => FS.startFlow(b.dataset.flow)));
   },
 });
