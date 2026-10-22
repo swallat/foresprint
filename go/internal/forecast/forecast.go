@@ -366,3 +366,49 @@ func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 	}
 	return &Forecast{Data: data, Today: today, Entries: entries, Absences: history}, nil
 }
+
+// ExpectedDone is the velocity an assumption expects for its sprint: the stored expectation,
+// else Commitment − NotDone + AdditionalDone (missing parts count as 0). ok is false if the
+// assumption says nothing about the outcome.
+func ExpectedDone(p model.Prognosis) (float64, bool) {
+	if p.ExpectedDone != nil {
+		return *p.ExpectedDone, true
+	}
+	if p.Commitment == nil && p.NotDone == nil && p.AdditionalDone == nil {
+		return 0, false
+	}
+	done := func(v *float64) float64 {
+		if v == nil {
+			return 0
+		}
+		return *v
+	}
+	return done(p.Commitment) - done(p.NotDone) + done(p.AdditionalDone), true
+}
+
+// WhatIf builds the forecast as if the assumption came true: the running sprint ends with the
+// velocity the assumption expects, and the sprints after it follow from that. Nothing of data
+// is changed, so several assumptions can be compared side by side.
+func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Prognosis) (*Forecast, error) {
+	velocity, ok := ExpectedDone(p)
+	if !ok {
+		return nil, fmt.Errorf("the assumption has no expected result")
+	}
+	copied := *data
+	copied.Sprints = make([]model.Sprint, len(data.Sprints))
+	found := false
+	for i, s := range data.Sprints {
+		copied.Sprints[i] = s.Clone()
+		if s.ID == sprintID {
+			found = true
+			copied.Sprints[i].Velocity = &velocity
+			if s.Commitment == nil && p.Commitment != nil {
+				copied.Sprints[i].Commitment = p.Commitment
+			}
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("sprint %q not found", sprintID)
+	}
+	return Build(&copied, today)
+}
