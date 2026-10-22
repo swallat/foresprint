@@ -16,7 +16,7 @@ name: Release app
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "!v0.*"]
   workflow_dispatch:
     inputs:
       tag:
