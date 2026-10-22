@@ -27,14 +27,14 @@ const lanesShown = 3
 // backlogMu serialises the changes of the ticket files (read, change, write).
 var backlogMu sync.Mutex
 
-func str(p *string) string {
+func backlogStr(p *string) string {
 	if p == nil {
 		return ""
 	}
 	return *p
 }
 
-func strPtr(s string) *string {
+func backlogStrPtr(s string) *string {
 	if s == "" {
 		return nil
 	}
@@ -85,7 +85,7 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 
 // proFormaName is the pro-forma sprint the tracker has the ticket in, or "".
 func (c *backlogContext) proFormaName(tk model.Ticket) string {
-	for _, name := range []string{str(tk.SprintName), str(tk.InSprint)} {
+	for _, name := range []string{backlogStr(tk.SprintName), backlogStr(tk.InSprint)} {
 		if p, ok := c.proForma[strings.ToLower(strings.TrimSpace(name))]; ok && name != "" {
 			return p
 		}
@@ -110,7 +110,7 @@ func (c *backlogContext) sprintStart(id string) (time.Time, bool) {
 
 // plannedSprint is the sprint the ticket is in according to the tracker, else its earmark.
 func (c *backlogContext) plannedSprint(tk model.Ticket) string {
-	if id := str(tk.InSprint); id != "" {
+	if id := backlogStr(tk.InSprint); id != "" {
 		return id
 	}
 	if e := c.data.Preplan.EarmarkFor(tk.Key); e != nil {
@@ -119,7 +119,7 @@ func (c *backlogContext) plannedSprint(tk model.Ticket) string {
 	return ""
 }
 
-func trackerName(team model.Team) string {
+func backlogTrackerName(team model.Team) string {
 	switch team.Tracker.Kind {
 	case "jira":
 		return "Jira"
@@ -129,7 +129,7 @@ func trackerName(team model.Team) string {
 	return ""
 }
 
-func ticketURL(team model.Team, key string) string {
+func backlogTicketURL(team model.Team, key string) string {
 	if team.Tracker.Kind != "jira" || team.Tracker.BaseURL == nil || *team.Tracker.BaseURL == "" {
 		return ""
 	}
@@ -142,34 +142,34 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 	r := BacklogTicket{
 		Key:            tk.Key,
 		Title:          tk.Title,
-		Status:         str(tk.Status),
-		Type:           str(tk.IssueType),
-		Priority:       str(tk.Priority),
-		Assignee:       str(tk.Assignee),
-		URL:            ticketURL(data.Team, tk.Key),
+		Status:         backlogStr(tk.Status),
+		Type:           backlogStr(tk.IssueType),
+		Priority:       backlogStr(tk.Priority),
+		Assignee:       backlogStr(tk.Assignee),
+		URL:            backlogTicketURL(data.Team, tk.Key),
 		Size:           size,
 		SizeSource:     string(source),
 		Refined:        source == model.EstimateRefined,
 		RefinedUnclear: tk.RefinedUnclear,
 		Earmark:        "",
-		TrackerSprint:  str(tk.InSprint),
-		Epic:           str(tk.Epic),
+		TrackerSprint:  backlogStr(tk.InSprint),
+		Epic:           backlogStr(tk.Epic),
 		Labels:         append([]string{}, tk.Labels...),
 		DependsOn:      append([]string{}, tk.DependsOn...),
 	}
 	if r.TrackerSprint == "" {
-		r.TrackerSprint = str(tk.SprintName)
+		r.TrackerSprint = backlogStr(tk.SprintName)
 	}
 	if e := data.Preplan.EarmarkFor(tk.Key); e != nil {
-		r.Earmark, r.EarmarkNote = e.Sprint, str(e.Note)
+		r.Earmark, r.EarmarkNote = e.Sprint, backlogStr(e.Note)
 	}
-	r.Fixed = str(tk.InSprint) != ""
+	r.Fixed = backlogStr(tk.InSprint) != ""
 	if share := data.Preplan.ProductionFor(tk.Key); share != nil {
 		p := share.Percent
 		r.Production = &p
 	}
 
-	r.Project = str(tk.Project)
+	r.Project = backlogStr(tk.Project)
 	over := data.Preplan.OverrideFor(tk.Key)
 	if over != nil {
 		if over.Daily {
@@ -179,14 +179,14 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 		}
 	}
 	if data.Team.Source() == model.SourcePackages {
-		r.Product = str(tk.Product)
+		r.Product = backlogStr(tk.Product)
 	} else {
 		probe := tk
 		if r.ProjectSet {
-			probe.Project = strPtr(r.Project)
+			probe.Project = backlogStrPtr(r.Project)
 		}
 		product, candidates := preplan.TicketProduct(probe, data)
-		r.Product = str(product)
+		r.Product = backlogStr(product)
 		if data.Team.Features.Products {
 			switch {
 			case product == nil && len(candidates) > 1:
@@ -263,7 +263,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	}
 	view := &BacklogView{
 		Source:     string(data.Team.Source()),
-		Tracker:    trackerName(data.Team),
+		Tracker:    backlogTrackerName(data.Team),
 		Unit:       string(data.Team.Unit),
 		Products:   namedProducts(data),
 		Projects:   namedProjects(data),
@@ -310,7 +310,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 			lanes[i].Tickets = append(lanes[i].Tickets, r)
 			continue
 		}
-		if s, ok := c.sprints[str(tk.InSprint)]; ok && tk.InSprint != nil && !s.End.After(now) {
+		if s, ok := c.sprints[backlogStr(tk.InSprint)]; ok && tk.InSprint != nil && !s.End.After(now) {
 			continue // finished sprint: not backlog any more
 		}
 		if tk.InSprint != nil && *tk.InSprint != "" {
@@ -396,8 +396,8 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 	c.learn(upcoming)
 	d := &TicketDetail{
 		BacklogTicket: c.row(*tk),
-		Description:   str(tk.Description),
-		Acceptance:    str(tk.Acceptance),
+		Description:   backlogStr(tk.Description),
+		Acceptance:    backlogStr(tk.Acceptance),
 		Subtasks:      []Subtask{},
 		Comments:      []Comment{},
 		Dependencies:  []Dependency{},
@@ -406,13 +406,13 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 		Remaining:     tk.Remaining,
 		Editable:      data.Team.Source() == model.SourcePackages,
 		Sprints:       []string{},
-		Statuses:      statusChoices(data),
+		Statuses:      backlogStatusChoices(data),
 		Types:         []string{"Story", "Bug", "Task"},
-		Priorities:    priorityChoices(data),
+		Priorities:    backlogPriorityChoices(data),
 		People:        []string{},
 	}
 	if e := data.Preplan.EarmarkFor(key); e != nil {
-		d.Note = str(e.Note)
+		d.Note = backlogStr(e.Note)
 	}
 	for _, s := range tk.Subtasks {
 		d.Subtasks = append(d.Subtasks, Subtask{Title: s.Title, Done: s.Done})
@@ -441,7 +441,7 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 	return d, nil
 }
 
-func statusChoices(data *storage.TeamData) []string {
+func backlogStatusChoices(data *storage.TeamData) []string {
 	seen := map[string]bool{}
 	var out []string
 	for _, s := range []string{"New", "In progress", "In review", "Done"} {
@@ -449,7 +449,7 @@ func statusChoices(data *storage.TeamData) []string {
 		out = append(out, s)
 	}
 	for _, tk := range data.Tickets {
-		if s := str(tk.Status); s != "" && !seen[s] {
+		if s := backlogStr(tk.Status); s != "" && !seen[s] {
 			seen[s] = true
 			out = append(out, s)
 		}
@@ -457,7 +457,7 @@ func statusChoices(data *storage.TeamData) []string {
 	return out
 }
 
-func priorityChoices(data *storage.TeamData) []string {
+func backlogPriorityChoices(data *storage.TeamData) []string {
 	if len(data.Team.Tracker.PriorityOrder) > 0 {
 		return append([]string{}, data.Team.Tracker.PriorityOrder...)
 	}
@@ -485,26 +485,26 @@ func (a *API) change(team, key string, edit func(repo *storage.Repository, data 
 	return write()
 }
 
-func savePreplan(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+func backlogSavePreplan(repo *storage.Repository, team string, data *storage.TeamData) func() error {
 	return func() error {
 		_, err := repo.SavePreplan(team, data.Preplan)
 		return err
 	}
 }
 
-func savePackages(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+func backlogSavePackages(repo *storage.Repository, team string, data *storage.TeamData) func() error {
 	return func() error {
 		_, err := repo.SavePackages(team, storage.TicketsFile{Tickets: data.Tickets, Imported: data.TicketsImported, Source: data.TicketsSource})
 		return err
 	}
 }
 
-func saveBoth(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+func backlogSaveBoth(repo *storage.Repository, team string, data *storage.TeamData) func() error {
 	return func() error {
-		if err := savePackages(repo, team, data)(); err != nil {
+		if err := backlogSavePackages(repo, team, data)(); err != nil {
 			return err
 		}
-		return savePreplan(repo, team, data)()
+		return backlogSavePreplan(repo, team, data)()
 	}
 }
 
@@ -528,12 +528,12 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
 		if sprint == "" {
 			removeEarmark(&data.Preplan, key)
-			return savePreplan(repo, team, data), nil
+			return backlogSavePreplan(repo, team, data), nil
 		}
 		if tk.Done {
 			return nil, fmt.Errorf("%s", i18n.T("{key} is done and cannot be earmarked.", "key", key))
 		}
-		if str(tk.InSprint) != "" {
+		if backlogStr(tk.InSprint) != "" {
 			return nil, fmt.Errorf("%s", i18n.T("{key} is in a sprint in the tracker.", "key", key))
 		}
 		s := data.SprintByID(sprint)
@@ -553,14 +553,14 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 		}
 		prev := ""
 		if e := data.Preplan.EarmarkFor(key); e != nil {
-			prev = str(e.Note)
+			prev = backlogStr(e.Note)
 		}
 		removeEarmark(&data.Preplan, key)
 		if note == "" {
 			note = prev
 		}
-		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: strPtr(note)})
-		return savePreplan(repo, team, data), nil
+		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: backlogStrPtr(note)})
+		return backlogSavePreplan(repo, team, data), nil
 	})
 }
 
@@ -569,8 +569,8 @@ func (a *API) SetEarmarkNote(team, key, note string) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
 		for i := range data.Preplan.Earmarks {
 			if data.Preplan.Earmarks[i].Ticket == key {
-				data.Preplan.Earmarks[i].Note = strPtr(note)
-				return savePreplan(repo, team, data), nil
+				data.Preplan.Earmarks[i].Note = backlogStrPtr(note)
+				return backlogSavePreplan(repo, team, data), nil
 			}
 		}
 		return nil, fmt.Errorf("%s", i18n.T("{key} is not earmarked.", "key", key))
@@ -588,7 +588,7 @@ func (a *API) SetEstimate(team, key string, value *float64) error {
 			refined := tk.EstimateSource == model.EstimateRefined
 			tk.Estimate = value
 			tk.EstimateSource = estimateSource(value, refined)
-			return savePackages(repo, team, data), nil
+			return backlogSavePackages(repo, team, data), nil
 		}
 		if tk.Estimate != nil || tk.Remaining != nil {
 			return nil, fmt.Errorf("%s", i18n.T("The estimate of {key} comes from the tracker.", "key", key))
@@ -604,7 +604,7 @@ func (a *API) SetEstimate(team, key string, value *float64) error {
 		if value != nil {
 			pp.Estimates = append(pp.Estimates, model.ManualEstimate{Ticket: key, Estimate: value})
 		}
-		return savePreplan(repo, team, data), nil
+		return backlogSavePreplan(repo, team, data), nil
 	})
 }
 
@@ -626,7 +626,7 @@ func (a *API) SetRefined(team, key string, refined bool) error {
 			return nil, fmt.Errorf("%s", i18n.T("{key} is refined in the tracker.", "key", key))
 		}
 		tk.EstimateSource = estimateSource(tk.Estimate, refined)
-		return savePackages(repo, team, data), nil
+		return backlogSavePackages(repo, team, data), nil
 	})
 }
 
@@ -635,16 +635,16 @@ func (a *API) SetRefined(team, key string, refined bool) error {
 // project "" with daily true says daily business; project "" with daily false keeps the rule.
 func (a *API) SetAssignment(team, key, product, project string, daily bool) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
-		if product != "" && !hasID(namedProducts(data), product) {
+		if product != "" && !backlogHasID(namedProducts(data), product) {
 			return nil, fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", product))
 		}
-		if project != "" && !hasID(namedProjects(data), project) {
+		if project != "" && !backlogHasID(namedProjects(data), project) {
 			return nil, fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", project))
 		}
 		if a.writePackages(data) {
-			tk.Product = strPtr(product)
-			tk.Project = strPtr(project)
-			return savePackages(repo, team, data), nil
+			tk.Product = backlogStrPtr(product)
+			tk.Project = backlogStrPtr(project)
+			return backlogSavePackages(repo, team, data), nil
 		}
 		pp := &data.Preplan
 		kept := pp.Overrides[:0:0]
@@ -655,13 +655,13 @@ func (a *API) SetAssignment(team, key, product, project string, daily bool) erro
 		}
 		pp.Overrides = kept
 		if product != "" || project != "" || daily {
-			pp.Overrides = append(pp.Overrides, model.TicketOverride{Ticket: key, Product: strPtr(product), Project: strPtr(project), Daily: daily && project == ""})
+			pp.Overrides = append(pp.Overrides, model.TicketOverride{Ticket: key, Product: backlogStrPtr(product), Project: backlogStrPtr(project), Daily: daily && project == ""})
 		}
-		return savePreplan(repo, team, data), nil
+		return backlogSavePreplan(repo, team, data), nil
 	})
 }
 
-func hasID(list []Named, id string) bool {
+func backlogHasID(list []Named, id string) bool {
 	for _, n := range list {
 		if n.ID == id {
 			return true
@@ -688,7 +688,7 @@ func (a *API) SetProduction(team, key string, percent *float64) error {
 		if percent != nil {
 			pp.Production = append(pp.Production, model.ProductionShare{Ticket: key, Percent: *percent})
 		}
-		return savePreplan(repo, team, data), nil
+		return backlogSavePreplan(repo, team, data), nil
 	})
 }
 
@@ -706,7 +706,7 @@ func rankFirst(data *storage.TeamData, key string) {
 		if tk.Key == key {
 			continue
 		}
-		n, err := strconv.Atoi(str(tk.Rank))
+		n, err := strconv.Atoi(backlogStr(tk.Rank))
 		if err != nil || n < 0 {
 			lowest = -2
 			break
@@ -763,10 +763,10 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	if in.Estimate != nil && *in.Estimate < 0 {
 		return "", fmt.Errorf("%s", i18n.T("The estimate cannot be negative."))
 	}
-	if in.Product != "" && !hasID(namedProducts(data), in.Product) {
+	if in.Product != "" && !backlogHasID(namedProducts(data), in.Product) {
 		return "", fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", in.Product))
 	}
-	if in.Project != "" && !hasID(namedProjects(data), in.Project) {
+	if in.Project != "" && !backlogHasID(namedProjects(data), in.Project) {
 		return "", fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", in.Project))
 	}
 	tk := data.TicketByKey(in.Key)
@@ -788,18 +788,18 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	}
 	status := strings.TrimSpace(in.Status)
 	tk.Title = title
-	tk.Status = strPtr(status)
-	tk.IssueType = strPtr(strings.TrimSpace(in.Type))
-	tk.Priority = strPtr(strings.TrimSpace(in.Priority))
-	tk.Assignee = strPtr(strings.TrimSpace(in.Assignee))
-	tk.Product = strPtr(in.Product)
-	tk.Project = strPtr(in.Project)
+	tk.Status = backlogStrPtr(status)
+	tk.IssueType = backlogStrPtr(strings.TrimSpace(in.Type))
+	tk.Priority = backlogStrPtr(strings.TrimSpace(in.Priority))
+	tk.Assignee = backlogStrPtr(strings.TrimSpace(in.Assignee))
+	tk.Product = backlogStrPtr(in.Product)
+	tk.Project = backlogStrPtr(in.Project)
 	tk.Estimate = in.Estimate
 	tk.EstimateSource = estimateSource(in.Estimate, in.Refined)
-	tk.Labels = cleanList(in.Labels)
-	tk.Description = strPtr(strings.TrimSpace(in.Description))
-	tk.Acceptance = strPtr(strings.TrimSpace(in.Acceptance))
-	tk.DependsOn = cleanList(in.DependsOn)
+	tk.Labels = backlogCleanList(in.Labels)
+	tk.Description = backlogStrPtr(strings.TrimSpace(in.Description))
+	tk.Acceptance = backlogStrPtr(strings.TrimSpace(in.Acceptance))
+	tk.DependsOn = backlogCleanList(in.DependsOn)
 	tk.Done = in.Done || status == "Done"
 	tk.Subtasks = nil
 	for _, s := range in.Subtasks {
@@ -825,13 +825,13 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	if tk.Done {
 		removeEarmark(&data.Preplan, key)
 	}
-	if err := saveBoth(repo, team, data)(); err != nil {
+	if err := backlogSaveBoth(repo, team, data)(); err != nil {
 		return "", err
 	}
 	return key, nil
 }
 
-func cleanList(in []string) []string {
+func backlogCleanList(in []string) []string {
 	var out []string
 	seen := map[string]bool{}
 	for _, s := range in {
@@ -888,6 +888,6 @@ func (a *API) DeleteWorkPackage(team, key string) error {
 			}
 		}
 		pp.Overrides = over
-		return saveBoth(repo, team, data), nil
+		return backlogSaveBoth(repo, team, data), nil
 	})
 }
