@@ -185,7 +185,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const st = sp?.state === 'past' ? 'past' : sp?.state === 'current' ? 'current' : frozen[sid] ? 'planned' : 'open';
   return {
     team: 'atlas', sprint: sid, start: sp?.start ?? '', end: sp?.end ?? '', days: 10, stage: st,
-    unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker',
+    unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
     absences: idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
     plan, planOriginal: f.plan, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
@@ -283,9 +283,9 @@ export const planMock: PlanApi = {
       problems: fz ? [] : ['Freeze the plan first; only the agreed tickets are written to the tracker.'], canUndo: (writeDone[sprint] ?? []).length > 0,
     };
   },
-  async PlanWriteApply(_t, sprint, skip) {
+  async PlanWriteApply(_t, sprint, approved) {
     const p = await planMock.PlanWritePreview(_t, sprint);
-    const done = p.moves.filter((m) => !skip.includes(m.key));
+    const done = p.moves.filter((m) => approved.includes(m.key));
     writeDone[sprint] = [...(writeDone[sprint] ?? []), ...done];
     return { done, failed: [], error: '', canUndo: writeDone[sprint]!.length > 0 };
   },

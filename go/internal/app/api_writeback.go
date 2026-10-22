@@ -43,6 +43,8 @@ var openTrackerWriter = func(t model.TrackerSettings) (trackerWriter, error) {
 // written remembers, per team and sprint, the moves that went through, so that they can be taken
 // back. It lives as long as the program does.
 var (
+	// writeMu lets one Apply or Undo run at a time, so the list below stays consistent.
+	writeMu   sync.Mutex
 	writtenMu sync.Mutex
 	written   = map[string][]sprintwrite.Move{}
 )
@@ -93,9 +95,19 @@ func (c *planCtx) writeEnabled() bool {
 
 // writePlan builds the plan of the sprint against the live sprints of the tracker (read only).
 func (c *planCtx) writePlan(w trackerWriter) (sprintwrite.Plan, sprintwrite.Directory, error) {
-	if _, err := w.Fetch(); err != nil {
+	raws, err := w.Fetch()
+	if err != nil {
 		return sprintwrite.Plan{}, sprintwrite.Directory{}, err
 	}
+	if len(raws) == 0 {
+		return sprintwrite.Plan{}, sprintwrite.Directory{}, errors.New(i18n.T("The tracker returned no tickets; nothing is written. Check the query and the permissions of the token."))
+	}
+	// The plan follows the tracker as it is now, not the last import, so a ticket moved
+	// meanwhile (by hand or by an earlier write-back) is seen where it really is.
+	fresh := ticketimport.PlanImport(ticketimport.Env{
+		Tracker: c.data.Team.Tracker, Projects: c.data.Projects, Products: c.data.Products,
+		Tickets: c.data.Tickets, Preplan: c.data.Preplan, Sprints: ticketimport.ForecastSprints{Forecast: c.fc}, Today: c.today,
+	}, raws, nil, false)
 	tracker := c.data.Team.Tracker
 	dir := sprintwrite.NewDirectory(w.KnownSprints(), tracker)
 	var next string
@@ -106,7 +118,7 @@ func (c *planCtx) writePlan(w trackerWriter) (sprintwrite.Plan, sprintwrite.Dire
 		SprintID:     c.sprint.ID,
 		Committed:    c.sprint.CommittedTickets,
 		TakenOut:     c.sprint.Removed,
-		Tickets:      c.data.Tickets,
+		Tickets:      fresh.Tickets,
 		Tracker:      tracker,
 		Dir:          dir,
 		ProForma:     c.data.Team.Sprint.ProForma,
@@ -164,10 +176,14 @@ func (a *API) PlanWritePreview(team, sprintID string) (*WritePreview, error) {
 	return out, nil
 }
 
-// PlanWriteApply carries the preview out after the person asked for it; skip are the tickets
-// they left out. The plan is built again from the tracker's current state, so a ticket that
-// moved meanwhile is not moved twice. What went through can be taken back with PlanWriteUndo.
-func (a *API) PlanWriteApply(team, sprintID string, skip []string) (*WriteResult, error) {
+// PlanWriteApply carries the preview out after the person asked for it; approved are the keys
+// of the tickets they saw and left ticked. The plan is built again from the tracker's current
+// state and only moves of approved tickets are written, so a ticket that moved meanwhile is not
+// moved twice and nothing the person did not see is written. What went through can be taken
+// back with PlanWriteUndo.
+func (a *API) PlanWriteApply(team, sprintID string, approved []string) (*WriteResult, error) {
+	writeMu.Lock()
+	defer writeMu.Unlock()
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return nil, err
@@ -188,7 +204,7 @@ func (a *API) PlanWriteApply(team, sprintID string, skip []string) (*WriteResult
 		return nil, err
 	}
 	for i := range plan.Moves {
-		plan.Moves[i].Skip = slices.Contains(skip, plan.Moves[i].Key)
+		plan.Moves[i].Skip = !slices.Contains(approved, plan.Moves[i].Key)
 	}
 	w.EnableSprintWrite()
 	res := sprintwrite.Apply(plan, w)
@@ -202,9 +218,14 @@ func (a *API) PlanWriteApply(team, sprintID string, skip []string) (*WriteResult
 
 // PlanWriteUndo puts the tickets that PlanWriteApply moved back where they were.
 func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
+	writeMu.Lock()
+	defer writeMu.Unlock()
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return nil, err
+	}
+	if st := c.stage(); st == "past" || st == "current" {
+		return nil, errors.New(i18n.T("The sprint {id} has started; its plan cannot be written to the tracker any more.", "id", sprintID))
 	}
 	done := a.writtenMoves(team, sprintID)
 	if len(done) == 0 {
@@ -225,10 +246,15 @@ func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
 	for _, m := range res.Done {
 		back[m.Key] = true
 	}
-	// What is taken back leaves the list; what could not go back (or failed) stays.
+	// What is taken back leaves the list, and so does what can never go back (its earlier place
+	// is unknown or closed: the problems below say so); only what failed stays for another try.
+	retry := map[string]bool{}
+	for _, m := range res.Failed {
+		retry[m.Key] = true
+	}
 	var rest []sprintwrite.Move
 	for _, m := range done {
-		if !back[m.Key] {
+		if !back[m.Key] && retry[m.Key] {
 			rest = append(rest, m)
 		}
 	}

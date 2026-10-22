@@ -288,7 +288,11 @@ func (a *API) PlanSprint(team, sprintID string, assume *Assumption) (*PlanSprint
 	if err != nil {
 		return nil, err
 	}
-	return c.view(team, assume)
+	v, err := c.view(team, assume)
+	if err == nil {
+		v.WriteUndo = len(a.writtenMoves(team, sprintID)) > 0
+	}
+	return v, err
 }
 
 func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {

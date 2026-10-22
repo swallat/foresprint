@@ -19,9 +19,12 @@
   let busy = $state(false);
   const tracker = $derived(d.trackerName || t('the tracker'));
 
+  /** The sprint in view; the preview is dropped when it changes, not when the data reloads. */
+  let shown = '';
   $effect(() => {
-    void app.team;
-    void d.sprint;
+    const key = `${app.team}/${d.sprint}`;
+    if (key === shown) return;
+    shown = key;
     preview = null;
     result = null;
     left = [];
@@ -48,7 +51,7 @@
   }
 
   async function write(): Promise<void> {
-    const r = await run(() => api.PlanWriteApply(app.team, d.sprint, $state.snapshot(left)));
+    const r = await run(() => api.PlanWriteApply(app.team, d.sprint, preview!.moves.map((m) => m.key).filter((k) => !left.includes(k))));
     if (!r) return;
     result = r;
     preview = null;
@@ -66,7 +69,7 @@
   const toggle = (key: string, on: boolean) => (left = on ? left.filter((k) => k !== key) : [...left, key]);
   const place = (name: string) => name || t('Backlog');
   const count = $derived(preview ? preview.moves.filter((m) => !left.includes(m.key)).length : 0);
-  const canUndo = $derived(result?.canUndo ?? preview?.canUndo ?? false);
+  const canUndo = $derived(result?.canUndo ?? preview?.canUndo ?? d.writeUndo);
 </script>
 
 <div class="card gapb" id="writeback" data-tour="plan-writeback">

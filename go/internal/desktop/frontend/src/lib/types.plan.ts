@@ -130,6 +130,8 @@ export interface PlanSprint {
   trackerName: string;
   /** The team switched on writing the sprint back to the tracker. */
   writeBack: boolean;
+  /** A write-back of this sprint went through in this session and can be taken back. */
+  writeUndo: boolean;
   multiProduct: boolean;
   multiPO: boolean;
   production: boolean;
@@ -185,7 +187,7 @@ export interface PlanApi {
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
   PlanWritePreview(team: string, sprint: string): Promise<WritePreview>;
-  PlanWriteApply(team: string, sprint: string, skip: string[]): Promise<WriteResult>;
+  PlanWriteApply(team: string, sprint: string, approved: string[]): Promise<WriteResult>;
   PlanWriteUndo(team: string, sprint: string): Promise<WriteResult>;
 }
 

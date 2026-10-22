@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -9,16 +10,25 @@ import (
 	"github.com/swallat/foresprint/internal/storage"
 )
 
-// fakeTracker stands in for Jira: it records the moves and never talks to a network.
+// fakeTracker stands in for Jira: it keeps the sprint of every ticket, records the moves and never
+// talks to a network.
 type fakeTracker struct {
 	sprints  []sources.SprintValue
+	where    map[string]string // ticket key -> name of its sprint ("" = backlog)
 	toSprint map[int][]string
 	backlog  []string
 	enabled  bool
 	failNext bool
 }
 
-func (f *fakeTracker) Fetch() ([]sources.RawTicket, error) { return nil, nil }
+func (f *fakeTracker) Fetch() ([]sources.RawTicket, error) {
+	var out []sources.RawTicket
+	for _, k := range []string{"T-1", "T-2", "T-3"} {
+		est := 5.0
+		out = append(out, sources.RawTicket{Key: k, Title: k, SprintName: f.where[k], Estimate: &est})
+	}
+	return out, nil
+}
 func (f *fakeTracker) KnownSprints() []sources.SprintValue { return f.sprints }
 func (f *fakeTracker) EnableSprintWrite()                  { f.enabled = true }
 func (f *fakeTracker) Close()                              {}
@@ -33,6 +43,13 @@ func (f *fakeTracker) MoveToSprint(id int, keys []string) error {
 		f.toSprint = map[int][]string{}
 	}
 	f.toSprint[id] = append(f.toSprint[id], keys...)
+	for _, s := range f.sprints {
+		if s.ID == strconv.Itoa(id) {
+			for _, k := range keys {
+				f.where[k] = s.Name
+			}
+		}
+	}
 	return nil
 }
 func (f *fakeTracker) MoveToBacklog(keys []string) error {
@@ -40,6 +57,9 @@ func (f *fakeTracker) MoveToBacklog(keys []string) error {
 		return errors.New("not switched on")
 	}
 	f.backlog = append(f.backlog, keys...)
+	for _, k := range keys {
+		f.where[k] = ""
+	}
 	return nil
 }
 
@@ -81,7 +101,7 @@ func writeTeam(t *testing.T) (api *API, team, next string, fake *fakeTracker) {
 	if _, err := api.FreezePlan(team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}}); err != nil {
 		t.Fatal(err)
 	}
-	fake = &fakeTracker{sprints: []sources.SprintValue{{ID: "7", Name: next, State: "FUTURE"}}}
+	fake = &fakeTracker{sprints: []sources.SprintValue{{ID: "7", Name: next, State: "FUTURE"}}, where: map[string]string{"T-3": next}}
 	old := openTrackerWriter
 	openTrackerWriter = func(model.TrackerSettings) (trackerWriter, error) { return fake, nil }
 	t.Cleanup(func() { openTrackerWriter = old })
@@ -111,7 +131,7 @@ func TestWritePreviewChangesNothing(t *testing.T) {
 
 func TestWriteApplyLeavesOutSkippedAndCanBeUndone(t *testing.T) {
 	api, team, next, fake := writeTeam(t)
-	res, err := api.PlanWriteApply(team, next, []string{"T-2"})
+	res, err := api.PlanWriteApply(team, next, []string{"T-1", "T-3"})
 	if err != nil || res.Error != "" {
 		t.Fatalf("apply: %+v %v", res, err)
 	}
@@ -140,7 +160,7 @@ func TestWriteApplyLeavesOutSkippedAndCanBeUndone(t *testing.T) {
 func TestWriteApplyReportsAFailure(t *testing.T) {
 	api, team, next, fake := writeTeam(t)
 	fake.failNext = true
-	res, err := api.PlanWriteApply(team, next, nil)
+	res, err := api.PlanWriteApply(team, next, []string{"T-1", "T-2", "T-3"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,5 +201,29 @@ func TestWriteNeedsAFrozenPlan(t *testing.T) {
 	}
 	if _, err := api.PlanWriteApply(team, next, nil); err == nil {
 		t.Error("applied an unfrozen plan")
+	}
+}
+
+func TestWritePlansFromTheTrackerAsItIsNow(t *testing.T) {
+	api, team, next, fake := writeTeam(t)
+	if _, err := api.PlanWriteApply(team, next, []string{"T-1", "T-2", "T-3"}); err != nil {
+		t.Fatal(err)
+	}
+	// Written once: a second preview finds nothing left to do, although tickets.yaml is stale.
+	p, err := api.PlanWritePreview(team, next)
+	if err != nil || len(p.Moves) != 0 {
+		t.Fatalf("second preview = %+v %v", p, err)
+	}
+	// Only approved moves are written: nothing is approved, nothing moves.
+	fake.where["T-1"] = ""
+	before := len(fake.toSprint[7])
+	if _, err := api.PlanWriteApply(team, next, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(fake.toSprint[7]) != before {
+		t.Error("an unapproved move was written")
+	}
+	if v, _ := api.PlanSprint(team, next, nil); !v.WriteUndo {
+		t.Error("the view does not offer to take the write back")
 	}
 }
