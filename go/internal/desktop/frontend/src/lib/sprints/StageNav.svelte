@@ -13,19 +13,20 @@
   let { stage, missing = {} }: Props = $props();
 
   const steps = $derived([
-    { id: 'prepare', label: t('Prepare'), missing: missing.prepare ?? '' },
-    { id: 'preplan', label: t('Pre-plan'), missing: missing.preplan ?? '' },
-    { id: 'plan', label: t('Plan'), missing: missing.plan ?? '' },
-    { id: 'review', label: t('Review'), missing: '' },
-    { id: 'minutes', label: t('Minutes'), missing: '' },
+    { id: 'prepare', label: t('Prepare'), missing: missing.prepare ?? '', known: missing.prepare !== undefined },
+    { id: 'preplan', label: t('Pre-plan'), missing: missing.preplan ?? '', known: missing.preplan !== undefined },
+    { id: 'plan', label: t('Plan'), missing: missing.plan ?? '', known: missing.plan !== undefined },
+    { id: 'review', label: t('Review'), missing: '', known: false },
+    { id: 'minutes', label: t('Minutes'), missing: '', known: false },
   ]);
-  const check = (id: string, hint: string) => !hint && id !== 'review' && id !== 'minutes';
+  // A tick only where the page knows the stage is complete; no hint given means nothing is known.
+  const check = (s: { known: boolean; missing: string }) => s.known && !s.missing;
 </script>
 
 <nav class="stepper" aria-label={t('Stages of the sprint')} data-tour="sprint-stepper">
   {#each steps as s, i (s.id)}
-    <a href={`#/sprint/${s.id}`} class:active={s.id === stage} class:done={check(s.id, s.missing)} aria-current={s.id === stage ? 'step' : undefined}>
-      <span class="n">{#if check(s.id, s.missing)}<Icon name="check" size={14} />{:else}{i + 1}{/if}</span>
+    <a href={`#/sprint/${s.id}`} class:active={s.id === stage} class:done={check(s)} aria-current={s.id === stage ? 'step' : undefined}>
+      <span class="n">{#if check(s)}<Icon name="check" size={14} />{:else}{i + 1}{/if}</span>
       {s.label}
       {#if s.missing}<span class="chip warn" title={s.missing}>{t('still missing')}</span>{/if}
     </a>

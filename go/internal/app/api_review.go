@@ -256,9 +256,9 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 	out.Pulled, out.NoEstimate = []string{}, []string{}
 	if out.Tickets && !out.Reviewed {
 		extra := ticketimport.AdditionalDoneOf(s.CommittedTickets, data.Tickets, s.ID)
-		out.Pulled = append(out.Pulled, extra.Keys...)
-		out.NoEstimate = append(out.NoEstimate, extra.NoEstimate...)
 		if s.AdditionalDone == nil {
+			out.Pulled = append(out.Pulled, extra.Keys...)
+			out.NoEstimate = append(out.NoEstimate, extra.NoEstimate...)
 			out.AdditionalDone = extra.Points
 		}
 	}
