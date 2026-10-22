@@ -178,6 +178,38 @@ SCENARIOS: list[dict] = [
         "args": ["review", "demo", "2026.23"],
         "input": "y\n9\n\ny\n3\n2\n1\n",
     },
+    {"name": "products-view", "args": ["products", "demo"], "input": ""},
+    {
+        "name": "products-history",
+        "args": ["products", "demo", "2026.20", "--history", "2"],
+        "input": "",
+    },
+    {
+        "name": "products-preplanning",
+        "args": ["products", "demo", "--preplanning"],
+        "input": "3\nx\n4,5\n-\n0\n",
+    },
+    {
+        "name": "products-preplanning-unchanged",
+        "args": ["products", "demo", "--preplanning"],
+        "input": "\n\n\n",
+    },
+    {
+        "name": "product-list-new",
+        "args": ["product-list", "demo"],
+        "input": "n\n\nn\nwebshop\nn\nDatenschutz\nBea\n2026-11-01\nq\n",
+    },
+    {
+        "name": "product-list-change-po",
+        "args": ["product-list", "demo"],
+        "input": "p\nnope\np\nWEBSHOP\nChris\np\nmobile app\n\nq\n",
+    },
+    {
+        "name": "product-list-end",
+        "args": ["product-list", "demo"],
+        "input": "e\nkundenportal\n2026-12-31\nq\n",
+    },
+    {"name": "product-list-nothing", "args": ["product-list", "demo"], "input": "q\n"},
     {
         "name": "settings-invalid-then-valid",
         "args": ["settings", "demo"],

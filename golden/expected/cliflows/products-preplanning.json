@@ -1,0 +1,13 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "products",
+  "demo",
+  "--preplanning"
+ ],
+ "input": "3\nx\n4,5\n-\n0\n",
+ "exit_code": 0,
+ "files": {
+  "demo/sprints/2026.22.yaml": "# Sprint 2026.22. Explanations of all fields: `foresprint help fields`\nid: '2026.22'\nstart: 2026-10-28\nend: 2026-11-11\nabsences:\n  cem: 5\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  app:\n    preplanned: 4.5\n  portal:\n    preplanned: 0\n  webshop:\n    preplanned: 3\n"
+ }
+}
