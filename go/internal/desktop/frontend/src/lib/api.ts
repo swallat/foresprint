@@ -6,8 +6,9 @@
 
 import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { TodayApi } from './types.today';
 
-export interface Api extends TeamApi {
+export interface Api extends TodayApi, TeamApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
