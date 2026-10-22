@@ -168,3 +168,35 @@ func mustBuild(t *testing.T, data *storage.TeamData, today time.Time) *forecast.
 	}
 	return fc
 }
+
+func TestCarryIntoGeneratedSprint(t *testing.T) {
+	d := func(day int) time.Time { return time.Date(2026, 3, day, 0, 0, 0, 0, time.UTC) }
+	data := &storage.TeamData{Team: model.NewTeam("t", "t")}
+	data.Team.Forecast.Rounding = 1
+	commit := 20.0
+	capa := 40.0
+	hist := func(id string, from int) model.Sprint {
+		return model.Sprint{ID: id, Start: d(from).AddDate(0, 0, 0), End: d(from).AddDate(0, 0, 11), Commitment: &commit, Velocity: &commit, Capacity: &capa}
+	}
+	s3 := hist("s3", 30)
+	s3.Carry = []model.CarryItem{{Rest: 2.5}}
+	data.Sprints = []model.Sprint{hist("s1", 2), hist("s2", 16), s3}
+	fc := mustBuild(t, data, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC))
+	var next *forecast.TimelineEntry
+	for i := range fc.Entries {
+		if !fc.Entries[i].Recorded && fc.Entries[i].Result.Plan != nil {
+			next = &fc.Entries[i]
+			break
+		}
+	}
+	if next == nil {
+		t.Skip("no generated sprint with a PLAN")
+	}
+	if next.CarryIn != 2.5 {
+		t.Fatalf("carry-in of the generated sprint = %v, want 2.5", next.CarryIn)
+	}
+	want := float64(int(((*next.Result.Plan-2.5)*0.8)*10)) / 10
+	if *next.Result.Roadmap != want {
+		t.Errorf("roadmap %v, want %v", *next.Result.Roadmap, want)
+	}
+}

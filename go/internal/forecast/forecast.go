@@ -376,15 +376,21 @@ func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 
 // applyCarryIn splits the PLAN of every sprint that takes over a rest from earlier sprints:
 // Plannable = rounded down((PLAN − carry-in) × share), small items = the rest (decision 20,
-// planning.SplitPlan). Sprints without carry-in keep the plain PLAN × share of the engine.
+// planning.SplitPlan). The whole timeline is searched, so a rest also continues in a sprint
+// generated from the calendar; an assumption of a running sprint counts like in the
+// pre-planning. Sprints without carry-in keep the plain PLAN × share of the engine.
 func applyCarryIn(data *storage.TeamData, entries []TimelineEntry) {
 	fc := data.Team.Forecast
+	sprints := make([]model.Sprint, len(entries))
+	for i := range entries {
+		sprints[i] = entries[i].Sprint
+	}
 	for i := range entries {
 		r := &entries[i].Result
 		if r.Plan == nil {
 			continue
 		}
-		in := planning.CarryInto(data.Sprints, entries[i].Sprint.ID, "").Rest
+		in := planning.CarryInto(sprints, entries[i].Sprint.ID, "").Rest
 		if in <= 0 {
 			continue
 		}

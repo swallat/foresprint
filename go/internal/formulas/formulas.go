@@ -503,7 +503,7 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 			free := math.Max(*r.Plan-e.CarryIn, 0)
 			steps = append(steps,
 				Step{"roadmap", f.t("Plannable"), f.t("Plannable = rounded down((Forecast PLAN − carry-over) × plannable share, {digits} digit(s))", "digits", fs.Rounding),
-					fmt.Sprintf("(%s − %s) × %s = %s", plan, f.nd(e.CarryIn, 2), textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
+					fmt.Sprintf("(%s − %s → %s) × %s = %s", plan, f.nd(e.CarryIn, 2), f.nd(free, 2), textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
 				Step{"small_stuff", f.t("Small items"), f.t("Small items = Forecast PLAN − carry-over − plannable"),
 					fmt.Sprintf("%s − %s = %s", f.nd(free, 2), f.np(r.Roadmap), f.np(r.SmallStuff))})
 		} else {
