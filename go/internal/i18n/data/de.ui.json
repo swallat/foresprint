@@ -816,6 +816,7 @@
   "The merge is cancelled. Your own work stays.": "Das Zusammenführen ist abgebrochen. Deine Arbeit bleibt.",
   "The minutes of this Review are written when you close the sprint.": "Das Protokoll dieses Reviews entsteht, wenn du den Sprint abschließt.",
   "The next Save sets these tags.": "Das nächste Speichern setzt diese Tags.",
+  "The next Save sets these tags: {names}": "Das nächste Speichern setzt diese Tags: {names}",
   "The open scope drops out. Amounts in future sprints go to daily business.": "Der offene Umfang entfällt. Beträge in künftigen Sprints gehen ans Tagesgeschäft.",
   "The page works with the data at hand.": "Die Ansicht funktioniert trotzdem mit den vorhandenen Daten.",
   "The part of the plan for planned work.": "Der Teil des Plans für geplante Arbeit.",

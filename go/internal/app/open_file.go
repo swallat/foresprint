@@ -34,7 +34,8 @@ func (a *API) OpenFile(path string) error {
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return errors.New(i18n.T("Only files of the data folder can be opened."))
 	}
-	if fi, err := os.Stat(real); err != nil || fi.IsDir() {
+	// Documents only: a program, script or shortcut that is committed to the data must not start from here.
+	if fi, err := os.Stat(real); err != nil || fi.IsDir() || !openable[strings.ToLower(filepath.Ext(real))] || insideGit(rel) {
 		return errors.New(i18n.T("Only files of the data folder can be opened."))
 	}
 	open := a.OpenPath
@@ -42,6 +43,18 @@ func (a *API) OpenFile(path string) error {
 		open = openWithSystem
 	}
 	return open(real)
+}
+
+var openable = map[string]bool{".md": true, ".txt": true, ".csv": true, ".yaml": true, ".yml": true, ".pdf": true, ".xlsx": true}
+
+// insideGit: the path (relative to the data folder) runs through a .git folder.
+func insideGit(rel string) bool {
+	for _, part := range strings.Split(filepath.ToSlash(rel), "/") {
+		if strings.EqualFold(part, ".git") {
+			return true
+		}
+	}
+	return false
 }
 
 // openWithSystem starts the program the system has for the file and does not wait for it.

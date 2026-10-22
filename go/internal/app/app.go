@@ -149,8 +149,15 @@ func (a *API) SetDataDir(path string) error {
 		return err
 	}
 	a.mu.Lock()
+	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()
+	if changed {
+		// Tags a Review asked for belong to the data they were asked for.
+		a.tagMu.Lock()
+		a.tags, a.sprintTags = nil, nil
+		a.tagMu.Unlock()
+	}
 	a.data.SetFolder(path)
 	storage.ClearTeamCache()
 	return nil

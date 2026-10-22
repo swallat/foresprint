@@ -7,6 +7,8 @@
   import StatusChip from './StatusChip.svelte';
   import TrackerChip from './TrackerChip.svelte';
 
+  const readyTags = $derived(app.pendingTags.filter((x) => x.ready).map((x) => x.name));
+
   const next: Record<string, string> = { system: 'light', light: 'dark', dark: 'system' };
 
   async function cycleTheme(): Promise<void> {
@@ -57,9 +59,9 @@
   <button class="btn hide-narrow" type="button" title={t('Fetch changes of others')} aria-label={t('Refresh')} disabled={!!app.busy} onclick={refresh}>
     <Icon name="download" /><span class="hide-mid">{t('Refresh')}</span>
   </button>
-  {#if app.pendingTags.length > 0}
-    <a class="chip fc hide-narrow" href={link('/data/history')} title={t('The next Save sets these tags.')}>
-      <Icon name="sell" /><span class="data">{app.pendingTags.map((x) => x.name).join(', ')}</span>
+  {#if readyTags.length > 0}
+    <a class="chip fc" href={link('/data/history')} title={t('The next Save sets these tags.')} aria-label={t('The next Save sets these tags: {names}', { names: readyTags.join(', ') })}>
+      <Icon name="sell" /><span class="data">{readyTags.join(', ')}</span>
     </a>
   {/if}
   <button class="btn primary" type="button" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>

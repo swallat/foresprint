@@ -125,3 +125,28 @@ func TestPendingTagsShowWhatTheNextSaveSets(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestOpenFileRefusesProgramsAndGit(t *testing.T) {
+	a, dir := dataAPI(t)
+	called := false
+	a.OpenPath = func(string) error { called = true; return nil }
+	for _, name := range []string{"run.bat", "tool.exe", "x.desktop", ".git/config"} {
+		gittest.Write(t, filepath.Join(dir, name), "x")
+		if err := a.OpenFile(filepath.Join(dir, name)); err == nil || called {
+			t.Fatalf("%s: err=%v called=%v", name, err, called)
+		}
+	}
+}
+
+func TestPendingTagsGoWithTheDataFolder(t *testing.T) {
+	a, dir := dataAPI(t)
+	a.addTag("a", "2026.22", "2026.22")
+	other := t.TempDir()
+	if err := a.SetDataDir(other); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.PendingTags(); len(got) != 0 {
+		t.Fatalf("%+v", got)
+	}
+	_ = dir
+}

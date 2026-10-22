@@ -182,6 +182,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
     async ReopenReview(_team, sprint): Promise<ReviewClosed> {
       if (view(sprint).reopenable !== true) throw new Error('Only the latest reviewed sprint can be reopened.');
       closed.delete(sprint);
+      for (const f of files) if (f.row.sprint === sprint && f.row.kind === 'review') pendingTagNames.splice(0, pendingTagNames.length, ...pendingTagNames.filter((n) => n !== `atlas/${sprint}` && n !== sprint));
       for (const f of files) if (f.row.sprint === sprint && f.row.kind === 'review') f.row.obsolete = true;
       return { review: view(sprint), minutes: '', tag: '' };
     },
