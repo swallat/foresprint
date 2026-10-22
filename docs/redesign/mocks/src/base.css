@@ -233,3 +233,6 @@ button.link { background: none; border: 0; padding: 0; color: var(--primary); te
 
 /* Optional features hidden until configured */
 [data-prodshare="off"] .col-prod, [data-multiprod="off"] .only-multiprod, [data-multipo="off"] .only-multipo { display: none !important; }
+
+/* Abwesenheits-Status: offenes Schloss = angekündigt, geschlossenes = bestätigt */
+.abs-lk{display:inline-flex;vertical-align:middle;margin-left:4px} .abs-lk.a{color:var(--warn)} .abs-lk.c{color:var(--ok)}

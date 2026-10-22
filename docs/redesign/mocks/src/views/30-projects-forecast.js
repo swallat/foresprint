@@ -429,7 +429,7 @@
   }
   function forecastTabHtml() {
     const fut = D.sprints.filter((s) => s.forecast != null);
-    const absChip = (a) => a === "confirmed" ? `<span class="chip ok">${ic("check_circle")}bestätigt</span>` : a === "announced" ? `<span class="chip warn">${ic("schedule")}angekündigt</span>` : `<span class="chip">${ic("help")}nicht erfasst</span>`;
+    const absChip = (a) => a === "confirmed" ? `<span class="chip ok">${ic("lock")}bestätigt</span>` : a === "announced" ? `<span class="chip warn">${ic("lock_open")}angekündigt</span>` : `<span class="chip">${ic("help")}nicht erfasst</span>`;
     const unknown = fut.filter((s) => s.absences === "unknown");
     return `
     ${unknown.length ? `<div class="banner info">${ic("info")}<div class="grow">Für ${unknown.map((s) => `<span class="data">${s.id}</span>`).join(" und ")} sind noch keine Abwesenheiten erfasst. Der Forecast rechnet dort mit voller Kapazität und wird mit jeder Eintragung genauer. <a href="#people">Abwesenheiten erfassen</a></div></div>` : ""}
