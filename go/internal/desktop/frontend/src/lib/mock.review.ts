@@ -3,6 +3,7 @@
 // not done + additionally done; the Review of the latest reviewed sprint can be reopened; the
 // minutes of a reopened Review stay as obsolete files.
 
+import { pendingTagNames } from './mock.data';
 import type { SprintInfo } from './types';
 import type {
   MinutesRow,
@@ -175,6 +176,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       const text = minutesText(review);
       const same = files.find((f) => f.row.sprint === sprint && f.row.kind === 'review' && !f.row.obsolete && f.text === text);
       if (!same) files.unshift({ row: { sprint, kind: 'review', at: stamp(new Date()), file: name, obsolete: false }, text });
+      if (input.tag && !pendingTagNames.includes(input.tag)) pendingTagNames.push(input.tag);
       return { review, minutes: (same ?? files[0])?.row.file ?? '', tag: input.tag };
     },
     async ReopenReview(_team, sprint): Promise<ReviewClosed> {

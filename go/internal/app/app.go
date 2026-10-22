@@ -36,6 +36,8 @@ type API struct {
 	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFile func(title string) (string, error)
+	// OpenPath opens a file with the program of the system; nil = the default of the platform.
+	OpenPath func(path string) error
 
 	// Now is the clock; nil = the system clock (set in tests).
 	Now func() time.Time

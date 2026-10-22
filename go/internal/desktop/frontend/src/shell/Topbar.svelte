@@ -2,6 +2,7 @@
   import { app, refresh, save, selectSprint, selectTeam, setTheme, toast } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { link } from '../lib/router.svelte';
   import Logo from './Logo.svelte';
   import StatusChip from './StatusChip.svelte';
   import TrackerChip from './TrackerChip.svelte';
@@ -56,6 +57,11 @@
   <button class="btn hide-narrow" type="button" title={t('Fetch changes of others')} aria-label={t('Refresh')} disabled={!!app.busy} onclick={refresh}>
     <Icon name="download" /><span class="hide-mid">{t('Refresh')}</span>
   </button>
+  {#if app.pendingTags.length > 0}
+    <a class="chip fc hide-narrow" href={link('/data/history')} title={t('The next Save sets these tags.')}>
+      <Icon name="sell" /><span class="data">{app.pendingTags.map((x) => x.name).join(', ')}</span>
+    </a>
+  {/if}
   <button class="btn primary" type="button" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
     <Icon name="save" /><span class="hide-narrow">{t('Save')}</span>
   </button>
