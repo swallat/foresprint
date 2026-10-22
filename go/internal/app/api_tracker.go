@@ -103,15 +103,6 @@ func tokenState(base *string) TokenState {
 	return s
 }
 
-// ruleSources are the sources a rule may name with these registered fields.
-func ruleSources(fields []RuleField) []string {
-	var m model.OrderedMap[string]
-	for _, f := range fields {
-		m.Set(f.Name, f.Display)
-	}
-	return model.RuleSourcesWith(m)
-}
-
 func parseRule(text string, srcs []string) (*model.Rule, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, nil
@@ -123,9 +114,7 @@ func parseRule(text string, srcs []string) (*model.Rule, error) {
 // rule in its canonical form. extra are the rule fields of the page that are not saved yet.
 func (a *API) CheckRule(text string, extra []string) RuleCheck {
 	srcs := append([]string{}, model.RuleSources...)
-	for _, e := range extra {
-		srcs = append(srcs, e)
-	}
+	srcs = append(srcs, extra...)
 	r, err := parseRule(text, srcs)
 	if err != nil {
 		return RuleCheck{Message: err.Error()}
@@ -177,7 +166,7 @@ func (a *API) SaveTrackerSettings(team string, in TrackerSettings) error {
 
 func prefixOK(s string) bool {
 	for _, r := range s {
-		if !(r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' || r >= '0' && r <= '9') {
+		if (r < 'A' || r > 'Z') && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
 			return false
 		}
 	}

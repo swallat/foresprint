@@ -68,7 +68,7 @@ var (
 	Densities = []string{"compact", "normal", "roomy"}
 )
 
-// Defaults of the two choices.
+// DefaultDensity is the density without a saved choice.
 const DefaultDensity = "normal"
 
 func choiceOf(key string, allowed []string, def string) string {
