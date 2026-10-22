@@ -107,13 +107,20 @@
   }
 
   // ---------- portfolio timeline ----------
-  // Labels left of the bars never run into the plot: clipped to the label column, full text in the tooltip.
-  const clip = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
+  // Labels left of the bars never run into the plot: they wrap inside the label column and the row grows.
+  const wrap = (items, n) => items.reduce((ls, it) => { const last = ls[ls.length - 1]; if (last && last.len + 2 + it.len <= n) { last.items.push(it); last.len += 2 + it.len; } else ls.push({ items: [it], len: it.len }); return ls; }, []);
   function timelineSvg() {
-    const W = 960, L = 232, R = 20, T = 48, rowH = 58, plotW = W - L - R;
+    const W = 960, L = 210, R = 20, T = 48, rowH = 58, plotW = W - L - R;
     const t0 = dayNum("2026-10-14"), t1 = dayNum("2027-02-01");
     const x = (iso) => L + ((dayNum(iso) - t0) / (t1 - t0)) * plotW;
-    const H = T + D.projects.length * rowH + 14;
+    const NAME_CH = Math.floor((L - 20) / 8), SUB_CH = Math.floor((L - 20) / 6.6);
+    const lab = D.projects.map((p) => {
+      const name = wrap(p.name.split(" ").map((w) => ({ t: w, len: w.length })), NAME_CH).map((l) => l.items.map((i) => i.t).join(" "));
+      const prods = wrap(p.products.map((id) => { const pr = FS.product(id); return { pr, len: pr.name.length + 2 }; }), SUB_CH);
+      return { name, prods, h: Math.max(rowH, 14 + name.length * 16 + prods.length * 14 + 14) };
+    });
+    const Y0 = lab.reduce((a, l, i) => (a.push(i ? a[i - 1] + lab[i - 1].h : T), a), []);
+    const H = T + sum(lab, (l) => l.h) + 14;
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Zeitachse der Projekte von 14.10.2026 bis 31.01.2027 mit Meilensteinen und Ampel">`;
     D.sprints.filter((sp) => ["2026.21", "2026.22", "2026.23", "2026.24", "2026.25"].includes(sp.id)).forEach((sp, i) => {
       const x0 = x(sp.start), x1 = x(addDays(sp.end, 1));
@@ -125,11 +132,11 @@
     });
     s += `<text class="m" x="${L + 4}" y="36" font-size="11">Okt 26</text>`;
     D.projects.forEach((p, i) => {
-      const y0 = T + i * rowH, yc = y0 + 20;
+      const y0 = Y0[i], yc = y0 + 20, lb = lab[i];
       const xe = Math.min(x(p.end), W - R);
       s += `<g class="pf-row" data-project="${p.id}" tabindex="0" role="link" aria-label="Projekt ${esc(p.name)} öffnen"><title>${esc(p.name)}: Ende ${FS.fmtDate(p.end)}</title>
-        <line x1="8" x2="${W - R}" y1="${y0 + rowH - 6}" y2="${y0 + rowH - 6}" style="stroke:var(--border)"/>
-        <text x="8" y="${yc - 2}" font-size="13" font-weight="600">${esc(clip(p.name, Math.floor((L - 20) / 8)))}</text><text class="m" x="8" y="${yc + 14}" font-size="11">${esc(clip(`${p.products.length} Produkte: ${p.products.map((id) => FS.product(id).name.split(" ")[0]).join(", ")}`, Math.floor((L - 20) / 6.8)))}</text>
+        <line x1="8" x2="${W - R}" y1="${y0 + lb.h - 6}" y2="${y0 + lb.h - 6}" style="stroke:var(--border)"/>
+        ${lb.name.map((t, k) => `<text x="8" y="${yc - 2 + k * 16}" font-size="13" font-weight="600">${esc(t)}</text>`).join("")}${lb.prods.map((l, k) => `<text class="m" x="8" y="${yc + 14 + (lb.name.length - 1) * 16 + k * 14}" font-size="11">${l.items.map((it) => `<tspan style="fill:${it.pr.color}">●</tspan> ${esc(it.pr.name)}`).join("  ")}</text>`).join("")}
         <rect class="pf-bar" x="${L}" y="${yc - 7}" width="${xe - L}" height="14" rx="3" style="fill:var(--primary-weak);stroke:var(--primary);stroke-width:1.5"/>
         <line x1="${xe}" x2="${xe}" y1="${yc - 11}" y2="${yc + 11}" style="stroke:var(--primary);stroke-width:2.5"/>`;
       p.milestones.forEach((m) => {
