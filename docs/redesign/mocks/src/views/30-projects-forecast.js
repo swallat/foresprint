@@ -231,7 +231,7 @@
       <div class="pf-legend"><span><i class="pf-sw bar"></i>Laufzeit bis Ende</span><span>${ic("check_circle")}Meilenstein im Plan</span><span>${ic("error")}knapp</span><span>${ic("cancel")}gefährdet</span><span><i class="pf-sw" style="border-color:var(--highlight);border-top-width:3px"></i>heute</span><span>Klick auf eine Zeile öffnet das Projekt</span></div></div>
     <h2 style="margin:24px 0 8px">${FS.multiProduct() ? "Kontingent und Produkte" : "Kontingent"}</h2>
     <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th class="only-multiprod">Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PT)</th><th class="num">verbraucht (PT)</th><th class="num">geplant (PT)</th><th>Verbrauch</th></tr></thead><tbody>
-      ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a></td><td class="only-multiprod">${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
+      ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><span class="row" style="flex-wrap:nowrap;gap:4px"><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a><button class="btn icon ghost" type="button" data-pjclose="${p.id}" aria-label="${esc(p.name)} ${projHasHistory(p) ? "abschließen" : "löschen"}" title="${projHasHistory(p) ? "Abschließen (Verlauf bleibt)" : "Löschen"}">${ic(projHasHistory(p) ? "archive" : "delete")}</button></span></td><td class="only-multiprod">${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
         <td class="num">${fmt(p.contingentPD)}</td><td class="num">${fmt(st.used)}</td><td class="num">${fmt(st.plannedPD, 1)} ${calcBtn("proj", p.id)}</td><td>${meter(p, st)}</td></tr>`; }).join("")}
       <tr class="pf-sub"><td colspan="8">${FS.multiProduct() ? "Tagesgeschäft je Produkt" : "Tagesgeschäft"}, ohne Ampel: Budget aus der Vorplanung, nicht aus einem Projekt</td></tr>
       ${D.products.map((pr) => { const sid = "2026.22"; const budget = pd(D.productPlan[sid][pr.id].pre); const used = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === "2026.21"), (t) => t.est)); const planned = FS.trk() === "none" ? pd(Math.max(0, D.productPlan[sid][pr.id].pre - sum(D.projects, (pj) => FS.projPts(sid, pj.id, pr.id)))) : pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === sid), (t) => t.est));
@@ -239,7 +239,38 @@
           <td><span class="small muted">Budget je Sprint ${sid}; verbraucht = Sprint 2026.21</span></td></tr>`; }).join("")}
     </tbody></table></div>
     <p class="small muted" style="margin:8px 0 0">${est} Geplante und zugeordnete PT sind aus Punkten berechnet: Punkte geteilt durch ${rateTxt()} Punkte je Personentag. Verbraucht und gebucht sind eingetragene PT.</p>
-    ${conflictHtml()}`;
+    ${conflictHtml()}
+    ${D.closedProjects.length ? `<details class="card" id="pf-closed" style="margin-top:16px"><summary style="cursor:pointer"><strong>Abgeschlossene Projekte</strong> <span class="muted small">${D.closedProjects.length}</span></summary>
+      <div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Projekt</th><th>Stand</th><th>Ende</th><th class="num">verbraucht (PT)</th><th class="num">von (PT)</th><th></th></tr></thead><tbody>${D.closedProjects.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.closed === "abgebrochen" ? FS.lightChip("warn", "abgebrochen") : FS.lightChip("ok", "abgeschlossen")}</td><td class="data">${FS.fmtDate(x.closedAt)}</td><td class="num">${fmt(x.usedPD)}</td><td class="num">${fmt(x.contingentPD)}</td><td><button class="btn" type="button" data-pjback="${x.id}">${ic("unarchive")}Wieder öffnen</button></td></tr>`).join("")}</tbody></table></div>
+      <p class="small muted" style="margin:8px 0 0">Berichte, Protokolle und vergangene Sprints zeigen abgeschlossene Projekte weiter. Ihre Regeln greifen nicht mehr.</p></details>` : ""}`;
+  }
+
+  // Removing a project: with history (booked or used PD, tickets) it is closed as finished or cancelled, not deleted.
+  // Reports, minutes and past sprints keep it; open tickets go to daily business or another project.
+  D.closedProjects ??= [];
+  const projHasHistory = (p) => p.usedPD > 0 || D.tickets.some((t) => t.project === p.id);
+  function closeProjectPanel(id) {
+    const p = FS.project(id), hist = projHasHistory(p), open = D.tickets.filter((t) => t.project === id && t.status !== "Fertig"), unit = FS.trk() === "jira" ? "Tickets" : "Arbeitspakete";
+    const el = FS.openPanel(`${p.name} ${hist ? "abschließen" : "löschen"}`, hist ? `<p style="margin:0">${esc(p.name)} hat Verlauf (${fmt(p.usedPD)} von ${fmt(p.contingentPD)} PT verbraucht). Es wird <strong>abgeschlossen, nicht gelöscht</strong>: Berichte, Protokolle und vergangene Sprints behalten es. Abgeschlossene Projekte stehen unten auf der Seite und lassen sich wieder öffnen.</p>
+      <fieldset><legend class="small muted" style="padding:0">Wie endet das Projekt?</legend><div class="row"><label class="row" style="gap:6px"><input type="radio" name="pj-how" value="abgeschlossen" checked>abgeschlossen</label><label class="row" style="gap:6px"><input type="radio" name="pj-how" value="abgebrochen">abgebrochen</label></div></fieldset>
+      <div class="field"><label for="pj-at">Ende</label><input class="input" id="pj-at" type="date" value="${D.today}" style="max-width:180px"></div>
+      ${FS.trk() === "none" ? `<p class="small muted" style="margin:0">Offener Umfang ${fmt(p.restPts ?? 0)} Punkte entfällt. Projektbeträge in künftigen Sprints gehen ans Tagesgeschäft.</p>` : `<div class="field"><label for="pj-to">Offene ${unit} (${open.length}) gehen an</label><select class="input" id="pj-to" style="max-width:280px"><option value="">Tagesgeschäft</option>${D.projects.filter((x) => x.id !== id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select></div>`}
+      <p class="small muted" style="margin:0">Restkontingent ${fmt(p.contingentPD - p.usedPD)} PT wird im Abschlussbericht ausgewiesen, nicht weiterverplant.</p>
+      <div class="row"><button class="btn danger" type="button" id="pj-ok">${ic("archive")}Projekt abschließen</button><button class="btn ghost" type="button" id="pj-cancel">Abbrechen</button></div>`
+      : `<p style="margin:0">${esc(p.name)} hat noch keinen Verbrauch und keine ${unit}. Es wird gelöscht.</p><div class="row"><button class="btn danger" type="button" id="pj-ok">${ic("delete")}Löschen</button><button class="btn ghost" type="button" id="pj-cancel">Abbrechen</button></div>`);
+    if (!el) return;
+    el.querySelector("#pj-cancel").onclick = FS.closePanel;
+    el.querySelector("#pj-ok").onclick = () => {
+      const how = el.querySelector('[name="pj-how"]:checked')?.value, at = el.querySelector("#pj-at")?.value, to = el.querySelector("#pj-to")?.value || null;
+      const snap = { idx: D.projects.indexOf(p), tickets: open.map((t) => t.project) };
+      open.forEach((t) => (t.project = to));
+      D.projects.splice(snap.idx, 1);
+      if (hist) D.closedProjects.push(Object.assign(p, { closed: how, closedAt: at }));
+      FS.addUnsaved?.(hist ? `Projekt ${how}: ${p.name}` : `Projekt gelöscht: ${p.name}`, "aktiv", hist ? FS.fmtDate(at) : "–", "projekte.yaml");
+      FS.closePanel(); if (location.hash === "#project") location.hash = "projects"; else FS.render();
+      FS.toast(`${p.name} ${hist ? how : "gelöscht"}.${open.length && FS.trk() !== "none" ? ` ${open.length} offene ${unit} ${to ? `an ${FS.project(to).name}` : "ins Tagesgeschäft"}.` : ""} Bis Speichern rückgängig.`, () => {
+        D.projects.splice(snap.idx, 0, p); const i = D.closedProjects.indexOf(p); if (i >= 0) D.closedProjects.splice(i, 1); delete p.closed; delete p.closedAt; open.forEach((t, k) => (t.project = snap.tickets[k])); FS.render(); });
+    };
   }
 
   function newProjectPanel() {
@@ -324,6 +355,8 @@
     wire(main) {
       wireCommon(main);
       main.querySelector("#pf-new").onclick = newProjectPanel;
+      main.querySelectorAll("[data-pjclose]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); closeProjectPanel(b.dataset.pjclose); }));
+      main.querySelectorAll("[data-pjback]").forEach((b) => (b.onclick = () => { const i = D.closedProjects.findIndex((x) => x.id === b.dataset.pjback), x = D.closedProjects.splice(i, 1)[0]; delete x.closed; delete x.closedAt; D.projects.push(x); FS.addUnsaved?.(`Projekt wieder geöffnet: ${x.name}`, "abgeschlossen", "aktiv", "projekte.yaml"); FS.render(); FS.toast(`${x.name} ist wieder offen. Enddatum und Kontingent prüfen.`); }));
       main.querySelectorAll("[data-tl]").forEach((b) => (b.onclick = () => { FS.state.tlRange = b.dataset.tl; FS.render(); }));
       main.querySelector("#pf-to").onchange = (e) => { if (e.target.value) { FS.state.tlRange = "custom"; FS.state.tlTo = e.target.value; FS.render(); } };
       main.querySelectorAll("[data-decide]").forEach((b) => (b.onclick = () => FS.toast(`"${b.dataset.decide}" notiert. Die Entscheidung bleibt beim PO, Foresprint ändert nichts am Plan.`)));
@@ -353,7 +386,7 @@
     <div class="page-head"><div><div class="small muted"><a href="#projects">Projekte</a> / Projekt</div><h1>${esc(p.name)} ${FS.lightChip(p.light)}</h1>
       <p class="lead">Ansprechpartner: ${esc(p.lead)}. Ende <span class="data">${FS.fmtDate(p.end)}</span>.<span class="only-jira">${p.rule ? ` Regel: <span class="data rule-txt">${esc(p.rule)}</span>` : ` Ohne Regel: Tickets ordnen Sie von Hand zu.`} <button class="link" type="button" id="pj-rule">${p.rule ? "Regel bearbeiten" : "Regel anlegen"}</button></span></p></div>
       <div class="actions"><select class="input" id="pj-pick" aria-label="Projekt wechseln">${D.projects.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
-        <button class="btn" type="button" id="pj-edit">${ic("edit")}Bearbeiten</button></div></div>
+        <button class="btn" type="button" id="pj-edit">${ic("edit")}Bearbeiten</button><button class="btn" type="button" id="pj-close">${ic(projHasHistory(p) ? "archive" : "delete")}${projHasHistory(p) ? "Abschließen" : "Löschen"}</button></div></div>
     <div class="grid cols-3">
       <div class="card"><div class="only-multiprod"><div class="small muted">Produkte</div><div class="row" style="margin-top:6px">${p.products.map(FS.productChip).join("")}</div></div>
         <div class="small muted" style="margin-top:12px">Nächster Meilenstein</div><div style="margin-top:4px">${nextMs ? `${esc(nextMs.name)} <span class="data">${FS.fmtDate(nextMs.date)}</span> ${FS.lightChip(nextMs.light)}` : "keiner mehr"}</div></div>
@@ -398,6 +431,7 @@
       const rs = main.querySelector("#pj-rest"); if (rs) rs.onchange = () => { const p = FS.project(FS.state.project) || D.projects[0], v = parseInt(rs.value, 10); p.restPts = isNaN(v) ? 0 : Math.max(0, v); FS.render(); };
       main.querySelector("#pj-pick").onchange = (e) => { FS.state.project = e.target.value; FS.render(); };
       main.querySelector("#pj-edit").onclick = () => { newProjectPanel(); };
+      main.querySelector("#pj-close").onclick = () => closeProjectPanel(FS.state.project);
       main.querySelector("#pj-rule").onclick = () => {
         const p = FS.project(FS.state.project), others = D.projects.map((x) => ({ id: x.id, name: x.name, rule: x.rule }));
         const el = FS.openPanel(`Zuordnungsregel: ${p.name}`, `${FS.ruleEditor("project", p.id, p.rule, others)}

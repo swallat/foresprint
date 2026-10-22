@@ -8,8 +8,8 @@
   // ---------- helpers ----------
   FS.esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   FS.icon = (name, extra = "") => `<span class="ms ${extra}" aria-hidden="true">${name}</span>`;
-  FS.product = (id) => D.products.find((p) => p.id === id);
-  FS.project = (id) => D.projects.find((p) => p.id === id);
+  FS.product = (id) => D.products.find((p) => p.id === id) || D.formerProducts?.find((p) => p.id === id);
+  FS.project = (id) => D.projects.find((p) => p.id === id) || D.closedProjects?.find((p) => p.id === id);
   FS.person = (id) => D.people.find((p) => p.id === id);
   FS.po = (id) => D.pos.find((p) => p.id === id);
   FS.sprint = (id) => D.sprints.find((s) => s.id === id);

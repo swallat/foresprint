@@ -158,6 +158,48 @@
 
   // ================= products =================
   const matches = (rule) => FS.ruleMatches(rule);
+  // Removing a product: with history (past sprints, tickets) it is ended, not deleted. Past sprints, minutes and the
+  // forecast history keep it; its share goes to the remaining products and its open tickets to another product.
+  D.formerProducts ??= [];
+  const prodHasHistory = (id) => Object.values(D.productHistory || {}).some((h) => h[id]) || D.tickets.some((t) => t.product === id);
+  function removeProductPanel(id) {
+    const p = FS.product(id), rest = D.products.filter((x) => x.id !== id), hist = prodHasHistory(id), trk = FS.trk();
+    const open = D.tickets.filter((t) => t.product === id && t.status !== "Fertig"), projs = D.projects.filter((x) => x.products.includes(id));
+    const cur = D.sprints.find((x) => x.state === "current"), opts = D.sprints.filter((x) => x.state !== "past");
+    const free = rest.reduce((a, x) => a + x.share, 0), prop = rest.map((x) => Math.round((x.share + (free ? (x.share / free) * p.share : p.share / rest.length)) * 100));
+    prop[0] += 100 - prop.reduce((a, b) => a + b, 0);
+    const unit = trk === "jira" ? "Tickets" : "Arbeitspakete";
+    const el = FS.openPanel(`${p.name} ${hist ? "beenden" : "löschen"}`, hist ? `<p style="margin:0">${esc(p.name)} hat Verlauf. Es wird <strong>beendet, nicht gelöscht</strong>: vergangene Sprints, Protokolle und der Forecast-Verlauf behalten es. Beendete Produkte stehen unten auf der Seite und lassen sich wieder aufnehmen.</p>
+      <div class="field"><label for="pr-until">Letzter Sprint mit ${esc(p.name)}</label><select class="input" id="pr-until" style="max-width:200px">${opts.map((x) => `<option ${x.id === cur?.id ? "selected" : ""}>${x.id}</option>`).join("")}</select></div>
+      <h3 style="margin:0">Anteil danach</h3>
+      <div class="tw"><table class="t"><thead><tr><th>Produkt</th><th class="num">bisher %</th><th class="num">neu %</th></tr></thead><tbody>${rest.map((x, i) => `<tr><td>${FS.productChip(x.id)}</td><td class="num">${Math.round(x.share * 100)}</td><td class="num edit"><input data-nsh="${x.id}" inputmode="numeric" value="${prop[i]}" aria-label="Neuer Anteil ${esc(x.name)}"></td></tr>`).join("")}
+        <tr class="sum"><td>Summe</td><td class="num">${Math.round(free * 100)}</td><td class="num" id="pr-sum">100</td></tr></tbody></table></div>
+      <p class="small muted" style="margin:0">Vorschlag: der Anteil von ${esc(p.name)} (${Math.round(p.share * 100)} %) im Verhältnis verteilt.</p>
+      ${trk === "none" ? "" : `<div class="field"><label for="pr-to">Offene ${unit} (${open.length}) gehen an</label><select class="input" id="pr-to" style="max-width:280px">${rest.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}<option value="">ohne Produkt (Liste "Nicht zugeordnet")</option></select></div>
+      ${trk === "jira" ? `<p class="small muted" style="margin:0">Die Regel von ${esc(p.name)} entfällt. Was sie bisher traf, behält die Wahl oben als Zuordnung in Foresprint, bis eine andere Regel greift.</p>` : ""}`}
+      ${projs.length ? `<p class="small muted" style="margin:0">${projs.length === 1 ? "Ein Projekt läuft" : `${projs.length} Projekte laufen`} auf ${esc(p.name)} (${projs.map((x) => esc(x.name)).join(", ")}). Sie laufen ohne ${esc(p.name)} weiter.</p>` : ""}
+      <div class="row"><button class="btn danger" type="button" id="pr-ok">${ic("archive")}${esc(p.name)} beenden</button><button class="btn ghost" type="button" id="pr-cancel">Abbrechen</button></div>`
+      : `<p style="margin:0">${esc(p.name)} hat noch keinen Verlauf und keine ${unit}. Es wird gelöscht.</p><div class="row"><button class="btn danger" type="button" id="pr-ok">${ic("delete")}Löschen</button><button class="btn ghost" type="button" id="pr-cancel">Abbrechen</button></div>`);
+    if (!el) return;
+    const sumNew = () => [...el.querySelectorAll("[data-nsh]")].reduce((a, i) => a + (parseInt(i.value, 10) || 0), 0);
+    el.querySelectorAll("[data-nsh]").forEach((i) => (i.oninput = () => { const v = sumNew(), c = el.querySelector("#pr-sum"); c.innerHTML = v === 100 ? "100" : FS.lightChip("warn", `${v}`); }));
+    el.querySelector("#pr-cancel").onclick = FS.closePanel;
+    el.querySelector("#pr-ok").onclick = () => {
+      const snap = { products: [...D.products], shares: D.products.map((x) => x.share), former: [...D.formerProducts], tickets: D.tickets.map((t) => t.product), projs: D.projects.map((x) => [...x.products]), rule: S.rules[id] };
+      const to = el.querySelector("#pr-to")?.value ?? "", until = el.querySelector("#pr-until")?.value;
+      el.querySelectorAll("[data-nsh]").forEach((i) => { const x = FS.product(i.dataset.nsh), v = (parseInt(i.value, 10) || 0) / 100; if (v !== x.share) track(`Anteil ${x.name}`, `${Math.round(x.share * 100)} %`, `${Math.round(v * 100)} %`, "produkte.yaml"); x.share = v; });
+      open.forEach((t) => (t.product = to || null));
+      projs.forEach((x) => { x.products = x.products.filter((y) => y !== id); if (!x.products.length && to) x.products = [to]; });
+      D.products.splice(D.products.indexOf(p), 1);
+      if (hist) D.formerProducts.push({ ...p, until, rule: S.rules[id] });
+      delete S.rules[id]; if (S.ruleDraft.product === id) S.ruleDraft.product = D.products[0].id;
+      track(hist ? `Produkt beendet: ${p.name}` : `Produkt gelöscht: ${p.name}`, hist ? "aktiv" : "vorhanden", hist ? `bis ${until}` : "–", "produkte.yaml");
+      FS.closePanel(); FS.render();
+      FS.toast(`${p.name} ${hist ? `beendet nach ${until}` : "gelöscht"}.${open.length && trk !== "none" ? ` ${open.length} offene ${unit} ${to ? `an ${FS.product(to).name}` : "ohne Produkt"}.` : ""} Bis Speichern rückgängig.`, () => {
+        D.products.splice(0, D.products.length, ...snap.products); D.products.forEach((x, i) => (x.share = snap.shares[i])); D.formerProducts.splice(0, Infinity, ...snap.former);
+        D.tickets.forEach((t, i) => (t.product = snap.tickets[i])); D.projects.forEach((x, i) => (x.products = snap.projs[i])); S.rules[id] = snap.rule; FS.render(); });
+    };
+  }
   const prodRules = () => D.products.map((p) => ({ id: p.id, name: p.name, rule: S.rules[p.id] }));
   FS.view("products", {
     title: "Produkte",
@@ -172,9 +214,12 @@
           ${D.products.map((p) => { const r = S.rules[p.id]; return `<tr><td>${FS.productChip(p.id)}</td><td><select class="input" data-po="${p.id}" aria-label="PO ${esc(p.name)}">${D.pos.map((o) => `<option value="${o.id}" ${o.id === p.po ? "selected" : ""}>${esc(o.name)}</option>`).join("")}</select></td>
             <td class="num"><input class="input data" style="width:64px;text-align:right" data-share="${p.id}" value="${Math.round(p.share * 100)}" inputmode="numeric" aria-label="Anteil ${esc(p.name)} in Prozent"></td>
             ${rules ? `<td><span class="row" style="flex-wrap:nowrap"><span class="data small rule-txt">${esc(r)}</span> <button class="btn ghost icon" type="button" data-edit="${p.id}" aria-label="Regel bearbeiten" title="Regel bearbeiten">${ic("edit")}</button></span></td>` : ""}
-            ${trk === "none" ? "" : `<td class="num">${rules ? matches(r).length : D.tickets.filter((t) => t.product === p.id).length}</td>`}<td class="num">${FS.fmt(Math.round(p.share * fcOf("2026.22")))} Punkte</td><td>${calcBtn("def:" + p.id)}</td></tr>`; }).join("")}
+            ${trk === "none" ? "" : `<td class="num">${rules ? matches(r).length : D.tickets.filter((t) => t.product === p.id).length}</td>`}<td class="num">${FS.fmt(Math.round(p.share * fcOf("2026.22")))} Punkte</td><td><span class="row" style="flex-wrap:nowrap;gap:0">${calcBtn("def:" + p.id)}<button class="btn icon ghost" type="button" data-prm="${p.id}" ${D.products.length < 2 ? "disabled" : ""} aria-label="${esc(p.name)} entfernen" title="${D.products.length < 2 ? "Das einzige Produkt lässt sich nicht entfernen" : prodHasHistory(p.id) ? "Beenden (Verlauf bleibt)" : "Löschen"}">${ic(prodHasHistory(p.id) ? "archive" : "delete")}</button></span></td></tr>`; }).join("")}
           <tr class="sum"><td>Summe</td><td></td><td class="num">${sum}</td>${rules ? "<td></td>" : ""}${trk === "none" ? "" : `<td class="num">${rules ? FS.sum(D.products, (p) => matches(S.rules[p.id]).length) : D.tickets.filter((t) => t.product).length}</td>`}<td class="num">${FS.fmt(FS.sum(D.products, (p) => Math.round(p.share * fcOf("2026.22"))))} Punkte</td><td></td></tr></tbody></table></div>
-        <p class="small muted">Je PO: ${D.pos.map((o) => `${esc(o.name)} <span class="data">${Math.round(FS.sum(D.products.filter((p) => p.po === o.id), (p) => p.share) * 100)} %</span>`).join(", ")}. Der Anteil ist die Vorgabe, was im Sprint wirklich geplant und erledigt wird, steht in der Sprint-Tabelle. POs anlegen und umbenennen: <a href="#people">Personen und Abwesenheiten</a>.</p>
+        <p class="small muted">Je PO: ${D.pos.map((o) => `${esc(o.name)} <span class="data">${Math.round(FS.sum(D.products.filter((p) => p.po === o.id), (p) => p.share) * 100)} %</span>`).join(", ")}. Der Anteil ist die Vorgabe, was im Sprint wirklich geplant und erledigt wird, steht in der Sprint-Tabelle. POs anlegen und umbenennen: <a href="#people">Personen und Abwesenheiten</a>. Entfernen: Symbol am Ende der Zeile; Produkte mit Verlauf werden beendet, nicht gelöscht.</p>
+        ${D.formerProducts.length ? `<details class="card" id="pr-former" style="margin-top:16px"><summary style="cursor:pointer"><strong>Beendete Produkte</strong> <span class="muted small">${D.formerProducts.length}</span></summary>
+          <div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Produkt</th><th>Letzter Sprint</th><th></th></tr></thead><tbody>${D.formerProducts.map((x) => `<tr><td>${FS.productChip(x.id)}</td><td class="data">${x.until}</td><td><button class="btn" type="button" data-prback="${x.id}">${ic("unarchive")}Wieder aufnehmen</button></td></tr>`).join("")}</tbody></table></div>
+          <p class="small muted" style="margin:8px 0 0">Vergangene Sprints, Protokolle und der Forecast-Verlauf zeigen beendete Produkte weiter. Wieder aufgenommen startet ein Produkt mit 0 % Anteil.</p></details>` : ""}
         <div class="grid cols-2" style="margin-top:16px">
           ${rules ? "" : `<div class="card"><h2>${trk === "none" ? "Ohne Zuordnungsregeln" : "Produkt am Arbeitspaket"}</h2><p class="small muted" style="margin:0">${trk === "none" ? "Ohne Tickets gibt es nichts zuzuordnen. Der Anteil ist die Vorgabe für den Betrag je Produkt in Vorplanen und Planen; was davon an Projekte geht, teilst du dort von Hand auf." : "Ohne Tracker gibt es keine Felder wie Komponente oder Label. Beim Anlegen eines Arbeitspakets wählst du das Produkt, im Backlog änderst du es."}</p><p class="small muted" style="margin:8px 0 0">Ticketquelle ändern: <a href="#jira">Einstellungen, Tickets und Tracker</a></p></div>`}
           <div class="card" id="rule-ed" ${rules ? "" : "hidden"}><h2>Zuordnungsregel bearbeiten</h2>
@@ -191,6 +236,8 @@
     wire(main) {
       main.querySelectorAll("[data-po]").forEach((i) => (i.onchange = () => { const p = FS.product(i.dataset.po); track(`PO ${p.name}`, FS.po(p.po).name, FS.po(i.value).name, "produkte.yaml"); p.po = i.value; FS.render(); }));
       main.querySelectorAll("[data-share]").forEach((i) => (i.onchange = () => { const p = FS.product(i.dataset.share); const v = Math.max(0, Math.min(100, parseInt(i.value, 10) || 0)); track(`Anteil ${p.name}`, `${Math.round(p.share * 100)} %`, `${v} %`, "produkte.yaml"); p.share = v / 100; FS.render(); }));
+      main.querySelectorAll("[data-prm]").forEach((b) => (b.onclick = () => removeProductPanel(b.dataset.prm)));
+      main.querySelectorAll("[data-prback]").forEach((b) => (b.onclick = () => { const i = D.formerProducts.findIndex((x) => x.id === b.dataset.prback), x = D.formerProducts.splice(i, 1)[0]; S.rules[x.id] = x.rule || ""; delete x.until; delete x.rule; x.share = 0; D.products.push(x); track(`Produkt wieder aufgenommen: ${x.name}`, "beendet", "0 %", "produkte.yaml"); FS.render(); FS.toast(`${x.name} ist wieder aktiv, mit 0 % Anteil. Anteile oben anpassen.`); }));
       main.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => { S.ruleDraft = { product: b.dataset.edit }; FS.render(); main.querySelector("#rule-ed")?.scrollIntoView({ block: "nearest" }); }));
       const getRule = FS.wireRuleEditor(main.querySelector("#rule-ed"), prodRules());
       if (main.querySelector("#r-p")) main.querySelector("#r-p").onchange = (e) => { S.ruleDraft.product = e.target.value; FS.render(); };
