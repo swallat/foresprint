@@ -1,6 +1,6 @@
 # Foresprint 1.0: Plan und Vorgehen
 
-Entwurf vom 21.10.2026 zur Abstimmung mit Sebastian. Stand: Branch `v1` angelegt, Runde 1 der Grundlage läuft.
+Entwurf vom 21.10.2026 zur Abstimmung mit dem Maintainer. Stand: Branch `v1` angelegt, Runde 1 der Grundlage läuft.
 
 ## 1. Ziel und Rahmen
 
@@ -28,7 +28,7 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 
 ## 3. Phasen
 
-| Phase | Ergebnis | Dauer (Kalendertage, Schätzung) | Abnahme durch Sebastian |
+| Phase | Ergebnis | Dauer (Kalendertage, Schätzung) | Abnahme durch den Maintainer |
 | --- | --- | --- | --- |
 | 0 Organisation | Branch `v1`, Meilenstein `v1.0`, Issue-Vorlage, Labels, Aktion zum Schließen von Issues beim Merge nach `v1` | 0,5 | Vorlage und Ablauf ok |
 | 1 Grundlage | `PRODUCT.md`, `DESIGN.md`, Inventur der Seiten und Abläufe | 1 | Zielgruppe, Ton, Farben, Schrift |
@@ -36,10 +36,10 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 | 3 Übrige Bereiche | Start, Abwesenheiten, Team und Produkte, Jira-Anbindung und Sync-Status, Git-Teilen, Einstellungen | 1 bis 2 | Mocks und Abläufe |
 | 4 Spezifikation | Zusammenhängendes Dokument (Navigation, Abläufe, Zustände, Tastatur, Fehler), User Stories als Issues mit Akzeptanzkriterien, Architekturentscheidungen | 1 bis 2 | Freigabe der Spezifikation |
 | Spur T (parallel zu 1 bis 4) | Kern-Schnittstelle, Hintergrund-Abruf, Prototyp der Hülle mit Windows-Messung (Größe, Start, Ziehen) | 3 bis 4 | Windows-Test |
-| 5 Entwicklung | Meilensteine M1 Backlog, M2 Planung und Forecast, M3 übrige Bereiche, M4 Paketierung und Signatur, M5 Beta mit einem Pilotteam | 8 bis 12 | je Meilenstein ein Test durch Sebastian |
-| 6 Release 1.0 | Release-Notiz (Seiten-URLs, Plugin-Schnittstelle, Umbenennung), Tag durch Sebastian | 1 | Tag |
+| 5 Entwicklung | Meilensteine M1 Backlog, M2 Planung und Forecast, M3 übrige Bereiche, M4 Paketierung und Signatur, M5 Beta mit einem Pilotteam | 8 bis 12 | je Meilenstein ein Test durch den Maintainer |
+| 6 Release 1.0 | Release-Notiz (Seiten-URLs, Plugin-Schnittstelle, Umbenennung), Tag durch den Maintainer | 1 | Tag |
 
-Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der kritische Pfad ist die Abnahme durch Sebastian und der Windows-Test, nicht das Schreiben.
+Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der kritische Pfad ist die Abnahme durch den Maintainer und der Windows-Test, nicht das Schreiben.
 
 ## 4. Arbeitsweise
 
@@ -58,7 +58,7 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 | --- | --- |
 | Langer Branch driftet von `main` weg | Regelmäßiges Zusammenführen von `main` nach `v1`, neue Oberfläche in eigenen Ordnern, gemeinsamer Kern |
 | Zu viel Design vor dem ersten Test | Drei Kernabläufe in der Tiefe, der Rest leichter; Prototyp auf Windows früh |
-| Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf Sebastians Rechner; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
+| Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf dem Windows-Rechner des Maintainers; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
 | Portierung nach Go verändert Ergebnisse (Feiertage, Monte-Carlo-Zufall) | Vergleichstests gegen die Python-Ergebnisse auf echten Daten vor dem Umstieg |
 | Programm zu groß oder zu langsam beim Start | Messen im Wails-Prototyp unter Windows (Größe, Start bis nutzbar unter 3 s) |
 | Unsigniertes Programm wird blockiert | Frage 6 (Zertifikat) früh klären |
@@ -71,13 +71,13 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 3. Hülle und Kern: Wails mit vollständig nach Go portiertem Kern; Verteilung über GitHub-Releases; Plugins entfallen in 1.0.
 4. Jira-Rückschreiben: Reihenfolge nein. Label `planned_for_<sprint>` optional; Sprintzuordnung des geplanten Sprints als Team-Option (Standard aus, nur per Knopf mit Vorschau und Rückgängig, Entscheidung 21.10.2026, siehe flows.md Entscheidung 10).
 5. WebView2 unter Windows vorausgesetzt (bestätigt); macOS und Linux siehe Abschnitt 2.
-6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
+6. Code-Signing: der Maintainer klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
 9. Datenhaltung: Git bleibt in 1.0 der Speicher (Historie, Datenintegrität), mit allen Git-Abläufen inklusive erzwungener Merge Requests. Ein geteilter Ordner (Fileserver, SharePoint) kommt nach 1.0 über dieselbe Schnittstelle (`storage-interface.md`).
 
-10. Reihenfolge: Erst Mockups der Abläufe und Design festlegen (Abnahme durch Sebastian), parallel nur flow-unabhängige Kern-Portierung.
+10. Reihenfolge: Erst Mockups der Abläufe und Design festlegen (Abnahme durch den Maintainer), parallel nur flow-unabhängige Kern-Portierung.
 11. Sprachen: Deutsch und Englisch, weitere möglich, keine weiteren umgesetzt.
 12. Geführte Abläufe (22.10.2026): Die Schritt-für-Schritt-Abläufe der Mocks bleiben in 1.0 als Tutorial erhalten (Hilfe > Geführte Abläufe, auf dem Demo-Team, nie auf echten Daten). Siehe flows.md Entscheidung 13.
 
-Offen: GitHub-Projekt als Tafel anlegen (Sebastian).
+Offen: GitHub-Projekt als Tafel anlegen (Maintainer).
