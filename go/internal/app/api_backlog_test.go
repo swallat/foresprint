@@ -216,3 +216,38 @@ func TestNoTicketsTeamHasEmptyBacklog(t *testing.T) {
 		t.Errorf("%+v", view)
 	}
 }
+
+func TestMoveWorkPackage(t *testing.T) {
+	api := packagesTeam(t)
+	for _, title := range []string{"A", "B", "C"} {
+		if _, err := api.SaveWorkPackage("t", WorkPackageInput{Title: title, Product: "web"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keys := func() string {
+		view, err := api.Backlog("t")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, tk := range view.Tickets {
+			out = append(out, tk.Key)
+		}
+		return strings.Join(out, ",")
+	}
+	if err := api.MoveWorkPackage("t", "AP-3", "AP-1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "AP-2,AP-3,AP-1" {
+		t.Fatalf("order %s", got)
+	}
+	if err := api.MoveWorkPackage("t", "AP-3", ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "AP-2,AP-1,AP-3" {
+		t.Fatalf("order %s", got)
+	}
+	if err := api.MoveWorkPackage("t", "AP-1", "AP-9"); err == nil {
+		t.Error("an unknown neighbour should be refused")
+	}
+}

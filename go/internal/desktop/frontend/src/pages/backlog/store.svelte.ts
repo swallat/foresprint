@@ -74,6 +74,17 @@ export async function changed(): Promise<void> {
   await Promise.all([loadBacklog(), refreshStatus()]);
 }
 
+/** Puts a work package before another one in the backlog order (before "" = to the end). */
+export async function reorder(key: string, before: string): Promise<void> {
+  try {
+    await api.MoveWorkPackage(app.team, key, before);
+  } catch (e) {
+    toast(String(e), 'bad');
+    return;
+  }
+  await changed();
+}
+
 /** Every ticket the view knows, wherever it sits. */
 export function allTickets(view: BacklogView | undefined): BacklogTicket[] {
   if (!view) return [];

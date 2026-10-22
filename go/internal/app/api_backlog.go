@@ -891,3 +891,65 @@ func (a *API) DeleteWorkPackage(team, key string) error {
 		return backlogSaveBoth(repo, team, data), nil
 	})
 }
+
+// MoveWorkPackage puts a work package before another one in the backlog order (before ""
+// means to the end). The rank decides only among packages of the same priority and project, so
+// a move across them is refused instead of silently doing nothing. A tracker keeps its own
+// order, which Foresprint never writes back.
+func (a *API) MoveWorkPackage(team, key, before string) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if !a.writePackages(data) {
+			return nil, fmt.Errorf("%s", i18n.T("The order of tracker tickets is kept in the tracker."))
+		}
+		if before == key {
+			return func() error { return nil }, nil
+		}
+		ordered, leftover := preplan.OrderTickets(data)
+		var keys []string
+		for _, o := range append(ordered, leftover...) {
+			if o.Key != key {
+				keys = append(keys, o.Key)
+			}
+		}
+		at := len(keys)
+		if before != "" {
+			at = -1
+			for i, k := range keys {
+				if k == before {
+					at = i
+				}
+			}
+			if at < 0 {
+				return nil, fmt.Errorf("%s", i18n.T("{key} is not in the backlog.", "key", before))
+			}
+		}
+		keys = append(keys[:at], append([]string{key}, keys[at:]...)...)
+		old := map[string]*string{}
+		for i := range data.Tickets {
+			old[data.Tickets[i].Key] = data.Tickets[i].Rank
+		}
+		for n, k := range keys {
+			r := fmt.Sprintf("%08d", (n+1)*10)
+			if t := data.TicketByKey(k); t != nil {
+				t.Rank = &r
+			}
+		}
+		// The new order must show: otherwise priority or project keeps the package where it is.
+		after, rest := preplan.OrderTickets(data)
+		var got []string
+		for _, o := range append(after, rest...) {
+			got = append(got, o.Key)
+		}
+		for i := range got {
+			if got[i] == key {
+				if (before == "" && i != len(got)-1) || (before != "" && (i+1 >= len(got) || got[i+1] != before)) {
+					for j := range data.Tickets {
+						data.Tickets[j].Rank = old[data.Tickets[j].Key]
+					}
+					return nil, fmt.Errorf("%s", i18n.T("{key} has another priority or project than its neighbour. Change that in the panel first.", "key", key))
+				}
+			}
+		}
+		return backlogSavePackages(repo, team, data), nil
+	})
+}

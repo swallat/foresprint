@@ -11,7 +11,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -131,6 +131,36 @@
     const next = neighbour(laneIds, tk.earmark, by);
     if (next === undefined) return;
     await earmark([tk.key], next);
+    document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
+  }
+
+  // Reordering: only work packages (a tracker keeps its own order), in the planning order, ungrouped.
+  const canReorder = $derived(packages && ui.sort === 'order' && ui.group === 'none');
+  let overRow = $state('');
+  function rowOver(e: DragEvent, tk: BacklogTicket): void {
+    if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key || !items.some((i) => i.key === dragKeys[0])) return;
+    e.preventDefault();
+    e.stopPropagation();
+    overRow = tk.key;
+  }
+  async function rowDrop(e: DragEvent, tk: BacklogTicket): Promise<void> {
+    if (overRow !== tk.key) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const key = dragKeys[0] ?? '';
+    dragEnd();
+    overRow = '';
+    await reorder(key, tk.key);
+  }
+  async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
+    if (!canReorder || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    const i = items.findIndex((x) => x.key === tk.key);
+    if (i < 0) return;
+    e.preventDefault();
+    const target = e.key === 'ArrowUp' ? items[i - 1] : items[i + 2];
+    if (e.key === 'ArrowUp' && !target) return;
+    if (e.key === 'ArrowDown' && !items[i + 1]) return;
+    await reorder(tk.key, target?.key ?? '');
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
 
@@ -307,7 +337,7 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -444,6 +474,8 @@
 
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
   {#if view}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="slot" class:over={overRow === tk.key} ondragover={(e) => rowOver(e, tk)} ondragleave={() => { if (overRow === tk.key) overRow = ''; }} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
     <TicketRow
       ticket={tk}
       {view}
@@ -458,10 +490,14 @@
       ondragend={dragEnd}
       onstep={(by) => step(tk, by)}
     />
+    </div>
   {/if}
 {/snippet}
 
 <style>
+  .slot.over {
+    box-shadow: 0 -2px 0 0 var(--primary);
+  }
   .board {
     display: grid;
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);

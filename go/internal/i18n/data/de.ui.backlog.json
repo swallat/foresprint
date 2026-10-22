@@ -2,16 +2,17 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
-  "Open points": "Offene Punkte",
-  "Sort by": "Sortieren nach",
-  "Planning order": "Planungsreihenfolge",
-  "Largest first": "Größte zuerst",
-  "Smallest first": "Kleinste zuerst",
-  "Key": "Schlüssel",
   "Delete view “{name}”": "Ansicht „{name}“ löschen",
+  "Key": "Schlüssel",
+  "Largest first": "Größte zuerst",
   "Name of the view": "Name der Ansicht",
-  "Save view": "Ansicht speichern",
+  "Open points": "Offene Punkte",
+  "Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.": "Reihenfolge: Priorität, dann Projekt, dann Rang. Ein Paket auf ein anderes ziehen setzt es davor, oder Alt+Pfeil hoch bzw. runter. Alt+Pfeil rechts merkt für den nächsten Sprint vor.",
+  "Planning order": "Planungsreihenfolge",
   "Save as view…": "Als Ansicht speichern …",
+  "Save view": "Ansicht speichern",
+  "Smallest first": "Kleinste zuerst",
+  "Sort by": "Sortieren nach",
   "Sorted by your choice. Choose the planning order to see the list as planned.": "Nach deiner Wahl sortiert. Wähle die Planungsreihenfolge, um die Liste wie geplant zu sehen."
  }
 }

@@ -134,4 +134,6 @@ export interface BacklogApi {
   SetProduction(team: string, key: string, percent: number | null): Promise<void>;
   SaveWorkPackage(team: string, input: WorkPackageInput): Promise<string>;
   DeleteWorkPackage(team: string, key: string): Promise<void>;
+  /** Puts a work package before another one (before "" = to the end). */
+  MoveWorkPackage(team: string, key: string, before: string): Promise<void>;
 }
