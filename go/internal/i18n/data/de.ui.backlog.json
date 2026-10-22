@@ -1,5 +1,17 @@
 {
  "code": "de",
  "name": "Deutsch",
- "texts": {}
+ "texts": {
+  "Open points": "Offene Punkte",
+  "Sort by": "Sortieren nach",
+  "Planning order": "Planungsreihenfolge",
+  "Largest first": "Größte zuerst",
+  "Smallest first": "Kleinste zuerst",
+  "Key": "Schlüssel",
+  "Delete view “{name}”": "Ansicht „{name}“ löschen",
+  "Name of the view": "Name der Ansicht",
+  "Save view": "Ansicht speichern",
+  "Save as view…": "Als Ansicht speichern …",
+  "Sorted by your choice. Choose the planning order to see the list as planned.": "Nach deiner Wahl sortiert. Wähle die Planungsreihenfolge, um die Liste wie geplant zu sehen."
+ }
 }
