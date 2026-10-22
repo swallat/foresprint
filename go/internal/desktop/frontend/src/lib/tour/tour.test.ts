@@ -21,6 +21,13 @@ describe('flows', () => {
       for (const s of f.steps) expect(pages.some((p) => match(p.path, s.route) !== undefined), `${f.id} ${s.route}`).toBe(true);
     }
   });
+  it('keep a walk-through for a team without a tracker', () => {
+    for (const f of flows) {
+      const rest = f.withoutTracker ?? f.steps.filter((s) => !s.trackerOnly);
+      expect(rest.length, f.id).toBeGreaterThan(0);
+      for (const s of rest) expect(pages.some((p) => match(p.path, s.route) !== undefined), `${f.id} ${s.route}`).toBe(true);
+    }
+  });
   it('mark elements by data-tour name', () => {
     for (const f of flows) {
       for (const s of f.steps) if (s.target) expect(s.target, f.id).toMatch(/^\[data-tour="[a-z0-9-]+"\]$/);
