@@ -10,6 +10,7 @@
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
   import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
   import AbsencePanel from './AbsencePanel.svelte';
+  import OwnersCard from './OwnersCard.svelte';
   import TimesPanel from './TimesPanel.svelte';
 
   let { params }: PageProps = $props();
@@ -248,6 +249,8 @@
     <p class="small muted">{t('The production access column appears when the feature is switched on in Settings, Team.')}</p>
   {/if}
 {/if}
+
+<OwnersCard onchange={load} />
 
 {#if view && panel}
   {@const person = view.people.find((p) => p.id === panel!.id)}

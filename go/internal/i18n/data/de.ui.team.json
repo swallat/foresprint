@@ -2,15 +2,30 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "Add PO": "PO hinzufügen",
+  "Each product has a PO. POs are not part of the capacity unless you mark them as working in the team with a share.": "Jedes Produkt hat einen PO. POs zählen nicht zur Kapazität, solange sie nicht mit einem Anteil als im Team arbeitend markiert sind.",
   "Fields": "Felder",
+  "Name of PO {name}": "Name des POs {name}",
+  "Name of the new PO": "Name des neuen POs",
+  "No PO yet. Add the first one.": "Noch kein PO. Füge den ersten hinzu.",
   "One ticket matches ({points} points).": "Ein Ticket passt ({points} Punkte).",
   "Operators": "Operatoren",
+  "Remove PO": "PO entfernen",
+  "Remove PO {name}": "PO {name} entfernen",
   "Rule for {name}": "Regel für {name}",
   "Rule is not complete": "Regel ist noch unvollständig",
+  "Say who takes over each product of {name}. The PO then no longer exists; minutes and history keep the name.": "Sage, wer die Produkte von {name} übernimmt. Der PO existiert danach nicht mehr; Protokolle und Verlauf behalten den Namen.",
+  "Share of {name}": "Anteil von {name}",
+  "Works in the team": "Arbeitet im Team",
   "and {count} more": "und {count} weitere",
   "at position {pos}": "an Stelle {pos}",
   "{count} also match another rule": "{count} passen auch auf eine andere Regel",
   "{count} tickets match ({points} points), {moved} of them are assigned differently today.": "{count} Tickets passen ({points} Punkte), {moved} davon sind heute anders zugeordnet.",
-  "{count} tickets match ({points} points).": "{count} Tickets passen ({points} Punkte)."
+  "{count} tickets match ({points} points).": "{count} Tickets passen ({points} Punkte).",
+  "{name} added as PO.": "{name} als PO hinzugefügt.",
+  "{name} no longer works in the team.": "{name} arbeitet nicht mehr im Team.",
+  "{name} now works in the team.": "{name} arbeitet jetzt im Team.",
+  "{name} removed as PO.": "{name} als PO entfernt.",
+  "{name} works in the team": "{name} arbeitet im Team"
  }
 }
