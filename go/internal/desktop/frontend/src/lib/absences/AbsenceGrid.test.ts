@@ -1,4 +1,4 @@
-import { flushSync, mount, tick, unmount } from 'svelte';
+import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AbsenceGrid from './AbsenceGrid.svelte';
 import { days, parseDays } from './format';
@@ -66,6 +66,19 @@ describe('AbsenceGrid', () => {
 
   it('freezing confirms the sprint and shows the frozen state', async () => {
     await open();
+    const freeze = host.querySelector<HTMLButtonElement>('tbody tr:last-child button')!;
+    freeze.click();
+    await settle();
+    expect(host.querySelector('.frozen')).not.toBeNull();
+    expect(host.querySelector('th .chip.ok')).not.toBeNull();
+  });
+
+  it('applies typing and a freeze right after it in that order', async () => {
+    await open();
+    const cell = inputs().find((i) => i.value === '' && !i.disabled)!;
+    const column = cell.dataset.absCol!;
+    cell.value = '3';
+    cell.dispatchEvent(new Event('change', { bubbles: true }));
     const idx = [...host.querySelectorAll('thead th.sc')].findIndex((th) => th.textContent!.includes(column));
     host.querySelectorAll<HTMLButtonElement>('tbody tr:last-child button')[idx]!.click();
     await settle();
