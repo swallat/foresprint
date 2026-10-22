@@ -9,10 +9,11 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { BacklogTicket } from '../../lib/types.backlog';
+  import { fmt } from '../../lib/format';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, saveCustomView, store, t, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, store, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -126,7 +127,24 @@
     e.preventDefault();
     const keys = dragKeys;
     dragEnd();
-    await earmark(keys, sprint);
+    await sendTo(keys, sprint);
+  }
+  async function dropPro(e: DragEvent, name: string): Promise<void> {
+    e.preventDefault();
+    const keys = dragKeys;
+    dragEnd();
+    await toProForma(keys.filter((k) => !fixedKeys.has(k)), name);
+  }
+  // Tickets out of a pro-forma sprint go back to the backlog or into a sprint lane.
+  const fixedKeys = $derived(new Set(allTickets(view).filter((tk) => tk.fixed).map((tk) => tk.key)));
+  const proKeys = $derived(new Set((view?.proForma ?? []).flatMap((p) => p.tickets.map((tk) => tk.key))));
+  async function sendTo(keys: string[], sprint: string): Promise<void> {
+    const fromPro = sprint === '' ? keys.filter((k) => proKeys.has(k)) : [];
+    if (fromPro.length === 0) return earmark(keys, sprint);
+    // One notice for the whole move: the earmark (if any) is taken away with it.
+    const earmarked = keys.some((k) => allTickets(view).find((tk) => tk.key === k)?.earmark);
+    await toProForma(fromPro, '', earmarked);
+    if (earmarked) await earmark(keys, '');
   }
   async function step(tk: BacklogTicket, by: -1 | 1): Promise<void> {
     if (tk.fixed) return;
@@ -136,8 +154,8 @@
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
 
-  // Reordering: only work packages (a tracker keeps its own order), in the planning order, ungrouped.
-  const canReorder = $derived(packages && ui.sort === 'order' && ui.group === 'none');
+  // Reordering: in the planning order, ungrouped. A tracker's own rank stays; the order is kept beside it.
+  const canReorder = $derived(view?.source !== 'none' && ui.sort === 'order' && ui.group === 'none');
   let overRow = $state('');
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
     if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
@@ -247,6 +265,21 @@
       </Banner>
     {/if}
 
+    {#if view.adjust.length}
+      <Banner tone="info">
+        <strong>{t('Adjust in the tracker: the pro-forma sprint differs for {count} tickets.', { count: view.adjust.length })}</strong>
+        <ul class="adjust">
+          {#each view.adjust as a (a.key)}
+            <li>
+              {#if a.url}<a href={a.url} target="_blank" rel="noreferrer" class="data">{a.key}</a>{:else}<span class="data">{a.key}</span>{/if}
+              {a.title}:
+              {a.from || t('Backlog')} → {a.to || t('Backlog')}
+            </li>
+          {/each}
+        </ul>
+      </Banner>
+    {/if}
+
     {#if view.cycles.length}
       <Banner tone="warn">{t('Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.')}</Banner>
     {/if}
@@ -332,7 +365,10 @@
               {#each lanes as l (l.sprint)}
                 <button class="btn" type="button" role="menuitem" onclick={() => earmark([...ui.selection], l.sprint)}><Icon name="event" />{t('Sprint {id}', { id: l.sprint })}</button>
               {/each}
-              <button class="btn" type="button" role="menuitem" onclick={() => earmark([...ui.selection], '')}><Icon name="undo" />{t('Back to the backlog')}</button>
+              {#each view.source === 'tracker' ? view.proForma : [] as pf (pf.name)}
+                <button class="btn" type="button" role="menuitem" onclick={() => toProForma(ui.selection.filter((k) => !fixedKeys.has(k)), pf.name)}><Icon name="inventory_2" />{pf.name}</button>
+              {/each}
+              <button class="btn" type="button" role="menuitem" onclick={() => sendTo([...ui.selection], '')}><Icon name="undo" />{t('Back to the backlog')}</button>
             </span>
           {/if}
         </div>
@@ -353,15 +389,18 @@
             <div class="row">
               <strong>{t('Backlog')}</strong>
               <span class="chip data">{items.length}</span>
-              <span class="muted small data">{sum(items)} {unit}</span>
+              <span class="muted small data">{fmt(sum(items))} {unit}</span>
               <Calc label={t('Backlog')} topic="backlog-sum">
                 <span class="data">{t('{count} tickets in the list', { count: items.length })}</span><br />
-                <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: sum(items), unit })}</span><br />
+                <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: fmt(sum(items)), unit })}</span><br />
                 <span class="data">{t('Without estimate (count 0): {count}', { count: items.filter((tk) => tk.size == null).length })}</span><br />
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            {#if view.ownOrder}
+              <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
+            {/if}
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -378,7 +417,7 @@
                 <div class="gh">
                   {#if s.kind === 'product'}<span class="dot"></span>{:else}<Icon name={s.id ? 'flag' : 'inventory_2'} size={16} />{/if}
                   {s.name || (s.kind === 'project' ? t('Daily business') : t('No product'))}
-                  <span class="muted data count">{sum(s.items)} {unit}, {s.items.length}</span>
+                  <span class="muted data count">{fmt(sum(s.items))} {unit}, {s.items.length}</span>
                 </div>
                 {#each s.items as tk (tk.key)}
                   {@render row(tk, s.kind !== 'product', s.kind !== 'project')}
@@ -396,7 +435,7 @@
         {#each view.proForma as pf (pf.name)}
           {@const open = ui.open[pf.name] ?? false}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane">
+          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={() => (overZone = '')} ondrop={(e) => dropPro(e, pf.name)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={open} aria-label={open ? t('Collapse') : t('Expand')} onclick={() => (ui.open[pf.name] = !open)}>
@@ -405,7 +444,7 @@
                 <strong>{pf.name}</strong>
                 <span class="chip"><Icon name="inventory_2" size={14} />{t('Pro forma')}</span>
                 <span class="chip data">{pf.tickets.length}</span>
-                <span class="muted small data">{sprintTotal(pf.tickets)} {unit}</span>
+                <span class="muted small data">{fmt(sprintTotal(pf.tickets))} {unit}</span>
               </div>
               <span class="small muted">{t('Not a real sprint: it never counts for capacity or forecast.')}</span>
             </div>
@@ -447,21 +486,21 @@
                 {/if}
                 <a class="small" href={link('/sprint/preplan')}>{t('Pre-plan')}</a>
               </div>
-              <div class="cap" role="img" aria-label={l.plan != null ? t('{used} of {plan} {unit}', { used, plan: l.plan, unit }) : t('{used} {unit}', { used, unit })}>
+              <div class="cap" role="img" aria-label={l.plan != null ? t('{used} of {plan} {unit}', { used: fmt(used), plan: fmt(l.plan), unit }) : t('{used} {unit}', { used: fmt(used), unit })}>
                 <div class="used" class:over style:width={`${l.plan ? Math.min(100, (used / l.plan) * 100) : 0}%`}></div>
               </div>
               <div class="row small">
                 {#if l.plan != null}
-                  <span class="data"><strong>{used}</strong> {t('earmarked, Forecast PLAN {plan}', { plan: l.plan })}</span>
+                  <span class="data"><strong>{fmt(used)}</strong> {t('earmarked, Forecast PLAN {plan}', { plan: fmt(l.plan) })}</span>
                 {:else}
-                  <span class="data"><strong>{used}</strong> {t('earmarked, no forecast yet')}</span>
+                  <span class="data"><strong>{fmt(used)}</strong> {t('earmarked, no forecast yet')}</span>
                 {/if}
                 <Calc label={t('Earmarked in {sprint}', { sprint: l.sprint })} topic="earmarked-sum">
-                  <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: used, unit })}</span><br />
+                  <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: fmt(used), unit })}</span><br />
                   <span class="data">{t('Without estimate (count 0): {count}', { count: l.tickets.filter((tk) => tk.size == null).length })}</span><br />
                   {#if l.plan != null}
-                    <span class="data">{t('Forecast PLAN of the sprint: {plan} {unit}', { plan: l.plan, unit })}</span><br />
-                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: Math.round((l.plan - used) * 10) / 10, unit })}</span>
+                    <span class="data">{t('Forecast PLAN of the sprint: {plan} {unit}', { plan: fmt(l.plan), unit })}</span><br />
+                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: fmt(l.plan - used), unit })}</span>
                   {:else}
                     <span class="data">{t('No Forecast PLAN yet for this sprint.')}</span>
                   {/if}
@@ -469,7 +508,7 @@
                 </Calc>
               </div>
               {#if over}
-                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}. This is a warning, not a stop.', { used, plan: l.plan ?? 0 })}</div></div>
+                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}. This is a warning, not a stop.', { used: fmt(used), plan: fmt(l.plan ?? 0) })}</div></div>
               {/if}
               {#if l.tickets.some((tk) => !tk.refined || tk.size == null)}
                 <div class="row small muted">
@@ -536,6 +575,10 @@
   }
   .gap {
     margin-left: 8px;
+  }
+  .adjust {
+    margin: var(--space-1, 4px) 0 0;
+    padding-left: 1.25rem;
   }
   .sync {
     display: flex;
