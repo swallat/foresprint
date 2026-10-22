@@ -3,9 +3,9 @@ package app
 // ProductDTO is a product of the team. PO is the PO reference as stored: the id of a PO of the
 // team, or in a file from 0.8 the plain name.
 type ProductDTO struct {
-	ID    string `json:"id"` // "" for a new product
-	Name  string `json:"name"`
-	PO    string `json:"po"`
+	ID   string `json:"id"` // "" for a new product
+	Name string `json:"name"`
+	PO   string `json:"po"`
 	// Share is the agreed share of the sprint (0 to 1); nil = the remainder is split evenly.
 	Share *float64 `json:"share"`
 	// Rule is the assignment rule in text form ("" = none).

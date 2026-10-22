@@ -19,6 +19,19 @@
   "The periods of {name} overlap.": "Die Zeiträume von {name} überschneiden sich.",
   "Unknown person '{id}'.": "Unbekannte Person '{id}'.",
   "The last day of an absence lies before its first day.": "Der letzte Tag einer Abwesenheit liegt vor dem ersten.",
-  "Two absences of the same person overlap.": "Zwei Abwesenheiten derselben Person überschneiden sich."
+  "Two absences of the same person overlap.": "Zwei Abwesenheiten derselben Person überschneiden sich.",
+  "Every product needs a name.": "Jedes Produkt braucht einen Namen.",
+  "Give every remaining product a share between 0 and 100 percent.": "Gib jedem verbleibenden Produkt einen Anteil zwischen 0 und 100 Prozent.",
+  "Say who takes over {name}.": "Sag, wer {name} übernimmt.",
+  "The last day of {name} lies before its first day.": "Der letzte Tag von {name} liegt vor dem ersten.",
+  "The only PO cannot be removed.": "Der einzige PO lässt sich nicht entfernen.",
+  "The only product cannot be ended.": "Das einzige Produkt lässt sich nicht beenden.",
+  "The rule of {name} is not valid: {problem}": "Die Regel von {name} ist nicht gültig: {problem}",
+  "The share of {name} must be between 0 and 100 percent.": "Der Anteil von {name} muss zwischen 0 und 100 Prozent liegen.",
+  "The shares add up to {sum} percent, not 100.": "Die Anteile ergeben {sum} Prozent, nicht 100.",
+  "This change can no longer be undone.": "Diese Änderung lässt sich nicht mehr rückgängig machen.",
+  "Unknown PO '{id}'.": "Unbekannter PO '{id}'.",
+  "Unknown product '{id}'.": "Unbekanntes Produkt '{id}'.",
+  "{name} has history and cannot be deleted. End it instead.": "{name} hat einen Verlauf und lässt sich nicht löschen. Beende es stattdessen."
  }
 }

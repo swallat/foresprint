@@ -1,11 +1,10 @@
 package app
 
 import (
-	"time"
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+	"time"
 
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
@@ -255,7 +254,6 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 
 	repo := storage.NewRepository(a.DataDir())
 	token := a.remember(team, a.teamFile(team, "products.yaml"), a.teamFile(team, storage.TicketFileName(data.Team)), a.teamFile(team, "projects.yaml"))
-	today := a.day()
 	moved := 0
 	ended := data.Products[idx]
 	switch data.Team.Source() {
@@ -304,7 +302,6 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 	for _, i := range rest {
 		data.Products[i].Share = model.Ptr(shares[data.Products[i].ID])
 	}
-	_ = today
 	if _, err := repo.SaveProducts(team, data.Products); err != nil {
 		return EndResult{}, err
 	}
@@ -350,14 +347,4 @@ func (a *API) ResumeProduct(team, id string) (Step, error) {
 		return Step{View: a.productsView(data), Undo: token}, nil
 	}
 	return Step{}, errors.New(i18n.T("Unknown product '{id}'.", "id", id))
-}
-
-// sortedKeys is used by tests to compare maps.
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }
