@@ -1,8 +1,11 @@
 package app
 
 import (
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -72,5 +75,41 @@ func TestRouteOf(t *testing.T) {
 		if got := routeOf(where); got != want {
 			t.Errorf("routeOf(%q) = %q, want %q", where, got, want)
 		}
+	}
+}
+
+func TestTodayFindsProjectAtRiskAndTicketsWithoutEstimate(t *testing.T) {
+	api, team := projectDir(t, true)
+	total, used := 40.0, 36.0
+	if _, err := api.SaveProject(team, ProjectInput{Name: "Self-Service", Products: []string{"portal"}, End: "2027-01-29", Booked: &total, Used: &used}); err != nil {
+		t.Fatal(err)
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := storage.TicketsFile{Tickets: append(data.Tickets, model.Ticket{Key: "T-9", Title: "Unknown", Rank: model.Ptr("z")})}
+	if _, err := repo.SaveTickets(team, f); err != nil {
+		t.Fatal(err)
+	}
+	today, err := api.todayAt(team, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var project, tickets string
+	for _, fi := range today.Findings {
+		switch fi.Route {
+		case "/projects":
+			project = fi.Message
+		case "/backlog":
+			tickets = fi.Message
+		}
+	}
+	if !strings.Contains(project, "Self-Service") || !strings.Contains(project, "4.0 of 40.0 PD") {
+		t.Errorf("project finding = %q", project)
+	}
+	if tickets != "1 open ticket has no estimate." {
+		t.Errorf("ticket finding = %q", tickets)
 	}
 }

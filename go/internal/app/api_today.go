@@ -7,6 +7,9 @@ import (
 
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
+	"github.com/swallat/foresprint/internal/preplan"
+	"github.com/swallat/foresprint/internal/report"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 )
@@ -112,7 +115,66 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 			out.Findings = append(out.Findings, TodayFinding{Level: level, Where: is.Where, Message: is.Message, Route: routeOf(is.Where)})
 		}
 	}
+	for _, f := range todayExtraFindings(data, day) {
+		out.Notices++
+		if len(out.Findings) < MaxFindings {
+			out.Findings = append(out.Findings, f)
+		}
+	}
 	return out, nil
+}
+
+// todayExtraFindings are the notices the start page adds to the data check: projects at risk (with
+// their contingent) and open tickets without an estimate. They are about the planning, not
+// about the files, so the validation does not know them.
+func todayExtraFindings(data *storage.TeamData, day time.Time) []TodayFinding {
+	var out []TodayFinding
+	if data.Team.Features.Projects {
+		c := buildProjectCtx(data, day)
+		for _, p := range data.Projects {
+			if p.Closed() {
+				continue
+			}
+			v := c.projectView(p)
+			var parts []string
+			if v.Light == "warn" || v.Light == "bad" {
+				if v.Reason != "" {
+					parts = append(parts, v.Reason)
+				} else {
+					parts = append(parts, i18n.T("a milestone is late"))
+				}
+			}
+			if v.Booked != nil && v.Remaining != nil {
+				switch v.UsedStatus {
+				case string(planning.StatusOver):
+					parts = append(parts, i18n.T("the contingent is used up ({used} of {booked} PD)", "used", report.FmtValue(*v.Used, 1), "booked", report.FmtValue(*v.Booked, 1)))
+				case string(planning.StatusTight):
+					parts = append(parts, i18n.T("the contingent is nearly used up ({remaining} of {booked} PD left)", "remaining", report.FmtValue(*v.Remaining, 1), "booked", report.FmtValue(*v.Booked, 1)))
+				}
+			}
+			if len(parts) > 0 {
+				out = append(out, TodayFinding{
+					Level: "notice", Where: "projects.yaml: " + p.ID, Route: "/projects",
+					Message: i18n.T("Project {name} is at risk: {why}.", "name", p.Name, "why", strings.Join(parts, "; ")),
+				})
+			}
+		}
+	}
+	if data.Team.Features.Tickets {
+		missing := 0
+		for _, t := range data.Tickets {
+			if size, _ := preplan.TicketSize(t, data, 1); !t.Done && size == nil {
+				missing++
+			}
+		}
+		switch {
+		case missing == 1:
+			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Message: i18n.T("1 open ticket has no estimate.")})
+		case missing > 1:
+			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Message: i18n.T("{count} open tickets have no estimate.", "count", missing)})
+		}
+	}
+	return out
 }
 
 func sourceOf(t model.Team) string {
