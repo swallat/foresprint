@@ -19,7 +19,7 @@
   const estimated = $derived(view.unit === 'SP');
   const productName = (id: string) => view.products.find((p) => p.id === id)?.name ?? id;
   const lightText = (l: string) => (l === 'ok' ? t('on track') : l === 'warn' ? t('tight') : l === 'bad' ? t('at risk') : t('no light'));
-  const hasNote = $derived(view.conflict.some((r) => r.light !== 'ok'));
+  const hasConflict = $derived(view.conflict.some((r) => r.light !== 'ok'));
   const fitOf = (id: string) => view.fit.find((f) => f.project === id);
   const fitted = $derived(view.projects.filter((p) => fitOf(p.id)));
 
@@ -121,15 +121,17 @@
     </div>
   {/if}
 
-  <Banner>
-    <strong>{t('The PO decides.')}</strong>
-    {t('Foresprint changes nothing here. Ways out: move work to a later sprint, accept the risk, or talk to the project lead.')}
-    {#snippet action()}
-      <a class="btn" href={link('/sprint/preplan')}><Icon name="event_repeat" />{t('Move tickets')}</a>
-      <button class="btn" type="button" disabled={!hasNote} onclick={() => void copy('accept')}><Icon name="warning" />{t('Accept the risk')}</button>
-      <button class="btn" type="button" disabled={!hasNote} onclick={() => void copy('talk')}><Icon name="forum" />{t('Talk to the project lead')}</button>
-    {/snippet}
-  </Banner>
+  {#if hasConflict}
+    <Banner>
+      <strong>{t('The PO decides.')}</strong>
+      {t('Foresprint changes nothing here. Ways out: move work to a later sprint, accept the risk, or talk to the project lead.')}
+      {#snippet action()}
+        <a class="btn" href={link('/sprint/preplan')}><Icon name="event_repeat" />{t('Move tickets')}</a>
+        <button class="btn" type="button" onclick={() => void copy('accept')}><Icon name="warning" />{t('Accept the risk')}</button>
+        <button class="btn" type="button" onclick={() => void copy('talk')}><Icon name="forum" />{t('Talk to the project lead')}</button>
+      {/snippet}
+    </Banner>
+  {/if}
 </section>
 
 <style>
