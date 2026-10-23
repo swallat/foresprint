@@ -444,22 +444,26 @@ func (c *projectCtx) view() ProjectsView {
 			v.Projects = append(v.Projects, c.projectView(p))
 		}
 	}
-	v.ConflictSprint, v.Conflict = c.conflict()
+	v.ConflictSprint, v.Conflict, v.Daily = c.conflict()
+	v.DailyDoneSprint = c.currentSprint()
+	v.Fit = c.fit(v.Projects)
 	return v
 }
 
 // conflict is the demand of the projects in the next sprint against the budget of each product
-// (a recommendation; the PO decides).
-func (c *projectCtx) conflict() (string, []ConflictRow) {
+// (a recommendation; the PO decides), and the daily business of each product beside it.
+func (c *projectCtx) conflict() (string, []ConflictRow, []DailyRow) {
 	if c.dist == nil || len(c.dist.Sprints) == 0 {
-		return "", []ConflictRow{}
+		return "", []ConflictRow{}, []DailyRow{}
 	}
 	sprint := c.dist.Sprints[0]
 	rows := []ConflictRow{}
+	daily := []DailyRow{}
 	products := c.data.Products
 	if !c.data.Team.Features.Products || len(products) == 0 {
 		products = []model.Product{{ID: "", Name: c.data.Team.Name}}
 	}
+	current := c.currentSprint()
 	for _, pr := range products {
 		var key *string
 		if pr.ID != "" {
@@ -472,8 +476,13 @@ func (c *projectCtx) conflict() (string, []ConflictRow) {
 		}
 		row := ConflictRow{Product: pr.ID, Budget: round1(b.Base), Demand: []DemandCell{}}
 		byProject := map[string]float64{}
+		dailyPlanned := 0.0
 		for _, pl := range c.dist.InSprint(sprint) {
-			if pl.Project == nil || pl.Size == nil || !samePtr(pl.Product, key) {
+			if pl.Size == nil || !samePtr(pl.Product, key) {
+				continue
+			}
+			if pl.Project == nil {
+				dailyPlanned += *pl.Size
 				continue
 			}
 			byProject[*pl.Project] += *pl.Size
@@ -494,9 +503,125 @@ func (c *projectCtx) conflict() (string, []ConflictRow) {
 		default:
 			row.Light = "ok"
 		}
+		row.Suggest = c.suggest(sprint, key, row.Light)
 		rows = append(rows, row)
+
+		d := DailyRow{Product: pr.ID, Budget: c.pdOf(b.Base, sprint, true), Planned: c.pdOf(dailyPlanned, sprint, true)}
+		if current != "" && c.data.Team.Features.Tickets {
+			done := 0.0
+			for _, t := range c.data.Tickets {
+				if !t.Done || t.Estimate == nil || t.InSprint == nil || *t.InSprint != current || effectiveProject(c.data, t) != "" {
+					continue
+				}
+				if prod, _ := preplan.TicketProduct(t, c.data); samePtr(prod, key) {
+					done += c.pd(*t.Estimate, current, false)
+				}
+			}
+			d.Done = c.pdPtr(done)
+		}
+		daily = append(daily, d)
 	}
-	return sprint, rows
+	return sprint, rows, daily
+}
+
+// pdOf is points of one sprint as person days, nil while no rate is known.
+func (c *projectCtx) pdOf(points float64, sprint string, planned bool) *float64 {
+	if c.rate <= 0 {
+		return nil
+	}
+	return model.Ptr(round1(c.pd(points, sprint, planned)))
+}
+
+// currentSprint is the id of the sprint that runs today, "" if none does.
+func (c *projectCtx) currentSprint() string {
+	for _, s := range c.sprint {
+		if !s.Start.After(c.today) && s.End.After(c.today) {
+			return s.ID
+		}
+	}
+	return ""
+}
+
+// suggest names what would give a full product room: the ticket of the project that is best off
+// (its light is not "bad"), the latest in the backlog order, one sprint later. Tickets the tracker
+// fixed in the sprint stay. A product with room needs nothing.
+func (c *projectCtx) suggest(sprint string, key *string, light string) ConflictSuggestion {
+	if light == "ok" {
+		return ConflictSuggestion{Kind: "none"}
+	}
+	type candidate struct {
+		pl    preplan.Placement
+		light string
+		rank  string
+	}
+	var best *candidate
+	for _, pl := range c.dist.InSprint(sprint) {
+		if pl.Project == nil || pl.Size == nil || *pl.Size <= 0 || !samePtr(pl.Product, key) {
+			continue
+		}
+		t := c.data.TicketByKey(pl.Ticket)
+		if t == nil || (t.InSprint != nil && *t.InSprint != "") {
+			continue
+		}
+		pj := "none"
+		if st := c.dist.Status(*pl.Project); st != nil {
+			pj = lightOf[st.Light]
+			if pj == "" {
+				pj = "none"
+			}
+		}
+		if pj == "bad" {
+			continue
+		}
+		cand := candidate{pl: pl, light: pj}
+		if t.Rank != nil {
+			cand.rank = *t.Rank
+		}
+		if best == nil || lightRank[cand.light] < lightRank[best.light] || (cand.light == best.light && cand.rank > best.rank) {
+			best = &cand
+		}
+	}
+	if best == nil {
+		return ConflictSuggestion{Kind: "talk"}
+	}
+	out := ConflictSuggestion{Kind: "move", Ticket: best.pl.Ticket, Project: *best.pl.Project, Light: best.light, Points: round1(*best.pl.Size)}
+	if p := c.data.ProjectByID(out.Project); p != nil {
+		out.ProjectName = p.Name
+	}
+	return out
+}
+
+// fit sets the need of the open projects against what is left of their contingent: what is
+// consumed (entered by hand, else estimated from finished tickets) is taken off the booked amount.
+func (c *projectCtx) fit(projects []ProjectView) []ContingentFit {
+	out := []ContingentFit{}
+	for _, p := range projects {
+		if p.Booked == nil {
+			continue
+		}
+		spent := 0.0
+		switch {
+		case p.Used != nil:
+			spent = *p.Used
+		case p.Done != nil:
+			spent = *p.Done
+		}
+		rest := round1(*p.Booked - spent)
+		f := ContingentFit{Project: p.ID, Remaining: &rest, Need: p.Planned}
+		if p.Planned != nil {
+			switch need := *p.Planned; {
+			case need > rest:
+				f.Status = "over"
+				f.Missing = model.Ptr(round1(need - rest))
+			case need > rest*0.8:
+				f.Status = "tight"
+			default:
+				f.Status = "ok"
+			}
+		}
+		out = append(out, f)
+	}
+	return out
 }
 
 func samePtr(a, b *string) bool {
@@ -536,13 +661,28 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 		if t.Status != nil {
 			line.Status = *t.Status
 		}
+		_, source := preplan.TicketSize(t, c.data, 1)
+		line.Refined = source == model.EstimateRefined
+		if prod, _ := preplan.TicketProduct(t, c.data); prod != nil {
+			line.Product = *prod
+		}
+		switch e := c.data.Preplan.EarmarkFor(t.Key); {
+		case t.InSprint != nil && *t.InSprint != "":
+			line.Sprint = *t.InSprint
+		case e != nil:
+			line.Sprint = e.Sprint
+		}
 		if c.dist != nil {
 			if pl := c.dist.Placement(t.Key); pl != nil && pl.Sprint != nil {
-				line.Sprint = *pl.Sprint
+				line.Forecast = *pl.Sprint
 			}
 		}
-		if line.Sprint == "" && t.InSprint != nil {
-			line.Sprint = *t.InSprint
+		if t.Estimate != nil {
+			when := line.Sprint
+			if when == "" {
+				when = line.Forecast
+			}
+			line.EstimatePD = c.pdOf(*t.Estimate, when, !t.Done)
 		}
 		out.Tickets = append(out.Tickets, line)
 	}

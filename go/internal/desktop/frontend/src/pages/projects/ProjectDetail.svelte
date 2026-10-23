@@ -58,7 +58,8 @@
   const hasUsedMonths = $derived(p?.months.some((m) => m.used !== null) ?? false);
   const rate = $derived(d?.rate === null || d?.rate === undefined ? '' : num(d.rate, 2));
 
-  // Tickets grouped by sprint; tickets without a sprint come last.
+  // Tickets grouped by the sprint of the tracker or the earmark; tickets without one come last.
+  const sum = (list: (number | null)[]) => list.reduce<number>((a, b) => a + (b ?? 0), 0);
   const lanes = $derived.by(() => {
     if (!d) return [];
     const ids = [...new Set(d.tickets.map((x) => x.sprint).filter(Boolean))].sort();
@@ -66,6 +67,10 @@
     const rest = d.tickets.filter((x) => !x.sprint);
     return rest.length ? [...lanes, { id: '', tickets: rest }] : lanes;
   });
+  // Open tickets that still need refining or an earmark; the numbers beside the open scope.
+  const openTickets = $derived(d ? d.tickets.filter((x) => !x.done) : []);
+  const notRefined = $derived(openTickets.filter((x) => !x.refined).length);
+  const notEarmarked = $derived(openTickets.filter((x) => !x.sprint).length);
 
   async function saveScope(text: string): Promise<void> {
     if (!p) return;
@@ -204,6 +209,7 @@
         <div class="small muted">{t('Without tickets you keep it by hand, for example after each review.')}</div>
       {:else}
         <div class="big">{p.open} <span class="muted" style="font-size:14px">{d.source === 'packages' ? t('work packages') : t('tickets')}</span></div>
+        <div class="small muted">{t('{refined} not refined, {earmarked} not earmarked', { refined: notRefined, earmarked: notEarmarked })}</div>
       {/if}
       <div style="margin-top:8px">
         <a href={link('/forecast', {}, { tab: 'when', project: p.id })}><Icon name="monitoring" size={18} />{t('When will it be done?')}</a>
@@ -312,7 +318,18 @@
           <div class="lane-head">
             <div class="row">
               <strong>{lane.id ? t('Sprint {id}', { id: lane.id }) : t('Not earmarked')}</strong>
-              <span class="muted small">{t('{n} tickets', { n: lane.tickets.length })}</span>
+              {#if lane.id && d.sprints.find((x) => x.id === lane.id)?.state === 'current'}<span class="chip">{t('running now')}</span>{/if}
+              <span class="muted small">
+                {#if estimated}
+                  {t('{n} tickets, {points} points, about {pd} PD', {
+                    n: lane.tickets.length,
+                    points: num(sum(lane.tickets.map((x) => x.estimate)), 1),
+                    pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1),
+                  })}
+                {:else}
+                  {t('{n} tickets, {pd} PD', { n: lane.tickets.length, pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1) })}
+                {/if}
+              </span>
             </div>
           </div>
           <div class="lane-body">
@@ -320,8 +337,15 @@
               <div class="tk">
                 <button type="button" class="link data" onclick={() => openTicket(tk.key)}>{tk.key}</button>
                 <span class="title" class:done={tk.done}>{tk.title}</span>
-                <span class="chip">{tk.status || '–'}</span>
-                <span class="est">{num(tk.estimate, 1)}</span>
+                <span class="chips">
+                  {#if tk.product && d.products.length > 1}
+                    <span class="chip"><span class="dot" style:background={productColor(productIndex(tk.product))}></span>{productName(tk.product)}</span>
+                  {/if}
+                  {#if !tk.sprint && tk.forecast}<span class="chip" title={t('The sprint the distribution would put it in')}>{t('forecast {sprint}', { sprint: tk.forecast })}</span>{/if}
+                  {#if !tk.refined && !tk.done}<span class="chip warn">{t('not refined')}</span>{/if}
+                  <span class="chip">{tk.status || '–'}</span>
+                </span>
+                <span class="est">{num(tk.estimate, 1)}{#if estimated && tk.estimatePD !== null}<span class="muted"> ≈ {num(tk.estimatePD, 1)} {t('PD')}</span>{/if}</span>
               </div>
             {/each}
           </div>
@@ -433,7 +457,7 @@
   }
   .tk {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr) auto 48px;
+    grid-template-columns: 92px minmax(0, 1fr) auto auto;
     gap: 8px;
     align-items: center;
     padding: 6px 12px;
@@ -441,6 +465,16 @@
   }
   .tk:last-child {
     border-bottom: 0;
+  }
+  .tk .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .tk .est {
+    text-align: right;
+    white-space: nowrap;
   }
   .tk .title {
     overflow: hidden;
