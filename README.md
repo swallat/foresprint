@@ -74,7 +74,7 @@ the published SHA-256 sums. Git is needed only for data kept in a Git repository
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex"
 ```
 
 A specific version (the default is the newest release): set it first, for example
