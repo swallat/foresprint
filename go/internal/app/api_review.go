@@ -15,6 +15,7 @@ import (
 	"github.com/swallat/foresprint/internal/gitsync"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/preplan"
 	"github.com/swallat/foresprint/internal/protocol"
 	"github.com/swallat/foresprint/internal/report"
 	"github.com/swallat/foresprint/internal/storage"
@@ -187,6 +188,53 @@ func hasTarget(list []ReviewTarget, id string) bool {
 	return false
 }
 
+type reviewRow struct {
+	key   string
+	added bool
+}
+
+// reviewRows are the tickets the Review lists. A sprint with a frozen list lists it and, in an
+// open Review, the tickets pulled into the sprint since. A sprint without one lists the tickets
+// the tracker has in the sprint, so that a team that tracks in tickets always reviews them.
+func reviewRows(data *storage.TeamData, s model.Sprint, reviewed bool) []reviewRow {
+	if !data.Team.Features.Tickets {
+		return nil
+	}
+	listed := map[string]bool{}
+	var out []reviewRow
+	for _, k := range s.CommittedTickets {
+		listed[k] = true
+		out = append(out, reviewRow{key: k})
+	}
+	frozen := len(out) > 0
+	for _, t := range preplan.TicketOrder(data.Tickets) {
+		if str(t.InSprint) == s.ID && !listed[t.Key] {
+			listed[t.Key] = true
+			out = append(out, reviewRow{key: t.Key, added: frozen})
+		}
+	}
+	if reviewed {
+		// A closed Review keeps the tickets it carried over, even if the tracker moved them since.
+		for _, c := range s.Carry {
+			if k := str(c.Ticket); k != "" && !listed[k] {
+				listed[k] = true
+				out = append(out, reviewRow{key: k, added: frozen})
+			}
+		}
+	}
+	return out
+}
+
+// reviewNextSprintID is the sprint after s in the forecast, the target of its assumptions.
+func reviewNextSprintID(fc *forecast.Forecast, s model.Sprint) string {
+	for i := range fc.Entries {
+		if e := fc.Entries[i].Sprint; e.Start.After(s.Start) {
+			return e.ID
+		}
+	}
+	return ""
+}
+
 func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) SprintReview {
 	col := column(data, fc, s)
 	out := SprintReview{
@@ -194,7 +242,6 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 		Unit:        string(data.Team.Unit),
 		Started:     !s.Start.After(fc.Today),
 		Reviewed:    s.Velocity != nil,
-		Tickets:     data.Team.Features.Tickets && len(s.CommittedTickets) > 0,
 		PlannedDays: col.Capacity,
 		FrozenDays:  col.Capacity,
 		Targets:     reviewTargets(data, fc, s),
@@ -207,6 +254,9 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 	}
 	out.ProductionOn = data.Team.Features.Production
 	out.Commitment = val(s.Commitment)
+	rows := reviewRows(data, s, out.Reviewed)
+	out.Tickets = data.Team.Features.Tickets && len(rows) > 0
+	out.Frozen = len(s.CommittedTickets) > 0
 	if out.Tickets {
 		carried := map[string]model.CarryItem{}
 		for _, c := range s.Carry {
@@ -214,33 +264,70 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				carried[*c.Ticket] = c
 			}
 		}
-		sum := 0.0
-		for _, key := range s.CommittedTickets {
-			row := ReviewTicket{Key: key, Title: key}
-			if t := data.TicketByKey(key); t != nil {
+		// The assumption saved in the what-if of the running sprint prefills an open Review.
+		var assumed map[string]CarryInput
+		if !out.Reviewed {
+			if p := newestPrognosis(&s, reviewNextSprintID(fc, s), ""); p != nil {
+				out.Prefill = labelOf(*p)
+				assumed = map[string]CarryInput{}
+				for _, it := range p.Carry {
+					assumed[str(it.Ticket)] = CarryInput{Ticket: str(it.Ticket), Rest: it.Rest, Target: it.Target}
+				}
+			}
+		}
+		sum, extra := 0.0, ticketimport.AdditionalDone{}
+		for _, r := range rows {
+			row := ReviewTicket{Key: r.key, Title: r.key, Added: r.added}
+			noEst := false
+			if t := data.TicketByKey(r.key); t != nil {
+				noEst = t.Estimate == nil
 				row.Title = t.Title
+				row.Status = str(t.Status)
 				row.Estimate = val(t.Estimate)
-				row.Done = t.Done
+				row.Done = t.Done || strings.EqualFold(str(t.Status), "done")
 				row.Rest = row.Estimate
 				if t.Remaining != nil {
 					row.Rest = *t.Remaining
 				}
 			}
-			if c, ok := carried[key]; ok {
+			if c, ok := carried[r.key]; ok {
 				row.Done, row.Rest, row.Target = false, c.Rest, c.Target
 			} else if out.Reviewed {
 				row.Done = true
+			} else if !row.Done && !row.Added && out.Prefill != "" {
+				if c, ok := assumed[r.key]; ok {
+					row.Rest, row.Target = c.Rest, c.Target
+				} else {
+					row.Done = true
+				}
 			}
 			out.List = append(out.List, row)
+			if r.added {
+				if row.Done && !out.Reviewed {
+					extra.Keys = append(extra.Keys, r.key)
+					if noEst {
+						extra.NoEstimate = append(extra.NoEstimate, r.key)
+					}
+					extra.Points += row.Estimate
+				}
+				continue
+			}
 			sum += row.Estimate
 		}
 		if s.Commitment == nil {
 			out.Commitment = sum
 		}
 		for _, r := range out.List {
-			if !r.Done {
+			if !r.Done && !r.Added {
 				out.NotDone += r.Estimate
 			}
+			if !r.Done && r.Target == "" {
+				out.RestNext += r.Rest
+			}
+		}
+		// Without a frozen list the commitment is the recorded one; not done cannot exceed it.
+		if !out.Frozen && out.NotDone > out.Commitment {
+			out.NotDone = out.Commitment
 		}
 		// A target that is not among the offered places stays selectable.
 		for _, r := range out.List {
@@ -248,19 +335,20 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				out.Targets = append(out.Targets, ReviewTarget{ID: r.Target, Name: r.Target})
 			}
 		}
+		if !out.Reviewed {
+			out.AdditionalDone = extra.Points
+			out.Pulled = append(out.Pulled, extra.Keys...)
+			out.NoEstimate = append(out.NoEstimate, extra.NoEstimate...)
+		}
 	} else {
 		out.RestNext = val(s.RestNext)
 	}
 	out.CommitmentSet = s.Commitment != nil || out.Tickets
-	out.AdditionalDone = val(s.AdditionalDone)
-	out.Pulled, out.NoEstimate = []string{}, []string{}
-	if out.Tickets && !out.Reviewed {
-		extra := ticketimport.AdditionalDoneOf(s.CommittedTickets, data.Tickets, s.ID)
-		if s.AdditionalDone == nil {
-			out.Pulled = append(out.Pulled, extra.Keys...)
-			out.NoEstimate = append(out.NoEstimate, extra.NoEstimate...)
-			out.AdditionalDone = extra.Points
-		}
+	if out.Pulled == nil {
+		out.Pulled, out.NoEstimate = []string{}, []string{}
+	}
+	if out.Reviewed || !out.Tickets {
+		out.AdditionalDone = val(s.AdditionalDone)
 	}
 	if out.Reviewed {
 		// A closed Review shows what was stored, whatever the tickets say today.
@@ -376,12 +464,16 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			byKey[r.Key] = r
 		}
 		notDone = 0
+		in.AdditionalDone = 0
 		for _, row := range view.List {
 			got, ok := byKey[row.Key]
 			if !ok {
 				got = row
 			}
 			if got.Done {
+				if row.Added {
+					in.AdditionalDone += row.Estimate
+				}
 				continue
 			}
 			if err := nonNegative(got.Rest); err != nil {
@@ -390,7 +482,9 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			if !knownTarget(data, fc, got.Target) {
 				return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", got.Target))
 			}
-			notDone += row.Estimate
+			if !row.Added {
+				notDone += row.Estimate
+			}
 			key := row.Key
 			s.Carry = append(s.Carry, model.CarryItem{Ticket: &key, Rest: got.Rest, Target: got.Target})
 		}
@@ -399,6 +493,9 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			return ReviewClosed{}, fmt.Errorf("%s", i18n.T("The rest that continues cannot be more than what was not done."))
 		}
 		s.RestNext = model.Ptr(in.RestNext)
+	}
+	if view.Tickets && !view.Frozen && notDone > commitment {
+		notDone = commitment
 	}
 	if notDone > commitment {
 		return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Not done cannot be more than the commitment."))
