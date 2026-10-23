@@ -18,6 +18,8 @@ import (
 const (
 	simulationRuns = 10000
 	simulationSeed = 42
+	// forecastEarliest is the probability from which a sprint counts as the earliest possible.
+	forecastEarliest = 0.15
 )
 
 func (a *API) forecastOf(team string) (*storage.TeamData, *forecast.Forecast, error) {
@@ -161,9 +163,59 @@ func (a *API) ForecastWhatIf(team string, extraAbsenceDays, focusPercent float64
 	return out, nil
 }
 
+// forecastOpenScope is the open scope of a project in the unit of the team: the sizes of its
+// open tickets, or, without any, the scope entered by hand; nil if neither exists.
+func forecastOpenScope(data *storage.TeamData, p model.Project) (*float64, int) {
+	sum, open := 0.0, 0
+	for _, t := range data.Tickets {
+		if t.Done || effectiveProject(data, t) != p.ID {
+			continue
+		}
+		open++
+		size := t.Estimate
+		if data.Team.Tracker.PlanningUses == model.UsesRemaining && t.Remaining != nil {
+			size = t.Remaining
+		}
+		if size != nil {
+			sum += *size
+		}
+	}
+	if sum > 0 {
+		return &sum, open
+	}
+	return p.OpenScope, open
+}
+
+// ForecastWhenProjects lists the open projects for the analysis "When is it done?" with their
+// open scope, so that the page can fill the form.
+func (a *API) ForecastWhenProjects(team string) ([]WhenProject, error) {
+	data, err := storage.NewRepository(a.DataDir()).Load(team)
+	if err != nil {
+		return nil, err
+	}
+	out := []WhenProject{}
+	if !data.Team.Features.Projects {
+		return out, nil
+	}
+	for _, p := range data.Projects {
+		if p.Closed() {
+			continue
+		}
+		scope, open := forecastOpenScope(data, p)
+		end := p.End
+		if end == nil {
+			end = p.Target
+		}
+		out = append(out, WhenProject{ID: p.ID, Name: p.Name, End: day(end), OpenScope: scope, Open: open})
+	}
+	return out, nil
+}
+
 // ForecastWhenDone simulates in which coming sprint a remaining quantity of points is done.
-// sharePercent is the share of the forecast that is available for it (0 to 100).
-func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64) (WhenDoneView, error) {
+// sharePercent is the share of the forecast that is available for it (0 to 100). With a project
+// the answer also says whether the project end holds: "ok" if the work is done by then in 85 %
+// of the runs, "warn" if in half of them, otherwise "bad"; "none" without a project end.
+func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64, project string) (WhenDoneView, error) {
 	if remaining < 0 || sharePercent < 0 || sharePercent > 100 {
 		return WhenDoneView{}, errors.New(i18n.T("Remaining work must not be negative and the share must be between 0 and 100."))
 	}
@@ -176,18 +228,67 @@ func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64) (Wh
 		return WhenDoneView{}, err
 	}
 	if c == nil {
-		return WhenDoneView{Remaining: remaining, Share: sharePercent, Sprints: []string{}, Cumulative: []float64{}, TrendCapacity: []string{}}, nil
+		return WhenDoneView{Remaining: remaining, Share: sharePercent, Sprints: []string{}, Starts: []string{}, Ends: []string{}, Cumulative: []float64{}, TrendCapacity: []string{}, Light: "none"}, nil
 	}
 	v := WhenDoneView{
 		Remaining: c.Remaining, Share: sharePercent, Runs: c.Runs, Samples: c.Samples,
-		Sprints: c.Sprints, Cumulative: c.Cumulative, PerSprint: c.PerSprint,
-		TrendCapacity: c.TrendCapacitySprints, Available: true,
+		Sprints: c.Sprints, Starts: []string{}, Ends: []string{}, Cumulative: c.Cumulative, PerSprint: c.PerSprint,
+		TrendCapacity: c.TrendCapacitySprints, Available: true, Light: "none",
 	}
 	if c.P50 != nil {
 		v.P50 = *c.P50
 	}
 	if c.P85 != nil {
 		v.P85 = *c.P85
+	}
+	for i, p := range c.Cumulative {
+		if p >= forecastEarliest {
+			v.Earliest = c.Sprints[i]
+			break
+		}
+	}
+	fc, err := analysis.HorizonForecast(data, today(), analysis.DefaultMaxSprints)
+	if err != nil {
+		return WhenDoneView{}, err
+	}
+	first, last := map[string]time.Time{}, map[string]time.Time{}
+	for _, e := range fc.Entries {
+		first[e.Sprint.ID] = e.Sprint.Start
+		last[e.Sprint.ID] = e.Sprint.End.AddDate(0, 0, -1)
+	}
+	for _, id := range c.Sprints {
+		s, e := first[id], last[id]
+		v.Starts = append(v.Starts, day(&s))
+		v.Ends = append(v.Ends, day(&e))
+	}
+	if project == "" {
+		return v, nil
+	}
+	for _, p := range data.Projects {
+		if p.ID != project {
+			continue
+		}
+		v.ProjectName = p.Name
+		end := p.End
+		if end == nil {
+			end = p.Target
+		}
+		if end == nil {
+			break
+		}
+		v.ProjectEnd = day(end)
+		holds := func(id string) bool {
+			l, ok := last[id]
+			return id != "" && ok && !l.After(*end)
+		}
+		switch {
+		case holds(v.P85):
+			v.Light = "ok"
+		case holds(v.P50):
+			v.Light = "warn"
+		default:
+			v.Light = "bad"
+		}
 	}
 	return v, nil
 }
