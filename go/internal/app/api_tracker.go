@@ -178,11 +178,14 @@ func (a *API) trackerReresolve(repo *storage.Repository, team string, t model.Te
 	}
 	data.Team = t
 	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data}, Today: time.Now()}
-	tickets, changed := ticketimport.Reresolve(data.Tickets, env)
+	tickets, preplan, changed := ticketimport.Reresolve(data.Tickets, data.Preplan, env)
 	if !changed {
 		return nil
 	}
-	_, err = repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets, Imported: data.TicketsImported, Source: data.TicketsSource})
+	if _, err = repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets, Imported: data.TicketsImported, Source: data.TicketsSource}); err != nil {
+		return err
+	}
+	_, err = repo.SavePreplan(team, preplan)
 	return err
 }
 
