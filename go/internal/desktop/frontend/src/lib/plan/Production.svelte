@@ -54,13 +54,21 @@
         {#each prod.people as p (p.name)}
           <div>{p.name}: <span class="data">{fmt(p.capacity, 1)} {t('PD')}</span></div>
         {/each}
-        <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+        {#if prod.scaled}
+          <div>{t('The plannable amount times the share of the capacity that has production access, times the cap.')}</div>
+          <div class="data">{fmt(prod.time, 1)} ÷ {fmt(d.capacity, 1)} {t('PD')} = {fmt(prod.share * 100)} %</div>
+          <div class="data">{fmt(prod.basis, 1)} {t('PD')} × {fmt(prod.share * 100)} % × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+        {:else}
+          <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+        {/if}
       </Calc>
     </div>
     <p class="small muted lead">
-      {t('Available: {n} PD', { n: fmt(prod.available, 1) })}{prod.capPercent < 100
-        ? `, ${t('that is {pct} % (cap) of {time} PD', { pct: fmt(prod.capPercent), time: fmt(prod.time, 1) })}`
-        : ''}
+      {t('Available: {n} PD', { n: fmt(prod.available, 1) })}{prod.scaled
+        ? `, ${t('that is {pct} % of the plannable {basis} PD (share of the people with access in the capacity)', { pct: fmt(prod.share * 100), basis: fmt(prod.basis, 1) })}${prod.capPercent < 100 ? `, ${t('cap {pct} %', { pct: fmt(prod.capPercent) })}` : ''}`
+        : prod.capPercent < 100
+          ? `, ${t('that is {pct} % (cap) of {time} PD', { pct: fmt(prod.capPercent), time: fmt(prod.time, 1) })}`
+          : ''}
       {t('with {count} people with production access ({names}), after absences.', {
         count: prod.people.length,
         names: prod.people.map((p) => p.name.split(' ')[0]).join(', '),

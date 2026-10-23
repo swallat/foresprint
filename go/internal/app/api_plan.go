@@ -603,6 +603,16 @@ func (c *planCtx) production(v *PlanSprint) *PlanProduction {
 		out.Demand = *m
 		out.DemandAmount = *m * rate
 	}
+	// The time of the people with access is gross (presence), the plannable amount is net (the
+	// velocity already holds meetings, small stuff and the like). So the production that can be
+	// planned is the plannable amount times the share of the production time in the capacity,
+	// like the Forecast PLAN is scaled from the capacity.
+	if v.Split != nil && v.Capacity != nil && *v.Capacity > 0 && rate > 0 {
+		share := math.Min(pt.Time/(*v.Capacity), 1)
+		basis := v.Split.Plannable / rate
+		out.Share, out.Basis, out.Scaled = share, basis, true
+		out.Available = float64(float64(basis*share)*pt.CapPercent) / 100
+	}
 	cmp := planning.Compare(out.Demand, out.Available)
 	out.Load, out.Status = cmp.Load, string(cmp.Status)
 	return out

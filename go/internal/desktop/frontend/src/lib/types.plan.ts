@@ -72,6 +72,12 @@ export interface PlanProduction {
   time: number;
   capPercent: number;
   available: number;
+  /** Available is basis × share × cap (needs a Forecast PLAN); otherwise time × cap. */
+  scaled: boolean;
+  /** Part of the capacity that has production access, 0 to 1. */
+  share: number;
+  /** The plannable amount in PD. */
+  basis: number;
   demand: number;
   demandSet: boolean;
   demandAmount: number;

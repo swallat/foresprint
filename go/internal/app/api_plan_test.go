@@ -352,8 +352,17 @@ func TestProductionCapLowersWhatIsAvailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.Prod.CapPercent != 50 || math.Abs(after.Prod.Available-before.Prod.Time/2) > 1e-9 {
-		t.Errorf("cap %v, available %v of %v", after.Prod.CapPercent, after.Prod.Available, before.Prod.Time)
+	if after.Prod.CapPercent != 50 || math.Abs(after.Prod.Available-before.Prod.Available/2) > 1e-9 {
+		t.Errorf("cap %v, available %v of %v", after.Prod.CapPercent, after.Prod.Available, before.Prod.Available)
+	}
+	// the production that can be planned is the plannable amount scaled by the share of the
+	// production time in the capacity (gross time against a net amount made 18 of 9)
+	if p := after.Prod; p.Scaled {
+		if want := p.Basis * p.Share * 50 / 100; math.Abs(p.Available-want) > 1e-9 || p.Share > 1 || p.Available > after.Split.Plannable+1e-9 {
+			t.Errorf("available %v, want %v (share %v)", p.Available, want, p.Share)
+		}
+	} else {
+		t.Error("available not scaled from the plannable amount")
 	}
 }
 
