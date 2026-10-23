@@ -1,4 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["holidays>=0.106"]
+# ///
 """Generates the embedded holiday data of the Go core from the Python ``holidays`` library.
 
 Writes ``go/internal/holidays/data/holidays.zip``: every country and region of the library,
@@ -7,8 +11,13 @@ that the program decompresses only the countries it needs (a start-up cost of mi
 instead of the 100 ms for the whole data). It is reproducible (sorted keys, fixed time stamps),
 so a changed file always means a changed ``holidays`` version or a changed generator.
 
-    uv run python scripts/gen_holidays.py            # write the file
-    uv run python scripts/gen_holidays.py --check    # fail if the committed file is outdated
+    uv run scripts/gen_holidays.py            # write the file
+    uv run scripts/gen_holidays.py --check    # fail if the committed file is outdated
+    uv run scripts/gen_holidays.py --golden   # rewrite the reference files that depend on the library
+
+The script is self-contained (its dependency is declared above, no Python package of the
+repository is needed). ``--golden`` writes golden/expected/calendar/{countries,holidays-sample,
+holidays-digest}.json, the references of the Go tests that change with the library version.
 
 Contents (``format`` 1), all dates as days since the epoch 2001-01-01:
 
@@ -32,6 +41,7 @@ look the column up by language code, so older readers stay compatible.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import re
@@ -53,7 +63,10 @@ FIRST_YEAR, LAST_YEAR = 2001, 2050
 # Language code in the file -> language argument of the library. Not every language exists for
 # every country; the library then falls back to the local language, as the Python core did.
 LANGUAGES = {"de": "de", "en": "en_US"}
-TARGET = Path(__file__).resolve().parent.parent / "go/internal/holidays/data/holidays.zip"
+ROOT = Path(__file__).resolve().parent.parent
+TARGET = ROOT / "go/internal/holidays/data/holidays.zip"
+GOLDEN_CALENDAR = ROOT / "golden/expected/calendar"
+DEFAULT_WEEKEND = frozenset({5, 6})
 
 
 def country_names() -> dict[str, str]:
@@ -203,6 +216,117 @@ def summary(old: bytes, new: bytes) -> str:
     return "\n".join(lines) if lines else "No difference in the holiday entries."
 
 
+# --- Reference files of the Go tests that depend on the library -----------------------------
+
+SAMPLE_YEARS = (2001, 2012, 2025, 2026, 2027, 2028, 2050)
+SAMPLE_CALENDARS: list[tuple[str, str | None]] = [
+    ("DE", None), *(("DE", r) for r in ("BW", "BY", "BE", "NW", "SN", "TH", "HH")),
+    ("AT", None), ("AT", "9"), ("CH", None), ("CH", "ZH"), ("FR", None), ("ES", "CT"),
+    ("IT", None), ("GB", None), ("GB", "SCT"), ("NL", None), ("PL", None), ("SE", None),
+    ("US", None), ("US", "CA"), ("US", "TX"), ("CA", "ON"), ("CA", "QC"), ("AU", "NSW"),
+    ("JP", None), ("CN", None), ("KR", None), ("SA", None), ("IL", None), ("IN", None),
+    ("BR", None), ("ZZ", None), ("DE", "XX"),
+]  # fmt: skip
+
+
+def dump_json(value: object, compact: bool = False) -> str:
+    if compact:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n"
+    return json.dumps(value, ensure_ascii=False, indent=1) + "\n"
+
+
+def holiday_calendar(country: str, region: str | None, year: int, lang: str) -> dict[date, str]:
+    """The calendar of a year as the program reads it: an unknown country or a region that does
+    not fit gives the nationwide holidays, or none."""
+    language = "en_US" if lang == "en" else "de"
+    for subdiv in (region or None, None):
+        try:
+            return dict(
+                holidays.country_holidays(
+                    country.upper(), subdiv=subdiv, years=year, language=language
+                )
+            )
+        except NotImplementedError:
+            continue
+    return {}
+
+
+def calendar_text(country: str, region: str | None, language: str, years: object) -> str:
+    try:
+        h = holidays.country_holidays(country.upper(), subdiv=region, years=years, language=language)
+    except NotImplementedError:
+        h = {}
+    return "".join(f"{d.isoformat()}\t{n}\n" for d, n in sorted(h.items()))
+
+
+def export_holidays_sample() -> dict[str, object]:
+    out = {}
+    for country, region in SAMPLE_CALENDARS:
+        key = f"{country}/{region or ''}"
+        entry: dict[str, object] = {"country": country, "region": region, "years": {}}
+        for year in SAMPLE_YEARS:
+            calendars = {
+                lang: dict(sorted(holiday_calendar(country, region, year, lang).items()))
+                for lang in ("de", "en")
+            }
+            entry["years"][str(year)] = {
+                lang: {d.isoformat(): n for d, n in cal.items()} for lang, cal in calendars.items()
+            }
+            german = calendars["de"]
+            entry["years"][str(year)]["is_holiday"] = [
+                d.isoformat()
+                for d in (date(year, 1, 1) + timedelta(days=i) for i in range(366))
+                if d.year == year and d in german
+            ]
+        out[key] = entry
+    return out
+
+
+def export_holidays_digest() -> dict[str, object]:
+    """SHA-256 of the complete list of every country and region, 2001-2050, per language."""
+    supported = holidays.list_supported_countries(include_aliases=False)
+    out: dict[str, object] = {"first_year": 2001, "last_year": 2050, "digests": {}}
+    for country in sorted(supported):
+        for region in [None, *supported[country]]:
+            row = {}
+            for lang in ("de", "en"):
+                text = calendar_text(
+                    country, region, "en_US" if lang == "en" else "de", range(2001, 2051)
+                )
+                row[lang] = hashlib.sha256(text.encode("utf-8")).hexdigest()[:24]
+            out["digests"][f"{country}/{region or ''}"] = row
+    out["aliases"] = {
+        a: holidays.country_holidays(a).country
+        for a in sorted(holidays.list_supported_countries())
+        if a not in supported
+    }
+    return out
+
+
+def export_countries() -> dict[str, object]:
+    supported = holidays.list_supported_countries(include_aliases=False)
+    names = {}
+    for cls_name, *codes in registry.COUNTRIES.values():
+        if codes[0] in supported:
+            names[codes[0]] = re.sub(r"(?<!^)(?=[A-Z])", " ", cls_name)
+    result = {}
+    for code, name in sorted(names.items()):
+        try:
+            weekend = sorted(holidays.country_holidays(code).weekend)
+        except NotImplementedError:
+            weekend = sorted(DEFAULT_WEEKEND)
+        result[code] = {"name": name, "subdivisions": list(supported[code]), "weekend": weekend}
+    return result
+
+
+def golden_files() -> dict[str, str]:
+    return {
+        "countries.json": dump_json(export_countries(), compact=True),
+        "holidays-sample.json": dump_json(export_holidays_sample(), compact=True),
+        "holidays-digest.json": dump_json(export_holidays_digest()),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--check", action="store_true", help="only compare, write nothing")
@@ -213,7 +337,26 @@ def main() -> int:
         metavar="OLD",
         help="print a Markdown summary of the difference between OLD and the new data",
     )
+    parser.add_argument(
+        "--golden",
+        action="store_true",
+        help="rewrite the library-dependent reference files in golden/expected/calendar "
+        "(with --check: only compare)",
+    )
     args = parser.parse_args()
+    if args.golden:
+        stale = []
+        for name, text in golden_files().items():
+            path = GOLDEN_CALENDAR / name
+            if args.check:
+                if not path.is_file() or path.read_text(encoding="utf-8") != text:
+                    stale.append(str(path))
+            else:
+                path.write_text(text, encoding="utf-8", newline="\n")
+        if stale:
+            print("out of date (run scripts/gen_holidays.py --golden):", *stale, sep="\n  ")
+            return 1
+        return 0
     data = encode(build())
     if args.summary:
         print(summary(args.summary.read_bytes(), data))

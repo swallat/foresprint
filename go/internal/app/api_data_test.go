@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/datasvc"
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/gitsync"
@@ -149,4 +151,30 @@ func TestPendingTagsGoWithTheDataFolder(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 	_ = dir
+}
+
+func TestRecentFoldersMarkInUseAndMissing(t *testing.T) {
+	a, dir := dataAPI(t)
+	gone := t.TempDir()
+	if err := config.SaveDataDir(gone); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.SaveDataDir(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(gone); err != nil {
+		t.Fatal(err)
+	}
+	var inUse, missing int
+	for _, f := range a.RecentFolders() {
+		if f.InUse {
+			inUse++
+		}
+		if f.Missing {
+			missing++
+		}
+	}
+	if inUse != 1 || missing != 1 {
+		t.Fatalf("%+v", a.RecentFolders())
+	}
 }

@@ -28,10 +28,21 @@ describe('flows', () => {
       for (const s of rest) expect(pages.some((p) => match(p.path, s.route) !== undefined), `${f.id} ${s.route}`).toBe(true);
     }
   });
+  it('give queries as plain text pairs', () => {
+    for (const f of flows) {
+      for (const s of [...f.steps, ...(f.withoutTracker ?? [])]) {
+        for (const [k, v] of Object.entries(s.query ?? {})) expect(`${k}=${v}`, f.id).toMatch(/^[a-z]+=[a-z0-9-]+$/);
+      }
+    }
+    expect(flows.some((f) => f.steps.some((s) => s.query?.tab === 'when'))).toBe(true);
+  });
   it('mark elements by data-tour name', () => {
     for (const f of flows) {
       for (const s of f.steps) if (s.target) expect(s.target, f.id).toMatch(/^\[data-tour="[a-z0-9-]+"\]$/);
     }
+  });
+  it('walk through the data flows D1 to D6', () => {
+    for (const id of ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']) expect(flowById(id), id).toBeDefined();
   });
   it('are found by id', () => {
     expect(flowById('F4')?.id).toBe('F4');

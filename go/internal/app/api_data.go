@@ -2,7 +2,10 @@ package app
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
+	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/datasvc"
 	"github.com/swallat/foresprint/internal/i18n"
 )
@@ -186,4 +189,26 @@ func (a *API) adopt(o datasvc.Opened) datasvc.Opened {
 		o.Problem = &datasvc.Problem{Kind: "error", Message: err.Error()}
 	}
 	return o
+}
+
+// RecentFolder is a data folder used before. InUse compares with symlinks resolved (the list keeps
+// resolved paths); Missing marks a folder that is gone, so the window can say so before it is opened.
+type RecentFolder struct {
+	Path    string `json:"path"`
+	InUse   bool   `json:"inUse"`
+	Missing bool   `json:"missing"`
+}
+
+// RecentFolders lists the recently used data folders, newest first.
+func (a *API) RecentFolders() []RecentFolder {
+	cur := a.DataDir()
+	if r, err := filepath.EvalSymlinks(cur); err == nil {
+		cur = r
+	}
+	out := []RecentFolder{}
+	for _, p := range config.RecentDataDirs() {
+		_, err := os.Stat(p)
+		out = append(out, RecentFolder{Path: p, InUse: cur != "" && filepath.Clean(p) == filepath.Clean(cur), Missing: err != nil})
+	}
+	return out
 }

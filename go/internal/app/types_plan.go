@@ -192,6 +192,9 @@ type Assumption struct {
 	NotDone    *float64     `json:"notDone"`
 	Extra      *float64     `json:"extra"`
 	RestNext   *float64     `json:"restNext"`
+	// FocusPercent and ExtraAbsenceDays come from the Forecast page (nil = as measured / none).
+	FocusPercent     *float64 `json:"focusPercent"`
+	ExtraAbsenceDays *float64 `json:"extraAbsenceDays"`
 }
 
 // WhatIf is the result of an assumption.

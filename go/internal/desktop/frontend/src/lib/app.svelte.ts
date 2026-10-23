@@ -52,6 +52,8 @@ export const app = $state({
   calcMode: 'icon' as CalcMode,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
+  /** The variant the demo was opened with ("atlas/packages"); see demoChoice. */
+  demoVariant: '',
   /** A newer program version is known (daily check at the start); undefined if none. */
   update: undefined as UpdateInfo | undefined,
 });
@@ -145,8 +147,10 @@ export async function selectTeam(key: string): Promise<void> {
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
   const wanted = store.get(`sprint.${key}`);
+  // Without a remembered choice the window opens on the next sprint after the running one (the
+  // one being prepared); Today and the sprint overview lead to the running sprint when needed.
   const pick =
-    app.sprints.find((s) => s.id === wanted) ?? app.sprints.find((s) => s.state === 'current') ?? app.sprints.find((s) => s.state === 'future') ?? app.sprints.at(-1);
+    app.sprints.find((s) => s.id === wanted) ?? app.sprints.find((s) => s.state === 'future') ?? app.sprints.find((s) => s.state === 'current') ?? app.sprints.at(-1);
   app.sprint = pick?.id ?? '';
   await loadFeatures();
 }
@@ -227,11 +231,19 @@ export function openTicket(key: string): void {
   app.ticket = key;
 }
 
+/** The variant of the demo team the person picked: the team and where its work comes from. */
+export const demoChoice = $state({ team: 'atlas' as 'atlas' | 'simple', source: 'packages' as 'packages' | 'tracker' | 'none' });
+
+/** Key of the picked variant, to see whether the open demo still matches it. */
+export const demoVariantKey = () => `${demoChoice.team}/${demoChoice.source}`;
+
 /** Shows the demo team (Team Atlas) instead of the data folder, until leaveDemo(). */
 export async function enterDemo(): Promise<void> {
-  if (inProgram) await api.EnterDemo(app.prefs?.language ?? ''); // the core writes the tutorial team
+  // the core writes the tutorial team
+  if (inProgram) await api.EnterDemo(app.prefs?.language ?? '', demoChoice.team, demoChoice.source);
   setDemo(true);
   app.demo = true;
+  app.demoVariant = demoVariantKey();
   app.team = '';
   await loadTeams();
   await refreshStatus();
@@ -242,6 +254,7 @@ export async function leaveDemo(): Promise<void> {
   setDemo(false);
   if (inProgram) await api.LeaveDemo();
   app.demo = false;
+  app.demoVariant = '';
   app.team = '';
   await loadTeams();
   await refreshStatus();

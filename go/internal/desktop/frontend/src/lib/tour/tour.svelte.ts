@@ -2,7 +2,7 @@
 // team: starting one switches the window to it, ending it switches back if the tour did so.
 
 import { api } from '../api';
-import { app, enterDemo, leaveDemo, selectSprint } from '../app.svelte';
+import { app, demoVariantKey, enterDemo, leaveDemo, selectSprint } from '../app.svelte';
 import { registerCommands } from '../commands';
 import { t } from '../i18n.svelte';
 import { go } from '../router.svelte';
@@ -48,7 +48,7 @@ async function show(): Promise<void> {
     const id = pickSprint(step.sprint, app.sprints);
     if (id) selectSprint(id);
   }
-  go(step.route);
+  go(step.route, undefined, step.query);
   tour.unmarked = false;
   if (!step.target) return;
   for (const wait of [0, ...waits]) {
@@ -82,7 +82,8 @@ export async function startTour(id: string): Promise<void> {
   const flow = flowById(id);
   if (!flow) return;
   if (tour.flow) await endTour();
-  if (!app.demo) {
+  if (!app.demo || app.demoVariant !== demoVariantKey()) {
+    // not in the demo yet, or the person picked another variant: (re)open it
     await enterDemo();
     enteredDemo = true;
   }

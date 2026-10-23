@@ -119,7 +119,9 @@ another package needs are named below; the owner builds them first and merges th
 Help > Guided flows (`src/lib/tour/flows.ts`) walks through the flows on the demo team. A step shows a
 page and marks one element with the outline `.hl`. The element is found by the attribute
 `data-tour="name"`; a page adds it to the element a step talks about. A missing element is not an
-error: the step is shown without a mark. Keep the names stable; they are listed here.
+error: the step is shown without a mark. A step may also carry `query` (for example `{ tab: 'when' }`), which is added to the address of its page, so that a step can open a tab. Keep the names stable; they are listed here.
+
+The demo can be opened as the full Atlas or as a simple team (products only), and with work packages, a tracker (Jira, the cached import) or no tickets: `EnterDemo(lang, team, source)`, chosen on the first-start screen and under Help > Guided flows (`demoChoice` in `app.svelte.ts`). `tutorial.Options` in the core.
 
 The demo team is "Team Atlas" from `go/internal/tutorial` (embedded templates, dates relative to
 today, every 1.0 feature on, projects including `self-service`). In the program `enterDemo()` calls
@@ -174,6 +176,12 @@ different team and stays as it is (golden tests).
 | `personal-calc` | `/settings/personal` | |
 | `plan-present` | `/sprint/plan` | |
 | `settings-writeback` | `/settings/tickets` | |
+| `settings-storage` | `/settings/storage` | |
+| `topbar-status` | top bar | |
+| `topbar-refresh` | top bar | |
+| `topbar-save` | top bar | |
+| `data-conflicts` | `/data` (tab Conflicts) | |
+| `data-history` | `/data` (tab History and tags) | |
 | `plan-jira` | `/sprint/plan` | |
 | `plan-jira-write` | `/sprint/plan` | |
 

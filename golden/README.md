@@ -1,13 +1,20 @@
 # Golden files
 
-Reference results of the Python core, for the Go port (`go/`). The Go core has to produce the
-same numbers, the same dates, the same texts and, for YAML, the same bytes.
+Reference results of the Python version 0.8, for the Go core (`go/`). The Go core has to
+produce the same numbers, the same dates, the same texts and, for YAML, the same bytes.
 
-Everything below `inputs/` and `expected/` is generated. Do not edit it by hand:
+The files below `inputs/` and `expected/` are **frozen**: they were generated once from the
+Python core (branch `main`, version 0.8.0) and are now ordinary test data, committed and
+edited like code. There is no generator and no Python in this branch any more. If a result
+changes on purpose, change the file in the same pull request as the Go code and say why in the
+description; never loosen a comparison to make a test pass.
+
+The one exception are the calendar files that depend on the version of the `holidays`
+library (`expected/calendar/countries.json`, `holidays-sample.json`, `holidays-digest.json`):
 
 ```
-uv run python scripts/golden.py            # rewrite golden/
-uv run python scripts/golden.py --check    # CI: fails if golden/ differs from the Python core
+uv run scripts/gen_holidays.py --golden           # rewrite them (the monthly workflow does)
+uv run scripts/gen_holidays.py --golden --check   # compare only
 ```
 
 ## Layout
@@ -34,7 +41,7 @@ uv run python scripts/golden.py --check    # CI: fails if golden/ differs from t
 | `expected/calendar/ids.json`, `workweeks.json` | Odd sprint IDs and workweek values in every spelling. |
 | `expected/calendar/*.json` | Workdays and weekends, sprint ids, country list, holidays (a sample with names, plus a digest of every calendar of the library). |
 
-JSON files are written with Python's `json` (floats as `repr`, so they round-trip exactly). A
+JSON files were written with Python's `json` (floats as `repr`, so they round-trip exactly). A
 dictionary key that was `None` in Python is `"(none)"`.
 
 ## Cases
@@ -53,15 +60,9 @@ All teams are invented. Never add real team data here.
 (`golden.Load`, `golden.Compare`, `golden.Cases`). Example: `go/internal/pyrand`.
 
 A deliberate difference from Python (a bug fixed in the port, a changed rounding) is a decision:
-change the Python side or the reference in the same pull request as the Go code and say why.
-Never loosen a comparison to make a test pass.
+change the reference in the same pull request as the Go code and say why.
 
-## Adding references for another module
+## Adding references
 
-Copy `scripts/golden_ext/_template.py` to `scripts/golden_ext/<module>.py`. Each module owns its
-sub-folder `expected/<module>/`, so the porting threads do not edit the same files.
-
-## Python is the reference, not the target
-
-On `main` Python only gets bug fixes from now on. A bug fix there changes the references: run
-`scripts/golden.py` and review the diff of `golden/` in the same pull request (CI checks it).
+New code gets ordinary Go tests with their expected values in the test or in a file next to it.
+Add a case to this folder only for behavior that exists in version 0.8 as well.

@@ -1,17 +1,18 @@
 <script lang="ts">
   import { api } from '../../lib/api';
-  import { app } from '../../lib/app.svelte';
+  import { app, toast } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import { fmt, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { ForecastView, WhatIfRow, WhenDoneView } from '../../lib/types.forecast';
+  import type { ForecastAssumption, ForecastView, WhatIfRow } from '../../lib/types.forecast';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { current, link } from '../../lib/router.svelte';
   import Icon from '../../lib/Icon.svelte';
   import ProductsOverTime from './ProductsOverTime.svelte';
   import Reports from './Reports.svelte';
+  import WhenDone from './WhenDone.svelte';
   import ForecastChart from './ForecastChart.svelte';
 
   let { params }: PageProps = $props();
@@ -39,28 +40,46 @@
     };
   });
 
-  // What if: fewer person days and a different focus; nothing is saved.
+  // What if: another sprint choice, fewer person days, a different focus and a guess for the running
+  // sprint; nothing is saved unless it is saved as a prognosis.
+  let wiSprint = $state('');
   let extraDays = $state(0);
   let focus = $state(100);
+  let expected = $state<number | null>(null);
   let whatIf = $state<WhatIfRow[]>([]);
-  const changed = $derived(extraDays !== 0 || focus !== 100);
+  let saving = $state(false);
+  let pending = $state(false);
+  let wiProblem = $state('');
+  // a cleared number field is null
+  const changed = $derived((extraDays ?? 0) !== 0 || (focus ?? 100) !== 100 || expected != null);
+  const assumption = $derived<ForecastAssumption>({ sprint: wiSprint, extraAbsenceDays: extraDays ?? 0, focusPercent: focus ?? 100, expectedVelocity: expected ?? null, label: '' });
+  // the choices belong to the team
+  $effect(() => {
+    void app.team;
+    wiSprint = '';
+    extraDays = 0;
+    focus = 100;
+    expected = null;
+  });
   $effect(() => {
     const team = app.team;
-    const days = extraDays;
-    const f = focus;
-    if (!team || !view || (days === 0 && f === 100)) {
+    const as = assumption;
+    wiProblem = '';
+    if (!team || !view || !changed) {
       whatIf = [];
+      pending = false;
       return;
     }
     let stale = false;
+    pending = true;
     const timer = setTimeout(() => {
       api
-        .ForecastWhatIf(team, days, f)
+        .ForecastWhatIf(team, as)
         .then((rows) => {
-          if (!stale) whatIf = rows;
+          if (!stale) (whatIf = rows), (pending = false);
         })
-        .catch(() => {
-          if (!stale) whatIf = [];
+        .catch((e) => {
+          if (!stale) (whatIf = []), (wiProblem = String(e)), (pending = false);
         });
     }, 150);
     return () => {
@@ -68,35 +87,33 @@
       clearTimeout(timer);
     };
   });
-  const whatIfById = $derived(new Map(whatIf.map((r) => [r.id, r])));
-
-  // When is it done?
-  let remaining = $state(60);
-  let share = $state(50);
-  let done = $state<WhenDoneView>();
-  let doneProblem = $state('');
-  let asked = 0;
-  async function ask(): Promise<void> {
-    const team = app.team;
-    const id = ++asked;
-    doneProblem = '';
+  function reset(): void {
+    extraDays = 0;
+    focus = 100;
+    expected = null;
+  }
+  /** Only the sprint the planning uses can be kept as a prognosis. */
+  const canSave = $derived(changed && !!view && view.next !== '' && wiSprint === view.next && whatIf.length === 1 && !pending && !wiProblem);
+  async function save(): Promise<void> {
+    if (!app.team || saving) return;
+    saving = true;
     try {
-      const result = await api.ForecastWhenDone(team, remaining, share);
-      if (id === asked && team === app.team) done = result;
+      const team = app.team;
+      await api.ForecastSaveWhatIf(team, assumption);
+      view = await api.Forecast(team);
+      toast(t('Saved as prognosis for {id}. The planning of that sprint shows it.', { id: wiSprint }), 'ok');
     } catch (e) {
-      if (id === asked && team === app.team) doneProblem = String(e);
+      toast(String(e), 'bad');
+    } finally {
+      saving = false;
     }
   }
-  $effect(() => {
-    void app.team;
-    asked++;
-    done = undefined;
-    doneProblem = '';
-  });
+  const whatIfById = $derived(new Map(whatIf.map((r) => [r.id, r])));
 
   const tabs = $derived([
     { id: 'forecast', icon: 'monitoring' as const, label: t('Forecast') },
     ...(view && view.products > 1 ? [{ id: 'products', icon: 'stacked_bar_chart' as const, label: t('Products over time') }] : []),
+    { id: 'when', icon: 'event_available' as const, label: t('Analysis') },
     { id: 'reports', icon: 'ios_share' as const, label: t('Reports and export') },
   ]);
   const activeTab = $derived(tabs.some((x) => x.id === current.query.tab) ? (current.query.tab ?? 'forecast') : 'forecast');
@@ -149,6 +166,8 @@
 
   {#if activeTab === 'products'}
     <ProductsOverTime />
+  {:else if activeTab === 'when'}
+    <WhenDone roadmapShare={view.roadmapShare} />
   {:else if activeTab === 'reports'}
     <Reports />
   {:else}
@@ -264,100 +283,47 @@
     <div class="grid cols-2">
       <section class="card stack" aria-labelledby="fc-wif" data-tour="forecast-whatif">
         <h2 id="fc-wif">{t('What if')}</h2>
-        <p class="small muted">{t('Try other assumptions. Nothing is saved; the chart and the table show the result.')}</p>
+        <p class="small muted">{t('Try other assumptions. Nothing is saved unless you keep it as a prognosis; the chart shows the result as a diamond.')}</p>
         <div class="row">
+          <div class="field">
+            <label for="wi-sprint">{t('Sprint')}</label>
+            <select id="wi-sprint" class="input" bind:value={wiSprint}>
+              <option value="">{t('All coming sprints')}</option>
+              {#each view.upcoming.filter((r) => r.plan !== null) as r (r.id)}<option value={r.id}>{r.id}</option>{/each}
+            </select>
+          </div>
           <div class="field">
             <label for="wi-days">{t('Additional days off per sprint (PD)')}</label>
             <input id="wi-days" class="input" type="number" min="0" step="0.5" bind:value={extraDays} />
           </div>
-          <div class="field">
-            <label for="wi-focus">{t('Focus (100 % = as measured)')}</label>
-            <input id="wi-focus" class="input" type="number" min="0" max="200" step="5" bind:value={focus} />
-          </div>
-          <button class="btn" type="button" disabled={!changed} onclick={() => ((extraDays = 0), (focus = 100))}>{t('Reset')}</button>
+          {#if view.running}
+            <div class="field">
+              <label for="wi-exp">{t('Expected velocity of {id}', { id: view.running })}</label>
+              <input id="wi-exp" class="input" type="number" min="0" step="any" placeholder={view.runningCommitment !== null ? fmt(view.runningCommitment, 1) : ''} bind:value={expected} />
+            </div>
+          {/if}
         </div>
-        {#if changed && whatIf.length > 0 && next}
-          <p>
+        <div class="field">
+          <label for="wi-focus">{t('Focus (100 % = as measured): {n} %', { n: fmt(focus ?? 100, 0) })}</label>
+          <input id="wi-focus" type="range" min="0" max="150" step="5" bind:value={focus} />
+        </div>
+        <div class="row">
+          <button class="btn" type="button" disabled={!changed} onclick={reset}>{t('Reset')}</button>
+          <button class="btn primary" type="button" disabled={!canSave || saving} onclick={save}>{t('Save as prognosis')}</button>
+        </div>
+        {#if changed && !canSave && view.next}
+          <p class="small muted">{t('Only {id}, the sprint after the running one, can be kept as a prognosis. Choose it above.', { id: view.next })}</p>
+        {/if}
+        {#if wiProblem}<Banner tone="bad">{wiProblem}</Banner>{/if}
+        <p aria-live="polite">
+          {#if changed && whatIf.length > 0 && next}
             {t('Over {n} sprints the forecast changes from {a} to {b} points.', {
               n: whatIf.length,
               a: fmt(sum(whatIf.map((r) => r.base)), view.rounding),
               b: fmt(sum(whatIf.map((r) => r.forecast)), view.rounding),
             })}
-          </p>
-        {/if}
-      </section>
-
-      <section class="card stack" aria-labelledby="fc-done" data-tour="forecast-analysis">
-        <h2 id="fc-done">{t('When is it done?')}</h2>
-        <p class="small muted">{t('Simulates the coming sprints from the velocities so far. A likelihood, not a promise.')}</p>
-        <form
-          class="row"
-          onsubmit={(e) => {
-            e.preventDefault();
-            void ask();
-          }}
-        >
-          <div class="field">
-            <label for="wd-rest">{t('Remaining work (points)')}</label>
-            <input id="wd-rest" class="input" type="number" min="1" step="1" bind:value={remaining} />
-          </div>
-          <div class="field">
-            <label for="wd-share">{t('Share of the forecast for it (%)')}</label>
-            <input id="wd-share" class="input" type="number" min="1" max="100" step="any" bind:value={share} />
-          </div>
-          <button class="btn primary" type="submit">{t('Calculate')}</button>
-        </form>
-        <div aria-live="polite">
-        {#if doneProblem}
-          <Banner tone="bad">{doneProblem}</Banner>
-        {:else if done && !done.available}
-          <Banner tone="info">
-            {#if done.remaining <= 0 || done.share <= 0}
-              {t('Enter the remaining work and a share above 0 to simulate.')}
-            {:else}
-              {t('There are too few sprints with a velocity to simulate. At least 2 are needed.')}
-            {/if}
-          </Banner>
-        {:else if done}
-          <div>
-            <p>
-              {#if done.p50 && done.p85}
-                {t('Done in sprint {p50} in half of the runs, in sprint {p85} in 85 % of them.', { p50: done.p50, p85: done.p85 })}
-              {:else if done.p50}
-                {t('Done in sprint {p50} in half of the runs; in 85 % of them not within the simulated period.', { p50: done.p50 })}
-              {:else}
-                {t('Not done within the simulated period.')}
-              {/if}
-            </p>
-            <div class="tw">
-              <table class="t">
-                <thead>
-                  <tr><th>{t('Sprint')}</th><th class="num">{t('Done by then')}</th><th><span class="sr-only">{t('Bar')}</span></th></tr>
-                </thead>
-                <tbody>
-                  {#each done.sprints.slice(0, 10) as id, i (id)}
-                    {@const c = done.cumulative[i] ?? 0}
-                    <tr>
-                      <td class="data">{id}</td>
-                      <td class="num">{pct(c)}</td>
-                      <td class="barcell"><span class="bar" style:width="{c * 100}%"></span></td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-            {#if done.trendCapacity.length > 0}
-              <p class="small muted">{t('From sprint {id} on there is no people list; the average capacity of the last sprints is used.', { id: done.trendCapacity[0] ?? '' })}</p>
-            {/if}
-            <p class="small muted">
-              {t('Expected per sprint: {n} points ({runs} runs, {samples} sprints as basis).', { n: fmt(done.perSprint), runs: fmt(done.runs, 0), samples: done.samples })}
-              <Calc label={t('When is it done?')} topic="whendone">
-                <div class="muted">{t('For each coming sprint a normalized velocity of the last sprints is drawn at random, scaled to the sprint capacity and multiplied by the share. The sprint in which the sum reaches the remaining work is counted over all runs.')}</div>
-              </Calc>
-            </p>
-          </div>
-        {/if}
-        </div>
+          {/if}
+        </p>
       </section>
     </div>
 
@@ -422,25 +388,6 @@
   .calc-cell {
     white-space: normal;
     min-width: 36px;
-  }
-  .barcell {
-    width: 40%;
-    min-width: 120px;
-  }
-  .bar {
-    display: block;
-    height: 10px;
-    border-radius: 5px;
-    background: var(--c-fc);
-    min-width: 2px;
-  }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
   .stack p {
     margin: 0;
