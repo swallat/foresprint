@@ -231,7 +231,8 @@ func containsString(list []string, s string) bool {
 // ResolveSprint returns the tool's sprint id for a sprint name of the tracker: the name itself
 // when it is a known id (recorded, in the forecast or in the calendar ahead), else
 // tracker.sprint_names, else the one known id with a separator (2026.20) the name contains as a
-// word, else nil (the raw name stays on the ticket).
+// word, else nil (the raw name stays on the ticket). A name mapped to model.CarryBacklog counts
+// as resolved: its tickets are backlog (Convert leaves InSprint empty), without a warning.
 func ResolveSprint(name string, tracker model.TrackerSettings, sprints Sprints) *string {
 	if name == "" {
 		return nil
@@ -321,7 +322,7 @@ func cloneStrings(s []string) []string {
 func Convert(raw sources.RawTicket, env Env) model.Ticket {
 	tracker := env.Tracker
 	inSprint := ResolveSprint(raw.SprintName, tracker, env.Sprints)
-	if inSprint != nil && sprintEnded(*inSprint, env) {
+	if inSprint != nil && (*inSprint == model.CarryBacklog || sprintEnded(*inSprint, env)) {
 		inSprint = nil
 	}
 	ticket := model.Ticket{

@@ -375,8 +375,9 @@
                       {:else}
                         <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
                           <option value="">{t('automatically by name')}</option>
+                          <option value="backlog">{t('Backlog (not a sprint)')}</option>
                           {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
-                          {#each sprintIds as id (id)}<option value={id}>{id}</option>{/each}
+                          {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
                         </select>
                       {/if}
                     </td>

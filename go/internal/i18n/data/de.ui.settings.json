@@ -145,6 +145,7 @@
   "Token, tracker and address applied. The other changes still need “Apply changes”.": "Token, Tracker und Adresse übernommen. Die anderen Änderungen brauchen noch „Änderungen übernehmen“.",
   "Token, tracker and address applied.": "Token, Tracker und Adresse übernommen.",
   "Sprint in Foresprint for {name}": "Foresprint-Sprint für {name}",
-  "Sprint names": "Sprintnamen"
+  "Sprint names": "Sprintnamen",
+  "Backlog (not a sprint)": "Backlog (kein Sprint)"
  }
 }

@@ -305,7 +305,7 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 		for _, s := range in.Sprints {
 			name, to := strings.TrimSpace(s.Name), strings.TrimSpace(s.MapsTo)
 			if name != "" && to != "" {
-				names.Set(name, to)
+				names.Set(name, to) // a sprint id, or model.CarryBacklog
 			}
 		}
 		tr.SprintNames = names

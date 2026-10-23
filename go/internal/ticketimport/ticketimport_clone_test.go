@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/sources"
 )
 
 func TestClonePreplanKeepsWhatTheFetchDoesNotOwn(t *testing.T) {
@@ -61,5 +62,16 @@ func TestResolveSprintByNumberInPrefixedIDs(t *testing.T) {
 	two := listedSprints{"A - 2026.20", "B - 2026.20"}
 	if ResolveSprint("Sprint 2026.20", model.TrackerSettings{}, two) != nil {
 		t.Error("two candidates are ambiguous")
+	}
+}
+
+func TestSprintMappedToBacklogIsResolvedAndNotInASprint(t *testing.T) {
+	var names model.OrderedMap[string]
+	names.Set("Old Sprint 16", model.CarryBacklog)
+	tracker := model.TrackerSettings{SprintNames: names}
+	env := Env{Tracker: tracker, Sprints: listedSprints{}}
+	tk := Convert(sources.RawTicket{Key: "A-1", SprintName: "Old Sprint 16"}, env)
+	if tk.InSprint != nil || ResolveSprint("Old Sprint 16", tracker, env.Sprints) == nil {
+		t.Errorf("backlog mapping: in sprint %v", tk.InSprint)
 	}
 }
