@@ -64,7 +64,7 @@
     </h2>
     <div class="row">
       <span class="big fc">{fmt(d.plan, 0)} {unit}</span>
-      <Calc label={t('Forecast PLAN')} topic="forecast-plan">
+      <Calc label={t('Forecast PLAN')} topic="forecast">
         <div>{t('Capacity times the rate (trend of the normalized velocity).')}</div>
         <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(ratio, 2)} = {fmt(d.plan, 0)}</div>
       </Calc>
