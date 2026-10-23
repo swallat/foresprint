@@ -4,6 +4,7 @@
   import type { PageProps } from '../../lib/routes';
   import { flows } from '../../lib/tour/flows';
   import { startTour } from '../../lib/tour/tour.svelte';
+  import DemoChoice from '../../lib/ui/DemoChoice.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
   let { params }: PageProps = $props();
@@ -14,6 +15,12 @@
   title={t('Guided flows')}
   lead={t('Short walk-throughs of the everyday flows. They always run on the invented demo team, never on your data.')}
 />
+
+<div class="card pick">
+  <h2>{t('Demo data')}</h2>
+  <p class="muted">{t('Pick the team and the ticket mode the walk-throughs run on. A walk-through you start afterwards opens the demo again with this choice.')}</p>
+  <DemoChoice id="guided" />
+</div>
 
 <ul class="flows">
   {#each flows as f (f.id)}
@@ -29,6 +36,10 @@
 </ul>
 
 <style>
+  .pick {
+    max-width: 760px;
+    margin-bottom: 12px;
+  }
   .flows {
     list-style: none;
     margin: 0;

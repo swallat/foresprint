@@ -21,8 +21,10 @@ type demoState struct {
 }
 
 // EnterDemo writes Team Atlas into a throwaway folder and makes it the data folder, until
-// LeaveDemo. Nothing is remembered in the settings of the person. It returns the key of the team.
-func (a *API) EnterDemo(lang string) (string, error) {
+// LeaveDemo. team ("atlas" or "simple") and source ("packages", "tracker" or "none") choose the
+// variant; "" means the full Atlas with work packages. Nothing is remembered in the settings of
+// the person. It returns the key of the team.
+func (a *API) EnterDemo(lang, team, source string) (string, error) {
 	a.enterMu.Lock() // two overlapping calls would lose the folder to go back to
 	defer a.enterMu.Unlock()
 	a.mu.Lock()
@@ -38,7 +40,7 @@ func (a *API) EnterDemo(lang string) (string, error) {
 	if code := i18n.Normalize(lang); code != "" {
 		lang = code
 	}
-	if err := tutorial.Write(dir, a.today(), lang); err != nil {
+	if err := tutorial.WriteWith(dir, a.today(), lang, tutorial.Options{Team: team, Source: source}); err != nil {
 		_ = os.RemoveAll(dir)
 		return "", err
 	}

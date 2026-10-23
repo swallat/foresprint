@@ -1,9 +1,11 @@
 package tutorial
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 )
@@ -64,5 +66,42 @@ func TestMonthsStayDistinctAtMonthEnds(t *testing.T) {
 			}
 			seen[k] = true
 		}
+	}
+}
+
+func TestVariantsLoadAndCheck(t *testing.T) {
+	today := time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC)
+	for _, team := range []string{TeamAtlas, TeamSimple} {
+		for _, source := range []string{SourcePackages, SourceTracker, SourceNone} {
+			root := t.TempDir()
+			if err := WriteWith(root, today, "en", Options{Team: team, Source: source}); err != nil {
+				t.Fatal(err)
+			}
+			data, err := storage.NewRepository(root).Load(Key)
+			if err != nil {
+				t.Fatalf("%s/%s: %v", team, source, err)
+			}
+			f := data.Team.Features
+			if f.Tickets != (source != SourceNone) || f.Projects != (team == TeamAtlas) || f.PO != (team == TeamAtlas) || f.Production != (team == TeamAtlas) {
+				t.Errorf("%s/%s: features %+v", team, source, f)
+			}
+			if (len(data.Tickets) > 0) != f.Tickets || (len(data.Projects) > 0) != f.Projects {
+				t.Errorf("%s/%s: %d tickets, %d projects", team, source, len(data.Tickets), len(data.Projects))
+			}
+			if source == SourceTracker && (data.Team.Tracker.Kind != "jira" || len(data.Tickets) == 0 || !strings.HasPrefix(data.Tickets[0].Key, "ATL-")) {
+				t.Errorf("%s/%s: tracker %+v", team, source, data.Team.Tracker)
+			}
+			if source == SourcePackages && data.Team.Tracker.Kind != model.PackagesKind {
+				t.Errorf("%s/%s: tracker kind %q", team, source, data.Team.Tracker.Kind)
+			}
+			for _, issue := range validate.CheckTeam(data, today) {
+				if issue.Level == validate.Error {
+					t.Errorf("%s/%s: %s: %s", team, source, issue.Where, issue.Message)
+				}
+			}
+		}
+	}
+	if err := WriteWith(t.TempDir(), today, "en", Options{Team: "big"}); err == nil {
+		t.Error("an unknown variant must be refused")
 	}
 }
