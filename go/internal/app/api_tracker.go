@@ -68,6 +68,7 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		FetchInterval: t.FetchInterval,
 		ProForma:      append([]string{}, data.Team.Sprint.ProForma...),
 		Sprints:       trackerSprintsOf(data),
+		SprintIds:     forecast.KnownSprintIDs(data, forecast.DefaultLookupAhead),
 		FieldHits:     trackerFieldHits(data.Tickets),
 	}
 	a.mu.Lock()
@@ -156,8 +157,33 @@ func (a *API) SaveTrackerSettings(team string, in TrackerSettings) error {
 	if _, err := repo.SaveTeam(t); err != nil {
 		return err
 	}
+	if in.Source == "tracker" {
+		if err := a.trackerReresolve(repo, team, t); err != nil {
+			return err
+		}
+	}
 	storage.ClearTeamCache()
 	return nil
+}
+
+// trackerReresolve applies a changed sprint table to the tickets already read, so that the
+// pages show it without a new fetch.
+func (a *API) trackerReresolve(repo *storage.Repository, team string, t model.Team) error {
+	backlogMu.Lock()
+	defer backlogMu.Unlock()
+	storage.ClearTeamCache()
+	_, data, err := a.loadRepoTeam(team)
+	if err != nil {
+		return err
+	}
+	data.Team = t
+	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data}, Today: time.Now()}
+	tickets, changed := ticketimport.Reresolve(data.Tickets, env)
+	if !changed {
+		return nil
+	}
+	_, err = repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets, Imported: data.TicketsImported, Source: data.TicketsSource})
+	return err
 }
 
 func prefixOK(s string) bool {
