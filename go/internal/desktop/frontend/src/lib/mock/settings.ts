@@ -62,6 +62,7 @@ let tracker: TrackerSettings = {
   boardId: null,
   fetchInterval: 15,
   proForma: ['Refinement'],
+  sprintIds: ['2026.1', '2026.2', '2026.3'],
   sprints: [
     { name: 'Refinement', tickets: 6, mapsTo: '' },
     { name: 'Ideas', tickets: 2, mapsTo: '' },

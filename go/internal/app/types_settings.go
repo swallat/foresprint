@@ -96,6 +96,9 @@ type TrackerSettings struct {
 	// the tracker (read only, for the table).
 	ProForma []string        `json:"proForma"`
 	Sprints  []TrackerSprint `json:"sprints"`
+	// SprintIds are the sprints a tracker sprint can be mapped to: the recorded ones and the
+	// ones of the calendar a year ahead.
+	SprintIds []string `json:"sprintIds"`
 	// FieldHits is the number of tickets of the last import that have a value per mapped value
 	// ("estimate", "remaining", "epic", "status", "project"); a value that is not stored with
 	// the tickets is missing.

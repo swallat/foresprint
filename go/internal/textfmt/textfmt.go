@@ -185,3 +185,32 @@ func AbsenceDerivedHint(l string, history *capacity.AbsenceHistory) (string, boo
 			"the \"{page}\" page.",
 		"count", len(history.Derived), "page", page), true
 }
+
+// NaturalLess orders names so that the number parts count as numbers: 2026.9 before 2026.10.
+func NaturalLess(a, b string) bool {
+	for a != "" && b != "" {
+		na, ra := splitNumber(a)
+		nb, rb := splitNumber(b)
+		if na != nb {
+			return na < nb
+		}
+		a, b = ra, rb
+	}
+	return len(a) < len(b)
+}
+
+// splitNumber cuts a leading run of digits (as a comparable key) or one non-digit run.
+func splitNumber(s string) (string, string) {
+	i := 0
+	digit := s[0] >= '0' && s[0] <= '9'
+	for i < len(s) && (s[i] >= '0' && s[i] <= '9') == digit {
+		i++
+	}
+	head := s[:i]
+	if digit {
+		head = strings.TrimLeft(head, "0")
+		head = strings.Repeat("0", 20-min(20, len(head))) + head
+		return "1" + head, s[i:]
+	}
+	return "0" + head, s[i:]
+}

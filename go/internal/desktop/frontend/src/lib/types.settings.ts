@@ -93,6 +93,7 @@ export interface TrackerSettings {
   proForma: string[];
   /** Sprint names met in the tracker, for the table. */
   sprints: TrackerSprint[];
+  sprintIds: string[];
   /** Tickets of the last import that have a value, per mapped value. */
   fieldHits: Record<string, number>;
   /** The mapping the last fetch used; the hits belong to it. */
