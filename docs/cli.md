@@ -73,8 +73,7 @@ English in both languages. The YAML files are English regardless of the language
 
 ## Updating
 
-`foresprint` checks at most once a day for a newer version and installs it after the command
-or the app exits; plugins and the Python version are kept. `foresprint update` updates now
-(`--check` only checks, `--force` reinstalls); `foresprint update --auto on|notice|off` or
-`FORESPRINT_AUTOUPDATE` controls the automatic behaviour. Installations pinned to a tag are
-not updated automatically. Details in [Installation](installation.md#updating).
+`foresprint` checks at most once a day for a newer version and points it out after the command
+or the app exits; it never installs by itself. `foresprint update` updates now
+(`--check` only checks, `--force` reinstalls); `foresprint update --auto on|off` or
+`FORESPRINT_AUTOUPDATE` controls the daily check. Details in [Installation](installation.md#updating).

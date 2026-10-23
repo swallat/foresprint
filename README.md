@@ -66,7 +66,7 @@ The program is not signed, so Windows SmartScreen and macOS Gatekeeper warn once
 start, see [Not signed](docs/installation.md#not-signed-smartscreen-and-gatekeeper).
 
 **Update:** run the installer again, or `foresprint update`. The program also checks once a day and
-can install new versions by itself (`foresprint update --auto on|notice|off`).
+points out new versions; it never installs by itself (`foresprint update --auto on|off`).
 **Uninstall** (keeps your data): `uninstall.sh` / `uninstall.ps1`, see
 [Uninstalling](docs/installation.md#uninstalling).
 
