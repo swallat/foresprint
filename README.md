@@ -33,7 +33,37 @@ Foresprint 1.0 is a single native program written in Go with a [Wails](https://w
 (Svelte frontend). The window and the command line are the same file, and nothing else has to be
 installed.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/forecast-dark.png">
+  <img src="docs/assets/screenshots/forecast-light.png" alt="Forecast: velocity, trend and the PLAN range for the coming sprints">
+</picture>
 
+<details>
+<summary>More screenshots</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/today-dark.png">
+  <img src="docs/assets/screenshots/today-light.png" alt="Today: what comes next and what stands out">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/preplan-dark.png">
+  <img src="docs/assets/screenshots/preplan-light.png" alt="Pre-plan with the what-if for the running sprint">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/projects-dark.png">
+  <img src="docs/assets/screenshots/projects-light.png" alt="Projects with milestones, traffic lights and contingents">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/analysis-dark.png">
+  <img src="docs/assets/screenshots/analysis-light.png" alt="When is it done? Monte Carlo analysis">
+</picture>
+
+</details>
+
+*The screenshots show the invented demo team "Atlas".*
 
 ## Install
 
