@@ -8,11 +8,14 @@
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
-  import type { TicketDetail, WorkPackageInput } from '../../lib/types.backlog';
+  import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
   import { openExternal } from './external';
 
   let detail = $state<TicketDetail | undefined>();
+  let tracker = $state<TrackerDetails | undefined>();
+  let trackerError = $state('');
+  let trackerBusy = $state(false);
   let draft = $state<WorkPackageInput | undefined>();
   let error = $state('');
   let confirmDelete = $state(false);
@@ -49,6 +52,8 @@
     const id = ++loadId;
     error = '';
     confirmDelete = false;
+    tracker = undefined;
+    trackerError = '';
     if (app.ticket === NEW) {
       detail = undefined;
       draft = untrack(blankDraft);
@@ -59,12 +64,27 @@
       if (id !== loadId) return;
       detail = d;
       draft = d.editable ? fromDetail(d) : undefined;
+      if (!d.editable) void loadTracker(id, d.key);
     } catch (e) {
       if (id === loadId) {
         detail = undefined;
         draft = undefined;
         error = String(e);
       }
+    }
+  }
+
+  // Description, sub-tasks, links, comments and attachments come from the tracker on each open;
+  // a failure shows in place and leaves the rest of the panel alone.
+  async function loadTracker(id: number, key: string): Promise<void> {
+    trackerBusy = true;
+    try {
+      const d = await api.TicketTracker(app.team, key);
+      if (id === loadId) tracker = d;
+    } catch (e) {
+      if (id === loadId) trackerError = String(e);
+    } finally {
+      if (id === loadId) trackerBusy = false;
     }
   }
 
@@ -169,6 +189,8 @@
   const titleOf = (key: string) => allTickets(view).find((tk) => tk.key === key)?.title ?? '';
 
   const when = (iso: string) => (iso ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso)) : '');
+  const size = (n: number) => (n >= 1048576 ? `${fmt(n / 1048576)} MB` : `${fmt(Math.max(1, Math.round(n / 1024)))} kB`);
+  const subDone = $derived(tracker?.subtasks.filter((x) => x.done).length ?? 0);
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
@@ -424,11 +446,27 @@
 
 {#snippet readOnlyDetails()}
   {#if detail}
-    {#if detail.description}
-      <section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{detail.description}</p></section>
+    {@const text = tracker?.description || detail.description}
+    {#if text}
+      <section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{text}</p></section>
     {/if}
     {#if detail.acceptance}
       <section class="td-sec"><h3>{t('Acceptance criteria')}</h3><p class="prose">{detail.acceptance}</p></section>
+    {/if}
+    {#if tracker?.subtasks.length}
+      <section class="td-sec">
+        <h3>{t('Subtasks')} <span class="muted small">{subDone}/{tracker.subtasks.length}</span></h3>
+        <ul class="td-list">
+          {#each tracker.subtasks as s (s.key)}
+            <li class="row nowrap">
+              <Icon name={s.done ? 'check_circle' : 'radio_button_unchecked'} size={16} />
+              <span class="data">{s.key}</span>
+              <span class="grow" class:done={s.done}>{s.title}</span>
+              {#if s.status}<span class="chip">{s.status}</span>{/if}
+            </li>
+          {/each}
+        </ul>
+      </section>
     {/if}
     {#if detail.dependencies.length}
       <section class="td-sec">
@@ -441,7 +479,51 @@
         </ul>
       </section>
     {/if}
-    {#if !detail.description && !detail.acceptance}
+    {#if tracker?.links.length}
+      <section class="td-sec">
+        <h3>{t('Links')} <span class="muted small">{tracker.links.length}</span></h3>
+        <ul class="td-list">
+          {#each tracker.links as l, i (i)}
+            <li class="row nowrap">
+              <span class="muted">{l.text}</span>
+              <button class="link data" type="button" onclick={() => (allTickets(view).some((x) => x.key === l.key) ? (app.ticket = l.key) : l.url && openExternal(l.url))}>{l.key}</button>
+              <span class="grow">{l.title}</span>
+              {#if l.status}<span class="chip">{l.status}</span>{/if}
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+    {#if tracker?.comments.length}
+      <section class="td-sec">
+        <h3>{t('Comments')} <span class="muted small">{tracker.comments.length}</span></h3>
+        {#each tracker.comments as c, i (i)}
+          <div class="td-comment">
+            <div class="small"><strong>{c.author}</strong> <span class="muted data">{when(c.at)}</span></div>
+            <div class="prose">{c.text}</div>
+          </div>
+        {/each}
+      </section>
+    {/if}
+    {#if tracker?.attachments.length}
+      <section class="td-sec">
+        <h3>{t('Attachments')} <span class="muted small">{tracker.attachments.length}</span></h3>
+        <ul class="td-list">
+          {#each tracker.attachments as a (a.url + a.name)}
+            <li class="row nowrap">
+              <Icon name="attach_file" size={16} />
+              <button class="link grow" type="button" title={t('Opens in {tracker}', { tracker: view?.tracker ?? '' })} onclick={() => openExternal(a.url)}>{a.name}</button>
+              <span class="muted small data">{size(a.size)}</span>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+    {#if trackerBusy}
+      <p class="muted small flush">{t('Reading details from {tracker}…', { tracker: view?.tracker ?? '' })}</p>
+    {:else if trackerError}
+      <div class="banner warn"><Icon name="cloud_off" /><div class="grow">{t('Details could not be read from {tracker}: {error}', { tracker: view?.tracker ?? '', error: trackerError })}</div></div>
+    {:else if !text && !detail.acceptance}
       <p class="muted small flush">{t('No description fetched yet.')}</p>
     {/if}
   {/if}

@@ -188,3 +188,40 @@ type WorkPackageInput struct {
 	Comments    []Comment `json:"comments"`
 	Done        bool      `json:"done"`
 }
+
+// TrackerSubtask is a sub-task of a tracker ticket.
+type TrackerSubtask struct {
+	Key    string `json:"key"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+	Done   bool   `json:"done"`
+}
+
+// TrackerLink is a link between a tracker ticket and another one, worded from its side.
+type TrackerLink struct {
+	Type   string `json:"type"`
+	Text   string `json:"text"`
+	Key    string `json:"key"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+	URL    string `json:"url"`
+}
+
+// TrackerAttachment is a file attached to a tracker ticket (opened in the tracker, not copied).
+type TrackerAttachment struct {
+	Name string `json:"name"`
+	Mime string `json:"mime"`
+	Size int64  `json:"size"`
+	URL  string `json:"url"`
+}
+
+// TrackerDetails are the parts of a tracker ticket read on demand when the panel opens.
+// Available is false when the tracker cannot deliver them (no Jira, no token, offline).
+type TrackerDetails struct {
+	Available   bool                `json:"available"`
+	Description string              `json:"description"`
+	Subtasks    []TrackerSubtask    `json:"subtasks"`
+	Links       []TrackerLink       `json:"links"`
+	Comments    []Comment           `json:"comments"`
+	Attachments []TrackerAttachment `json:"attachments"`
+}

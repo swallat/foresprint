@@ -6,6 +6,7 @@ interface WailsRuntime {
 }
 
 export function openExternal(url: string): void {
+  if (!/^https?:\/\//i.test(url)) return; // only web addresses leave the window
   const runtime = (window as unknown as { runtime?: WailsRuntime }).runtime;
   if (runtime?.BrowserOpenURL) runtime.BrowserOpenURL(url);
   else window.open(url, '_blank', 'noopener');
