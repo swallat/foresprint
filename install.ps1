@@ -69,9 +69,25 @@ if (-not $env:FORESPRINT_NO_SHORTCUT) {
         & $exe shortcut
         if ($LASTEXITCODE -ne 0) { throw "foresprint shortcut exited with code $LASTEXITCODE" }
     } catch {
-        Write-Warning "could not create the launcher: $($_.Exception.Message)"
-        Write-Host "The program is installed. Create the launcher later with: foresprint shortcut"
-        Write-Host "If Windows or your antivirus blocks the program, allow $exe and run that command again."
+        Write-Warning "could not create the launcher with the program: $($_.Exception.Message)"
+        # Fall back to plain Windows shortcuts that only point at the program (it is not started).
+        try {
+            $shell = New-Object -ComObject WScript.Shell
+            foreach ($dir in @([Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("Programs"))) {
+                $link = $shell.CreateShortcut((Join-Path $dir "Foresprint.lnk"))
+                $link.TargetPath = $exe
+                $link.WorkingDirectory = $env:USERPROFILE
+                $link.IconLocation = "$exe,0"
+                $link.Description = "Foresprint"
+                $link.Save()
+            }
+            Write-Host "==> created the launcher on the desktop and in the Start menu"
+            Write-Host "Run 'foresprint shortcut' later to give it the Foresprint logo."
+        } catch {
+            Write-Warning "could not create the launcher: $($_.Exception.Message)"
+            Write-Host "The program is installed. Create the launcher later with: foresprint shortcut"
+            Write-Host "If Windows or your antivirus blocks the program, allow $exe and run that command again."
+        }
     }
 }
 
