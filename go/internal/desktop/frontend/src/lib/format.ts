@@ -26,7 +26,12 @@ export function pct(value: number | null | undefined, digits = 0): string {
   return `${fmt(value * 100, digits)} %`;
 }
 
-/** "2026-01-05" as a short date in the language of the window ("5 Jan" / "5. Jan."). */
-export function shortDate(iso: string): string {
-  return formatDay(iso, 'short');
+/** A day with the year as numbers, e.g. "30.09.2026". */
+export function formatDate(day: string): string {
+  return new Intl.DateTimeFormat(language(), { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parseDay(day));
+}
+
+/** A period of days with the year on both ends, e.g. "30.09.2026 – 14.10.2026". */
+export function formatPeriod(start: string, end: string): string {
+  return `${formatDate(start)} – ${formatDate(end)}`;
 }

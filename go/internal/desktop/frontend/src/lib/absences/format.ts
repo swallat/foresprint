@@ -12,9 +12,3 @@ export function parseDays(text: string): number {
   const s = text.trim().replace(',', '.');
   return s === '' ? 0 : Number(s);
 }
-
-/** "5 Jan" / "5. Jan." for an ISO date. */
-export function shortDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  return new Intl.DateTimeFormat(language(), { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d);
-}

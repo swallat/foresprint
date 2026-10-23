@@ -10,7 +10,8 @@
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { AbsenceCell, AbsenceColumn, AbsenceGrid, AbsenceRow } from '../types.sprints';
-  import { days, parseDays, shortDate } from './format';
+  import { formatDate } from '../format';
+  import { days, parseDays } from './format';
 
   interface Props {
     team: string;
@@ -187,7 +188,7 @@
           {#each grid.columns as c (c.id)}
             <th scope="col" class="sc" class:focus={c.id === focus}>
               <span class="data">{c.name}</span><br />
-              <span class="muted small">{shortDate(c.start)}</span>
+              <span class="muted small">{formatDate(c.start)}</span>
               <span class="chip small {c.state === 'confirmed' ? 'ok' : c.state === 'announced' ? 'warn' : ''}">
                 {#if c.state !== 'unknown'}<Icon name={c.state === 'confirmed' ? 'lock' : 'lock_open'} size={14} />{/if}
                 {stateText(c.state)}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, refresh, selectSprint, syncTracker } from '../../lib/app.svelte';
-  import { formatDay } from '../../lib/format';
+  import { formatDay, formatPeriod } from '../../lib/format';
   import { language, t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import type { IconName } from '../../lib/icons';
@@ -135,7 +135,7 @@
         <div class="row">
           <h2 id={`td-${s.id}`}>{t('Sprint')} <span class="data">{s.id}</span></h2>
           <span class="chip" class:fc={s.state === 'running'}>{when(s)}</span>
-          <span class="muted small data">{formatDay(s.start)} – {formatDay(s.end)}</span>
+          <span class="muted small data">{formatPeriod(s.start, s.end)}</span>
         </div>
         {#if s.state === 'running'}
           <Banner tone={s.steps[0]?.state === 'done' ? 'info' : 'warn'}>
