@@ -319,13 +319,13 @@ func HintForURL(kind, url string) string {
 			"to install the certificate on the computer. The app changes no Git settings.")
 	case "offline":
 		return i18n.T("The server is not reachable. Your changes stay safely stored locally; check " +
-			"the internet connection or VPN and choose “Save and share” again later.")
+			"the internet connection or VPN and choose “Save” again later.")
 	case "denied":
 		return i18n.T("The server refused the upload, for example because of a protected branch or " +
 			"missing write permission. Your changes are stored locally; please ask whoever " +
 			"looks after the repository.")
 	case "rejected":
-		return i18n.T("Someone else has uploaded changes in the meantime. Choose “Save and share” " +
+		return i18n.T("Someone else has uploaded changes in the meantime. Choose “Save” " +
 			"once more; they will be taken over first.")
 	case "merge_in_progress":
 		return i18n.T("A merge is incomplete. It can be aborted; your own changes are kept.")
@@ -334,8 +334,8 @@ func HintForURL(kind, url string) string {
 			"“my” or “other” change for each entry, or abort the merge. Nothing is lost.")
 	case "invalid":
 		return i18n.T("The merge was technically possible, but the data is now invalid in content " +
-			"(see list). Nothing was uploaded. Please correct the values and choose “Save " +
-			"and share” again – or deliberately “Share anyway”.")
+			"(see list). Nothing was uploaded. Please correct the values and choose “Save” " +
+			"again – or deliberately “Share anyway”.")
 	case "dirty":
 		return i18n.T("There are unsaved changes outside the data folder that collide with the new " +
 			"changes. Please commit or discard them first.")
@@ -343,29 +343,29 @@ func HintForURL(kind, url string) string {
 		return i18n.T("The repository is not on a branch (detached HEAD). Choose “Back to the " +
 			"branch” in the sidebar; open changes are saved on a rescue branch first.")
 	case "no_upstream":
-		return i18n.T("The branch is not connected to the server yet. “Save and share” sets that up " +
+		return i18n.T("The branch is not connected to the server yet. “Save” sets that up " +
 			"the first time.")
 	case "no_remote":
-		return i18n.T("This data folder has no server yet. On the “Data folder” page, under “Server " +
-			"(remote)”, enter the address of the shared data repository; until then all " +
-			"changes stay on this computer. Anyone joining an existing team chooses “Clone " +
-			"repository” there.")
+		return i18n.T("This data folder has no server yet. In Settings > Storage, under “Server”, " +
+			"enter the address of the shared data repository; until then all " +
+			"changes stay on this computer. Anyone joining an existing team chooses “Or copy the " +
+			"data of a team from a server” there.")
 	case "not_repo":
 		return i18n.T("The data folder must be inside a Git repository: create a new one with `git " +
 			"init` or fetch an existing one with `git clone`. An unpacked ZIP archive " +
 			"(“Download source code” on GitHub or GitLab) is not a repository because it " +
 			"lacks the hidden `.git` folder. For an existing team repository, choose " +
-			"“Clone repository” on the “Data folder” page instead.")
+			"“Or copy the data of a team from a server” in Settings > Storage instead.")
 	case "not_found":
 		return i18n.T("The repository was not found or you have no access. Check address and " +
-			"permission; the address can be changed on the “Data folder” page under " +
-			"“Server (remote)”.")
+			"permission; the address can be changed in Settings > Storage under " +
+			"“Server”.")
 	case "unrelated_histories":
 		return i18n.T("The server contains a different history than this data folder – probably the " +
 			"wrong repository is connected (e.g. a code repository). Nothing was merged " +
 			"and nothing was uploaded; your changes are safe locally. If it is the wrong " +
-			"repository, the address can be changed on the “Data folder” page under " +
-			"“Server (remote)”. If the data repository on the server is the right one, " +
+			"repository, the address can be changed in Settings > Storage under " +
+			"“Server”. If the data repository on the server is the right one, " +
 			"merging must be confirmed explicitly.")
 	case "tag_exists":
 		return i18n.T("Choose a different name or remove the existing tag first. The changes are " +
@@ -382,8 +382,8 @@ func UnwritableFileHint() string {
 	return i18n.T("The file could not be written. Either another program is using it right now " +
 		"(editor, spreadsheet program, virus scanner, sync service; on Windows usually the " +
 		"reason), or it is write-protected or your user account may not change it. Close " +
-		"other programs, check the write protection and permissions, and choose “Save and " +
-		"share” again: the interrupted merge is then continued and nothing is lost. If " +
+		"other programs, check the write protection and permissions, and choose “Save” " +
+		"again: the interrupted merge is then continued and nothing is lost. If " +
 		"that does not help, ask whoever looks after the computer.")
 }
 
