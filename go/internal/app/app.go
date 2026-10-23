@@ -271,7 +271,7 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 
 // comingSprints is how many sprints after the current one the selector offers, so that the
 // next sprint can be pre-planned before its file exists.
-const comingSprints = 3
+const comingSprints = 6
 
 // withComingSprints adds sprints of the calendar after the last recorded one until the list has
 // comingSprints sprints after the current one (or the calendar cannot say). Only the sprints
