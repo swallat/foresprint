@@ -151,6 +151,8 @@
   "Keep sub-tasks": "Unteraufgaben behalten",
   "Sub-tasks": "Unteraufgaben",
   "Keep sub-tasks as tickets": "Unteraufgaben als Tickets behalten",
-  "Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.": "Aus: Unteraufgaben werden beim nächsten Abruf weggelassen, das übergeordnete Ticket zeigt ihre Anzahl. An: Sie zählen als eigene Tickets, ihre Punkte können dann doppelt zählen."
+  "Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.": "Aus: Unteraufgaben werden beim nächsten Abruf weggelassen, das übergeordnete Ticket zeigt ihre Anzahl. An: Sie zählen als eigene Tickets, ihre Punkte können dann doppelt zählen.",
+  "Treat all of these as backlog": "Alle diese als Backlog behandeln",
+  "For old sprints that no longer matter. Their open tickets then count as backlog.": "Für alte Sprints, die nicht mehr zählen. Ihre offenen Tickets zählen dann als Backlog."
  }
 }
