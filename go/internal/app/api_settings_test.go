@@ -347,3 +347,26 @@ func TestTrackerFieldHitsCountFilledValues(t *testing.T) {
 		t.Errorf("hits: %v", hits)
 	}
 }
+
+func TestTrackerSprintNamesAreSaved(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	in, _ := api.TrackerSettings(team)
+	in.Source, in.Kind = "tracker", "jira"
+	in.Sprints = []TrackerSprint{{Name: "Old Sprint 16", MapsTo: " 2026.20 "}, {Name: "Other"}}
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := api.TrackerSettings(team)
+	found := false
+	for _, s := range out.Sprints {
+		if s.Name == "Old Sprint 16" && s.MapsTo == "2026.20" {
+			found = true
+		}
+		if s.Name == "Other" && s.MapsTo != "" {
+			t.Errorf("empty target must not be stored: %+v", s)
+		}
+	}
+	if !found {
+		t.Errorf("mapping lost: %+v", out.Sprints)
+	}
+}

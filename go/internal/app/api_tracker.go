@@ -300,6 +300,16 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 		t.Sprint.ProForma = proForma
 	}
 	tr.FetchInterval = in.FetchInterval
+	if in.Sprints != nil { // null = a caller that does not know the table: keep the names
+		var names model.OrderedMap[string]
+		for _, s := range in.Sprints {
+			name, to := strings.TrimSpace(s.Name), strings.TrimSpace(s.MapsTo)
+			if name != "" && to != "" {
+				names.Set(name, to)
+			}
+		}
+		tr.SprintNames = names
+	}
 	if in.Kind == "jira" { // the board belongs to Jira; another kind keeps what is there
 		tr.BoardID = nil
 		if in.BoardID > 0 {
@@ -559,6 +569,8 @@ func (s planSaver) SavePreplan(team string, pp model.Preplan) (string, error) {
 
 // knownSprints tells the import which sprints exist (recorded or generated up to 52 ahead).
 type knownSprints struct{ data *storage.TeamData }
+
+func (k knownSprints) IDs() []string { return forecast.KnownSprintIDs(k.data, 52) }
 
 func (k knownSprints) End(id string) (time.Time, bool) {
 	s, err := forecast.FindSprint(k.data, id, 52)

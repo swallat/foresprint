@@ -65,6 +65,12 @@ type Sprints interface {
 	End(id string) (end time.Time, ok bool)
 }
 
+// Lister is implemented by Sprints that can also list their ids; the name of a tracker sprint is
+// then matched against ids that only contain its sprint number ("TEAM - 2026.20").
+type Lister interface {
+	IDs() []string
+}
+
 // Env is what the import needs to know about the team.
 type Env struct {
 	Tracker  model.TrackerSettings
@@ -236,7 +242,36 @@ func ResolveSprint(name string, tracker model.TrackerSettings, sprints Sprints) 
 	if id, ok := tracker.SprintNames.Get(name); ok {
 		return &id
 	}
-	return sprintWord(name, sprints)
+	if id := sprintWord(name, sprints); id != nil {
+		return id
+	}
+	return sprintByNumber(name, sprints)
+}
+
+// sprintByNumber finds the one known id that contains a yearly number of the name (2026.20) as a
+// word, for ids with a prefix. More than one such id is ambiguous and gives nil.
+func sprintByNumber(name string, sprints Sprints) *string {
+	lister, ok := sprints.(Lister)
+	if !ok {
+		return nil
+	}
+	var found *string
+	for _, w := range sprintWords.FindAllString(name, -1) {
+		if !strings.ContainsAny(w, "._-") || !strings.ContainsAny(w, "0123456789") {
+			continue
+		}
+		for _, id := range lister.IDs() {
+			if id == w || !slices.Contains(sprintWords.FindAllString(id, -1), w) {
+				continue
+			}
+			if found != nil && *found != id {
+				return nil
+			}
+			id := id
+			found = &id
+		}
+	}
+	return found
 }
 
 var sprintWords = regexp.MustCompile(`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`)

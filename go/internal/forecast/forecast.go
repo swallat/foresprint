@@ -208,6 +208,29 @@ func FindSprint(data *storage.TeamData, sprintID string, maxAhead int) (*model.S
 	return nil, nil
 }
 
+// KnownSprintIDs are the ids of the recorded sprints and of the ones the calendar generates up
+// to maxAhead sprints beyond the last recorded one, oldest first.
+func KnownSprintIDs(data *storage.TeamData, maxAhead int) []string {
+	ids := make([]string, 0, len(data.Sprints)+maxAhead)
+	for _, s := range data.Sprints {
+		ids = append(ids, s.ID)
+	}
+	var last *model.Sprint
+	if len(data.Sprints) > 0 {
+		last = &data.Sprints[len(data.Sprints)-1]
+	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
+	for i := 0; i < maxAhead; i++ {
+		next, err := chain.After(last)
+		if err != nil {
+			break
+		}
+		last = &next
+		ids = append(ids, next.ID)
+	}
+	return ids
+}
+
 // DefaultMaxAhead is the number of sprints FindSprint looks ahead in the Python core.
 const (
 	DefaultFindAhead   = 200

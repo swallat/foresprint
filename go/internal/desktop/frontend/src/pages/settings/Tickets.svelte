@@ -28,6 +28,7 @@
   async function load(team: string): Promise<void> {
     applied = draft = connection = queryCheck = undefined;
     fieldNames = [];
+    sprintIds = [];
     if (!team) return;
     try {
       const s = await api.TrackerSettings(team);
@@ -35,6 +36,7 @@
       s.boardId = s.boardId || null;
       applied = s;
       draft = structuredClone(s);
+      sprintIds = (await api.Sprints(team)).map((x) => x.id);
       if (s.source === 'tracker' && s.kind === 'jira' && (s.token.stored || s.token.fromEnv)) {
         fieldNames = await api.TrackerFieldNames(team, s.baseUrl);
       }
@@ -78,6 +80,7 @@
     { label: t('Production rules'), get: (s) => s.prodRules.map((r) => `${r.rule} → ${r.percent} %`), show: (v) => ((v as string[]).length ? (v as string[]).join('; ') : '–') },
     { label: t('Fields for rules'), get: (s) => s.ruleFields.map((f) => `${f.name} = ${f.display}`) },
     { label: t('Automatic fetch'), get: (s) => s.fetchInterval, show: (v) => intervalLabel(Number(v)) },
+    { label: t('Sprint names'), get: (s) => s.sprints.filter((x) => x.mapsTo).map((x) => `${x.name} → ${x.mapsTo}`), show: (v) => ((v as string[]).length ? (v as string[]).join('; ') : '–') },
     { label: t('Pro-forma sprints'), get: (s) => s.proForma, show: (v) => ((v as string[]).length ? (v as string[]).join(', ') : '–') },
     { label: t('Write the sprint back'), get: (s) => s.writeSprint },
     { label: t('Board number'), get: (s) => s.boardId || '' },
@@ -99,6 +102,7 @@
     draft.proForma = on ? [...rest, name] : rest;
   }
   let newSprint = $state('');
+  let sprintIds = $state<string[]>([]);
   function addSprint(): void {
     const name = newSprint.trim();
     if (!name) return;
@@ -107,11 +111,11 @@
   }
   /** The names met in the tracker, plus the pro-forma names the draft adds. */
   const sprintRows = $derived.by(() => {
-    const rows = (applied?.sprints ?? []).map((s) => ({ ...s }));
+    const rows = [...(draft?.sprints ?? [])];
     for (const name of draft?.proForma ?? []) {
       if (!rows.some((r) => r.name.toLowerCase() === name.toLowerCase())) rows.push({ name, tickets: 0, mapsTo: '' });
     }
-    return rows.sort((a, b) => a.name.localeCompare(b.name));
+    return rows;
   });
 
   function removedLabel(v: unknown): string {
@@ -365,7 +369,17 @@
                     <td class="data">{s.name}</td>
                     <td class="num data">{s.tickets}</td>
                     <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
-                    <td class="data">{isProForma(s.name) ? '–' : s.mapsTo || t('automatically by name')}</td>
+                    <td>
+                      {#if isProForma(s.name)}
+                        <span class="muted">–</span>
+                      {:else}
+                        <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
+                          <option value="">{t('automatically by name')}</option>
+                          {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
+                          {#each sprintIds as id (id)}<option value={id}>{id}</option>{/each}
+                        </select>
+                      {/if}
+                    </td>
                   </tr>
                 {:else}
                   <tr><td colspan="4" class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</td></tr>
