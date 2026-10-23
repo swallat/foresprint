@@ -15,6 +15,7 @@ import type {
   SprintsApi,
 } from '../types.sprints';
 import type { SprintInfo } from '../types';
+import { absencesFrozen } from './plan';
 import { sprints as demoSprints } from './shared';
 
 const people = [
@@ -143,8 +144,10 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
       return column(known(sprint));
     },
     async FreezeAbsences(_team, sprint) {
+      const found = known(sprint);
       state.set(sprint, 'confirmed');
-      return column(known(sprint));
+      absencesFrozen.add(sprint);
+      return column(found);
     },
     async UnfreezeAbsences(_team, sprint) {
       for (const p of people) locked.delete(`${sprint}|${p.person}`);
