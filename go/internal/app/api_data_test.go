@@ -2,12 +2,12 @@ package app
 
 import (
 	"context"
-	"github.com/swallat/foresprint/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/datasvc"
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/gitsync"
