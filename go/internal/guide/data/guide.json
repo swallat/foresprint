@@ -10,8 +10,8 @@
   {
    "key": "absence_state",
    "title": "Absence status",
-   "what": "Each sprint has one of three states: “unknown” (nothing recorded: the capacity comes from calendar and people list, absences are estimated from the last sprints), “expected” (forecast from the PO pre-planning, not yet confirmed) and “confirmed” (absences entered or explicitly “nobody is absent” confirmed). “Continue without confirmation” confirms nothing: the sprint stays “unknown”.",
-   "source": "“Prepare the sprint: absences” page (column “Nobody is absent”) or Planning, step 1.",
+   "what": "Each sprint has one of three states: “unknown” (nothing recorded: the capacity comes from calendar and people list, absences are estimated from the last sprints), “announced” (absences entered but not yet confirmed) and “confirmed” (absences confirmed, or explicitly “nobody is absent”). Without an explicit confirmation a sprint is never “confirmed”.",
+   "source": "“Prepare” page (option “Nobody is absent”).",
    "example": "Sprint 2026.23: no entries, “Nobody is absent” ticked → confirmed, full staffing"
   },
   {
@@ -103,7 +103,7 @@
   {
    "when": "Once",
    "title": "Set up the team",
-   "text": "Create a new team (or import the history with an import plugin), then add the people with their FTE share.",
+   "text": "Create a new team, then add the people with their FTE share.",
    "page": "new_team",
    "cli": "foresprint init TEAM"
   },
@@ -124,7 +124,7 @@
   {
    "when": "Before planning / PO planning",
    "title": "View the forecast",
-   "text": "Shows the Forecast PLAN for the current and upcoming sprints – the recommended planning amount, split into plannable and small items. The start page leads through three tasks (prepare sprint, planning, close sprint) to the next sensible page.",
+   "text": "Shows the Forecast PLAN for the current and upcoming sprints – the recommended planning amount, split into plannable and small items. The Today page shows what is due next.",
    "page": "forecast",
    "cli": "foresprint forecast TEAM"
   },
@@ -138,7 +138,7 @@
   {
    "when": "Sprint planning (sprint start)",
    "title": "Planning in three steps",
-   "text": "1. Enter the known absences for the sprint. 2. Plan the tickets with the Forecast PLAN, optionally per product. 3. Before the sprint starts, enter the commitment (the amount committed); the Forecast PLAN is frozen at that point. Optionally the cross-check from carry-over, backlog and corrections (delta to the Forecast PLAN).",
+   "text": "1. Confirm the absences of the sprint (Prepare). 2. Plan the tickets with the Forecast PLAN, optionally per product. 3. Before the sprint starts, enter the commitment (the amount committed) and freeze the plan; the Forecast PLAN is frozen at that point. Optionally the cross-check from carry-over, backlog and corrections (delta to the Forecast PLAN).",
    "page": "planning",
    "cli": "foresprint planning TEAM"
   },
@@ -257,100 +257,6 @@
    "Forecast PLAN − planning total (carry-over + backlog − corrections). Optional cross-check in planning; does not affect any other metric."
   ]
  ],
- "git_help": [
-  [
-   "Save and share",
-   "The button in the sidebar first saves your changes (as a commit), then fetches the others' changes from the server, merges both and uploads the result. Your own changes are therefore always safe before anything foreign is added. The simple model applies: “one branch, always keep in sync”."
-  ],
-  [
-   "What has changed?",
-   "With pending changes, the Git section shows, before “Save and share” and “Commit changes”, what changed per file: for changed and renamed YAML files every value with before and after, for new and deleted files only the kind. Nested values are written with dots, entries with an id in square brackets, e.g. people.[anna].fte. Long values are shortened. Files without readable values (Excel, reports, broken YAML, files over 1 MiB or with more than 200,000 entries) carry the note “no value view”. The first 25 files are evaluated, at most 4 MiB in total; further files carry the note “not evaluated”."
-  ],
-  [
-   "State in the sidebar",
-   "“not shared yet” are your own commits the server does not know; “new from others” are commits on the server that you do not have yet. The server state is only queried when you click “Check state” and when sharing; “checked … min ago” shows how current it is."
-  ],
-  [
-   "Changes by others",
-   "Before sharing, the sidebar lists what others have changed since your last sync (who, when, which files). After sharing it shows what was taken over."
-  ],
-  [
-   "Merging and conflicts",
-   "If two people change different values in the same file (e.g. absences of Anna and of Ben in the same sprint), they are united automatically. Only if both changed the same value differently does the app ask, on the “Resolve conflicts” page, for each entry: “My change” or “Other change”. While a conflict is open, editing is locked. Nothing is lost; “Abort merge” discards the merge and keeps your own changes."
-  ],
-  [
-   "Check after merging",
-   "After every merge the full validation runs: a merge can succeed technically and still be invalid in content (e.g. two fixed product shares of 60 % each). New errors stop the upload and the list shows them; after correcting, “Save and share” is enough, or deliberately “Share anyway”."
-  ],
-  [
-   "Outdated input",
-   "If the files change while a page is open (sharing, other programs), the app discards unsaved input with a notice and reloads instead of overwriting foreign changes."
-  ],
-  [
-   "Discard changes",
-   "On the “Changes and history” page, single files or all open changes can be discarded. Beforehand the app shows what is lost (file, status, lines) and asks for confirmation. For safety a copy goes to the trash under `.git`."
-  ],
-  [
-   "History and restoring an earlier state",
-   "The history shows, per team, sprint or file, who changed what and when. An earlier state can be restored; that is itself a new change and can be undone with “Take back this change”. Open changes in the affected area must be saved or discarded first."
-  ],
-  [
-   "Managing tags",
-   "Tags (e.g. `team/2026.21`) mark completed reviews. They can be shown, set later on any state and deleted; the app syncs them with the server and reports when that failed (the tag then stays local). With “Compare with server” (asks the server, only on click) the list shows whether a tag exists only locally, only on the server or at a different state. A local-only tag can be made up with “Upload to server”; tags that exist on one side only can be deleted as well."
-  ],
-  [
-   "Server with a foreign history",
-   "If the server holds a completely different history than the data folder (usually the wrong repository is connected, e.g. a code repository), “Save and share” merges nothing and uploads nothing; your own changes stay safe locally. The sidebar names server and branch. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)” (the link “Change server address” leads there). Only if the server really is the right data repository can merging be confirmed deliberately with the box “Yes, merge both histories” and the button below it; “Cancel” changes nothing."
-  ],
-  [
-   "Switching between data folders",
-   "The active data folder (with its parent folder) and its branch are shown at the top of the sidebar. Under “Switch data folder” and on the “Data folder” page the recently used folders can be switched. The data folder applies per browser window: when one window switches, other open windows keep working in their folder; newly opened windows start in the last chosen one. Switching discards unsaved input in forms and all caches of the old folder; pending tags, the commit message and open changes in the old folder stay there and reappear when you switch back."
-  ],
-  [
-   "Server not reachable (offline)",
-   "Your changes are still saved locally. Choose “Save and share” again later when the internet or VPN is back. If the address is wrong (typo, server moved), it can be changed on the “Data folder” page under “Server (remote)”."
-  ],
-  [
-   "Repository not found",
-   "If the server answers but knows no repository at the saved address (or conceals it because you lack permission), the app reports “Repository not found” instead of “Server not reachable”: at “Check connection”, when syncing, uploading and cloning. Checking the internet or VPN does not help then. Check the address (typo, renamed or moved repository) and the permission; the address can be changed on the “Data folder” page under “Server (remote)”. If the repository is in a folder or on a network drive that is not connected right now, the app reports “Server not reachable” instead."
-  ],
-  [
-   "Server certificate not accepted",
-   "If the server answers but this computer does not accept its security certificate (often a company certificate or a self-issued certificate), the app reports it as such. Checking the internet or VPN does not help. Ask IT to install the certificate on the computer. The app changes no Git settings for this and does not save an address whose certificate is not accepted."
-  ],
-  [
-   "Set up the server (remote)",
-   "On the “Data folder” page, the “Server (remote)” section shows which server belongs to the data folder. The address is entered or changed there; “Check connection” tests it without changing anything, and “Save” checks again and only accepts it if the connection works. Allowed are https://…, ssh://…, git@server:path and a complete folder path; http:// only after explicit confirmation. User name, password and token do not belong in the address (see “Login”). If the server is not reachable or lacks the branch, the address can only be saved anyway with explicit confirmation. Anyone joining an existing team is better off choosing “Clone repository” on the same page."
-  ],
-  [
-   "Login",
-   "The app does not sign in by itself, does not set up a login and never asks for a password; your computer's credential service handles the login. If it is missing, the app explains the next step for your operating system and, for that, looks (read-only) at the Git setting `credential.helper` without changing it. With https the server usually needs an access token (GitHub: personal access token, GitLab: access token with “write_repository”) that you store once in your computer's credential service (Windows: Git Credential Manager or Credential Manager, macOS: Keychain, Linux: `libsecret`); with the GitHub CLI, `gh auth setup-git` sets up the login. A plain-text store (`credential.helper store`) is not recommended. With SSH the key must be registered with the server and available in the ssh-agent."
-  ],
-  [
-   "SSH server not known yet (fingerprint)",
-   "If the computer connects to an SSH server for the first time, or the server's key has changed, SSH requires the server's fingerprint to be confirmed. The app cannot do that and does not ask for it either (Git runs in the background without prompts); it reports this at “Check connection”, when syncing, uploading, cloning and with tags. Please connect to the server once with an SSH or Git program and confirm the fingerprint, or use the https address of the repository; then try again. If the key of a known server has changed, ask the operator of the server first."
-  ],
-  [
-   "Name and email address",
-   "Git needs both for every commit. If missing, the app asks for it and, at your request, stores it in your user's global Git configuration; otherwise it changes no global Git setting."
-  ],
-  [
-   "Locked file",
-   "If another program (Git client, editor, virus scanner, cloud folder) is using a file in the repository, Git cannot change it. Close other programs and try again. If that does not help, a lock file (`index.lock` in the hidden `.git` folder) may have been left over after a crash. The app does not remove it itself: please ask whoever looks after the computer or the repository before it is deleted (if a Git program is still running, deleting it disturbs its work). If a data file cannot be written during the automatic merge, something similar helps: close programs, check the write protection and choose “Save and share” again; the merge stays open and is then continued."
-  ],
-  [
-   "File or folder not writable",
-   "If Git may not write in the data folder (or in the hidden `.git` folder inside it), the app reports “File or folder not writable”. Usually the user account has no write permission there, the folder is write-protected, or a network drive or cloud folder is not connected or read-only. Check permissions, write protection and connection; if that does not help, ask whoever looks after the computer. A “Permission denied” when connecting to the server, on the other hand, concerns the login or the permissions on the server (see “Login”)."
-  ],
-  [
-   "Git considers the folder unsafe",
-   "If Git rejects a folder because it belongs to a different user account than the one the app runs under (“detected dubious ownership”; common with network drives, copied folders or after an account change), the app reports this reason instead of “is not in a Git repository”: in the sidebar, in the history, on the “Data folder” page and in the command `foresprint data-dir`. In such a folder the app creates no repository and writes nothing; when adopting the folder, “Use without Git” remains. The app changes no Git settings and does not advise doing so. Please ask whoever looks after the computer: they can assign the folder to your own account or deliberately mark it as safe."
-  ],
-  [
-   "Incomplete merge, detached HEAD",
-   "If an earlier merge was interrupted, the sidebar offers “Abort merge”. If the repository is on no branch (detached HEAD), “Back to the branch” returns; commits without a branch are saved on a rescue branch first, whose name the message gives. Open changes in the data folder are saved there as well before the switch (as a commit of their own, “Open changes saved before the switch”); the main branch does not contain them, they are only on the rescue branch (a separate branch just for saved work). If the switch would overwrite changes outside the data folder, everything stays as it is: the app only touches the data folder. Save or discard those changes there in Git (the “Technical message” names the files). Then choose “Back to the branch” again; the rescue branch remains and is named then."
-  ]
- ],
  "capacity_sources": [
   [
    "recorded",
@@ -379,16 +285,24 @@
  ],
  "commands": [
   [
-   "foresprint web",
-   "Start the web interface as an app in its own window"
+   "foresprint gui",
+   "Open the window (a double click on the launcher does the same)"
   ],
   [
-   "foresprint web --no-app",
-   "Web interface in a browser tab instead of as an app"
+   "foresprint estimation TEAM [--unit SP|PT [--from SPRINT]] [--factor F]",
+   "Show or change the estimation unit and the conversion factor"
   ],
   [
-   "foresprint web --no-browser",
-   "Start the server without opening a window"
+   "foresprint sprint-naming TEAM [--pattern P]",
+   "Show or set the sprint naming pattern"
+  ],
+  [
+   "foresprint storage …",
+   "Where the data is kept: server, sign-in, name, save, refresh, history"
+  ],
+  [
+   "foresprint version",
+   "Show the version"
   ],
   [
    "foresprint shortcut",
@@ -396,7 +310,7 @@
   ],
   [
    "foresprint completion SHELL",
-   "Tab completion script (bash, zsh, fish, powershell); set up with --install-completion"
+   "Tab completion script (bash, zsh, fish, powershell)"
   ],
   [
    "foresprint forecast TEAM [--explain SPRINT]",

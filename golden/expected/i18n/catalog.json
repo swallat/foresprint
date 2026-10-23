@@ -1,15 +1,10 @@
 {
- "count": 2142,
+ "count": 1231,
  "digest": {
-  "de": "0f3950a9094bf920e460d831ebcf9a201c0f96dee9866f739fe770525c7cdb2a",
-  "en": "78347c0143a28c18bf1e1682d7eea99775835bce8229247de5cce3d4061b39e7"
+  "de": "ea84e1faac667943ddd5677d8e081da75732d7916f5d1d72d3f795963ebbe89a",
+  "en": "479c51561dcaed33731923e2eedce902f13082c8c390dd0e9fd5fabf51133d57"
  },
  "sample": [
-  {
-   "text": " (absences not recorded yet)",
-   "de": " (Fehltage noch nicht erfasst)",
-   "en": " (absences not recorded yet)"
-  },
   {
    "text": "--write-labels needs tracker.write_labels: true in team.yaml.",
    "de": "--write-labels braucht tracker.write_labels: true in team.yaml.",
@@ -21,34 +16,9 @@
    "en": "Absences unknown: capacity from the people list and calendar, reduced by the average absences of the last sprints with confirmed absences (setting “Absence history”)."
   },
   {
-   "text": "App window closed – stopping the web interface.",
-   "de": "App-Fenster geschlossen – beende die Weboberfläche.",
-   "en": "App window closed – stopping the web interface."
-  },
-  {
    "text": "Branch is not connected to the server",
    "de": "Branch ist nicht mit dem Server verbunden",
    "en": "Branch is not connected to the server"
-  },
-  {
-   "text": "Change sprint IDs",
-   "de": "Sprint-IDs ändern",
-   "en": "Change sprint IDs"
-  },
-  {
-   "text": "Commitment taken from carry-over + backlog: {value} {unit}",
-   "de": "Commitment aus Überkipper + Backlog übernommen: <value> <unit>",
-   "en": "Commitment taken from carry-over + backlog: <value> <unit>"
-  },
-  {
-   "text": "Cross-check (optional)",
-   "de": "Kontrollrechnung (optional)",
-   "en": "Cross-check (optional)"
-  },
-  {
-   "text": "Done locally only: {error}",
-   "de": "Nur lokal erledigt: <error>",
-   "en": "Done locally only: <error>"
   },
   {
    "text": "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall and quickly leaves the range over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated.",
@@ -66,29 +36,9 @@
    "en": "Git refuses to work in this folder because it belongs to a different user account than the one the app runs under (a protection by Git, common with network drives, copied folders or after an account change). The app changes no Git settings. Please ask whoever looks after the computer: they can assign the folder to your own account or deliberately mark it as safe."
   },
   {
-   "text": "Incomplete merge, detached HEAD",
-   "de": "Unvollständiges Zusammenführen, detached HEAD",
-   "en": "Incomplete merge, detached HEAD"
-  },
-  {
    "text": "Last sprint",
    "de": "Letzter Sprint",
    "en": "Last sprint"
-  },
-  {
-   "text": "More: how to read \"Planned\"",
-   "de": "Mehr dazu: so liest sich „Eingeplant“",
-   "en": "More: how to read \"Planned\""
-  },
-  {
-   "text": "No data folder found. A **Git repository** is recommended: changes are traceable and shareable with the team. Please choose an existing folder (also possible without Git), create a new data repository or clone an existing one.",
-   "de": "Kein Datenordner gefunden. Empfohlen ist ein **Git-Repository**: So sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen Ordner wählen (auch ohne Git möglich), ein neues Daten-Repository anlegen oder ein bestehendes klonen.",
-   "en": "No data folder found. A **Git repository** is recommended: changes are traceable and shareable with the team. Please choose an existing folder (also possible without Git), create a new data repository or clone an existing one."
-  },
-  {
-   "text": "No value \"{measure}\" recorded in these sprints yet.",
-   "de": "In diesen Sprints ist noch kein Wert „<measure>“ erfasst.",
-   "en": "No value \"<measure>\" recorded in these sprints yet."
   },
   {
    "text": "Only check, do not install.",
@@ -111,16 +61,6 @@
    "en": "Read Excel list (preview, then write)"
   },
   {
-   "text": "Rename {orig} to {file}",
-   "de": "<orig> nach <file> umbenannt",
-   "en": "Rename <orig> to <file>"
-  },
-  {
-   "text": "Saved: {names}.",
-   "de": "Gespeichert: <names>.",
-   "en": "Saved: <names>."
-  },
-  {
    "text": "Settings [bold]{team}[/bold] – Enter keeps the current value.",
    "de": "Einstellungen [bold]<team>[/bold] – Enter übernimmt den aktuellen Wert.",
    "en": "Settings [bold]<team>[/bold] – Enter keeps the current value."
@@ -129,11 +69,6 @@
    "text": "Sprint ID {id} does not match the numbering (expected {expected}).",
    "de": "Sprint-ID <id> passt nicht zur Nummerierung (erwartet <expected>).",
    "en": "Sprint ID <id> does not match the numbering (expected <expected>)."
-  },
-  {
-   "text": "Standard: {basis} / number of products handled – cannot be calculated yet.",
-   "de": "Standard: <basis> / Anzahl betreuter Produkte – noch nicht berechenbar.",
-   "en": "Standard: <basis> / number of products handled – cannot be calculated yet."
   },
   {
    "text": "Team settings (deduction for Scrum events).",
@@ -146,16 +81,6 @@
    "en": "The data folder is not a Git repository yet."
   },
   {
-   "text": "The product rule says {product}; the project wins",
-   "de": "Die Produktregel sagt <product>; das Projekt gewinnt",
-   "en": "The product rule says <product>; the project wins"
-  },
-  {
-   "text": "The token comes from the environment variable {name} (it takes precedence).",
-   "de": "Der Token kommt aus der Umgebungsvariable <name> (sie hat Vorrang).",
-   "en": "The token comes from the environment variable <name> (it takes precedence)."
-  },
-  {
    "text": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
    "de": "Dieses Verfahren wird nicht unterstützt. Erlaubt sind https://, ssh://, git@server:pfad und vollständige Ordnerpfade.",
    "en": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
@@ -164,16 +89,6 @@
    "text": "Unknown field '{source}', did you mean '{close}'?",
    "de": "Unbekanntes Feld '<source>', meintest du '<close>'?",
    "en": "Unknown field '<source>', did you mean '<close>'?"
-  },
-  {
-   "text": "Version {latest} is available, but the update did not take effect (log: `{log}`). If necessary, run the install script again.",
-   "de": "Version <latest> ist verfügbar, die Aktualisierung hat aber nicht gegriffen (Protokoll: `<log>`). Notfalls das Installationsskript erneut ausführen.",
-   "en": "Version <latest> is available, but the update did not take effect (log: `<log>`). If necessary, run the install script again."
-  },
-  {
-   "text": "Yes, this is the right data repository",
-   "de": "Ja, dies ist das richtige Daten-Repository",
-   "en": "Yes, this is the right data repository"
   },
   {
    "text": "end",
@@ -194,11 +109,6 @@
    "text": "tracker.query is missing (JQL query of the tickets, team.yaml)",
    "de": "tracker.query fehlt (JQL-Abfrage der Tickets, team.yaml)",
    "en": "tracker.query is missing (JQL query of the tickets, team.yaml)"
-  },
-  {
-   "text": "{name}: {orig} → {file}",
-   "de": "<name>: <orig> → <file>",
-   "en": "<name>: <orig> → <file>"
   },
   {
    "text": "{where}: '{name}' does not belong in the file – tokens and passwords belong in the environment variable FORESPRINT_JIRA_TOKEN or in the keychain",

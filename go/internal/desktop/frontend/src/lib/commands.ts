@@ -45,7 +45,7 @@ function pageCommands(): Command[] {
 
 function actionCommands(): Command[] {
   const out: Command[] = [
-    { id: 'act:save', label: t('Save and share'), group: 'action', hint: 'Ctrl+S', words: 'speichern commit', run: () => void save() },
+    { id: 'act:save', label: t('Save'), group: 'action', hint: 'Ctrl+S', words: 'speichern commit', run: () => void save() },
     { id: 'act:refresh', label: t('Fetch changes of others'), group: 'action', hint: 'Ctrl+Shift+R', words: 'aktualisieren pull', run: () => void refresh() },
     {
       id: 'act:theme',
