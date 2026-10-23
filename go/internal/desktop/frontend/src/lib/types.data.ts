@@ -136,6 +136,14 @@ export interface PendingTag {
   ready: boolean;
 }
 
+/** A data folder used before (Settings > Storage). */
+export interface RecentFolder {
+  path: string;
+  inUse: boolean;
+  /** The folder is gone. */
+  missing: boolean;
+}
+
 export interface Done {
   version: string;
   warning?: string;
@@ -234,6 +242,7 @@ export interface DataApi {
   Revert(version: string): Promise<Done>;
   Discard(files: string[]): Promise<Done>;
   Lost(files: string[]): Promise<LostFile[]>;
+  RecentFolders(): Promise<RecentFolder[]>;
   PendingTags(): Promise<PendingTag[]>;
   OpenFile(path: string): Promise<void>;
   UnsavedChanges(): Promise<UnsavedFile[]>;

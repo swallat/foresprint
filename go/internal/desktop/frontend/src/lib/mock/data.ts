@@ -15,6 +15,7 @@ import type {
   Label,
   LineEndings,
   PendingTag,
+  RecentFolder,
   LostFile,
   UnsavedFile,
   ValueRef,
@@ -205,6 +206,12 @@ export const dataMock: DataApi = {
   async Lost(files: string[]) {
     const list: LostFile[] = s.unsaved.filter((f) => files.length === 0 || files.includes(f)).map((file, i) => ({ status: 'M', file, added: 2 + i, removed: 1 }));
     return list;
+  },
+  async RecentFolders(): Promise<RecentFolder[]> {
+    return [
+      { path: '/demo/teams', inUse: true, missing: false },
+      { path: '/demo/archive/teams', inUse: false, missing: true },
+    ];
   },
   async PendingTags(): Promise<PendingTag[]> {
     return pendingTagNames.map((name) => ({ name, ready: true }));
