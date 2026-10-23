@@ -13,6 +13,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import SprintFigures from '../../lib/plan/SprintFigures.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
   import type { AbsencePeriod, PeopleView } from '../../lib/types.team';
@@ -137,6 +138,8 @@
     preplan: info?.ready.some((r) => r.kind === 'preplan' && r.state === 'open') ? t('An amount is missing for some products.') : '',
   }}
 />
+
+{#if app.team && app.sprint}<SprintFigures reload={info} />{/if}
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>
