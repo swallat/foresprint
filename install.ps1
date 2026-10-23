@@ -82,7 +82,7 @@ if (-not $env:FORESPRINT_NO_SHORTCUT) {
                 $link.Save()
             }
             Write-Host "==> created the launcher on the desktop and in the Start menu"
-            Write-Host "Run 'foresprint shortcut' later to give it the Foresprint logo."
+            Write-Host "Run 'foresprint shortcut' later to replace it with the regular launcher."
         } catch {
             Write-Warning "could not create the launcher: $($_.Exception.Message)"
             Write-Host "The program is installed. Create the launcher later with: foresprint shortcut"
