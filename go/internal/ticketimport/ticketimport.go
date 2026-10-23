@@ -246,7 +246,26 @@ func ResolveSprint(name string, tracker model.TrackerSettings, sprints Sprints) 
 	if id := sprintWord(name, sprints); id != nil {
 		return id
 	}
-	return sprintByNumber(name, sprints)
+	if id := sprintByNumber(name, sprints); id != nil {
+		return id
+	}
+	return sprintAfterWord(name, sprints)
+}
+
+var sprintNumber = regexp.MustCompile(`(?i)\bsprint\s+(\d+)\b([._-]\d)?`)
+
+// sprintAfterWord finds a bare number after the word "Sprint" ("Team Sprint 17") when it is a
+// known id; any other bare number may be anything ("Release 45").
+func sprintAfterWord(name string, sprints Sprints) *string {
+	m := sprintNumber.FindAllStringSubmatch(name, -1)
+	if len(m) != 1 || m[0][2] != "" { // "Sprint 17.1" is not sprint 17
+		return nil
+	}
+	if _, ok := sprints.End(m[0][1]); !ok {
+		return nil
+	}
+	id := m[0][1]
+	return &id
 }
 
 // sprintByNumber finds the one known id that contains a yearly number of the name (2026.20) as a
@@ -311,6 +330,41 @@ func copyFloat(f *float64) *float64 {
 
 func cloneStrings(s []string) []string {
 	return append([]string{}, s...)
+}
+
+// Reresolve resolves the sprint names of stored tickets again (the sprint table of the tracker
+// settings changed) and returns the tickets with the new sprints and the preplan without the
+// earmarks the real sprint of a ticket now overrules (as an import does), and whether any
+// changed.
+func Reresolve(tickets []model.Ticket, preplan model.Preplan, env Env) ([]model.Ticket, model.Preplan, bool) {
+	out := slices.Clone(tickets)
+	preplan.Earmarks = slices.Clone(preplan.Earmarks)
+	changed := false
+	for i, tk := range out {
+		if tk.SprintName == nil || *tk.SprintName == "" {
+			continue
+		}
+		in := ResolveSprint(*tk.SprintName, env.Tracker, env.Sprints)
+		if in != nil && (*in == model.CarryBacklog || sprintEnded(*in, env)) {
+			in = nil
+		}
+		if str := func(p *string) string {
+			if p == nil {
+				return ""
+			}
+			return *p
+		}; str(in) != str(tk.InSprint) {
+			out[i].InSprint = in
+			changed = true
+		}
+		if in != nil && sprintOpen(*in, env) {
+			if e := preplan.EarmarkFor(tk.Key); e != nil && e.Sprint != *in {
+				removeEarmark(&preplan, tk.Key)
+				changed = true
+			}
+		}
+	}
+	return out, preplan, changed
 }
 
 // Convert returns a raw ticket as the tool stores it: sprint resolved, refined state and project

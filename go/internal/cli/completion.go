@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/textfmt"
 )
 
 func init() { Register(completionCommand) }
@@ -68,7 +69,7 @@ func SprintIDs(env *Env) func(*cobra.Command, []string, string) ([]string, cobra
 		for _, f := range files {
 			ids = append(ids, strings.TrimSuffix(filepath.Base(f), ".yaml"))
 		}
-		sort.Slice(ids, func(i, j int) bool { return naturalLess(ids[i], ids[j]) })
+		sort.Slice(ids, func(i, j int) bool { return textfmt.NaturalLess(ids[i], ids[j]) })
 		return filterPrefix(ids, prefix), cobra.ShellCompDirectiveNoFileComp
 	}
 }
@@ -91,33 +92,4 @@ func teamFolders(root string) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-// naturalLess sorts 2026.9 before 2026.10.
-func naturalLess(a, b string) bool {
-	for a != "" && b != "" {
-		na, ra := splitNumber(a)
-		nb, rb := splitNumber(b)
-		if na != nb {
-			return na < nb
-		}
-		a, b = ra, rb
-	}
-	return len(a) < len(b)
-}
-
-// splitNumber cuts a leading run of digits (as a comparable key) or one non-digit run.
-func splitNumber(s string) (string, string) {
-	i := 0
-	digit := s[0] >= '0' && s[0] <= '9'
-	for i < len(s) && (s[i] >= '0' && s[i] <= '9') == digit {
-		i++
-	}
-	head := s[:i]
-	if digit {
-		head = strings.TrimLeft(head, "0")
-		head = strings.Repeat("0", 20-min(20, len(head))) + head
-		return "1" + head, s[i:]
-	}
-	return "0" + head, s[i:]
 }

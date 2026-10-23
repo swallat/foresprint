@@ -28,7 +28,6 @@
   async function load(team: string): Promise<void> {
     applied = draft = connection = queryCheck = undefined;
     fieldNames = [];
-    sprintIds = [];
     if (!team) return;
     try {
       const s = await api.TrackerSettings(team);
@@ -36,7 +35,6 @@
       s.boardId = s.boardId || null;
       applied = s;
       draft = structuredClone(s);
-      sprintIds = (await api.Sprints(team)).map((x) => x.id);
       if (s.source === 'tracker' && s.kind === 'jira' && (s.token.stored || s.token.fromEnv)) {
         fieldNames = await api.TrackerFieldNames(team, s.baseUrl);
       }
@@ -102,7 +100,7 @@
     draft.proForma = on ? [...rest, name] : rest;
   }
   let newSprint = $state('');
-  let sprintIds = $state<string[]>([]);
+  const sprintIds = $derived(draft?.sprintIds ?? []);
   function addSprint(): void {
     const name = newSprint.trim();
     if (!name) return;
