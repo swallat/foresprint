@@ -145,8 +145,10 @@ export async function selectTeam(key: string): Promise<void> {
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
   const wanted = store.get(`sprint.${key}`);
+  // Without a remembered choice the window opens on the next sprint after the running one (the
+  // one being prepared); Today and the sprint overview lead to the running sprint when needed.
   const pick =
-    app.sprints.find((s) => s.id === wanted) ?? app.sprints.find((s) => s.state === 'current') ?? app.sprints.find((s) => s.state === 'future') ?? app.sprints.at(-1);
+    app.sprints.find((s) => s.id === wanted) ?? app.sprints.find((s) => s.state === 'future') ?? app.sprints.find((s) => s.state === 'current') ?? app.sprints.at(-1);
   app.sprint = pick?.id ?? '';
   await loadFeatures();
 }
