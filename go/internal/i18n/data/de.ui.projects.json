@@ -95,7 +95,7 @@
   "Sprints in italics are not in the calendar yet and follow the usual cadence. The choice is yours alone and is kept for the next start.": "Kursive Sprints sind im Kalender noch nicht angelegt und folgen dem üblichen Takt. Die Wahl gilt nur für dich und bleibt beim nächsten Start erhalten.",
   "Start date (optional)": "Startdatum (optional)",
   "Switch project": "Projekt wechseln",
-  "The PO decides.": "Das PO entscheidet.",
+  "The PO decides.": "Der PO entscheidet.",
   "The lights could not be calculated: {reason}": "Die Ampeln konnten nicht berechnet werden: {reason}",
   "The open scope drops out. Amounts in future sprints go to daily business.": "Der offene Umfang entfällt. Beträge in künftigen Sprints gehen ans Tagesgeschäft.",
   "The remaining contingent of {n} PD is reported, not planned further.": "Das Restkontingent von {n} PT wird ausgewiesen, nicht weiterverplant.",
@@ -115,7 +115,7 @@
   "Used so far (person days, entered by hand)": "Bisher verbraucht (Personentage, von Hand eingetragen)",
   "Used {used} PD": "Verbraucht {used} PT",
   "Visible period": "Sichtbarer Zeitraum",
-  "What the projects ask of the next sprint, against the pre-planned budget of each product. Everything here is a recommendation. The PO decides.": "Was die Projekte vom nächsten Sprint verlangen, gegen das vorgeplante Budget je Produkt. Alles hier ist eine Empfehlung. Das PO entscheidet.",
+  "What the projects ask of the next sprint, against the pre-planned budget of each product. Everything here is a recommendation. The PO decides.": "Was die Projekte vom nächsten Sprint verlangen, gegen das vorgeplante Budget je Produkt. Alles hier ist eine Empfehlung. Der PO entscheidet.",
   "Without a rule you assign tickets by hand.": "Ohne Regel ordnest du Tickets von Hand zu.",
   "Without tickets you keep it by hand, for example after each review.": "Ohne Tickets pflegst du ihn von Hand, zum Beispiel nach jedem Review.",
   "Without tickets you keep the open scope by hand, for example after each review.": "Ohne Tickets pflegst du den offenen Umfang von Hand, zum Beispiel nach jedem Review.",
@@ -188,8 +188,11 @@
   "ongoing": "laufend",
   "Budget of sprint {sprint}; done = sprint {done}": "Budget von Sprint {sprint}; erledigt = Sprint {done}",
   "budget {budget} {unit}, projects ask {demand}, left {rest} {unit}": "Budget {budget} {unit}, Projekte verlangen {demand}, Rest {rest} {unit}",
-  "Sprint {sprint}: the PO accepts the risk that the projects crowd out daily business.": "Sprint {sprint}: Das PO akzeptiert das Risiko, dass die Projekte das Tagesgeschäft verdrängen.",
+  "Sprint {sprint}: the PO accepts the risk that the projects crowd out daily business.": "Sprint {sprint}: Der PO akzeptiert das Risiko, dass die Projekte das Tagesgeschäft verdrängen.",
   "Sprint {sprint}: the projects ask more than the budget of these products allows. Which project can wait?": "Sprint {sprint}: Die Projekte verlangen mehr, als das Budget dieser Produkte hergibt. Welches Projekt kann warten?",
-  "{n} tickets, {points} points": "{n} Tickets, {points} Punkte"
+  "{n} tickets, {points} points": "{n} Tickets, {points} Punkte",
+  "contingent short by {n} PD (left {rest} PD, need {need} PD)": "Kontingent reicht nicht, {n} PT zu wenig (Rest {rest} PT, Bedarf {need} PT)",
+  "The PO accepts the risk that the contingent of these projects does not last.": "Der PO akzeptiert das Risiko, dass das Kontingent dieser Projekte nicht reicht.",
+  "The contingent of these projects does not last. What should change?": "Das Kontingent dieser Projekte reicht nicht. Was soll sich ändern?"
  }
 }

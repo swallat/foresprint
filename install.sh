@@ -50,9 +50,13 @@ esac
 
 version="${FORESPRINT_VERSION:-}"
 if [ -z "$version" ]; then
-    version=$(fetch_text "https://api.github.com/repos/$REPO/releases/latest" |
-        sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)
-    [ -n "$version" ] || fail "could not find the newest version"
+    # releases/latest skips pre-releases and still points at the Python-era 0.x while 1.0 is in
+    # beta. Take the newest stable release of 1.x or later, else the newest pre-release of 1.x.
+    version=$(fetch_text "https://api.github.com/repos/$REPO/releases?per_page=30" |
+        awk '/^    "tag_name":/ {match($0, /"v[^"]*"/); t = substr($0, RSTART + 1, RLENGTH - 2)}
+             /^    "prerelease":/ {p = ($2 ~ /true/); if (t ~ /^v[1-9]/) {if (!p && !s) s = t; if (!f) f = t} t = ""}
+             END {print (s != "" ? s : f)}')
+    [ -n "$version" ] || fail "could not find the newest version (GitHub API limit? set FORESPRINT_VERSION, for example 1.0.0-beta.6)"
 fi
 version="${version#v}"
 prefix=foresprint

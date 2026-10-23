@@ -202,7 +202,7 @@
     const bad = rows.filter((r) => r.light !== "ok");
     return `<div class="card pf-conflict" style="margin-top:16px">
       <div class="row"><h2 style="margin:0;flex:1">Konfliktansicht: Bedarf, Produktbudget, Kontingent</h2><span class="chip">${ic("event")}Sprint <span class="data">${sid}</span></span></div>
-      <p class="muted" style="margin:4px 0 12px">Was die Projekte im Sprint verlangen, gegen das vorgeplante Budget je Produkt und gegen das gebuchte Kontingent. Alles hier ist eine Empfehlung. Das PO entscheidet.</p>
+      <p class="muted" style="margin:4px 0 12px">Was die Projekte im Sprint verlangen, gegen das vorgeplante Budget je Produkt und gegen das gebuchte Kontingent. Alles hier ist eine Empfehlung. Der PO entscheidet.</p>
       ${bad.length ? `<div class="banner ${bad.some((r) => r.light === "bad") ? "bad" : "warn"}">${ic("call_split")}<div class="grow"><strong>${bad.length} von ${rows.length} Produkten</strong> haben fast oder gar keinen Platz mehr für Tagesgeschäft, weil Projekte den Sprint füllen.</div></div>` : ""}
       <div class="tw"><table class="t"><thead><tr><th>Produkt</th><th class="num">Budget vorgeplant (Pkt)</th>${D.projects.map((p) => `<th class="num">${esc(p.name)}</th>`).join("")}<th class="num">Rest Tagesgeschäft</th><th>Bewertung</th><th>Empfehlung</th></tr></thead>
       <tbody>${rows.map((r) => `<tr><td>${FS.productChip(r.pr.id)}</td><td class="num">${r.budget}</td>${r.dem.map((d) => `<td class="num">${d.pts || "–"}</td>`).join("")}<td class="num"><strong>${r.rest}</strong></td>
@@ -676,7 +676,7 @@
       { view: "projects", before() { FS.closePanel(); }, hl: "#pf-new", text: "Neues Projekt anlegen: Name, Produkte, Ende, Meilensteine und Kontingent in PT. Das klappt ohne Tracker und offline. Probieren Sie den Knopf aus." },
       { view: "projects", hl: ".pf-timeline", text: "Die Zeitachse zeigt die Laufzeit, Meilensteine mit Ampel (Symbol und Farbe) und die heutige Linie. Login-Umstellung ist gefährdet." },
       { view: "projects", hl: ".pf-table", text: "Passt der Bedarf zu Budgets und Kontingenten, geht es direkt weiter in Sprint > Vorplanen. Das Kontingent steht in PT, Geplantes ist eine Schätzung. Tagesgeschäft hat je Produkt eine Zeile ohne Ampel." },
-      { view: "projects", hl: ".pf-conflict", text: "Passt es nicht, zeigt die Konfliktansicht Bedarf gegen Produktbudget und Kontingent. Das PO entscheidet: Tickets verschieben, Risiko akzeptieren oder mit der Projektleitung sprechen. Foresprint gibt nur Empfehlungen." },
+      { view: "projects", hl: ".pf-conflict", text: "Passt es nicht, zeigt die Konfliktansicht Bedarf gegen Produktbudget und Kontingent. Der PO entscheidet: Tickets verschieben, Risiko akzeptieren oder mit der Projektleitung sprechen. Foresprint gibt nur Empfehlungen." },
       { view: "project", before() { FS.state.project = "ss2"; }, hl: ".pj-tickets", text: "Im Projekt stehen Meilensteine, Kontingent je Monat und die Tickets nach Sprint. Von hier aus verschieben Sie Tickets im Backlog oder in der Vorplanung." },
       { view: "project", hl: ".pj-report", text: "Der Bericht für die Projektleitung zeigt gebucht, geplant und erledigt je Sprint. Mit Bericht exportieren geben Sie ihn weiter." },
     ],

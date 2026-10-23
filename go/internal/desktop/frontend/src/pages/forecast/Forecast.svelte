@@ -177,7 +177,11 @@
       <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} digits={view.rounding} />
       {#if view.rate !== null}
         <p class="small muted rate">
-          {t('Team rate: {rate} points per person day (estimate from the last sprints).', { rate: fmt(view.rate, 2) })}
+          {#if view.rateFixed}
+            {t('Fixed factor of the team: {rate} points per person day.', { rate: fmt(view.rate, 2) })}
+          {:else}
+            {t('Team rate: {rate} points per person day (estimate from the last sprints).', { rate: fmt(view.rate, 2) })}
+          {/if}
           <a href="#/help/calculations?topic=rate">{t('How the rate is measured')}</a>
         </p>
       {/if}

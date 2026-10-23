@@ -98,9 +98,6 @@
   "Updates": "Aktualisierungen",
   "New versions of Foresprint come from the releases on GitHub.": "Neue Versionen von Foresprint kommen aus den Releases auf GitHub.",
   "Look for new versions": "Nach neuen Versionen suchen",
-  "Once a day at the start. Installing is always your click.": "Einmal täglich beim Start. Installiert wird immer erst auf deinen Klick.",
-  "Only tell me": "Nur Bescheid sagen",
-  "Same check; the command line only reports and never installs.": "Dieselbe Prüfung; die Kommandozeile meldet nur und installiert nie.",
   "Never look": "Nie suchen",
   "The program does not contact GitHub by itself.": "Das Programm fragt nicht von selbst bei GitHub nach.",
   "This is a development build. It does not update itself; install a release instead.": "Das ist ein Entwicklungsstand. Er aktualisiert sich nicht selbst; installiere stattdessen eine Version.",
@@ -146,6 +143,7 @@
   "Token, tracker and address applied.": "Token, Tracker und Adresse übernommen.",
   "Sprint in Foresprint for {name}": "Foresprint-Sprint für {name}",
   "Sprint names": "Sprintnamen",
-  "Backlog (not a sprint)": "Backlog (kein Sprint)"
+  "Backlog (not a sprint)": "Backlog (kein Sprint)",
+  "Once a day at the start. The program only tells you; installing is always your click.": "Einmal täglich beim Start. Das Programm sagt nur Bescheid; installiert wird immer erst auf deinen Klick."
  }
 }

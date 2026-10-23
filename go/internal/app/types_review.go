@@ -56,7 +56,8 @@ type SprintReview struct {
 	Targets      []ReviewTarget  `json:"targets"`
 	PlannedDays  float64         `json:"plannedDays"`
 	FrozenDays   float64         `json:"frozenDays"`
-	Rate         *float64        `json:"rate"` // velocity per person day, nil without days
+	Rate         *float64        `json:"rate"`   // velocity per person day, nil without days
+	Factor       *float64        `json:"factor"` // the fixed factor valid for the sprint, nil = measured rate
 	Products     []ReviewProduct `json:"products"`
 	ProductsOn   bool            `json:"productsOn"`
 	ProductionOn bool            `json:"productionOn"`

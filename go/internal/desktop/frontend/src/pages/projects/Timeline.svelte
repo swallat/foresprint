@@ -37,7 +37,7 @@
   {#each tl.bands as b (b.band.id)}
     <rect x={b.x0} y={tl.T - 6} width={Math.max(0, b.x1 - b.x0)} height={tl.H - tl.T + 2} class={b.shaded ? 'band' : 'band off'} />
     {#if b.label}
-      <text class="data muted" x={(b.x0 + b.x1) / 2} y="16" font-size="11" text-anchor="middle" font-style={b.band.ext ? 'italic' : 'normal'}>{b.band.id}</text>
+      <text class="data muted" x={(b.x0 + b.x1) / 2} y="16" font-size="11" text-anchor="middle" font-style={b.band.ext ? 'italic' : 'normal'}><title>{b.band.id}</title>{b.short}</text>
     {/if}
   {/each}
 
