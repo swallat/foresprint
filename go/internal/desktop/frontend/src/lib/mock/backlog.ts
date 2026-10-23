@@ -13,6 +13,7 @@ import type {
   SizeSource,
   TicketDetail,
   TicketSource,
+  TrackerDetails,
   WorkPackageInput,
 } from '../types.backlog';
 
@@ -200,6 +201,26 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
         })),
       };
       return detail;
+    },
+    async TicketTracker(_team, key) {
+      const r = find(key);
+      const out: TrackerDetails = { available: false, description: '', subtasks: [], links: [], comments: [], attachments: [] };
+      if (kind !== 'tracker') return out;
+      const other = rows.find((x) => x.key !== key);
+      return {
+        available: true,
+        description: `${r.title}\n\nThe customer should be able to do this without calling support.`,
+        subtasks: [
+          { key: `${key}a`, title: 'Design the screen', status: 'Done', done: true },
+          { key: `${key}b`, title: 'Build the endpoint', status: 'In progress', done: false },
+        ],
+        links: other ? [{ type: 'Blocks', text: 'is blocked by', key: other.key, title: other.title, status: 'In progress', url: '' }] : [],
+        comments: [
+          { author: 'Robin Example', at: '2026-10-19T09:30:00.000+0000', text: 'Needs a decision on the wording before we start.' },
+          { author: 'Sam Sample', at: '2026-10-20T14:05:00.000+0000', text: 'Agreed, I will ask the product owner.' },
+        ],
+        attachments: [{ name: 'screen-sketch.png', mime: 'image/png', size: 183000, url: '' }],
+      };
     },
     async EarmarkTicket(_team, key, sprint, note) {
       const r = find(key);

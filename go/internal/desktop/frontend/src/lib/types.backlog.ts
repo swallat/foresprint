@@ -145,9 +145,45 @@ export interface WorkPackageInput {
   done: boolean;
 }
 
+export interface TrackerSubtask {
+  key: string;
+  title: string;
+  status: string;
+  done: boolean;
+}
+
+export interface TrackerLink {
+  type: string;
+  /** How the tracker words the link from this ticket's side, e.g. "is blocked by". */
+  text: string;
+  key: string;
+  title: string;
+  status: string;
+  url: string;
+}
+
+export interface TrackerAttachment {
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+}
+
+/** Read on demand from the tracker when the panel opens; available is false without Jira. */
+export interface TrackerDetails {
+  available: boolean;
+  description: string;
+  subtasks: TrackerSubtask[];
+  links: TrackerLink[];
+  comments: Comment[];
+  attachments: TrackerAttachment[];
+}
+
 export interface BacklogApi {
   Backlog(team: string): Promise<BacklogView>;
   Ticket(team: string, key: string): Promise<TicketDetail>;
+  /** Description, sub-tasks, links, comments and attachments of a tracker ticket (read only). */
+  TicketTracker(team: string, key: string): Promise<TrackerDetails>;
   EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
   MoveToProForma(team: string, key: string, name: string): Promise<void>;
   ResetOrder(team: string): Promise<void>;
