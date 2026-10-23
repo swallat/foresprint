@@ -4,5 +4,5 @@ FORESPRINT_DATA = "teams"
 FORESPRINT_LANG = "en"
 
 [tasks.sf]
-description = "run foresprint, e.g. `mise run sf -- forecast team-a` (install it first: see docs/installation.md)"
+description = "run foresprint, e.g. `mise run sf -- forecast team-a` (install it first: https://github.com/swallat/foresprint/blob/v1/docs/installation.md)"
 run = "foresprint"

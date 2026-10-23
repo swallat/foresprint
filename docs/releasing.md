@@ -13,7 +13,7 @@ Steps per release:
 
 ## The program (GitHub release files)
 
-From v1.0.0 on, a pushed tag (`v1.*`) starts only the workflow *Release app* (`.github/workflows/release-app.yml`). It builds the
+The workflow builds the
 program with the window on Windows, macOS (Apple silicon and Intel) and Linux (amd64 and arm64)
 with `-tags desktop,production` (Linux also `webkit2_41`), puts the newest holiday data in, and
 attaches to the release page:

@@ -10,7 +10,7 @@ exists on the branch `main` only; run it there. The Go core of 1.0 has no compar
 
 ## Measurement log: cloud (Linux x86_64, 4 cores, Python 3.14.6, demo team, 22 sprints)
 
-Before = `main` (78010e5 plus the measurement script), after = this state. Individual rows
+Before = `main` (78010e5 plus the measurement script), after = `main` with the measures (0.8). Individual rows
 vary by about 10 to 20 % from run to run.
 
 | Measurement | before (ms) | after (ms) |
