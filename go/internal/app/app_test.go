@@ -112,3 +112,23 @@ func TestPrefsListsAreNeverNull(t *testing.T) {
 		}
 	}
 }
+
+func TestSprintsOfANewTeamOfferTheComingOnes(t *testing.T) {
+	api, _ := planTeam(t)
+	key, err := api.SetupCreateTeam(NewTeam{Name: "Fresh", Country: "DE", FirstSprintID: "2026.1", FirstStart: "2026-10-12", Source: SourceNone})
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, err := api.Sprints(key.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) < 1+comingSprints {
+		t.Fatalf("sprints = %+v, want the first sprint and %d coming ones", list, comingSprints)
+	}
+	for i := 1; i < len(list); i++ {
+		if list[i].Start <= list[i-1].Start {
+			t.Errorf("not in order: %+v", list)
+		}
+	}
+}

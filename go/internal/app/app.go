@@ -19,10 +19,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/swallat/foresprint/internal/calendar"
 	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/datasvc"
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -255,7 +258,7 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 		start, end := s.Start.Format("2006-01-02"), s.End.Format("2006-01-02")
 		state := "future"
 		switch {
-		case end < today:
+		case end <= today:
 			state = "past"
 		case start <= today:
 			state = "current"
@@ -263,7 +266,51 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 		out = append(out, SprintInfo{ID: s.ID, Start: start, End: end, State: state})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Start < out[j].Start })
-	return out, nil
+	return withComingSprints(data, out, today), nil
+}
+
+// comingSprints is how many sprints after the current one the selector offers, so that the
+// next sprint can be pre-planned before its file exists.
+const comingSprints = 6
+
+// withComingSprints adds sprints of the calendar after the last recorded one until the list has
+// comingSprints sprints after the current one (or the calendar cannot say). Only the sprints
+// FindSprint can resolve are added, and past ones are not listed.
+func withComingSprints(data *storage.TeamData, list []SprintInfo, today string) []SprintInfo {
+	var last *model.Sprint
+	if n := len(data.Sprints); n > 0 {
+		last = &data.Sprints[n-1]
+		for i := range data.Sprints {
+			if data.Sprints[i].End.After(last.End) {
+				last = &data.Sprints[i]
+			}
+		}
+	}
+	ahead := 0
+	for _, s := range list {
+		if s.Start > today {
+			ahead++
+		}
+	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
+	for i := 0; i < forecast.DefaultLookupAhead && ahead < comingSprints && last != nil; i++ {
+		next, err := chain.After(last)
+		if err != nil {
+			break
+		}
+		last = &next
+		start, end := next.Start.Format("2006-01-02"), next.End.Format("2006-01-02")
+		switch {
+		case end <= today:
+			continue // a gap in the recorded sprints stays unlisted
+		case start <= today:
+			list = append(list, SprintInfo{ID: next.ID, Start: start, End: end, State: "current"})
+		default:
+			ahead++
+			list = append(list, SprintInfo{ID: next.ID, Start: start, End: end, State: "future"})
+		}
+	}
+	return list
 }
 
 // savedLanguage is the language the user chose, so that the selector shows the choice even when

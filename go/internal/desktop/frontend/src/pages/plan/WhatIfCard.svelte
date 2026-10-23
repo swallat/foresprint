@@ -5,7 +5,7 @@
   // plannable there. Several assumptions (A, B, ...) are kept side by side; none is final
   // before the review.
   import { api } from '../../lib/api';
-  import { app, openTicket, toast } from '../../lib/app.svelte';
+  import { app, openTicket, selectSprint, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { assumptions, fmt, itemWord, parseAmount, touched, type PlanModel } from '../../lib/plan/model.svelte';
@@ -81,9 +81,23 @@
       t('Assumption {label} saved as a prognosis. The review of {sprint} compares it with the result.', { label: a.label, sprint: d.running }),
     );
   }
+  const nextId = $derived.by(() => {
+    const i = app.sprints.findIndex((s) => s.id === d.sprint);
+    return i >= 0 ? (app.sprints[i + 1]?.id ?? '') : '';
+  });
   const delta = $derived(r && r.plan != null && r.planOriginal != null ? r.plan - r.planOriginal : 0);
   const carriedCount = $derived(a?.carry.length ?? 0);
 </script>
+
+{#if !d.running && d.stage === 'current' && nextId}
+  <div class="banner info" id="whatif-next">
+    <Icon name="info" />
+    <div class="grow">
+      {t('{sprint} is running. The what-if analysis (what will probably be finished here, and so how much fits into the next sprint) is on the pre-planning of {next}.', { sprint: d.sprint, next: nextId })}
+    </div>
+    <button type="button" class="btn" onclick={() => selectSprint(nextId)}><Icon name="arrow_forward" />{t('Open pre-planning of {next}', { next: nextId })}</button>
+  </div>
+{/if}
 
 {#if d.running}
   <section class="card whatif" id="whatif" data-tour="preplan-whatif">
