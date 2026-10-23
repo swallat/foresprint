@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/swallat/foresprint/internal/model"
 )
 
 // copyDemo copies the demo team to a temporary data folder, so that tests may write.
@@ -331,5 +333,17 @@ func TestTrackerFetchIntervalAndSprints(t *testing.T) {
 	}
 	if out, _ = api.TrackerSettings(team); len(out.ProForma) != 2 || out.FetchInterval != 0 {
 		t.Errorf("after: %d %v", out.FetchInterval, out.ProForma)
+	}
+}
+
+func TestTrackerFieldHitsCountFilledValues(t *testing.T) {
+	var extra model.OrderedMap[[]string]
+	extra.Set("project", []string{"Alpha"})
+	var blank model.OrderedMap[[]string]
+	blank.Set("project", []string{" "})
+	est := 3.0
+	hits := trackerFieldHits([]model.Ticket{{Key: "A-1", Estimate: &est, Extra: extra}, {Key: "A-2", Extra: blank}})
+	if hits["estimate"] != 1 || hits["project"] != 1 || hits["epic"] != 0 {
+		t.Errorf("hits: %v", hits)
 	}
 }

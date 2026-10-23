@@ -136,7 +136,8 @@
   "every hour": "stündlich",
   "every {n} minutes": "alle {n} Minuten",
   "only on the button": "nur auf Knopfdruck",
-  "{name} (not found)": "{name} (nicht gefunden)",
-  "{name} is pro forma": "{name} ist pro forma"
+  "{name} is pro forma": "{name} ist pro forma",
+  "Choose from the list": "Aus der Liste wählen",
+  "Other (type the name or id)": "Anderes (Name oder ID eingeben)"
  }
 }

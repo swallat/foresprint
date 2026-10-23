@@ -95,6 +95,8 @@ export interface TrackerSettings {
   sprints: TrackerSprint[];
   /** Tickets of the last import that have a value, per mapped value. */
   fieldHits: Record<string, number>;
+  /** The mapping the last fetch used; the hits belong to it. */
+  hitsFields: TrackerFields;
   removedTarget: '' | 'backlog' | 'pro_forma' | 'next';
   writeLabels: boolean;
   packagePrefix: string;

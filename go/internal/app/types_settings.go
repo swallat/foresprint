@@ -99,13 +99,15 @@ type TrackerSettings struct {
 	// FieldHits is the number of tickets of the last import that have a value per mapped value
 	// ("estimate", "remaining", "epic", "status", "project"); a value that is not stored with
 	// the tickets is missing.
-	FieldHits     map[string]int `json:"fieldHits"`
-	RemovedTarget string         `json:"removedTarget"` // "backlog", "pro_forma" or "next"
-	WriteLabels   bool           `json:"writeLabels"`
-	PackagePrefix string         `json:"packagePrefix"`
-	Token         TokenState     `json:"token"`
-	Tickets       int            `json:"tickets"`  // tickets in the last import
-	Imported      string         `json:"imported"` // time of the last import (RFC 3339), "" if none
+	FieldHits map[string]int `json:"fieldHits"`
+	// HitsFields is the mapping the last fetch used; the hits belong to it.
+	HitsFields    TrackerFields `json:"hitsFields"`
+	RemovedTarget string        `json:"removedTarget"` // "backlog", "pro_forma" or "next"
+	WriteLabels   bool          `json:"writeLabels"`
+	PackagePrefix string        `json:"packagePrefix"`
+	Token         TokenState    `json:"token"`
+	Tickets       int           `json:"tickets"`  // tickets in the last import
+	Imported      string        `json:"imported"` // time of the last import (RFC 3339), "" if none
 }
 
 // TrackerSprint is a sprint name met in the tracker.

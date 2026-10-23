@@ -66,6 +66,7 @@ let tracker: TrackerSettings = {
     { name: 'Refinement', tickets: 6, mapsTo: '' },
     { name: 'Ideas', tickets: 2, mapsTo: '' },
   ],
+  hitsFields: { estimate: 'Story Points', remaining: '', epic: 'Epic Link', status: 'Status', acceptance: 'Acceptance Criteria', product: '', project: '', refined: '', production: '' },
   fieldHits: { estimate: 41, remaining: 12, epic: 30, status: 46, project: 28 },
   removedTarget: 'backlog',
   writeLabels: false,

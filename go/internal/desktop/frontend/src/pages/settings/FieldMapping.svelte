@@ -2,7 +2,7 @@
   import { link } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import FieldPick from '../../lib/settings/FieldPick.svelte';
+  import FieldPick, { isKnownField } from '../../lib/settings/FieldPick.svelte';
   import { parseNumber } from '../../lib/settings/diff';
   import { app } from '../../lib/app.svelte';
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
@@ -25,7 +25,7 @@
   let { draft = $bindable(), fieldNames, applied, hits, total, production, tracker }: Props = $props();
 
   /** The mapped field exists in the tracker; how many tickets of the last import have a value. */
-  const known = (name: string) => fieldNames.length === 0 || fieldNames.includes(name);
+  const known = (name: string) => isKnownField(name, fieldNames);
 
   function removeRuleField(i: number): void {
     draft.ruleFields.splice(i, 1);
@@ -104,7 +104,7 @@
               <FieldPick label={t('Field for the product')} names={fieldNames} bind:value={draft.fields.product} />
             {/if}
           </td>
-          <td>{@render stand('', draft.fields.product, applied.product)}</td>
+          <td>{@render stand('product', draft.fields.product, applied.product)}</td>
         </tr>
         <tr>
           <td>{t('Project')}</td>
@@ -146,7 +146,7 @@
             {/if}
             </div>
           </td>
-          <td>{@render stand('', draft.fields.refined, applied.refined)}</td>
+          <td>{@render stand('refined', draft.fields.refined, applied.refined)}</td>
         </tr>
         {#if production}
           <tr>
@@ -167,7 +167,7 @@
                 <span class="small muted">{t('List below')}</span>
               {/if}
             </td>
-            <td>{@render stand('', draft.fields.production, applied.production)}</td>
+            <td>{@render stand('production', draft.fields.production, applied.production)}</td>
           </tr>
         {/if}
       </tbody>

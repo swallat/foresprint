@@ -51,12 +51,7 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		Source:  string(data.Team.Source()),
 		Kind:    t.Kind,
 		BaseURL: deref(t.BaseURL), Query: deref(t.Query),
-		Fields: TrackerFields{
-			Estimate: deref(t.Fields.Estimate), Remaining: deref(t.Fields.Remaining), Epic: deref(t.Fields.Epic),
-			Status: deref(t.Fields.Status), Acceptance: deref(t.Fields.Acceptance),
-			Product: deref(t.Fields.Product), Project: deref(t.Fields.Project),
-			Refined: deref(t.Fields.Refined), Production: deref(t.Fields.Production),
-		},
+		Fields:    trackerFieldsOf(t),
 		ProductBy: by(t.Fields.Product), ProjectBy: by(t.Fields.Project), RefinedBy: by(t.Fields.Refined),
 		RefinedLabel:    deref(t.RefinedLabel),
 		RefinedRule:     rules.FormatRule(t.RefinedAlsoIf),
@@ -74,6 +69,12 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		Sprints:       trackerSprintsOf(data),
 		FieldHits:     trackerFieldHits(data.Tickets),
 	}
+	a.mu.Lock()
+	out.HitsFields = out.Fields
+	if m, ok := a.run.mapped[team]; ok {
+		out.HitsFields = m // the fetch of this run may have used an older mapping
+	}
+	a.mu.Unlock()
 	if out.Kind != "csv" {
 		out.Kind = "jira" // work packages keep their kind in the file; the page shows Jira then
 	}
@@ -439,6 +440,7 @@ func (a *API) TrackerFieldNames(team, baseURL string) []string {
 type trackerRun struct {
 	syncing map[string]bool
 	failed  map[string]string
+	mapped  map[string]TrackerFields // per team: the mapping the last fetch of this run used
 }
 
 // TrackerInfo is the state of the tracker sync of a team for the chip in the top bar.
@@ -528,6 +530,12 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Tickets: data.Tickets,
 		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: time.Now(), KeepOrder: keepOrder}
 	plan := ticketimport.PlanImport(env, raws, &name, true)
+	a.mu.Lock()
+	if a.run.mapped == nil {
+		a.run.mapped = map[string]TrackerFields{}
+	}
+	a.run.mapped[team] = trackerFieldsOf(data.Team.Tracker)
+	a.mu.Unlock()
 	if plan.Unchanged(data.Tickets, data.TicketsSource) {
 		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
 	}
@@ -616,8 +624,18 @@ func trackerSprintsOf(data *storage.TeamData) []TrackerSprint {
 
 // trackerFieldHits counts the tickets with a value per mapped value that is stored with them.
 func trackerFieldHits(tickets []model.Ticket) map[string]int {
-	hits := map[string]int{"estimate": 0, "remaining": 0, "epic": 0, "status": 0, "project": 0}
+	hits := map[string]int{"estimate": 0, "remaining": 0, "epic": 0, "status": 0,
+		ticketimport.MapProject: 0, ticketimport.MapProduct: 0, ticketimport.MapRefined: 0, ticketimport.MapProduction: 0}
 	filled := func(s *string) bool { return s != nil && *s != "" }
+	extra := func(tk model.Ticket, key string) bool {
+		values, _ := tk.Extra.Get(key)
+		for _, v := range values {
+			if strings.TrimSpace(v) != "" {
+				return true
+			}
+		}
+		return false
+	}
 	for _, tk := range tickets {
 		if tk.Estimate != nil {
 			hits["estimate"]++
@@ -631,9 +649,20 @@ func trackerFieldHits(tickets []model.Ticket) map[string]int {
 		if filled(tk.Status) {
 			hits["status"]++
 		}
-		if filled(tk.Project) {
-			hits["project"]++
+		for _, key := range []string{ticketimport.MapProject, ticketimport.MapProduct, ticketimport.MapRefined, ticketimport.MapProduction} {
+			if extra(tk, key) {
+				hits[key]++
+			}
 		}
 	}
 	return hits
+}
+
+func trackerFieldsOf(t model.TrackerSettings) TrackerFields {
+	return TrackerFields{
+		Estimate: deref(t.Fields.Estimate), Remaining: deref(t.Fields.Remaining), Epic: deref(t.Fields.Epic),
+		Status: deref(t.Fields.Status), Acceptance: deref(t.Fields.Acceptance),
+		Product: deref(t.Fields.Product), Project: deref(t.Fields.Project),
+		Refined: deref(t.Fields.Refined), Production: deref(t.Fields.Production),
+	}
 }

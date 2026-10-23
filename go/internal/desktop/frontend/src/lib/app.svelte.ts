@@ -217,7 +217,10 @@ export const saveAnyway = () => run('save', () => api.SaveAnyway());
 /** Fetch changes of others (top bar). */
 export const refresh = () => run('refresh', () => api.Refresh());
 /** Fetch tickets from the tracker now (top bar). */
-export const syncTracker = () => run('sync', () => api.SyncTracker(app.team));
+export const syncTracker = () => {
+  lastTry.set(app.team, Date.now());
+  return run('sync', () => api.SyncTracker(app.team));
+};
 
 /** Opens the ticket in the side panel. */
 export function openTicket(key: string): void {
@@ -257,10 +260,13 @@ export async function autoFetch(): Promise<void> {
   if (Date.now() - since < tr.interval * 60000) return;
   const team = app.team;
   lastTry.set(team, Date.now());
+  app.busy = 'sync'; // the top bar buttons wait, as for a fetch by hand
   try {
     await api.SyncTrackerAuto(team);
   } catch {
     /* shown by the chip through refreshStatus */
+  } finally {
+    app.busy = '';
   }
   const before = tr.last;
   await refreshStatus();
