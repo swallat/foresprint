@@ -5,7 +5,7 @@
   import { app, enterDemo, leaveDemo, loadTeams, selectTeam } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { tour } from '../../lib/tour/tour.svelte';
+  import { followWizard, tour, wizard } from '../../lib/tour/tour.svelte';
   import { current, go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import { isDay, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
@@ -113,6 +113,17 @@
     }
   });
 
+  // A guided flow shows this wizard: the tour asks for a step, and a step of the wizard moves the tour.
+  $effect(() => {
+    const want = wizard.request;
+    if (!want) return;
+    wizard.request = '';
+    if (want !== d.step && steps.includes(want as Step)) d.step = want as Step;
+  });
+  $effect(() => {
+    followWizard(d.step);
+  });
+
   // A new step is announced: focus moves to its heading.
   let first = true;
   $effect(() => {
@@ -155,7 +166,8 @@
   const index = $derived(Math.max(0, steps.indexOf(d.step)));
   const labels: Record<Step, () => string> = {
     storage: () => t('Storage'),
-    signin: () => t('Sign-in'),
+    // only a server needs a sign-in; for a folder on this computer the step asks for the name
+    signin: () => (d.kind === 'clone' ? t('Sign-in') : t('Name')),
     team: () => t('Team'),
     tickets: () => t('Tickets'),
     done: () => t('Finish'),
@@ -457,10 +469,11 @@
         </div>
       </div>
     {:else if d.step === 'signin'}
-      <h2>{t('Sign-in and name')}</h2>
-      <div class="grid cols-2">
+      <h2>{d.kind === 'clone' ? t('Sign-in and name') : t('Your name')}</h2>
+      <div class:grid={d.kind === 'clone'} class:cols-2={d.kind === 'clone'}>
+        {#if d.kind === 'clone'}
         <div class="stack">
-          {#if d.kind === 'clone' && needsToken(d.address)}
+          {#if needsToken(d.address)}
             <div class="field">
               <label for="su-token">{t('Token')}</label>
               <input id="su-token" class="input data" type="password" autocomplete="new-password" bind:value={token} placeholder={t('Paste the token')} />
@@ -478,10 +491,12 @@
               </div>
             {/if}
           {:else}
-            <p class="muted">{t('No sign-in is needed for a folder on this computer.')}</p>
+            <p class="muted">{t('This address needs no sign-in.')}</p>
           {/if}
         </div>
+        {/if}
         <div class="stack">
+          {#if d.kind !== 'clone'}<p class="muted">{t('A folder on this computer needs no sign-in. Foresprint only needs your name for the history.')}</p>{/if}
           <div class="field"><label for="su-name">{t('Your name')}</label><input id="su-name" class="input" bind:value={d.name} /></div>
           <div class="field"><label for="su-mail">{t('Email')}</label><input id="su-mail" class="input" type="email" bind:value={d.email} /></div>
           <p class="small muted">{t('Entered once. It appears in the history next to your changes.')}</p>

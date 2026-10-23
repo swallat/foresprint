@@ -44,6 +44,11 @@ describe('flows', () => {
   it('walk through the data flows D1 to D6', () => {
     for (const id of ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']) expect(flowById(id), id).toBeDefined();
   });
+  it('name each wizard step once, on the setup page', () => {
+    const keys = flows.flatMap((f) => f.steps.filter((s) => s.wizard)).map((s) => `${s.route} ${s.wizard}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const k of keys) expect(k).toMatch(/^\/setup (storage|signin|team|tickets)$/);
+  });
   it('are found by id', () => {
     expect(flowById('F4')?.id).toBe('F4');
     expect(flowById('nope')).toBeUndefined();

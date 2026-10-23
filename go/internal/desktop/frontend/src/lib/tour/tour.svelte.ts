@@ -17,6 +17,9 @@ export const tour = $state({
   unmarked: false,
 });
 
+/** The first-start wizard and the tour follow each other: a step with `wizard` asks the wizard for that step. */
+export const wizard = $state({ request: '' });
+
 let enteredDemo = false;
 let marked: Element | undefined;
 let run = 0;
@@ -48,6 +51,7 @@ async function show(): Promise<void> {
     const id = pickSprint(step.sprint, app.sprints);
     if (id) selectSprint(id);
   }
+  if (step.wizard) wizard.request = step.wizard;
   go(step.route, undefined, step.query);
   tour.unmarked = false;
   if (!step.target) return;
@@ -91,6 +95,15 @@ export async function startTour(id: string): Promise<void> {
   tour.flow = flow;
   tour.index = 0;
   await show();
+}
+
+/** The wizard moved to a step of its own: the tour shows the step that talks about it. */
+export function followWizard(key: string): void {
+  if (!tour.flow || currentStep()?.wizard === key) return;
+  const i = tour.steps.findIndex((s) => s.wizard === key);
+  if (i < 0) return;
+  tour.index = i;
+  void show();
 }
 
 export async function nextStep(): Promise<void> {
