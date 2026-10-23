@@ -3,7 +3,7 @@
   // production, contingents) for the pages around them: Prepare, Review and Minutes show the
   // same numbers of the selected sprint (mock of flows.md F3, F5).
   import { app } from '../app.svelte';
-  import { PlanModel } from './model.svelte';
+  import { assumptions, PlanModel, touched } from './model.svelte';
   import Summary from './Summary.svelte';
 
   interface Props {
@@ -22,6 +22,7 @@
   const used = $derived(d ? (d.source === 'none' ? d.preplanned : d.earmarked) : 0);
 </script>
 
-{#if d}
-  <Summary {d} {used} commitment={d.frozen ? d.committed : null} />
+<!-- Only the figures of the selected sprint: after a switch or a failed load the old ones are not shown. -->
+{#if d && d.sprint === app.sprint && !model.error}
+  <Summary {d} {used} commitment={d.frozen ? d.committed : null} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} />
 {/if}
