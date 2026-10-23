@@ -116,7 +116,9 @@
     return rows;
   });
   /** Names that keep tickets out of every sprint until they are mapped. */
-  const needsMapping = (s: { open: number; mapsTo: string; name: string }) => s.open > 0 && !s.mapsTo && !isProForma(s.name);
+  // By the applied table, not the draft: a row must not jump away while its select is edited.
+  const appliedMap = (name: string) => applied?.sprints.find((x) => x.name === name)?.mapsTo ?? '';
+  const needsMapping = (s: { open: number; name: string }) => s.open > 0 && !appliedMap(s.name) && !isProForma(s.name);
   const openRows = $derived(sprintRows.filter(needsMapping));
   const otherRows = $derived(sprintRows.filter((s) => !needsMapping(s)));
 

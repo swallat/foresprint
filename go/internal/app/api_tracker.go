@@ -651,13 +651,14 @@ func trackerSprintsOf(data *storage.TeamData) []TrackerSprint {
 	}
 	sprints := knownSprints{data}
 	for _, tk := range data.Tickets {
-		if tk.SprintName == nil {
+		if tk.SprintName == nil || strings.TrimSpace(*tk.SprintName) == "" {
 			continue
 		}
-		add(*tk.SprintName, 1)
-		if !tk.Done && tk.InSprint == nil && !trackerProForma(data, *tk.SprintName) &&
-			ticketimport.ResolveSprint(strings.TrimSpace(*tk.SprintName), data.Team.Tracker, sprints) == nil {
-			out[index[strings.ToLower(strings.TrimSpace(*tk.SprintName))]].Open++
+		name := strings.TrimSpace(*tk.SprintName)
+		add(name, 1)
+		if !tk.Done && tk.InSprint == nil && !trackerProForma(data, name) &&
+			ticketimport.ResolveSprint(name, data.Team.Tracker, sprints) == nil {
+			out[index[strings.ToLower(name)]].Open++
 		}
 	}
 	for _, name := range data.Team.Sprint.ProForma {
