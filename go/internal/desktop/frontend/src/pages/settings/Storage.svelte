@@ -5,7 +5,7 @@
   import Icon from '../../lib/Icon.svelte';
   import { go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { Branch, LineEndings, Problem, ServerCheck, StorageSettings } from '../../lib/types.data';
+  import type { Branch, LineEndings, Problem, RecentFolder, ServerCheck, StorageSettings } from '../../lib/types.data';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
@@ -18,6 +18,7 @@
   let st = $state<StorageSettings>();
   let branches = $state<Branch[]>([]);
   let endings = $state<LineEndings>();
+  let recent = $state<RecentFolder[]>([]);
   let loadFailed = $state('');
   let working = $state(false);
 
@@ -50,6 +51,7 @@
     if (email === shown.email) email = st.email;
     shown = { server: st.server, name: st.name, email: st.email };
     user = user || st.guide.username;
+    recent = await api.RecentFolders().catch(() => []);
     if (st.ready) {
       branches = await api.Branches().catch(() => []);
       pickBranch = st.branch;
@@ -247,14 +249,15 @@
           </button>
         </div>
       </div>
-      {#if app.prefs?.recentDataDirs && app.prefs.recentDataDirs.length > 0}
+      {#if recent.length > 0}
         <h3 class="small muted">{t('Recently used folders')}</h3>
         <ul class="plain">
-          {#each app.prefs.recentDataDirs as dir (dir)}
+          {#each recent as r (r.path)}
             <li class="row">
-              <span class="data wrap grow">{dir}</span>
-              {#if dir === st.folder}<span class="chip ok">{t('in use')}</span>
-              {:else}<button class="btn" type="button" disabled={working} onclick={() => folderAction('open', dir)}>{t('Open')}</button>{/if}
+              <span class="data wrap grow">{r.path}</span>
+              {#if r.inUse}<span class="chip ok">{t('in use')}</span>
+              {:else if r.missing}<span class="chip warn"><Icon name="warning" />{t('not found')}</span>
+              {:else}<button class="btn" type="button" disabled={working} aria-label={t('Open {path}', { path: r.path })} onclick={() => folderAction('open', r.path)}>{t('Open')}</button>{/if}
             </li>
           {/each}
         </ul>
