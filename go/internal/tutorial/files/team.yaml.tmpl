@@ -2,13 +2,15 @@ name: Team Atlas
 unit: SP
 features:
   products: true
-  po: true
-  production: true
-  tickets: true
-  projects: true
+  po: {{.Full}}
+  production: {{.Full}}
+  tickets: {{.Tickets}}
+  projects: {{.Full}}
+{{- if .Full}}
 product_owners:
 - {id: mara, name: Mara Muster}
 - {id: noel, name: Noel Muster}
+{{- end}}
 sprint:
   length_days: 14
   numbering: sequential
@@ -26,6 +28,13 @@ capacity:
   overhead_share: 0.0
   region: NW
   rounding: 1
+{{- if eq .Source "packages"}}
 tracker:
   kind: packages
   package_prefix: AP
+{{- else if eq .Source "tracker"}}
+tracker:
+  kind: jira
+  base_url: https://tracker.example.org
+  query: project = ATL
+{{- end}}
