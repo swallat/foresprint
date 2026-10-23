@@ -28,6 +28,7 @@
   async function load(team: string): Promise<void> {
     applied = draft = connection = queryCheck = undefined;
     fieldNames = [];
+    sprintIds = [];
     if (!team) return;
     try {
       const s = await api.TrackerSettings(team);
@@ -35,6 +36,7 @@
       s.boardId = s.boardId || null;
       applied = s;
       draft = structuredClone(s);
+      sprintIds = (await api.Sprints(team)).map((x) => x.id);
       if (s.source === 'tracker' && s.kind === 'jira' && (s.token.stored || s.token.fromEnv)) {
         fieldNames = await api.TrackerFieldNames(team, s.baseUrl);
       }
@@ -77,12 +79,44 @@
     { label: t('Label that means 100 percent'), get: (s) => s.productionLabel },
     { label: t('Production rules'), get: (s) => s.prodRules.map((r) => `${r.rule} → ${r.percent} %`), show: (v) => ((v as string[]).length ? (v as string[]).join('; ') : '–') },
     { label: t('Fields for rules'), get: (s) => s.ruleFields.map((f) => `${f.name} = ${f.display}`) },
+    { label: t('Automatic fetch'), get: (s) => s.fetchInterval, show: (v) => intervalLabel(Number(v)) },
+    { label: t('Sprint names'), get: (s) => s.sprints.filter((x) => x.mapsTo).map((x) => `${x.name} → ${x.mapsTo}`), show: (v) => ((v as string[]).length ? (v as string[]).join('; ') : '–') },
+    { label: t('Pro-forma sprints'), get: (s) => s.proForma, show: (v) => ((v as string[]).length ? (v as string[]).join(', ') : '–') },
     { label: t('Write the sprint back'), get: (s) => s.writeSprint },
     { label: t('Board number'), get: (s) => s.boardId || '' },
     { label: t('Removed tickets go to'), get: (s) => s.removedTarget, show: removedLabel },
     { label: t('Label planned_for_<sprint>'), get: (s) => s.writeLabels },
     { label: t('Prefix of work packages'), get: (s) => s.packagePrefix },
   ]);
+
+  const intervals = [0, 5, 15, 60];
+  function intervalLabel(n: number): string {
+    if (n === 0) return t('only on the button');
+    return n === 60 ? t('every hour') : t('every {n} minutes', { n });
+  }
+
+  const isProForma = (name: string) => !!draft?.proForma.some((n) => n.toLowerCase() === name.toLowerCase());
+  function setProForma(name: string, on: boolean): void {
+    if (!draft) return;
+    const rest = draft.proForma.filter((n) => n.toLowerCase() !== name.toLowerCase());
+    draft.proForma = on ? [...rest, name] : rest;
+  }
+  let newSprint = $state('');
+  let sprintIds = $state<string[]>([]);
+  function addSprint(): void {
+    const name = newSprint.trim();
+    if (!name) return;
+    setProForma(name, true);
+    newSprint = '';
+  }
+  /** The names met in the tracker, plus the pro-forma names the draft adds. */
+  const sprintRows = $derived.by(() => {
+    const rows = [...(draft?.sprints ?? [])];
+    for (const name of draft?.proForma ?? []) {
+      if (!rows.some((r) => r.name.toLowerCase() === name.toLowerCase())) rows.push({ name, tickets: 0, mapsTo: '' });
+    }
+    return rows;
+  });
 
   function removedLabel(v: unknown): string {
     return ({ '': t('the backlog'), backlog: t('the backlog'), pro_forma: t('a pro-forma sprint'), next: t('the next sprint') })[String(v) as 'next'] ?? String(v);
@@ -147,8 +181,22 @@
       }
       await api.SetTrackerToken(app.team, draft?.baseUrl ?? '', token);
       token = '';
-      toast(t('Token stored in the keychain.'), 'ok');
       await refreshToken();
+      // The token is useless without the choice of the tracker and its address: apply exactly these
+      // three; every other open change of the page stays in the draft.
+      if (draft && applied && (draft.source !== applied.source || draft.kind !== applied.kind || draft.baseUrl !== applied.baseUrl)) {
+        const keep = $state.snapshot(draft);
+        await api.SaveTrackerSettings(app.team, { ...structuredClone($state.snapshot(applied)), source: keep.source, kind: keep.kind, baseUrl: keep.baseUrl });
+        const fresh = await api.TrackerSettings(app.team);
+        fresh.boardId = fresh.boardId || null;
+        applied = fresh;
+        draft = { ...keep, token: fresh.token, hitsFields: fresh.hitsFields, sprints: fresh.sprints, fieldHits: fresh.fieldHits, tickets: fresh.tickets, imported: fresh.imported };
+        await loadFeatures();
+        await refreshStatus();
+        toast(rows.length ? t('Token, tracker and address applied. The other changes still need “Apply changes”.') : t('Token, tracker and address applied.'), 'ok');
+      } else {
+        toast(rows.length ? t('Token stored in the keychain. The other changes still need “Apply changes”.') : t('Token stored in the keychain.'), 'ok');
+      }
     });
 
   const removeToken = () =>
@@ -286,7 +334,14 @@
             <dd class="data">{syncedAt || t('never')}</dd>
             <dt>{t('Tickets')}</dt>
             <dd class="data">{applied.tickets}</dd>
+            <dt><label for="t-interval">{t('Automatic')}</label></dt>
+            <dd>
+              <select id="t-interval" class="input" bind:value={draft.fetchInterval}>
+                {#each intervals as n (n)}<option value={n}>{intervalLabel(n)}</option>{/each}
+              </select>
+            </dd>
           </dl>
+          <p class="small muted">{t('An automatic fetch keeps your own order of the backlog; only the button takes the order of {tracker} again.', { tracker })}</p>
           {#if app.status.tracker.failed}
             <p class="small"><span class="chip bad"><Icon name="error" size={14} />{app.status.tracker.failed}</span></p>
           {/if}
@@ -295,6 +350,47 @@
               <Icon name="sync" />{app.busy === 'sync' ? t('Fetching …') : t('Fetch now')}
             </button>
             {#if rows.length}<span class="small muted">{t('Apply or discard the changes first.')}</span>{/if}
+          </div>
+        </div>
+
+        <div class="card full">
+          <h2>{t('Sprints in {tracker}', { tracker })}</h2>
+          <p class="small muted">
+            {t('Mark which sprints are only a place to park tickets (pro forma, for example “Refinement”). They appear under the backlog and never count for capacity or forecast. None, one or several are possible.')}
+          </p>
+          <div class="tw">
+            <table class="t">
+              <thead>
+                <tr><th>{t('Sprint in {tracker}', { tracker })}</th><th class="num">{t('Tickets')}</th><th>{t('Pro forma')}</th><th>{t('Matches sprint in Foresprint')}</th></tr>
+              </thead>
+              <tbody>
+                {#each sprintRows as s (s.name)}
+                  <tr>
+                    <td class="data">{s.name}</td>
+                    <td class="num data">{s.tickets}</td>
+                    <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
+                    <td>
+                      {#if isProForma(s.name)}
+                        <span class="muted">–</span>
+                      {:else}
+                        <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
+                          <option value="">{t('automatically by name')}</option>
+                          <option value="backlog">{t('Backlog (not a sprint)')}</option>
+                          {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
+                          {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
+                        </select>
+                      {/if}
+                    </td>
+                  </tr>
+                {:else}
+                  <tr><td colspan="4" class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+          <div class="row top">
+            <input class="input data" style="max-width:240px" aria-label={t('Name of a pro-forma sprint')} placeholder="Refinement" bind:value={newSprint} onkeydown={(e) => e.key === 'Enter' && addSprint()} />
+            <button class="btn" type="button" disabled={!newSprint.trim()} onclick={addSprint}><Icon name="add" />{t('Add pro-forma sprint')}</button>
           </div>
         </div>
 
@@ -346,7 +442,7 @@
         </div>
       {/if}
 
-      <FieldMapping bind:draft {fieldNames} {production} {tracker} />
+      <FieldMapping bind:draft {fieldNames} applied={applied.hitsFields} hits={applied.fieldHits} total={applied.tickets} {production} {tracker} />
     </div>
   {/if}
 

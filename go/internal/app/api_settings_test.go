@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/swallat/foresprint/internal/model"
 )
 
 // copyDemo copies the demo team to a temporary data folder, so that tests may write.
@@ -288,5 +290,83 @@ func TestTrackerBoardNumber(t *testing.T) {
 	}
 	if out, _ = api.TrackerSettings(team); out.BoardID != 0 {
 		t.Fatalf("board not cleared: %d", out.BoardID)
+	}
+}
+
+func TestTrackerFetchIntervalAndSprints(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	in, err := api.TrackerSettings(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if in.ProForma == nil || in.Sprints == nil || in.FieldHits == nil {
+		t.Fatalf("lists must never be null: %+v", in)
+	}
+	in.Source, in.Kind = "tracker", "jira"
+	in.FetchInterval = 15
+	in.ProForma = []string{"Refinement", "Ideas"}
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := api.TrackerSettings(team)
+	if out.FetchInterval != 15 || len(out.ProForma) != 2 {
+		t.Fatalf("not kept: %d %v", out.FetchInterval, out.ProForma)
+	}
+	names := map[string]bool{}
+	for _, s := range out.Sprints {
+		names[s.Name] = true
+	}
+	if !names["Refinement"] || !names["Ideas"] {
+		t.Errorf("pro-forma names missing in the table: %+v", out.Sprints)
+	}
+	if info := api.TrackerInfo(team); info.Interval != 15 {
+		t.Errorf("status interval %d", info.Interval)
+	}
+	in.FetchInterval = 7
+	if err := api.SaveTrackerSettings(team, in); err == nil {
+		t.Error("an unknown interval must be refused")
+	}
+	in.FetchInterval = 0
+	in.ProForma = nil // a caller without the list keeps it
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	if out, _ = api.TrackerSettings(team); len(out.ProForma) != 2 || out.FetchInterval != 0 {
+		t.Errorf("after: %d %v", out.FetchInterval, out.ProForma)
+	}
+}
+
+func TestTrackerFieldHitsCountFilledValues(t *testing.T) {
+	var extra model.OrderedMap[[]string]
+	extra.Set("project", []string{"Alpha"})
+	var blank model.OrderedMap[[]string]
+	blank.Set("project", []string{" "})
+	est := 3.0
+	hits := trackerFieldHits([]model.Ticket{{Key: "A-1", Estimate: &est, Extra: extra}, {Key: "A-2", Extra: blank}})
+	if hits["estimate"] != 1 || hits["project"] != 1 || hits["epic"] != 0 {
+		t.Errorf("hits: %v", hits)
+	}
+}
+
+func TestTrackerSprintNamesAreSaved(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	in, _ := api.TrackerSettings(team)
+	in.Source, in.Kind = "tracker", "jira"
+	in.Sprints = []TrackerSprint{{Name: "Old Sprint 16", MapsTo: " 2026.20 "}, {Name: "Other"}}
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := api.TrackerSettings(team)
+	found := false
+	for _, s := range out.Sprints {
+		if s.Name == "Old Sprint 16" && s.MapsTo == "2026.20" {
+			found = true
+		}
+		if s.Name == "Other" && s.MapsTo != "" {
+			t.Errorf("empty target must not be stored: %+v", s)
+		}
+	}
+	if !found {
+		t.Errorf("mapping lost: %+v", out.Sprints)
 	}
 }

@@ -53,6 +53,7 @@ tracker:
   write_sprint: true
   removed_target: pro_forma
   board_id: 42
+  fetch_interval: 15
   fields: {estimate: Punkte, status: Status, acceptance: Kriterien, product: Produkt, project: Vorhaben, refined: Bereit, production: Anteil}
 `
 
@@ -82,7 +83,7 @@ func TestTeamV1Fields(t *testing.T) {
 		t.Errorf("tracker %+v", tr)
 	}
 	out := idempotent(t, "team", v1Team)
-	for _, want := range []string{"naming:", "pro_forma:", "estimation:", "production_rules:", "removed_target: pro_forma", "board_id: 42"} {
+	for _, want := range []string{"naming:", "pro_forma:", "estimation:", "production_rules:", "removed_target: pro_forma", "board_id: 42", "fetch_interval: 15"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("written team lacks %q:\n%s", want, out)
 		}
@@ -123,6 +124,7 @@ func TestTeamV1Errors(t *testing.T) {
 		"factor":      {"estimation:\n  factor: 0\n", "greater than 0"},
 		"board":       {"features: {tickets: true}\ntracker:\n  board_id: 0\n", "board_id"},
 		"boardtext":   {"features: {tickets: true}\ntracker:\n  board_id: abc\n", "board_id"},
+		"interval":    {"features: {tickets: true}\ntracker:\n  fetch_interval: 7\n", "fetch_interval"},
 		"removed":     {"features: {tickets: true}\ntracker:\n  removed_target: elsewhere\n", "removed_target"},
 	} {
 		if _, err := TeamFromDict("t", loadMap(t, c.text), where); err == nil || !strings.Contains(err.Error(), c.want) {

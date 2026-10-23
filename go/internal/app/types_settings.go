@@ -89,13 +89,32 @@ type TrackerSettings struct {
 	FixedSources    []string      `json:"fixedSources"` // rule sources that always exist
 	WriteSprint     bool          `json:"writeSprint"`
 	// BoardID is the Jira board whose sprints the write-back looks up (0 = none).
-	BoardID       int        `json:"boardId"`
-	RemovedTarget string     `json:"removedTarget"` // "backlog", "pro_forma" or "next"
-	WriteLabels   bool       `json:"writeLabels"`
-	PackagePrefix string     `json:"packagePrefix"`
-	Token         TokenState `json:"token"`
-	Tickets       int        `json:"tickets"`  // tickets in the last import
-	Imported      string     `json:"imported"` // time of the last import (RFC 3339), "" if none
+	BoardID int `json:"boardId"`
+	// FetchInterval is the minutes between two automatic fetches (0 = only on the button).
+	FetchInterval int `json:"fetchInterval"`
+	// ProForma are the names of the pro-forma sprints; Sprints lists the sprint names met in
+	// the tracker (read only, for the table).
+	ProForma []string        `json:"proForma"`
+	Sprints  []TrackerSprint `json:"sprints"`
+	// FieldHits is the number of tickets of the last import that have a value per mapped value
+	// ("estimate", "remaining", "epic", "status", "project"); a value that is not stored with
+	// the tickets is missing.
+	FieldHits map[string]int `json:"fieldHits"`
+	// HitsFields is the mapping the last fetch used; the hits belong to it.
+	HitsFields    TrackerFields `json:"hitsFields"`
+	RemovedTarget string        `json:"removedTarget"` // "backlog", "pro_forma" or "next"
+	WriteLabels   bool          `json:"writeLabels"`
+	PackagePrefix string        `json:"packagePrefix"`
+	Token         TokenState    `json:"token"`
+	Tickets       int           `json:"tickets"`  // tickets in the last import
+	Imported      string        `json:"imported"` // time of the last import (RFC 3339), "" if none
+}
+
+// TrackerSprint is a sprint name met in the tracker.
+type TrackerSprint struct {
+	Name    string `json:"name"`
+	Tickets int    `json:"tickets"`
+	MapsTo  string `json:"mapsTo"` // sprint of Foresprint it is mapped to by hand, "" = by name
 }
 
 // Connection is the answer to a connection test.

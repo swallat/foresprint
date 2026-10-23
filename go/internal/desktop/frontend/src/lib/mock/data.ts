@@ -129,7 +129,7 @@ export function status(): Status {
     link: d.chip.link,
     incoming: d.incoming,
     findings: 1,
-    tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '' },
+    tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '', interval: 15 },
     data: d,
   };
 }

@@ -2,67 +2,92 @@
   import { link } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import FieldPick, { isKnownField } from '../../lib/settings/FieldPick.svelte';
   import { parseNumber } from '../../lib/settings/diff';
   import { app } from '../../lib/app.svelte';
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
-  import type { TrackerSettings } from '../../lib/types.settings';
+  import type { TrackerFields, TrackerSettings } from '../../lib/types.settings';
 
   interface Props {
     draft: TrackerSettings;
     /** Names of the fields of the tracker, for suggestions. */
     fieldNames: string[];
+    /** The fields as saved, to tell whether the hits below belong to the field in the draft. */
+    applied: TrackerFields;
+    /** Tickets of the last import that have a value, per mapped value. */
+    hits: Record<string, number>;
+    /** Tickets of the last import. */
+    total: number;
     /** The team uses production access: the production share is mapped as well. */
     production: boolean;
     tracker: string;
   }
-  let { draft = $bindable(), fieldNames, production, tracker }: Props = $props();
+  let { draft = $bindable(), fieldNames, applied, hits, total, production, tracker }: Props = $props();
 
-  const dl = 'tracker-field-names';
+  /** The mapped field exists in the tracker; how many tickets of the last import have a value. */
+  const known = (name: string) => isKnownField(name, fieldNames);
 
   function removeRuleField(i: number): void {
     draft.ruleFields.splice(i, 1);
   }
 </script>
 
+{#snippet stand(key: string, value: string, saved: string)}
+  {#if !value}
+    <span class="muted small">–</span>
+  {:else if !known(value)}
+    <span class="chip warn"><Icon name="warning" size={14} />{t('Not found in {tracker}', { tracker })}</span>
+  {:else if key && value === saved && key in hits && total > 0}
+    <span class="data small">{hits[key]} / {total}</span>
+    {#if hits[key] === 0}<span class="chip warn"><Icon name="warning" size={14} />{t('No ticket has a value')}</span>{/if}
+  {:else if key && value !== saved}
+    <span class="small muted">{t('After applying and fetching')}</span>
+  {:else}
+    <span class="muted small">–</span>
+  {/if}
+{/snippet}
+
 <div class="card full">
   <h2>{t('Field mapping and rules')}</h2>
   <p class="small muted lead">
     {t('For every value in Foresprint: read it from a field in {tracker} or determine it by a rule in Foresprint. The query above only limits which tickets are read. Rules use one language for all trackers. A value set by hand in Foresprint always wins.', { tracker })}
   </p>
-  <datalist id={dl}>
-    {#each fieldNames as n (n)}<option value={n}></option>{/each}
-  </datalist>
 
   <div class="tw">
     <table class="t map">
       <thead>
-        <tr><th>{t('Value in Foresprint')}</th><th>{t('Source')}</th><th>{t('Field or rule')}</th></tr>
+        <tr><th>{t('Value in Foresprint')}</th><th>{t('Source')}</th><th>{t('Field or rule')}</th><th>{t('Hits')}</th></tr>
       </thead>
       <tbody>
         <tr>
           <td>{t('Estimate')}</td>
           <td><span class="small muted">{t('Field')}</span></td>
-          <td><input class="input" list={dl} aria-label={t('Field for the estimate')} bind:value={draft.fields.estimate} /></td>
+          <td><FieldPick label={t('Field for the estimate')} names={fieldNames} bind:value={draft.fields.estimate} /></td>
+          <td>{@render stand('estimate', draft.fields.estimate, applied.estimate)}</td>
         </tr>
         <tr>
           <td>{t('Remaining effort')}</td>
           <td><span class="small muted">{t('Field')}</span></td>
-          <td><input class="input" list={dl} aria-label={t('Field for the remaining effort')} placeholder={t('not set')} bind:value={draft.fields.remaining} /></td>
+          <td><FieldPick label={t('Field for the remaining effort')} names={fieldNames} bind:value={draft.fields.remaining} /></td>
+          <td>{@render stand('remaining', draft.fields.remaining, applied.remaining)}</td>
         </tr>
         <tr>
           <td>{t('Epic')}</td>
           <td><span class="small muted">{t('Field')}</span></td>
-          <td><input class="input" list={dl} aria-label={t('Field for the epic')} placeholder={t('not set')} bind:value={draft.fields.epic} /></td>
+          <td><FieldPick label={t('Field for the epic')} names={fieldNames} bind:value={draft.fields.epic} /></td>
+          <td>{@render stand('epic', draft.fields.epic, applied.epic)}</td>
         </tr>
         <tr>
           <td>{t('Status')}</td>
           <td><span class="small muted">{t('Field')}</span></td>
-          <td><input class="input" list={dl} aria-label={t('Field for the status')} bind:value={draft.fields.status} /></td>
+          <td><FieldPick label={t('Field for the status')} names={fieldNames} bind:value={draft.fields.status} /></td>
+          <td>{@render stand('status', draft.fields.status, applied.status)}</td>
         </tr>
         <tr>
           <td>{t('Acceptance criteria')}</td>
           <td><span class="small muted">{t('Field')}</span></td>
-          <td><input class="input" list={dl} aria-label={t('Field for the acceptance criteria')} placeholder={t('not set')} bind:value={draft.fields.acceptance} /></td>
+          <td><FieldPick label={t('Field for the acceptance criteria')} names={fieldNames} bind:value={draft.fields.acceptance} /></td>
+          <td>{@render stand('', draft.fields.acceptance, applied.acceptance)}</td>
         </tr>
         <tr>
           <td>{t('Product')}</td>
@@ -76,9 +101,10 @@
             {#if draft.productBy === 'rule'}
               <a class="btn" href={link('/team/products')}><Icon name="edit" />{t('Rules on the Products page')}</a>
             {:else}
-              <input class="input" list={dl} aria-label={t('Field for the product')} bind:value={draft.fields.product} />
+              <FieldPick label={t('Field for the product')} names={fieldNames} bind:value={draft.fields.product} />
             {/if}
           </td>
+          <td>{@render stand('product', draft.fields.product, applied.product)}</td>
         </tr>
         <tr>
           <td>{t('Project')}</td>
@@ -92,9 +118,10 @@
             {#if draft.projectBy === 'rule'}
               <a class="btn" href={link('/projects')}><Icon name="edit" />{t('Rules on the Projects page')}</a>
             {:else}
-              <input class="input" list={dl} aria-label={t('Field for the project')} bind:value={draft.fields.project} />
+              <FieldPick label={t('Field for the project')} names={fieldNames} bind:value={draft.fields.project} />
             {/if}
           </td>
+          <td>{@render stand('project', draft.fields.project, applied.project)}</td>
         </tr>
         <tr>
           <td>{t('Refined')}</td>
@@ -115,10 +142,11 @@
                 <RuleEditor team={app.team} owner={{ kind: 'setting', id: 'refined' }} name={t('“also refined if”')} bind:value={draft.refinedRule} allowEmpty />
               </label>
             {:else}
-              <input class="input" list={dl} aria-label={t('Field for “refined”')} bind:value={draft.fields.refined} />
+              <FieldPick label={t('Field for “refined”')} names={fieldNames} bind:value={draft.fields.refined} />
             {/if}
             </div>
           </td>
+          <td>{@render stand('refined', draft.fields.refined, applied.refined)}</td>
         </tr>
         {#if production}
           <tr>
@@ -132,13 +160,14 @@
             </td>
             <td>
               {#if draft.productionBy === 'field+rule'}
-                <input class="input" list={dl} aria-label={t('Field for the production share')} bind:value={draft.fields.production} />
+                <FieldPick label={t('Field for the production share')} names={fieldNames} bind:value={draft.fields.production} />
               {:else if draft.productionBy === 'manual'}
                 <span class="small muted">{t('In Pre-plan, Plan or the ticket. Rules and label are removed when you apply this.')}</span>
               {:else}
                 <span class="small muted">{t('List below')}</span>
               {/if}
             </td>
+            <td>{@render stand('production', draft.fields.production, applied.production)}</td>
           </tr>
         {/if}
       </tbody>
@@ -202,7 +231,7 @@
           {#each draft.ruleFields as f, i (i)}
             <tr>
               <td><input class="input data" style="width:160px" aria-label={t('Name in rules')} bind:value={f.name} /></td>
-              <td><input class="input" list={dl} style="width:100%;min-width:220px" aria-label={t('Field in {tracker}', { tracker })} bind:value={f.display} /></td>
+              <td><FieldPick label={t('Field in {tracker}', { tracker })} names={fieldNames} bind:value={f.display} /></td>
               <td>
                 <button class="btn icon ghost" type="button" aria-label={t('Remove field')} onclick={() => removeRuleField(i)}><Icon name="delete" /></button>
               </td>
