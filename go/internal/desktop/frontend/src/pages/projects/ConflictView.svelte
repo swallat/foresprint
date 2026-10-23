@@ -19,7 +19,8 @@
   const estimated = $derived(view.unit === 'SP');
   const productName = (id: string) => view.products.find((p) => p.id === id)?.name ?? id;
   const lightText = (l: string) => (l === 'ok' ? t('on track') : l === 'warn' ? t('tight') : l === 'bad' ? t('at risk') : t('no light'));
-  const hasConflict = $derived(view.conflict.some((r) => r.light !== 'ok'));
+  // A conflict is a product that is tight or full, or a contingent that does not last.
+  const hasConflict = $derived(view.conflict.some((r) => r.light !== 'ok') || view.fit.some((f) => f.status === 'over'));
   const fitOf = (id: string) => view.fit.find((f) => f.project === id);
   const fitted = $derived(view.projects.filter((p) => fitOf(p.id)));
 

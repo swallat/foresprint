@@ -190,6 +190,9 @@
   "budget {budget} {unit}, projects ask {demand}, left {rest} {unit}": "Budget {budget} {unit}, Projekte verlangen {demand}, Rest {rest} {unit}",
   "Sprint {sprint}: the PO accepts the risk that the projects crowd out daily business.": "Sprint {sprint}: Der PO akzeptiert das Risiko, dass die Projekte das Tagesgeschäft verdrängen.",
   "Sprint {sprint}: the projects ask more than the budget of these products allows. Which project can wait?": "Sprint {sprint}: Die Projekte verlangen mehr, als das Budget dieser Produkte hergibt. Welches Projekt kann warten?",
-  "{n} tickets, {points} points": "{n} Tickets, {points} Punkte"
+  "{n} tickets, {points} points": "{n} Tickets, {points} Punkte",
+  "contingent short by {n} PD (left {rest} PD, need {need} PD)": "Kontingent reicht nicht, {n} PT zu wenig (Rest {rest} PT, Bedarf {need} PT)",
+  "The PO accepts the risk that the contingent of these projects does not last.": "Der PO akzeptiert das Risiko, dass das Kontingent dieser Projekte nicht reicht.",
+  "The contingent of these projects does not last. What should change?": "Das Kontingent dieser Projekte reicht nicht. Was soll sich ändern?"
  }
 }
