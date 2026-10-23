@@ -835,7 +835,13 @@ func prognosisExtrasFrom(p *yamlx.Map, pr *model.Prognosis, at string) error {
 	if pr.Carry, err = carryFrom(get(p, "carry"), at); err != nil {
 		return err
 	}
-	pr.RestNext, err = floatOf(get(p, "rest_next"), at+": rest_next")
+	if pr.RestNext, err = floatOf(get(p, "rest_next"), at+": rest_next"); err != nil {
+		return err
+	}
+	if pr.FocusPercent, err = floatOf(get(p, "focus_percent"), at+": focus_percent"); err != nil {
+		return err
+	}
+	pr.ExtraAbsenceDays, err = floatOf(get(p, "extra_absence_days"), at+": extra_absence_days")
 	return err
 }
 
@@ -851,6 +857,12 @@ func prognosisExtrasTo(entry *yamlx.Map, p model.Prognosis) {
 	}
 	if p.RestNext != nil {
 		put(entry, "rest_next", clean(*p.RestNext))
+	}
+	if p.FocusPercent != nil {
+		put(entry, "focus_percent", clean(*p.FocusPercent))
+	}
+	if p.ExtraAbsenceDays != nil {
+		put(entry, "extra_absence_days", clean(*p.ExtraAbsenceDays))
 	}
 }
 

@@ -257,6 +257,12 @@ func (a *API) ForecastSaveWhatIf(team string, as ForecastAssumption) error {
 	plan := rows[0].Forecast
 	p := model.Prognosis{At: time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), 0, time.UTC),
 		Target: &next, Plan: &plan, Label: &label, Commitment: &commitment, ExpectedDone: &expected}
+	if as.FocusPercent != 100 {
+		p.FocusPercent = model.Ptr(as.FocusPercent)
+	}
+	if as.ExtraAbsenceDays > 0 {
+		p.ExtraAbsenceDays = model.Ptr(as.ExtraAbsenceDays)
+	}
 	if expected < commitment {
 		p.NotDone = model.Ptr(commitment - expected)
 	} else if expected > commitment {

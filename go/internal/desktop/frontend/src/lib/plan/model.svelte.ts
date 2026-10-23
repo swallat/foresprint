@@ -51,6 +51,7 @@ export const assumptions = {
  * an entered number. With tickets their sum is the commitment, a typed one is ignored. */
 export function touched(a: Assumption | undefined, withTickets = false): boolean {
   if (!a) return false;
+  if (a.focusPercent != null || a.extraAbsenceDays != null) return true;
   if (withTickets) return a.carry.length > 0;
   return a.carry.length > 0 || (a.notDone ?? 0) > 0 || (a.extra ?? 0) > 0 || a.commitment != null;
 }

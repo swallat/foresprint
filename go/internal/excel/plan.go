@@ -376,6 +376,7 @@ func carryOver(data, existing *storage.TeamData) {
 				if op.At.Equal(s.Prognoses[j].At) {
 					s.Prognoses[j].Label, s.Prognoses[j].Finish = op.Label, op.Finish
 					s.Prognoses[j].Carry, s.Prognoses[j].RestNext = op.Carry, op.RestNext
+					s.Prognoses[j].FocusPercent, s.Prognoses[j].ExtraAbsenceDays = op.FocusPercent, op.ExtraAbsenceDays
 				}
 			}
 		}

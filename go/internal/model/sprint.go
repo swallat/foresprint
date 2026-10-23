@@ -88,6 +88,11 @@ type Prognosis struct {
 	Carry  []CarryItem
 	// RestNext is, without tickets, the part of NotDone that continues in the next sprint.
 	RestNext *float64
+	// FocusPercent and ExtraAbsenceDays are the what-if settings of the Forecast page behind
+	// Plan (nil = as measured / none): the share of the capacity that turns into points and
+	// the person days off in addition to the known absences.
+	FocusPercent     *float64
+	ExtraAbsenceDays *float64
 }
 
 // Sprint is one sprint (sprints/<id>.yaml).
