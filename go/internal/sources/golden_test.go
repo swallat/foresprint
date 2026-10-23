@@ -14,8 +14,8 @@ import (
 	"github.com/swallat/foresprint/internal/golden"
 )
 
-// The comparison with golden/expected/sources, written by scripts/golden_ext/sources.py from the
-// Python sources.
+// The comparison with golden/expected/sources, frozen from the Python
+// sources of version 0.8.
 
 const goldenToken = "tok-GOLDEN-9f8e7d6c5b4a3f2e"
 

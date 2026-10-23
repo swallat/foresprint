@@ -57,7 +57,7 @@ func variantMap(v *Variants) map[string]*Distribution {
 	return out
 }
 
-// export is what scripts/golden.py export_preplan records.
+// export is what the reference of version 0.8 records.
 func export(t *testing.T, data *storage.TeamData, today time.Time) map[string]any {
 	t.Helper()
 	variants, err := DistributeVariants(data, today, 26)
