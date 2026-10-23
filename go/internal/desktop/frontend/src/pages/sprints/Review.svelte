@@ -11,6 +11,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import SprintFigures from '../../lib/plan/SprintFigures.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
 
@@ -165,6 +166,8 @@
   {/snippet}
 </PageHead>
 <StageNav stage="review" />
+
+{#if app.team && app.sprint}<SprintFigures reload={info?.reviewed} />{/if}
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>

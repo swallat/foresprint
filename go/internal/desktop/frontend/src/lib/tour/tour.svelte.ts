@@ -48,7 +48,7 @@ async function show(): Promise<void> {
     const id = pickSprint(step.sprint, app.sprints);
     if (id) selectSprint(id);
   }
-  go(step.route, {}, step.query);
+  go(step.route, undefined, step.query);
   tour.unmarked = false;
   if (!step.target) return;
   for (const wait of [0, ...waits]) {

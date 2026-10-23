@@ -16,7 +16,7 @@ export interface Step {
   route: string;
   /** Element to mark. */
   target?: string;
-  /** Query of the page, e.g. the tab to show. */
+  /** Query of the address, e.g. `{ tab: 'when' }` for a tab of the page. */
   query?: Record<string, string>;
   /** Sprint to select before showing the page. */
   sprint?: SprintPick;
