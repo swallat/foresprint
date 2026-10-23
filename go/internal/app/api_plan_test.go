@@ -565,3 +565,36 @@ func TestFixedFactorWinsInPlanAndProjects(t *testing.T) {
 		t.Errorf("project rate = %v, want the fixed %v", pv.Rate, factor)
 	}
 }
+
+// A team that started in person days and switched to story points by a unit change gets the
+// fixed factor from that sprint on.
+func TestFixedFactorAfterUnitChange(t *testing.T) {
+	api, team := planTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	factor := 3.5
+	tm := data.Team
+	tm.Unit = model.UnitPT
+	tm.Estimation.Changes = []model.UnitChange{{From: next, Unit: model.UnitSP, Factor: &factor}}
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	v, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Rate == nil || math.Abs(*v.Rate-factor) > 1e-6 || v.OtherUnit != "PT" {
+		t.Errorf("rate = %v, other unit %q", floatOr(v.Rate, -1), v.OtherUnit)
+	}
+}

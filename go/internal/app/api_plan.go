@@ -320,24 +320,29 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 		v.AbsenceDays = sumPtr(s.ExpectedAbsences)
 	}
 
+	order := make([]string, 0, len(c.fc.Entries)+1)
+	for _, e := range c.fc.Entries {
+		order = append(order, e.Sprint.ID)
+	}
+	if !slices.Contains(order, s.ID) {
+		order = append(order, s.ID)
+	}
+	// the unit of the sprint decides, not the one the team started with (decision 19)
+	inSP := planning.UnitAt(&tm, order, s.ID) == model.UnitSP
 	if c.entry != nil {
 		v.Capacity = c.entry.Result.PlanCapacity
 		v.Plan, v.PlanOriginal = c.entry.Result.Plan, c.entry.Result.Plan
 		if b, ok := analysis.BandOf(c.fc, c.entry); ok {
 			v.Low, v.High = &b.Low, &b.High
 		}
-		if v.Plan != nil && v.Capacity != nil && *v.Capacity > 0 && tm.Unit == model.UnitSP {
+		if v.Plan != nil && v.Capacity != nil && *v.Capacity > 0 && inSP {
 			r := *v.Plan / *v.Capacity
 			v.Rate = &r
 		}
 	}
-	if tm.Unit == model.UnitSP {
+	if inSP {
 		v.OtherUnit = "PT"
 		// a fixed factor wins over the measured rate (decision 19)
-		order := make([]string, len(c.fc.Entries))
-		for i, e := range c.fc.Entries {
-			order[i] = e.Sprint.ID
-		}
 		if f := planning.FactorAt(&tm, order, s.ID); f != nil && *f > 0 {
 			v.Rate = f
 		}

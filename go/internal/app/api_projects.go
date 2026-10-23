@@ -108,22 +108,33 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 	for i, e := range fc.Entries {
 		order[i] = e.Sprint.ID
 	}
-	var fixed float64 // the fixed factor of the newest sprint, 0 = measured
+	curID := ""
+	if cur := fc.Current(); cur != nil {
+		curID = cur.Sprint.ID
+	}
+	var fixed float64 // the fixed factor of the current sprint, 0 = measured
+	curPD := false    // the current sprint plans in person days
 	for _, e := range fc.Entries {
 		if _, ok := c.sprint[e.Sprint.ID]; !ok {
 			c.sprint[e.Sprint.ID] = e.Sprint
 		}
 		r := e.Result
-		if data.Team.Unit == model.UnitPT {
-			continue // person days need no conversion
-		}
-		// a fixed factor wins over the measured rate (decision 19)
-		if f := planning.FactorAt(&data.Team, order, e.Sprint.ID); f != nil && *f > 0 {
-			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = *f, *f
-			fixed = *f
+		// the unit of the sprint decides, not the one the team started with (decision 19)
+		if planning.UnitAt(&data.Team, order, e.Sprint.ID) == model.UnitPT {
+			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = 1, 1 // person days need no conversion
+			if e.Sprint.ID == curID {
+				curPD = true
+			}
 			continue
 		}
-		fixed = 0
+		// a fixed factor wins over the measured rate
+		if f := planning.FactorAt(&data.Team, order, e.Sprint.ID); f != nil && *f > 0 {
+			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = *f, *f
+			if e.Sprint.ID == curID {
+				fixed = *f
+			}
+			continue
+		}
 		if r.Velocity.Value != nil && r.Capacity.Value != nil && *r.Capacity.Value > 0 && *r.Velocity.Value > 0 {
 			c.doneRate[e.Sprint.ID] = *r.Velocity.Value / *r.Capacity.Value
 		}
@@ -133,7 +144,7 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		}
 	}
 	switch {
-	case data.Team.Unit == model.UnitPT:
+	case data.Team.Unit == model.UnitPT || curPD:
 		c.rate = 1
 	case fixed > 0:
 		c.rate = fixed
