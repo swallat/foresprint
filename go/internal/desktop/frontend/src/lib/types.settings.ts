@@ -88,12 +88,27 @@ export interface TrackerSettings {
   writeSprint: boolean;
   /** Jira board of the write-back; 0 or empty = none. */
   boardId: number | null;
+  /** Minutes between two automatic fetches; 0 = only on the button. */
+  fetchInterval: number;
+  proForma: string[];
+  /** Sprint names met in the tracker, for the table. */
+  sprints: TrackerSprint[];
+  /** Tickets of the last import that have a value, per mapped value. */
+  fieldHits: Record<string, number>;
+  /** The mapping the last fetch used; the hits belong to it. */
+  hitsFields: TrackerFields;
   removedTarget: '' | 'backlog' | 'pro_forma' | 'next';
   writeLabels: boolean;
   packagePrefix: string;
   token: TokenState;
   tickets: number;
   imported: string;
+}
+
+export interface TrackerSprint {
+  name: string;
+  tickets: number;
+  mapsTo: string;
 }
 
 export interface Connection {
@@ -114,6 +129,7 @@ export interface TrackerInfo {
   last: string;
   syncing: boolean;
   failed: string;
+  interval: number;
 }
 
 export interface Features {
@@ -174,6 +190,7 @@ export interface SettingsApi {
   TokenInfo(team: string, baseUrl: string): Promise<TokenState>;
   SetDensity(code: string): Promise<void>;
   SyncTracker(team: string): Promise<Result>;
+  SyncTrackerAuto(team: string): Promise<Result>;
   PackageImportPreview(team: string): Promise<PackageImportPreview>;
   PackageImportApply(team: string, path: string, hash: string): Promise<Result>;
 }

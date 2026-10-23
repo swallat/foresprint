@@ -175,6 +175,9 @@ type TrackerSettings struct {
 	// BoardID is the Jira board whose sprints the write-back looks up, so that a future sprint
 	// without any ticket is found too; nil = only sprints met in fetched tickets are known.
 	BoardID *int
+	// FetchInterval is the time in minutes between two automatic fetches from the tracker, one
+	// of FetchIntervals; 0 = only on the button.
+	FetchInterval int
 }
 
 // NewTrackerSettings returns the defaults.
@@ -431,5 +434,8 @@ func (t TrackerSettings) IsDefault() bool {
 		t.DependencyGap == d.DependencyGap && t.BudgetBasis == d.BudgetBasis && t.RoughFactor == d.RoughFactor &&
 		t.WriteLabels == d.WriteLabels && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
 		t.RuleFields.Len() == 0 && samePtr(t.ProductionLabel, d.ProductionLabel) &&
-		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == "" && t.BoardID == nil
+		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == "" && t.BoardID == nil && t.FetchInterval == 0
 }
+
+// FetchIntervals are the allowed minutes between two automatic fetches (0 = by hand only).
+var FetchIntervals = []int{0, 5, 15, 60}

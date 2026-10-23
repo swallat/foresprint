@@ -40,6 +40,8 @@ type TrackerStatus struct {
 	Last    string `json:"last"`    // time of the last sync (RFC 3339), "" if none
 	Syncing bool   `json:"syncing"`
 	Failed  string `json:"failed"` // message of the last failure, "" if fine
+	// Interval is the minutes between two automatic fetches, 0 = only on the button.
+	Interval int `json:"interval"`
 }
 
 // Result is the answer of an action started from the top bar.

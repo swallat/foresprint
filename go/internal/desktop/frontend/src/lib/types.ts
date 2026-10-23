@@ -64,6 +64,8 @@ export interface TrackerStatus {
   last: string;
   syncing: boolean;
   failed: string;
+  /** Minutes between two automatic fetches; 0 = only on the button. */
+  interval: number;
 }
 
 export interface Status {

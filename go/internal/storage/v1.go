@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"slices"
 	"time"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -264,6 +265,16 @@ func trackerExtrasFrom(d *yamlx.Map, tr *model.TrackerSettings, at string) error
 		}
 		tr.BoardID = &n
 	}
+	if v := get(d, "fetch_interval"); !isEmptyText(v) {
+		n, err := intOf(v, at, "fetch_interval", 0)
+		if err != nil {
+			return err
+		}
+		if !slices.Contains(model.FetchIntervals, n) {
+			return dataErr("{where}: 'fetch_interval' must be 0, 5, 15 or 60 minutes", "where", at)
+		}
+		tr.FetchInterval = n
+	}
 	return nil
 }
 
@@ -294,6 +305,9 @@ func trackerExtrasTo(out *yamlx.Map, tr model.TrackerSettings) {
 	}
 	if tr.BoardID != nil {
 		put(out, "board_id", *tr.BoardID)
+	}
+	if tr.FetchInterval > 0 {
+		put(out, "fetch_interval", tr.FetchInterval)
 	}
 }
 

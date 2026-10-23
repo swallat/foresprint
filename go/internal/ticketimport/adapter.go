@@ -47,4 +47,14 @@ func (f ForecastSprints) End(id string) (time.Time, bool) {
 	return s.End, true
 }
 
+// IDs implements Lister.
+func (f ForecastSprints) IDs() []string {
+	ids := forecast.KnownSprintIDs(f.Forecast.Data, forecast.DefaultLookupAhead)
+	for _, e := range f.Forecast.Entries {
+		ids = append(ids, e.Sprint.ID)
+	}
+	return ids
+}
+
 var _ Sprints = ForecastSprints{}
+var _ Lister = ForecastSprints{}
