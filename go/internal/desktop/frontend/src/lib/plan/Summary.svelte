@@ -109,6 +109,7 @@
         {#if freeLeft >= 0}{t('still free')} <span class="data">{fmt(freeLeft, 1)}</span>{:else}<span class="data">{fmt(-freeLeft, 1)}</span> {t('over plannable')}{/if}
         ·
       {/if}
+      {#if d.source !== 'none' && d.preplanned > 0}{t('pre-planned')} <span class="data">{fmt(d.preplanned)}</span> · {/if}
       {#if commitment != null}{t('commitment')} <span class="data">{fmt(commitment)}</span> · {/if}
       {d.source === 'none' ? t('sum of the amounts per product') : `${n} ${itemWord(d, n !== 1)}`}
     </div>

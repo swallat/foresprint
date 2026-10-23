@@ -122,7 +122,7 @@ func TestReadAnswersHaveNoNilLists(t *testing.T) {
 		"SprintPrepare": {team, future}, "SprintOverview": {team, 4}, "SprintReview": {team, past},
 		"SprintMinutes": {team, future}, "Today": {team}, "TrackerSettings": {team},
 		"TrackerInfo": {team}, "Sprints": {team}, "PlanSprint": {team, future, (*Assumption)(nil)},
-		"RunningTickets": {team, future}, "PlanWritePreview": {team, future},
+		"RunningTickets": {team, future}, "RunningHint": {team, future}, "PlanWritePreview": {team, future},
 		"Teams": {}, "Prefs": {}, "Info": {}, "Storage": {}, "Conflicts": {}, "DataIncoming": {},
 		"PendingTags": {}, "UnsavedChanges": {},
 	}

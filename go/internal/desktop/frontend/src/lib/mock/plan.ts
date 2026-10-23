@@ -136,7 +136,6 @@ function whatIf(sid: string, as: Assumption): WhatIf | null {
       } else if (!c) extra += x.est ?? 0;
       if (c) (c.target === '' || c.target === sid ? (rest += c.rest) : (later += c.rest));
     }
-    if (as.commitment != null) commitment = as.commitment;
   }
   const touched = noT ? notDone > 0 || extra > 0 || as.commitment != null : as.carry.length > 0;
   const velocity = Math.max(commitment - notDone + extra, 0);
@@ -218,6 +217,9 @@ export const planMock: PlanApi = {
   },
   async RunningTickets() {
     return tickets.filter((x) => x.sprint === '$cur').map((x) => ({ ...ticketOf(x), done: !!x.done, added: !!x.added }) satisfies RunningTicket);
+  },
+  async RunningHint() {
+    return { unresolved: 0, names: [] };
   },
   async WhatIf(_t, sprint, as) {
     return whatIf(sprint, as);

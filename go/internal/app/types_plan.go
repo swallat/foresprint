@@ -221,6 +221,13 @@ type RunningTicket struct {
 	Added bool `json:"added"`
 }
 
+// RunningHint explains an empty what-if table: Unresolved open tickets sit in tracker sprints
+// that Foresprint cannot map to one of its sprints (Names: the first few).
+type RunningHint struct {
+	Unresolved int      `json:"unresolved"`
+	Names      []string `json:"names"`
+}
+
 // FreezeInput is what the team agreed in the planning. With tickets, Tickets is the agreed list
 // (the commitment follows from it); without tickets Amounts (per product, unit of the team) and
 // Commitment are entered. Removed lists tickets that the tracker still has in the sprint but
