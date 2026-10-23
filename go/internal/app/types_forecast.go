@@ -57,9 +57,25 @@ type ForecastView struct {
 	// Rate is the team rate (normalized velocity trend per reference capacity day, i.e.
 	// points per person day) of the next sprint, nil if there is no forecast yet.
 	Rate *float64 `json:"rate"`
+	// Running is the running sprint and Next the one after it ("" if none); RunningCommitment is
+	// the commitment of the running sprint. The what-if expects a velocity for the running one.
+	Running           string   `json:"running"`
+	Next              string   `json:"next"`
+	RunningCommitment *float64 `json:"runningCommitment"`
 	// Past are the completed sprints, oldest first; Upcoming the current and the following ones.
 	Past     []ForecastRow `json:"past"`
 	Upcoming []ForecastRow `json:"upcoming"`
+}
+
+// ForecastAssumption is what the Forecast page tries: the sprint (empty = all coming ones),
+// additional days off per sprint, the focus in percent, the velocity expected for the running
+// sprint (nil = leave it) and the label under which it is saved as a prognosis.
+type ForecastAssumption struct {
+	Sprint           string   `json:"sprint"`
+	ExtraAbsenceDays float64  `json:"extraAbsenceDays"`
+	FocusPercent     float64  `json:"focusPercent"`
+	ExpectedVelocity *float64 `json:"expectedVelocity"`
+	Label            string   `json:"label"`
 }
 
 // WhatIfRow is a coming sprint under changed assumptions.
