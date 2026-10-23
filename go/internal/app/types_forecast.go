@@ -88,4 +88,25 @@ type WhenDoneView struct {
 	TrendCapacity []string `json:"trendCapacity"`
 	// Available is false if there is too little history or nothing to do.
 	Available bool `json:"available"`
+	// Earliest is the first sprint in which the work is done in at least 15 % of the runs.
+	Earliest string `json:"earliest"`
+	// Starts and Ends are the first and last day of each sprint of Sprints.
+	Starts []string `json:"starts"`
+	Ends   []string `json:"ends"`
+	// ProjectName, ProjectEnd and Light are set when the question was asked for a project: Light
+	// is "ok", "warn", "bad" or "none" (no project end).
+	ProjectName string `json:"projectName"`
+	ProjectEnd  string `json:"projectEnd"`
+	Light       string `json:"light"`
+}
+
+// WhenProject is an open project the analysis can be asked for.
+type WhenProject struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// End is the project end (or target date) as YYYY-MM-DD, "" if none.
+	End string `json:"end"`
+	// OpenScope is the open scope in the unit of the team, nil if unknown.
+	OpenScope *float64 `json:"openScope"`
+	Open      int      `json:"open"` // open tickets
 }
