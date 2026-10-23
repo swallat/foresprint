@@ -178,21 +178,21 @@ func (j *JiraSource) ticket(issue any, resolved *ResolvedFields) (RawTicket, err
 		}
 		ticket.Components = dedupe(ticket.Components)
 	}
-	ticket.Parent = subtaskParent(data)
+	ticket.Subtask, ticket.Parent = subtaskOf(data)
 	ticket.BlockedBy = j.blockedBy(data["issuelinks"])
 	return ticket, nil
 }
 
-// subtaskParent is the key of the parent when the issue type is a sub-task type, else "".
-func subtaskParent(data map[string]any) string {
+// subtaskOf says whether the issue type is a sub-task type, and the key of the parent.
+func subtaskOf(data map[string]any) (bool, string) {
 	kind, ok := asObject(data["issuetype"])
 	if !ok {
-		return ""
+		return false, ""
 	}
 	if sub, _ := kind["subtask"].(bool); !sub {
-		return ""
+		return false, ""
 	}
-	return keyOf(data["parent"])
+	return true, keyOf(data["parent"])
 }
 
 func epicOf(data map[string]any, resolved *ResolvedFields) string {
