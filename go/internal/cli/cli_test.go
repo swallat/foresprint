@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
@@ -116,13 +115,5 @@ func TestDataDirOrder(t *testing.T) {
 	e.Data = "given"
 	if got := e.DataDir(); got != "given" {
 		t.Errorf("flag: %q", got)
-	}
-}
-
-func TestNaturalOrder(t *testing.T) {
-	ids := []string{"2026.10", "2026.9", "2026.2", "2025.30"}
-	sort.Slice(ids, func(i, j int) bool { return naturalLess(ids[i], ids[j]) })
-	if strings.Join(ids, " ") != "2025.30 2026.2 2026.9 2026.10" {
-		t.Errorf("order = %v", ids)
 	}
 }

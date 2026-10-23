@@ -13,6 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/rules"
 	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/textfmt"
 	"github.com/swallat/foresprint/internal/ticketimport"
 )
 
@@ -630,7 +631,9 @@ func trackerSprintsOf(data *storage.TeamData) []TrackerSprint {
 	for _, name := range data.Team.Tracker.SprintNames.Keys() {
 		add(name, 0)
 	}
-	sort.SliceStable(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
+	sort.SliceStable(out, func(i, j int) bool {
+		return textfmt.NaturalLess(strings.ToLower(out[i].Name), strings.ToLower(out[j].Name))
+	})
 	return out
 }
 
