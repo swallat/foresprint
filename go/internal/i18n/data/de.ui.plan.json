@@ -211,6 +211,9 @@
   "{n} working days": "{n} Arbeitstage",
   "{n} {items}": "{n} {items}",
   "{product} in {project} ({unit})": "{product} in {project} ({unit})",
-  "{project} in {unit}": "{project} in {unit}"
+  "{project} in {unit}": "{project} in {unit}",
+  "pre-planned": "Vorgeplant",
+  "{n} open {items} sit in tracker sprints that Foresprint cannot match to a sprint: {names}. Fetch again after naming them under Tickets and tracker, sprint names.": "{n} offene {items} liegen in Tracker-Sprints, die Foresprint keinem Sprint zuordnen kann: {names}. Benenne sie unter Tickets und Tracker (Sprintnamen) und rufe danach erneut ab.",
+  "Open Tickets and tracker": "Tickets und Tracker öffnen"
  }
 }

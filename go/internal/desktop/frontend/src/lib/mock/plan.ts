@@ -219,6 +219,9 @@ export const planMock: PlanApi = {
   async RunningTickets() {
     return tickets.filter((x) => x.sprint === '$cur').map((x) => ({ ...ticketOf(x), done: !!x.done, added: !!x.added }) satisfies RunningTicket);
   },
+  async RunningHint() {
+    return { unresolved: 0, names: [] };
+  },
   async WhatIf(_t, sprint, as) {
     return whatIf(sprint, as);
   },

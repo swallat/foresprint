@@ -459,3 +459,56 @@ func TestUseMatrixNeverLowersAndSkipsClosedProjects(t *testing.T) {
 		t.Errorf("clearing a closed project's cell: %v", err)
 	}
 }
+
+func TestWhatIfIgnoresTypedCommitmentWithTickets(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var cur, next string
+	for i, s := range sprints {
+		if s.State == "current" {
+			cur, next = s.ID, sprints[i+1].ID
+		}
+	}
+	if cur == "" {
+		t.Skip("no running sprint in the demo data")
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	for i := range data.Tickets[:2] {
+		data.Tickets[i].InSprint = &cur
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: data.Tickets}); err != nil {
+		t.Fatal(err)
+	}
+	typed := 99.0
+	w, err := api.WhatIf(team, next, Assumption{Label: "A", Carry: []CarryInput{}, Commitment: &typed})
+	if err != nil || w == nil {
+		t.Fatalf("what-if = %+v err = %v", w, err)
+	}
+	if w.Commitment == 99 || w.Touched {
+		t.Errorf("typed commitment counted with tickets: %+v", w)
+	}
+}
+
+func TestRunningHintNamesUnknownTrackerSprints(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	name := "Board X wave 9"
+	data.Tickets[0].InSprint, data.Tickets[0].SprintName, data.Tickets[0].Done = nil, &name, false
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: data.Tickets}); err != nil {
+		t.Fatal(err)
+	}
+	h, err := api.RunningHint(team, next)
+	if err != nil || h.Unresolved < 1 || len(h.Names) == 0 || h.Names[0] != name {
+		t.Errorf("hint = %+v err = %v", h, err)
+	}
+}
