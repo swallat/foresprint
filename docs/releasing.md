@@ -1,40 +1,15 @@
-# Releasing and publishing on PyPI
+# Releasing
 
-A pushed version tag of the 0.x line (`v0.*`) starts the *Release* workflow (`.github/workflows/release.yml`):
-tests and lint, tag and version comparison, `uv build`, release page on GitHub, and then the job
-`publish-pypi`, which uploads the same files to [PyPI](https://pypi.org/project/foresprint/) via
-Trusted Publishing (OpenID Connect). No API token is stored in the repository or in GitHub.
+Releases of the 1.x line are built by the workflow *Release app*
+(`.github/workflows/release-app.yml`) when a tag `v1.*` is pushed. The 0.x line (Python, PyPI)
+is released from the branch `main` with its own workflow; none of that exists on `v1`.
 
-Users then install with `pipx install "foresprint[web,excel,jira]"` or
-`uv tool install "foresprint[web,excel,jira]"`, and update with `uv tool upgrade foresprint`.
+Steps per release:
 
-## One-time setup (maintainer)
-
-1. Create an account on <https://pypi.org> and enable two-factor authentication.
-2. Open *Your account, Publishing* (<https://pypi.org/manage/account/publishing/>) and add a
-   **pending publisher** (this reserves the name `foresprint` before the first upload):
-   - PyPI project name: `foresprint`
-   - Owner: `swallat`
-   - Repository name: `foresprint`
-   - Workflow name: `release.yml`
-   - Environment name: `pypi`
-3. On GitHub, *Settings, Environments, New environment* named `pypi`. Recommended: under
-   *Deployment protection rules* require yourself as reviewer, so every upload needs one click.
-4. Optional dry run: the same steps on <https://test.pypi.org> with an environment `testpypi`.
-
-The first tag after the setup creates the project on PyPI; afterwards the pending publisher
-becomes a normal trusted publisher.
-
-## Per release
-
-1. Raise the version in `pyproject.toml`, the package `__init__.py` and `uv.lock`, merge via pull
-   request.
-2. Tag the merge commit and push: `git tag -a vX.Y.Z -m "Version X.Y.Z" && git push origin vX.Y.Z`.
-3. Approve the `pypi` deployment if a reviewer is required. PyPI never accepts a version twice;
-   after a faulty upload raise the version (a yanked release cannot be replaced).
-
-For an existing tag, the release can be repeated under *Actions, Release, Run workflow*. The normal
-CI also builds the packages on every push and stores them as the artifact `dist`.
+1. Merge everything into `v1` and check that the CI is green.
+2. Tag the merge commit and push the tag: `git tag -a vX.Y.Z -m "Version X.Y.Z" && git push origin vX.Y.Z`.
+3. The workflow builds the archives and writes the release page. A tag with a suffix
+   (`v1.0.0-beta.1`) becomes a pre-release.
 
 ## The program (GitHub release files)
 
@@ -62,4 +37,4 @@ starts itself again without a console (`cmd/foresprint/console_windows.go`).
 release after the input `tag`; a tag that does not exist yet is created at that commit by the release page. For an
 existing tag it repeats the build and replaces the files.
 
-A run started by hand that creates the tag does not start the workflow *Release* (events caused by the workflow's own token start no other workflow). To publish the wheel and the source distribution (and PyPI) for such a tag, start *Actions, Release, Run workflow* with that tag afterwards; its check needs the version in `pyproject.toml` at that commit to match the tag. The name must look like `v1.0.0` or `v1.0.0-beta.1`, and for an existing tag the run must be started from that tag.
+The name must look like `v1.0.0` or `v1.0.0-beta.1`, and for an existing tag the run must be started from that tag.

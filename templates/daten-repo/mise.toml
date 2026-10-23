@@ -1,13 +1,8 @@
-[tools]
-python = "3.14"
-uv = "0.13.1"
-
 [env]
 FORESPRINT_DATA = "teams"
 # Language of the generated reports (FORECAST.md): "en" or "de".
 FORESPRINT_LANG = "en"
 
 [tasks.sf]
-description = "run foresprint, e.g. `mise run sf -- forecast team-a`"
-# Pin the tool version here; raise it when you update.
-run = "uvx --from git+https://github.com/swallat/foresprint@main foresprint"
+description = "run foresprint, e.g. `mise run sf -- forecast team-a` (install it first: see docs/installation.md)"
+run = "foresprint"
