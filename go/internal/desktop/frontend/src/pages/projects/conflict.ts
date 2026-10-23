@@ -7,10 +7,17 @@ import { num } from './format';
 
 export type Note = 'accept' | 'talk';
 
-/** The products that are tight or full, one line each. */
+/** The products that are tight or full and the contingents that do not last, one line each. */
 function lines(view: ProjectsView): string[] {
   const name = (id: string) => view.products.find((p) => p.id === id)?.name ?? id;
-  return view.conflict
+  const short = view.fit
+    .filter((f) => f.status === 'over')
+    .map((f) => `- ${view.projects.find((p) => p.id === f.project)?.name ?? f.project}: ${t('contingent short by {n} PD (left {rest} PD, need {need} PD)', {
+      n: num(f.missing, 1),
+      rest: num(f.remaining, 1),
+      need: num(f.need, 1),
+    })}`);
+  const products = view.conflict
     .filter((r) => r.light !== 'ok')
     .map((r) => {
       const demand = r.demand.map((d) => `${view.projects.find((p) => p.id === d.project)?.name ?? d.project} ${num(d.points, 1)}`).join(', ');
@@ -21,6 +28,7 @@ function lines(view: ProjectsView): string[] {
         rest: num(r.rest, 1),
       })}`;
     });
+  return [...products, ...short];
 }
 
 /** The text of a note for the PO: accepting the risk, or talking to the project lead. */
