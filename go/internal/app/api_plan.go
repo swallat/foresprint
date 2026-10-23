@@ -188,9 +188,21 @@ func (c *planCtx) laneTickets() (in, candidates []PlanTicket) {
 	if !c.tickets() {
 		return nil, nil
 	}
+	// The order of the planning (priority, project, dependencies, the PO's own order), the same
+	// one the backlog shows and MoveWorkPackage changes; done tickets follow.
+	ordered, leftover := preplan.OrderTickets(c.data)
+	var done []model.Ticket
+	for _, t := range c.data.Tickets {
+		if t.Done {
+			done = append(done, t)
+		}
+	}
 	var all []model.Ticket
-	all = append(all, c.data.Tickets...)
-	all = preplan.TicketOrder(all)
+	for _, o := range slices.Concat(ordered, leftover, preplan.TicketOrder(done)) {
+		if t := c.data.TicketByKey(o.Key); t != nil {
+			all = append(all, *t)
+		}
+	}
 	for _, t := range all {
 		pt := c.planTicket(t)
 		switch {

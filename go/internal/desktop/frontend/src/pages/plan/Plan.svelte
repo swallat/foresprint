@@ -120,15 +120,40 @@
   }
 
   let dragKey = '';
+  /** The row a re-sorting drag hovers over, and on which half (the dragged ticket lands before or after it). */
+  let overRow = $state<{ key: string; after: boolean } | null>(null);
+  function dragEnd(): void {
+    dragKey = '';
+    over = false;
+    overRow = null;
+  }
+  function rowOver(e: DragEvent, key: string, here: 'sprint' | 'candidates'): void {
+    if (frozen || !dragKey || dragKey === key || !isNoopMove(d!, dragKey, here)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    over = false;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    overRow = { key, after: e.clientY > r.top + r.height / 2 };
+  }
+  async function rowDrop(e: DragEvent, key: string, here: 'sprint' | 'candidates'): Promise<void> {
+    if (!overRow || overRow.key !== key || !dragKey || !isNoopMove(d!, dragKey, here)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const moving = dragKey;
+    const after = overRow.after;
+    dragEnd();
+    await model.change(async () => void (await api.MoveWorkPackage(app.team, moving, key, after)));
+  }
   function dragStart(e: DragEvent, key: string): void {
     dragKey = key;
     e.dataTransfer?.setData('text/plain', key);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   }
   function drop(to: 'sprint' | 'candidates'): void {
-    over = false;
-    if (dragKey) void move(dragKey, to);
-    dragKey = '';
+    const key = dragKey;
+    dragEnd();
+    if (key) void move(key, to);
   }
   function laneKey(e: KeyboardEvent, here: 'sprint' | 'candidates'): void {
     if (!e.altKey) return;
@@ -285,7 +310,7 @@
         class:over={over && overWhich === 'candidates'}
         role="group"
         aria-label={t('Candidates')}
-        ondragover={(e) => { if (!frozen) { e.preventDefault(); over = true; overWhich = 'candidates'; } }}
+        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'candidates'; } }}
         ondragleave={() => (over = false)}
         ondrop={(e) => { e.preventDefault(); drop('candidates'); }}
         onkeydown={(e) => laneKey(e, 'candidates')}
@@ -296,7 +321,7 @@
         </div>
         <div class="lane-body body" role="list">
           {#each candidates as x (x.key)}
-            <TicketRow ticket={x} {d} drag={!frozen} moveLabel={t('Take into the sprint')} moveIcon="arrow_forward" onmove={frozen ? undefined : () => move(x.key, 'sprint')} ondragstart={(e) => dragStart(e, x.key)} />
+            {@render laneRow(x, 'candidates')}
           {:else}
             <div class="small muted pad">{t('No candidates left.')}</div>
           {/each}
@@ -309,7 +334,7 @@
         class:over={over && overWhich === 'sprint'}
         role="group"
         aria-label={t('Sprint {sprint}', { sprint: d.sprint })}
-        ondragover={(e) => { if (!frozen) { e.preventDefault(); over = true; overWhich = 'sprint'; } }}
+        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'sprint'; } }}
         ondragleave={() => (over = false)}
         ondrop={(e) => { e.preventDefault(); drop('sprint'); }}
         onkeydown={(e) => laneKey(e, 'sprint')}
@@ -330,7 +355,7 @@
         </div>
         <div class="lane-body body" role="list">
           {#each lane as x (x.key)}
-            <TicketRow ticket={x} {d} drag={!frozen} moveLabel={t('Take out of the sprint')} moveIcon="arrow_back" onmove={frozen ? undefined : () => move(x.key, 'candidates')} ondragstart={(e) => dragStart(e, x.key)} />
+            {@render laneRow(x, 'sprint')}
           {:else}
             <div class="small muted pad">{t('Still empty. Drag {items} here.', { items: itemWord(d) })}</div>
           {/each}
@@ -412,7 +437,34 @@
   <div class="banner info"><Icon name="info" /><div class="grow">{t('Choose a team and a sprint first.')}</div></div>
 {/if}
 
+{#snippet laneRow(x: PlanTicket, here: 'sprint' | 'candidates')}
+  {#if d}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="slot"
+      class:before={overRow?.key === x.key && !overRow.after}
+      class:after={overRow?.key === x.key && overRow.after}
+      ondragover={(e) => rowOver(e, x.key, here)}
+      ondragleave={() => { if (overRow?.key === x.key) overRow = null; }}
+      ondrop={(e) => rowDrop(e, x.key, here)}
+    >
+      <TicketRow
+        ticket={x}
+        {d}
+        drag={!frozen}
+        moveLabel={here === 'sprint' ? t('Take out of the sprint') : t('Take into the sprint')}
+        moveIcon={here === 'sprint' ? 'arrow_back' : 'arrow_forward'}
+        onmove={frozen ? undefined : () => move(x.key, here === 'sprint' ? 'candidates' : 'sprint')}
+        ondragstart={(e) => dragStart(e, x.key)}
+        ondragend={dragEnd}
+      />
+    </div>
+  {/if}
+{/snippet}
+
 <style>
+  .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
+  .slot.after { box-shadow: 0 2px 0 0 var(--primary); }
   .gapb {
     margin-bottom: 16px;
   }
