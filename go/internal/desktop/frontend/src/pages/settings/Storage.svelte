@@ -3,7 +3,7 @@
   import { app, loadTeams, refreshStatus, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { link } from '../../lib/router.svelte';
+  import { go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { Branch, LineEndings, Problem, ServerCheck, StorageSettings } from '../../lib/types.data';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -247,7 +247,7 @@
           </button>
         </div>
       </div>
-      {#if app.prefs?.recentDataDirs && app.prefs.recentDataDirs.length > 1}
+      {#if app.prefs?.recentDataDirs && app.prefs.recentDataDirs.length > 0}
         <h3 class="small muted">{t('Recently used folders')}</h3>
         <ul class="plain">
           {#each app.prefs.recentDataDirs as dir (dir)}
@@ -409,6 +409,10 @@
 
     <section class="card" aria-labelledby="s-setup">
       <h2 id="s-setup">{t('Setup check')}</h2>
+      <div class="row">
+        <button class="btn" type="button" onclick={() => go('/setup')}><Icon name="restart_alt" />{t('Run first-start setup again')}</button>
+        <span class="muted small">{t('Walks through storage, sign-in, team and ticket source again. Your data stays.')}</span>
+      </div>
       <ul class="plain">
         {#each st.setup as item (item.key)}
           <li class="row">
