@@ -483,7 +483,7 @@
       <section class="td-sec">
         <h3>{t('Links')} <span class="muted small">{tracker.links.length}</span></h3>
         <ul class="td-list">
-          {#each tracker.links as l (l.type + l.text + l.key)}
+          {#each tracker.links as l, i (i)}
             <li class="row nowrap">
               <span class="muted">{l.text}</span>
               <button class="link data" type="button" onclick={() => (allTickets(view).some((x) => x.key === l.key) ? (app.ticket = l.key) : l.url && openExternal(l.url))}>{l.key}</button>

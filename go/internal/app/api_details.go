@@ -44,6 +44,9 @@ func (a *API) TicketTracker(team, key string) (*TrackerDetails, error) {
 	}
 	src, err := detailsOpen(tracker)
 	if err != nil {
+		if err.Error() == sources.MissingTokenError().Error() {
+			return out, nil // no token yet: the panel shows what it has, Settings > Tickets explains
+		}
 		return nil, err
 	}
 	if src == nil {

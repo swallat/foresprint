@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -52,6 +53,15 @@ func TestTicketTrackerDetails(t *testing.T) {
 	// A ticket the team does not know is not read from the tracker.
 	if d, _ = api.TicketTracker(team, "NOPE-1"); d.Available {
 		t.Fatal("unknown ticket must not reach the tracker")
+	}
+	// No token is "not available", any other failure is an error.
+	detailsOpen = func(model.TrackerSettings) (detailsTracker, error) { return nil, sources.MissingTokenError() }
+	if d, err = api.TicketTracker(team, "T-1"); err != nil || d.Available {
+		t.Fatalf("no token: %+v %v", d, err)
+	}
+	detailsOpen = func(model.TrackerSettings) (detailsTracker, error) { return nil, errors.New("down") }
+	if _, err = api.TicketTracker(team, "T-1"); err == nil {
+		t.Fatal("a failing tracker must be an error")
 	}
 	// A Jira answer without lists still gives empty lists.
 	detailsOpen = func(model.TrackerSettings) (detailsTracker, error) { return fakeDetails{&sources.Details{}}, nil }
