@@ -8,7 +8,11 @@ type ReviewTicket struct {
 	Key      string  `json:"key"`
 	Title    string  `json:"title"`
 	Estimate float64 `json:"estimate"`
-	Done     bool    `json:"done"`
+	// Status is the tracker status; Added marks a ticket pulled into the sprint after the freeze:
+	// done, it counts as done in addition, not done, it does not count as not done.
+	Status string `json:"status"`
+	Added  bool   `json:"added"`
+	Done   bool   `json:"done"`
 	// Rest is what is left of a ticket that is not done; Target says where it continues:
 	// "" = the next sprint, a sprint id, "backlog".
 	Rest   float64 `json:"rest"`
@@ -39,8 +43,10 @@ type SprintReview struct {
 	// Reviewed is true once the Review was closed (the velocity is recorded).
 	Reviewed bool `json:"reviewed"`
 	// Reopenable is true for the latest reviewed sprint.
-	Reopenable bool    `json:"reopenable"`
-	Tickets    bool    `json:"tickets"` // the team commits to tickets
+	Reopenable bool `json:"reopenable"`
+	Tickets    bool `json:"tickets"` // the team commits to tickets
+	// Frozen is true when the planning froze a ticket list; without one the commitment stays as recorded.
+	Frozen     bool    `json:"frozen"`
 	Commitment float64 `json:"commitment"`
 	// CommitmentSet is false for a sprint without a recorded commitment: the page asks for it.
 	CommitmentSet  bool    `json:"commitmentSet"`
@@ -64,6 +70,9 @@ type SprintReview struct {
 	// Production is the done amount with production access for a team without products.
 	Production float64 `json:"production"`
 	Tag        string  `json:"tag"`
+	// Prefill is the label of the what-if assumption the ticket table is prefilled from; empty =
+	// from the tracker status only.
+	Prefill string `json:"prefill"`
 }
 
 // ReviewInput is what Close takes from the page.

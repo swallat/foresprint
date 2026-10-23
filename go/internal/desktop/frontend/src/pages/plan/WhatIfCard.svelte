@@ -8,6 +8,7 @@
   import { app, openTicket, selectSprint, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import ExpectSeg from '../../lib/plan/ExpectSeg.svelte';
   import { assumptions, fmt, itemWord, parseAmount, touched, type PlanModel } from '../../lib/plan/model.svelte';
   import type { Assumption, CarryInput, PlanSprint, RunningHint, RunningTicket, WhatIf } from '../../lib/types.plan';
 
@@ -229,10 +230,7 @@
       {#if x.done}
         <span class="chip ok"><Icon name="check" size={14} />{t('done')}</span>
       {:else}
-        <div class="seg" role="group" aria-label={t('Expectation for {key}', { key: x.key })}>
-          <button type="button" class="seg-b" class:on={!c} aria-pressed={!c} onclick={() => setCarry(x, false)}><Icon name="check" size={14} />{t('will finish')}</button>
-          <button type="button" class="seg-b warn" class:on={!!c} aria-pressed={!!c} onclick={() => setCarry(x, true)}><Icon name="redo" size={14} />{t('carry-over')}</button>
-        </div>
+        <ExpectSeg ticket={x.key} carry={!!c} onchange={(on) => setCarry(x, on)} />
       {/if}
     </td>
     <td class="num">
@@ -288,35 +286,6 @@
     max-width: 260px;
     padding-top: 0;
     padding-bottom: 0;
-  }
-  .seg {
-    display: inline-flex;
-    border: 1px solid var(--border-control);
-    border-radius: var(--r-ctl);
-    overflow: hidden;
-  }
-  .seg-b {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 0;
-    background: var(--surface);
-    color: var(--text-muted);
-    padding: 3px 10px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .seg-b + .seg-b {
-    border-left: 1px solid var(--border-control);
-  }
-  .seg-b.on {
-    background: var(--ok-weak);
-    color: var(--ok);
-    font-weight: 600;
-  }
-  .seg-b.on.warn {
-    background: var(--warn-weak);
-    color: var(--warn);
   }
   .res {
     display: grid;
