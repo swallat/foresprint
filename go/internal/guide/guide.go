@@ -1,5 +1,5 @@
 // Package guide holds the help texts (input fields, workflow, terms, commands) as data. The file
-// data/guide.json is written from the Python version by scripts/gen_guide.py; the texts are
+// data/guide.json was written from the Python version 0.8; the texts are
 // English source texts that the program translates with the text catalogs.
 package guide
 

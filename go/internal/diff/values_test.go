@@ -34,7 +34,7 @@ type refs struct {
 	} `json:"keyed"`
 }
 
-// jsonable is the structure the reference writes for a value (see jsonable in scripts/golden.py).
+// jsonable is the structure the reference writes for a value.
 func jsonable(v any) any {
 	switch x := v.(type) {
 	case nil, bool, string, float64:

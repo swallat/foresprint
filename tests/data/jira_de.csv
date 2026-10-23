@@ -1,4 +1,0 @@
-﻿Zusammenfassung;Vorgangsschlüssel;Vorgangstyp;Status;Lösung;Stichwörter;Komponente/n;Sprint;Benutzerdefiniertes Feld (Rang);Benutzerdefiniertes Feld (Story Points);Benutzerdefiniertes Feld (Remaining);Übergeordnet;Eingehende Vorgangsverknüpfung (Blocks)
-Zahlung umstellen;DEF-1;Story;In Arbeit;;payment;Kasse;Sprint 22;0|i0001:;2,5;1,5;DEF-100;DEF-2
-"Schema; Teil 1";DEF-2;Task;Bereit;;;Datenbank;;0|i0002:;8;;;
-Erledigt;DEF-3;Bug;Fertig;Fertig;;;Sprint 20;0|i0003:;1;0;;

@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// This file reads a workbook back into the structure of scripts/golden_ext/excel.py (cells with
+// This file reads a workbook back into the structure of the excel reference (cells with
 // value, formula, cached result and look, column widths, row heights, frozen panes, conditional
 // formats, charts, defined names, custom properties). It parses the package directly so that it
 // does not share code with the writer.

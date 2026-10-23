@@ -12,7 +12,7 @@ import (
 	"github.com/swallat/foresprint/internal/golden"
 )
 
-// decode builds the Go value of a case from the typed JSON of scripts/golden_ext/yamlemit.py.
+// decode builds the Go value of a case from the typed JSON of the yamlemit reference.
 func decode(t *testing.T, raw json.RawMessage) any {
 	t.Helper()
 	var m map[string]json.RawMessage

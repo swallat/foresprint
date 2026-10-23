@@ -12,7 +12,7 @@ import (
 )
 
 // isolate gives the test an empty Git configuration and a working folder that is no repository,
-// the setting in which the references were written (see scripts/golden_ext/git.py).
+// the setting in which the references were written.
 func isolate(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

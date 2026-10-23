@@ -1,5 +1,5 @@
 // Package i18n translates the texts of the program. Source texts are English; a language is a
-// JSON file in data/ (see scripts/gen_locales.py) that maps them to the translation. A text
+// JSON file in data/ that maps them to the translation. A text
 // without entry is shown in English. File contents (YAML) are English whatever the language.
 //
 // Another language is another file in data/: nothing in the program changes. A language may
