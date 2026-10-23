@@ -20,6 +20,7 @@ import (
 	"github.com/swallat/foresprint/internal/products"
 	"github.com/swallat/foresprint/internal/protocol"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/ticketimport"
 )
 
 // The methods for the Pre-plan and Plan pages (work package P3). PlanSprint reads, the others
@@ -532,10 +533,10 @@ func (c *planCtx) fillProjects(v *PlanSprint) {
 	}
 	for _, p := range c.data.Projects {
 		pp := byProject[p.ID]
-		if pp == nil || (pp.Amount == 0 && pp.Tickets == 0 && !pp.Manual) {
+		if pp == nil || (pp.Amount == 0 && pp.Tickets == 0 && !pp.Manual && pp.Booked == nil) {
 			continue
 		}
-		if rate > 0 {
+		if rate > 0 && (pp.Amount > 0 || pp.Tickets > 0 || pp.Manual) {
 			need := pp.Amount / rate
 			pp.NeedPD = &need
 		}
@@ -610,6 +611,35 @@ func (a *API) RunningTickets(team, sprintID string) ([]RunningTicket, error) {
 	return out, nil
 }
 
+// RunningHint says why the what-if table can be empty: open tickets that sit in a tracker
+// sprint Foresprint does not know. Names are the first few of these sprint names.
+func (a *API) RunningHint(team, sprintID string) (*RunningHint, error) {
+	c, err := a.planContext(team, sprintID)
+	if err != nil {
+		return nil, err
+	}
+	h := &RunningHint{Names: []string{}}
+	if !c.tickets() {
+		return h, nil
+	}
+	seen := map[string]bool{}
+	for _, t := range c.data.Tickets {
+		name := strings.TrimSpace(str(t.SprintName))
+		if t.Done || t.InSprint != nil || name == "" {
+			continue
+		}
+		if ticketimport.ResolveSprint(name, c.data.Team.Tracker, ticketimport.ForecastSprints{Forecast: c.fc}) != nil {
+			continue
+		}
+		h.Unresolved++
+		if !seen[name] && len(h.Names) < 3 {
+			seen[name] = true
+			h.Names = append(h.Names, name)
+		}
+	}
+	return h, nil
+}
+
 // WhatIf calculates an assumption about the running sprint: the expected velocity, the
 // Forecast PLAN of the sprint with it and what is left to plan. It returns nil if no sprint
 // runs directly before this one.
@@ -638,10 +668,12 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 			listed[k] = true
 		}
 		frozen := cur.Sprint.CommittedTickets != nil
+		found := 0
 		for _, t := range c.data.Tickets {
 			if str(t.InSprint) != cur.Sprint.ID && !listed[t.Key] {
 				continue
 			}
+			found++
 			est := 0.0
 			if t.Estimate != nil {
 				est = *t.Estimate
@@ -661,10 +693,13 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 				c.sortRest(w, it)
 			}
 		}
-		if as.Commitment != nil {
+		// With tickets the sum of the tickets is the commitment; a typed number only counts when
+		// no ticket of the sprint is known.
+		typed := as.Commitment != nil && found == 0
+		if typed {
 			w.Commitment = *as.Commitment
 		}
-		w.Touched = len(as.Carry) > 0 || as.Commitment != nil
+		w.Touched = len(as.Carry) > 0 || typed
 	} else {
 		w.Commitment = floatOr(as.Commitment, floatOr(cur.Sprint.Commitment, 0))
 		w.NotDone, w.Extra = floatOr(as.NotDone, 0), floatOr(as.Extra, 0)

@@ -165,6 +165,12 @@ export interface PlanSprint {
   notes: string[];
 }
 
+/** Why the what-if table can be empty: open tickets in tracker sprints Foresprint does not know. */
+export interface RunningHint {
+  unresolved: number;
+  names: string[];
+}
+
 export interface FreezeInput {
   tickets: string[];
   commitment: number | null;
@@ -176,6 +182,7 @@ export interface FreezeInput {
 export interface PlanApi {
   PlanSprint(team: string, sprint: string, assume: Assumption | null): Promise<PlanSprint>;
   RunningTickets(team: string, sprint: string): Promise<RunningTicket[]>;
+  RunningHint(team: string, sprint: string): Promise<RunningHint>;
   WhatIf(team: string, sprint: string, assume: Assumption): Promise<WhatIf | null>;
   SaveAssumption(team: string, sprint: string, assume: Assumption): Promise<void>;
   SetPreplanned(team: string, sprint: string, product: string, value: number | null): Promise<void>;

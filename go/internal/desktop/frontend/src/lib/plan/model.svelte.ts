@@ -47,9 +47,12 @@ export const assumptions = {
   },
 };
 
-/** True if the assumption changes anything (a carried ticket, or an entered number). */
-export function touched(a: Assumption | undefined): boolean {
-  return !!a && (a.carry.length > 0 || (a.notDone ?? 0) > 0 || (a.extra ?? 0) > 0 || a.commitment != null);
+/** True if the assumption changes anything: a carried ticket, or, for a team without tickets,
+ * an entered number. With tickets their sum is the commitment, a typed one is ignored. */
+export function touched(a: Assumption | undefined, withTickets = false): boolean {
+  if (!a) return false;
+  if (withTickets) return a.carry.length > 0;
+  return a.carry.length > 0 || (a.notDone ?? 0) > 0 || (a.extra ?? 0) > 0 || a.commitment != null;
 }
 
 /** The lists of an answer as arrays, even when the core sent null for an empty one. */
@@ -90,7 +93,7 @@ export class PlanModel {
       if (my !== this.seq) return;
       ensureDrafts(first.assumptions);
       const a = assumptions.active;
-      const use = touched(a) ? $state.snapshot(a) : null;
+      const use = touched(a, first.source !== 'none') ? $state.snapshot(a) : null;
       const data = use ? withLists(await api.PlanSprint(team, sprint, use as Assumption)) : first;
       this.running = use && first.running ? await api.WhatIf(team, sprint, use as Assumption) : null;
       if (my !== this.seq) return;

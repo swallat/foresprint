@@ -9,7 +9,7 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { assumptions, fmt, itemWord, parseAmount, touched, type PlanModel } from '../../lib/plan/model.svelte';
-  import type { Assumption, CarryInput, PlanSprint, RunningTicket, WhatIf } from '../../lib/types.plan';
+  import type { Assumption, CarryInput, PlanSprint, RunningHint, RunningTicket, WhatIf } from '../../lib/types.plan';
 
   interface Props {
     d: PlanSprint;
@@ -18,12 +18,17 @@
   let { d, model }: Props = $props();
 
   let tickets = $state<RunningTicket[]>([]);
+  let hint = $state<RunningHint | null>(null);
   $effect(() => {
     const team = app.team;
     const sprint = d.sprint;
     if (d.running && d.source !== 'none') {
       api.RunningTickets(team, sprint).then((l) => (tickets = l), () => (tickets = []));
-    } else tickets = [];
+      api.RunningHint(team, sprint).then((h) => (hint = h), () => (hint = null));
+    } else {
+      tickets = [];
+      hint = null;
+    }
   });
 
   const a = $derived(assumptions.active);
@@ -115,6 +120,15 @@
         </div>
       {:else if tickets.length === 0}
         <p class="muted small">{t('No {items} in the running sprint.', { items: itemWord(d) })}</p>
+        {#if hint && hint.unresolved > 0}
+          <div class="banner warn">
+            <Icon name="warning" />
+            <div class="grow">
+              {t('{n} open {items} sit in tracker sprints that Foresprint cannot match to a sprint: {names}. Fetch again after naming them under Tickets and tracker, sprint names.', { n: hint.unresolved, items: itemWord(d, true), names: hint.names.join(', ') })}
+              <a href="#/settings/tickets">{t('Open Tickets and tracker')}</a>
+            </div>
+          </div>
+        {/if}
       {:else}
         <div class="tw">
           <table class="t">
@@ -149,10 +163,10 @@
           <div>
             <div class="small muted">{t('Forecast PLAN {sprint}', { sprint: d.sprint })}</div>
             <div class="data big">
-              {#if touched(a)}{fmt(r.planOriginal)} <Icon name="arrow_forward" size={16} /> <span class="fc">{fmt(r.plan)}</span>{:else}<span class="fc">{fmt(r.plan)}</span>{/if}
+              {#if touched(a, !noT)}{fmt(r.planOriginal)} <Icon name="arrow_forward" size={16} /> <span class="fc">{fmt(r.plan)}</span>{:else}<span class="fc">{fmt(r.plan)}</span>{/if}
             </div>
             <div class="small muted">
-              {#if touched(a)}{delta > 0 ? '+' : ''}{fmt(delta)} · {/if}{#if r.low != null}{t('range')} {fmt(r.low)} – {fmt(r.high)}{:else}{t('unchanged')}{/if}
+              {#if touched(a, !noT)}{delta > 0 ? '+' : ''}{fmt(delta)} · {/if}{#if r.low != null}{t('range')} {fmt(r.low)} – {fmt(r.high)}{:else}{t('unchanged')}{/if}
             </div>
           </div>
           <div>
@@ -171,10 +185,10 @@
       {/if}
 
       <div class="row foot">
-        <button class="btn" type="button" id="wi-save" disabled={!touched(a)} onclick={save}>
+        <button class="btn" type="button" id="wi-save" disabled={!touched(a, !noT)} onclick={save}>
           <Icon name="bookmark_add" />{t('Save as prognosis')}
         </button>
-        <button class="btn ghost" type="button" disabled={!touched(a)} onclick={() => { assumptions.reset(); void model.reload(); }}>
+        <button class="btn ghost" type="button" disabled={!touched(a, !noT)} onclick={() => { assumptions.reset(); void model.reload(); }}>
           {t('Clear assumption {label}', { label: a.label })}
         </button>
       </div>
