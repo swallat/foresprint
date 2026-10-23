@@ -5,9 +5,11 @@
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
+  import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import { link } from '../../lib/router.svelte';
   import { fmtNum, parseNum } from '../../lib/team/format';
-  import type { Owner, Product, ProductsView, Step } from '../../lib/types.team';
+  import type { Owner, PeopleView, Product, ProductsView, Step } from '../../lib/types.team';
   import Banner from '../../lib/ui/Banner.svelte';
   import SidePanel from '../../lib/ui/SidePanel.svelte';
 
@@ -15,7 +17,7 @@
     /** Called after a PO step changed the people (a PO joined or left the team). */
     onchange: () => void | Promise<void>;
     /** Changes whenever the people were reloaded: the card then reads the POs again. */
-    people?: unknown;
+    people?: PeopleView;
   }
   let { onchange, people }: Props = $props();
 
@@ -142,9 +144,10 @@
           <thead>
             <tr>
               <th>{t('Name')}</th>
-              <th class="num">{t('Products')}</th>
+              <th>{t('Products')}</th>
               <th>{t('Works in the team')}</th>
               <th class="num">{t('FTE')}</th>
+              <th class="num">{t('Days per sprint')}</th>
               <th><span class="sr-only">{t('Actions')}</span></th>
             </tr>
           </thead>
@@ -152,7 +155,13 @@
             {#each owners as o (o.id)}
               <tr>
                 <td><input class="input name" value={o.name} aria-label={t('Name of PO {name}', { name: o.name })} onchange={(e) => rename(o, e.currentTarget)} /></td>
-                <td class="num data">{o.products}</td>
+                <td>
+                  {#each productsOf(o).filter((p) => !p.ended) as p (p.id)}
+                    <a class="chip small" href={link('/team/products')}>{p.name}</a>{' '}
+                  {:else}
+                    <span class="muted small">{t('No product yet')} <a href={link('/team/products')}>{t('Products')}</a></span>
+                  {/each}
+                </td>
                 <td>
                   <input type="checkbox" checked={o.inTeam} aria-label={t('{name} works in the team', { name: o.name })} onchange={(e) => setInTeam(o, e.currentTarget, e.currentTarget.checked)} />
                 </td>
@@ -161,6 +170,18 @@
                     <input class="input data share" inputmode="decimal" value={fmtNum(o.fte)} aria-label={t('Share of {name}', { name: o.name })} onchange={(e) => setShare(o, e.currentTarget)} />
                   {:else}
                     <span class="muted">–</span>
+                  {/if}
+                </td>
+                <td class="num">
+                  {#if o.inTeam}
+                    <span class="row nowrap end data">
+                      {fmtNum(o.fte * (people?.sprintDays || 10))}
+                      <Calc label={t('Days per sprint of {name}', { name: o.name })} topic="capacity">
+                        {fmtNum(o.fte)} {t('FTE')} × {people?.sprintDays || 10} {t('working days')} = {fmtNum(o.fte * (people?.sprintDays || 10))}
+                      </Calc>
+                    </span>
+                  {:else}
+                    <span class="muted data">0</span>
                   {/if}
                 </td>
                 <td>
@@ -224,6 +245,12 @@
   }
   .name {
     width: 200px;
+  }
+  .nowrap {
+    flex-wrap: nowrap;
+  }
+  .end {
+    justify-content: flex-end;
   }
   .share {
     width: 64px;

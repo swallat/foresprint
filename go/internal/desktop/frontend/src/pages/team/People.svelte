@@ -3,6 +3,8 @@
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
+  import AbsenceGrid from '../../lib/absences/AbsenceGrid.svelte';
+  import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -23,6 +25,8 @@
   let panel = $state<{ kind: 'times' | 'absences'; id: string } | null>(null);
   let focusId = $state('');
   let failed = $state('');
+  // The absence grid reads the people and the periods itself; it starts over when they changed.
+  let gridKey = $state(0);
 
   const today = $derived(view?.today ?? '');
   const current = $derived((view?.people ?? []).filter((p) => isCurrent(p, today)));
@@ -36,6 +40,7 @@
       const [v, a] = await Promise.all([api.People(app.team), api.AbsencePeriods(app.team)]);
       view = v;
       absences = a;
+      gridKey++;
       failed = '';
     } catch (e) {
       failed = e instanceof Error ? e.message : String(e);
@@ -79,6 +84,7 @@
     const before = view?.people ?? [];
     try {
       view = await api.SavePeople(app.team, next);
+      gridKey++;
       if (message) {
         const undo = inverse(before, view.people, personFields);
         toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void undoChange(undo) } : undefined);
@@ -222,7 +228,14 @@
                 {/if}
               </button>
             </td>
-            <td class="num data">{fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}</td>
+            <td class="num data">
+              <span class="row nowrap end">
+                {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
+                <Calc label={t('Days per sprint of {name}', { name: p.name })} topic="capacity">
+                  {fmtNum(cur?.fte ?? 0)} {t('FTE')} × {view.sprintDays || 10} {t('working days')} = {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
+                </Calc>
+              </span>
+            </td>
             <td class="actions">
               <button class="btn icon ghost" type="button" title={t('Times and leaving')} aria-label={t('Times and leaving {name}', { name: p.name })} onclick={() => (panel = { kind: 'times', id: p.id })}>
                 <Icon name="date_range" />
@@ -271,6 +284,20 @@
 
 <OwnersCard people={view} onchange={poStep} />
 
+{#if view}
+  <section class="grid-sec" aria-labelledby="abs-h">
+    <div class="row head">
+      <h2 id="abs-h">{t('Absences over several sprints')}</h2>
+      <span class="chip warn small"><Icon name="lock_open" size={14} />{t('announced')}</span>
+      <span class="chip ok small"><Icon name="lock" size={14} />{t('confirmed')}</span>
+    </div>
+    <p class="small muted">{t('The number is person days, never a reason. Typing an entry is enough; it is confirmed when the sprint is prepared (Prepare).')}</p>
+    {#key gridKey}
+      <AbsenceGrid team={app.team} count={4} />
+    {/key}
+  </section>
+{/if}
+
 {#if view && panel}
   {@const person = view.people.find((p) => p.id === panel!.id)}
   {#if person && panel.kind === 'times'}
@@ -303,6 +330,7 @@
       onchange={async (list) => {
         try {
           absences = await api.SaveAbsencePeriods(app.team, list);
+          gridKey++;
         } catch (e) {
           toast(e instanceof Error ? e.message : String(e), 'bad');
           absences = await api.AbsencePeriods(app.team);
@@ -336,6 +364,23 @@
   }
   .note {
     margin: 8px 0 0;
+  }
+  .nowrap {
+    flex-wrap: nowrap;
+  }
+  .end {
+    justify-content: flex-end;
+  }
+  .grid-sec {
+    margin-top: 24px;
+  }
+  .head {
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .head h2 {
+    flex: 1;
+    margin: 0;
   }
   .sr-only {
     position: absolute;
