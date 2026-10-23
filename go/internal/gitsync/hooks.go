@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 	"github.com/swallat/foresprint/internal/yamlx"
 )
@@ -52,14 +53,17 @@ func SetCodec(c Codec) {
 	hookMu.Unlock()
 }
 
-// FolderValidator is the data check of the core (validate.CheckFolder) on a team folder: the
-// validator in use unless SetValidator sets another one (tests do). Only errors count.
+// FolderValidator is the data check of the core (validate.CheckFolder) on every team folder of the
+// data folder dir: the validator in use unless SetValidator sets another one (tests do). Only
+// errors count.
 func FolderValidator(_ context.Context, dir string, today time.Time) ([]Issue, error) {
 	dir = filepath.Clean(dir)
 	var out []Issue
-	for _, i := range validate.CheckFolder(filepath.Dir(dir), filepath.Base(dir), today) {
-		if i.Level == validate.Error {
-			out = append(out, Issue{Where: i.Where, Message: i.Message})
+	for _, team := range storage.NewRepository(dir).Teams() {
+		for _, i := range validate.CheckFolder(dir, team, today) {
+			if i.Level == validate.Error {
+				out = append(out, Issue{Key: team, Where: i.Where, Message: i.Message})
+			}
 		}
 	}
 	return out, nil
