@@ -119,6 +119,8 @@
     <p>{t('For each coming sprint a normalized velocity of the last sprints is drawn at random, scaled to the capacity of that sprint and multiplied by the share of the forecast that is available. The sprint in which the sum reaches the remaining work is counted over 10,000 runs.')}</p>
     <ul>
       <li>{t('“Half of the runs” and “85 % of the runs” are the sprints in which the work is done that often. They are likelihoods, not commitments.')}</li>
+      <li>{t('“Earliest” is the first sprint in which the work is done in at least 15 % of the runs.')}</li>
+      <li>{t('For a project the remaining work is the sum of its open tickets (or the scope entered by hand) and the share is the usual roadmap share. The light compares the project end with the sprints: on track if the work is done by then in 85 % of the runs, tight if in half of them, otherwise at risk.')}</li>
       <li>{t('The draw uses a fixed seed, so the same data gives the same answer.')}</li>
       <li>{t('Beyond the people list, the average capacity of the last sprints is used, because a capacity trend is unstable over many sprints.')}</li>
     </ul>

@@ -3,7 +3,12 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 func TestForecastOfTheDemoTeam(t *testing.T) {
@@ -54,15 +59,15 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 		t.Error("negative days must be refused")
 	}
 
-	w1, err := api.ForecastWhenDone(key, 60, 50)
+	w1, err := api.ForecastWhenDone(key, 60, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	w2, _ := api.ForecastWhenDone(key, 60, 50)
+	w2, _ := api.ForecastWhenDone(key, 60, 50, "")
 	if w1.P50 != w2.P50 || w1.P85 != w2.P85 {
 		t.Error("the simulation is not repeatable")
 	}
-	if _, err := api.ForecastWhenDone(key, 60, 150); err == nil {
+	if _, err := api.ForecastWhenDone(key, 60, 150, ""); err == nil {
 		t.Error("a share above 100 must be refused")
 	}
 }
@@ -128,5 +133,58 @@ func TestForecastPlannableAfterCarryOver(t *testing.T) {
 	b := base.Upcoming[0]
 	if b.Plannable != nil && *r.Plannable >= *b.Plannable {
 		t.Errorf("plannable %v did not drop below %v", *r.Plannable, *b.Plannable)
+	}
+}
+
+func TestWhenDoneForAProject(t *testing.T) {
+	dir := t.TempDir()
+	copyTree(t, demoDir(t), dir)
+	api := newAPI(t, dir)
+	key := api.Teams()[0].Key
+	teamFile := filepath.Join(dir, key, "team.yaml")
+	raw, err := os.ReadFile(teamFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = []byte(strings.Replace(string(raw), "features:\n", "features:\n  projects: true\n", 1))
+	if err := os.WriteFile(teamFile, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scope := 40.0
+	soon := time.Date(2027, 12, 31, 0, 0, 0, 0, time.UTC)
+	early := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	projects := []model.Project{
+		{ID: "late", Name: "Late", End: &soon, OpenScope: &scope},
+		{ID: "past", Name: "Past", End: &early, OpenScope: &scope},
+		{ID: "open-ended", Name: "Open ended"},
+		{ID: "done", Name: "Done", State: model.ProjectFinished},
+	}
+	if _, err := storage.NewRepository(dir).SaveProjects(key, projects); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := api.ForecastWhenProjects(key)
+	if err != nil || len(list) != 3 {
+		t.Fatalf("projects %v %v", list, err)
+	}
+	if list[0].OpenScope == nil || *list[0].OpenScope != 40 || list[0].End != "2027-12-31" {
+		t.Errorf("first project %+v", list[0])
+	}
+
+	v, err := api.ForecastWhenDone(key, 40, 50, "late")
+	if err != nil || !v.Available {
+		t.Fatalf("answer %+v %v", v, err)
+	}
+	if v.ProjectName != "Late" || v.ProjectEnd != "2027-12-31" || len(v.Starts) != len(v.Sprints) || len(v.Ends) != len(v.Sprints) {
+		t.Errorf("project answer %+v", v)
+	}
+	if v.Earliest == "" || v.Light == "none" {
+		t.Errorf("earliest %q light %q", v.Earliest, v.Light)
+	}
+	if past, _ := api.ForecastWhenDone(key, 40, 50, "past"); past.Light != "bad" {
+		t.Errorf("an end in the past must be red, got %q", past.Light)
+	}
+	if free, _ := api.ForecastWhenDone(key, 40, 50, "open-ended"); free.Light != "none" || free.ProjectEnd != "" {
+		t.Errorf("no project end: %+v", free)
 	}
 }
