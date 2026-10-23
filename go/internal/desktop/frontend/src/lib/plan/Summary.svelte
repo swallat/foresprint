@@ -121,7 +121,7 @@
       <h2>{t('Production')}</h2>
       <div class="row">
         <span class="big">{prod.demandSet ? fmt(prod.demand, 1) : '–'} {t('of')} {fmt(prod.available, 1)} {t('PD')}</span>
-        <Calc label={t('Production')} topic="production">
+        <Calc label={t('Production')} topic="units">
           <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
           <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
         </Calc>

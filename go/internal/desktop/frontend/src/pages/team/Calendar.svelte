@@ -298,7 +298,7 @@
             </td>
             <td class="num data">
               {r.workdays}
-              <Calc label={t('Working days of {id}', { id: r.id })} topic="workdays">
+              <Calc label={t('Working days of {id}', { id: r.id })} topic="capacity">
                 {t('Working days = calendar days minus weekends. Holidays are deducted in the capacity, not here.')}
               </Calc>
             </td>
