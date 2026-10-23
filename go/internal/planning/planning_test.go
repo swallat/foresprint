@@ -1,6 +1,7 @@
 package planning_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/swallat/foresprint/internal/planning"
@@ -64,5 +65,31 @@ func TestRate(t *testing.T) {
 	}
 	if _, ok := planning.Rate(0).ToPD(1); ok {
 		t.Error("rate 0 is invalid")
+	}
+}
+
+// Hand calculation: capacity 63 PD, 18 PD of it with production access (share 2/7), plannable 9
+// PD, no cap: 9 × 18/63 = 2.571 PD available. The planned tickets need 3.5 PD: 136 %, over.
+func TestAvailableOfScalesThePlannableAmount(t *testing.T) {
+	avail, share, ok := planning.AvailableOf(9, 18, 63, 100)
+	if !ok || math.Abs(share-18.0/63) > 1e-12 || math.Abs(avail-9*18.0/63) > 1e-12 {
+		t.Fatalf("available %v, share %v, ok %v", avail, share, ok)
+	}
+	if math.Abs(avail-2.5714285714) > 1e-9 {
+		t.Errorf("available %v, want 2.57", avail)
+	}
+	cmp := planning.Compare(3.5, avail)
+	if cmp.Status != planning.StatusOver || cmp.Load == nil || math.Abs(*cmp.Load-3.5/avail) > 1e-12 || *cmp.Load < 1.36 || *cmp.Load > 1.37 {
+		t.Errorf("compare %+v", cmp)
+	}
+	// the cap lowers it, a share above 1 counts as 1, no capacity cannot be scaled
+	if half, _, _ := planning.AvailableOf(9, 18, 63, 50); math.Abs(half-avail/2) > 1e-12 {
+		t.Errorf("cap 50: %v", half)
+	}
+	if all, share, _ := planning.AvailableOf(9, 80, 63, 100); share != 1 || all != 9 {
+		t.Errorf("share above 1: %v %v", all, share)
+	}
+	if _, _, ok := planning.AvailableOf(9, 18, 0, 100); ok {
+		t.Error("scaled without a capacity")
 	}
 }
