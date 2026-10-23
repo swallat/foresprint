@@ -54,6 +54,7 @@ export const pages: PageDef[] = [
   { path: '/settings/team', title: 'Team settings', load: () => import('../pages/settings/TeamSettings.svelte') },
   { path: '/settings/tickets', title: 'Tickets and tracker', load: () => import('../pages/settings/Tickets.svelte') },
   { path: '/settings/storage', title: 'Storage', load: () => import('../pages/settings/Storage.svelte') },
+  { path: '/settings/updates', title: 'Updates', load: () => import('../pages/settings/Updates.svelte') },
   { path: '/settings/personal', title: 'Personal settings', load: () => import('../pages/settings/Personal.svelte') },
 
   { path: '/help/calculations', title: 'Calculations', load: () => import('../pages/help/Calculations.svelte') },
@@ -125,6 +126,7 @@ export const nav: NavGroup[] = [
       { path: '/settings/tickets', icon: 'sync', label: 'Tickets and tracker' },
       { path: '/settings/storage', icon: 'cloud', label: 'Storage' },
       { path: '/settings/personal', icon: 'person', label: 'Personal' },
+      { path: '/settings/updates', icon: 'cloud_download', label: 'Updates' },
     ],
   },
   {

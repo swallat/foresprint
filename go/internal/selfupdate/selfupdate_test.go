@@ -28,6 +28,9 @@ func TestNewer(t *testing.T) {
 		{"1.0.0-beta.1", "1.0.0", true},
 		{"1.0.0", "1.0.0-beta.2", false},
 		{"v1.0.0", "v1.1.0", true},
+		{"1.0.0-beta.9", "1.0.0-beta.10", true},
+		{"1.0.0-beta.10", "1.0.0-beta.9", false},
+		{"1.0.0-beta.2", "1.0.0-rc.1", true},
 		{"dev", "9.9.9", false},
 		{"1.0.0", "weird", false},
 	} {
@@ -199,6 +202,26 @@ func TestAssetNameOfTheCLIVariant(t *testing.T) {
 		u := &Updater{GOOS: c.goos, GOARCH: "amd64", CLI: c.cli}
 		if got := u.AssetName("2.0.0"); got != c.want {
 			t.Errorf("%s cli=%v: %s, want %s", c.goos, c.cli, got, c.want)
+		}
+	}
+}
+
+func TestLatestForPreReleaseLooksAtAllReleases(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/swallat/foresprint/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v0.8.0","html_url":"u","assets":[]}`))
+	})
+	mux.HandleFunc("/repos/swallat/foresprint/releases", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"tag_name":"v1.0.0-beta.4","html_url":"u4","assets":[]},
+			{"tag_name":"v1.0.0-beta.9","draft":true,"assets":[]},
+			{"tag_name":"v1.0.0-beta.3","html_url":"u3","assets":[]},{"tag_name":"v0.8.0","assets":[]}]`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	for current, want := range map[string]string{"1.0.0-beta.3": "1.0.0-beta.4", "0.8.0": "0.8.0", "": "0.8.0"} {
+		rel, err := (&Updater{APIBase: srv.URL, Current: current}).Latest(context.Background())
+		if err != nil || rel.Version != want {
+			t.Errorf("current %q: got %+v, %v; want %s", current, rel, err, want)
 		}
 	}
 }

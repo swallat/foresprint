@@ -54,7 +54,7 @@ let mock: Api | undefined;
 let demo = false;
 
 /** Methods about this person and this machine: they never go to the demo team. */
-const personal = new Set(['Info', 'Prefs', 'SetLanguage', 'SetTheme', 'Texts', 'PickFolder', 'PickDataDir']);
+const personal = new Set(['Info', 'Prefs', 'UpdateStatus', 'CheckUpdate', 'InstallUpdate', 'SetUpdateMode', 'SetLanguage', 'SetTheme', 'Texts', 'PickFolder', 'PickDataDir']);
 
 /**
  * Calls the wizard makes while the demo is on: they are only pretended (the mock answers), so
