@@ -48,7 +48,7 @@
   {#if app.sprints.length > 0}
     <label class="sel" title={t('Choose sprint')}>
       <Icon name="date_range" />
-      <select class="data" aria-label={t('Sprint')} value={app.sprint} onchange={(e) => selectSprint(e.currentTarget.value)}>
+      <select class="data" aria-label={t('Sprint')} title={app.sprint} value={app.sprint} onchange={(e) => selectSprint(e.currentTarget.value)}>
         {#each app.sprints as s (s.id)}
           <option value={s.id}>{s.id}</option>
         {/each}
@@ -100,7 +100,8 @@
     padding: 0 20px 0 2px;
     height: 24px;
     cursor: pointer;
-    max-width: 18ch;
+    max-width: 40ch;
+    text-overflow: ellipsis;
     color: inherit;
   }
   .sel select option {

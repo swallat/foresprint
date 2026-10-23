@@ -283,7 +283,9 @@
   }
   .to {
     height: 28px;
-    width: 120px;
+    width: auto;
+    min-width: 120px;
+    max-width: 260px;
     padding-top: 0;
     padding-bottom: 0;
   }
