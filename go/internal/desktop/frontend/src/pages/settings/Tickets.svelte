@@ -273,7 +273,7 @@
       <div class="trio" class:one={!jira}>
       <div class="card">
         <h2>{t('Kind of tracker')}</h2>
-        <div class="field">
+        <div class="field kind">
           <label for="t-kind">{t('Tracker')}</label>
           <select id="t-kind" class="input" bind:value={draft.kind}>
             <option value="jira">Jira</option>
@@ -428,13 +428,11 @@
                 <option value="next">{t('in the next sprint')}</option>
               </select>
             </div>
-            {#if jira}
-              <div class="field" style="max-width:240px" class:off={!draft.writeSprint}>
-                <label for="t-board">{t('Board number')}</label>
-                <input id="t-board" class="input data" type="number" min="1" step="1" disabled={!draft.writeSprint} bind:value={draft.boardId} />
-                <p class="small muted">{t('The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.')}</p>
-              </div>
-            {/if}
+            <div class="field" style="max-width:240px" class:off={!draft.writeSprint}>
+              <label for="t-board">{t('Board number')}</label>
+              <input id="t-board" class="input data" type="number" min="1" step="1" disabled={!draft.writeSprint} bind:value={draft.boardId} />
+              <p class="small muted">{t('The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.')}</p>
+            </div>
             <Switch bind:checked={draft.writeLabels} title={t('Propose the label planned_for_<sprint> when freezing')}>
               {t('The only other write action: after freezing the plan, as before.')}
             </Switch>
@@ -501,13 +499,16 @@
     gap: 16px;
     align-items: stretch;
   }
-  @media (max-width: 1100px) {
+  @media (max-width: 1280px) {
     .trio {
       grid-template-columns: minmax(0, 1fr);
     }
   }
   .trio.one {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .kind {
+    max-width: 280px;
   }
   .pro-forma {
     width: 240px;
