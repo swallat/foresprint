@@ -362,7 +362,7 @@ web UI of GitHub or GitLab. The report ends with a section "Supplementary: range
 
 ## Minutes
 
-Every save of a planning meeting (PO pre-planning, planning, review) in the web UI writes a
+Every save of a planning meeting (PO pre-planning, planning, review) in the window writes a
 Markdown file `protokolle/<sprint>-<meeting>-<date>-<time>.md` in the team's folder; older versions
 stay readable. Every save of a planning step (absences, scheduling, commitment) writes a new,
 complete planning minute with the sections "Absences", "Scheduling" and "Commitment"; each
