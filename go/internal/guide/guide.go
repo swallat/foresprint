@@ -36,7 +36,6 @@ type document struct {
 	Fields          []Field     `json:"fields"`
 	Workflow        []Step      `json:"workflow"`
 	Terms           []Pair      `json:"terms"`
-	GitHelp         []Pair      `json:"git_help"`
 	CapacitySources []Pair      `json:"capacity_sources"`
 	Commands        []Pair      `json:"commands"`
 	Topics          [][2]string `json:"topics"`
@@ -71,9 +70,6 @@ func Workflow() []Step { return doc.Workflow }
 
 // Terms are the terms with their explanation.
 func Terms() []Pair { return doc.Terms }
-
-// GitHelp are the Git terms with their explanation.
-func GitHelp() []Pair { return doc.GitHelp }
 
 // CapacitySources explain where the capacity of a sprint comes from.
 func CapacitySources() []Pair { return doc.CapacitySources }
