@@ -41,6 +41,9 @@ describe('flows', () => {
       for (const s of f.steps) if (s.target) expect(s.target, f.id).toMatch(/^\[data-tour="[a-z0-9-]+"\]$/);
     }
   });
+  it('walk through the data flows D1 to D6', () => {
+    for (const id of ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']) expect(flowById(id), id).toBeDefined();
+  });
   it('are found by id', () => {
     expect(flowById('F4')?.id).toBe('F4');
     expect(flowById('nope')).toBeUndefined();

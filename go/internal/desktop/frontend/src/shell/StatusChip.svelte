@@ -47,7 +47,7 @@
   const l = $derived(look(app.status.storage, app.status.incoming));
 </script>
 
-<a class="chip-status {l.tone}" href={link(l.to)} title={t('Storage status')}>
+<a class="chip-status {l.tone}" href={link(l.to)} title={t('Storage status')} data-tour="topbar-status">
   <Icon name={l.icon} />
   <span class="hide-narrow">{app.status.detail || l.text}</span>
 </a>

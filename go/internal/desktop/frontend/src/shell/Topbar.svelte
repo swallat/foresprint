@@ -69,7 +69,7 @@
   {/if}
   <TrackerChip />
   <StatusChip />
-  <button class="btn hide-narrow" type="button" title={t('Fetch changes of others')} aria-label={t('Refresh')} disabled={!!app.busy} onclick={refresh}>
+  <button class="btn hide-narrow" type="button" data-tour="topbar-refresh" title={t('Fetch changes of others')} aria-label={t('Refresh')} disabled={!!app.busy} onclick={refresh}>
     <Icon name="download" /><span class="hide-mid">{t('Refresh')}</span>
   </button>
   {#if readyTags.length > 0}
@@ -77,7 +77,7 @@
       <Icon name="sell" /><span class="data">{readyTags.join(', ')}</span>
     </a>
   {/if}
-  <button class="btn primary" type="button" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
+  <button class="btn primary" type="button" data-tour="topbar-save" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
     <Icon name="save" /><span class="hide-narrow">{t('Save')}</span>
   </button>
   <a class="btn icon ghost" href={link('/help/guided')} aria-label={t('Help')} title={t('Help: guided flows and calculations')}>
