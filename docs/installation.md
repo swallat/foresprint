@@ -122,7 +122,13 @@ happens then is a setting:
 | `FORESPRINT_AUTOUPDATE=on\|notice\|off` | like `--auto`, takes precedence (for managed machines) |
 
 The new file is checked against `checksums.txt` before it replaces the program; a failed check
-leaves the old program in place. Pre-releases (`1.0.0-beta.1`) are not offered.
+leaves the old program in place. A release version is only offered newer release versions; a
+pre-release (`1.0.0-beta.3`) is also offered newer pre-releases.
+
+In the window, **Settings > Updates** shows the installed and the newest version, checks on
+request and installs on a click (the program file is replaced; the next start uses it). The
+window looks once a day at the start, and a notice appears in the top bar when a version is
+available; it never installs by itself. The mode above applies here too (`off` = no check).
 
 ## Uninstalling
 

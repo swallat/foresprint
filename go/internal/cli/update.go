@@ -31,7 +31,7 @@ func updateCommand(env *Env) *cobra.Command {
 			if cmd.Flags().Changed("auto") {
 				return setAutoUpdate(env, auto)
 			}
-			return runUpdate(env, &selfupdate.Updater{CLI: GUI == nil}, check, force)
+			return runUpdate(env, &selfupdate.Updater{CLI: GUI == nil, Current: Version}, check, force)
 		},
 	}
 	f := cmd.Flags()
@@ -105,7 +105,7 @@ func AutoUpdate(env *Env, args []string) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	u := &selfupdate.Updater{CLI: GUI == nil}
+	u := &selfupdate.Updater{CLI: GUI == nil, Current: Version}
 	rel, err := u.Latest(ctx)
 	state.LastCheck = time.Now().UTC()
 	if err != nil {

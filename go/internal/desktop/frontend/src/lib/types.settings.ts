@@ -142,7 +142,24 @@ export interface PackageImportPreview {
   cancelled: boolean;
 }
 
+export interface UpdateInfo {
+  version: string;
+  latest: string;
+  available: boolean;
+  url: string;
+  mode: 'on' | 'notice' | 'off';
+  modeEnv: boolean;
+  lastCheck: string;
+  dev: boolean;
+  restart: boolean;
+}
+
 export interface SettingsApi {
+  UpdateStatus(): Promise<UpdateInfo>;
+  /** auto: only when the daily check is due (start of the window); false = asked for by a click. */
+  CheckUpdate(auto: boolean): Promise<UpdateInfo>;
+  InstallUpdate(): Promise<UpdateInfo>;
+  SetUpdateMode(mode: string): Promise<void>;
   TeamFeatures(team: string): Promise<Features>;
   TeamSettings(team: string): Promise<TeamSettings>;
   SaveTeamSettings(team: string, settings: TeamSettings): Promise<void>;

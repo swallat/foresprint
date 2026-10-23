@@ -6,6 +6,7 @@ import { demo } from './shared';
 import type {
   PackageImportPreview,
   Connection,
+  UpdateInfo,
   Features,
   QueryCheck,
   SettingsApi,
@@ -87,7 +88,34 @@ function checkRule(text: string, extra: string[]): RuleCheck {
   return { ok: true, message: '', text: t.replace(/\s+/g, ' ') };
 }
 
+let updateMode: UpdateInfo['mode'] = 'notice';
+let updateInstalled = false;
+const updateInfo = (): UpdateInfo => ({
+  version: '1.0.0-beta.3',
+  latest: '1.0.0-beta.4',
+  available: !updateInstalled,
+  url: 'https://github.com/swallat/foresprint/releases/tag/v1.0.0-beta.4',
+  mode: updateMode,
+  modeEnv: false,
+  lastCheck: new Date().toISOString(),
+  dev: false,
+  restart: updateInstalled,
+});
+
 const settingsMock: SettingsApi = {
+  async UpdateStatus() {
+    return updateInfo();
+  },
+  async CheckUpdate() {
+    return updateInfo();
+  },
+  async InstallUpdate() {
+    updateInstalled = true;
+    return updateInfo();
+  },
+  async SetUpdateMode(mode) {
+    updateMode = mode as UpdateInfo['mode'];
+  },
   async TeamSettings() {
     return clone(team);
   },

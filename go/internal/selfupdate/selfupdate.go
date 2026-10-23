@@ -59,6 +59,9 @@ type Updater struct {
 	// CLI is set for the variant without the window; it only exists for Linux, elsewhere it is
 	// ignored.
 	CLI bool
+	// Current is the running version. A pre-release (1.0.0-beta.3) also looks at the pre-releases
+	// of GitHub, which "latest" leaves out; otherwise a beta never sees the next beta.
+	Current string
 }
 
 func (u *Updater) repo() string {
@@ -114,35 +117,69 @@ func (u *Updater) get(ctx context.Context, url string, limit int64) ([]byte, err
 	return data, nil
 }
 
-// Latest asks GitHub for the newest published release (no draft, no pre-release).
+// rawRelease is a release as the GitHub API lists it.
+type rawRelease struct {
+	Tag    string `json:"tag_name"`
+	URL    string `json:"html_url"`
+	Draft  bool   `json:"draft"`
+	Assets []struct {
+		Name string `json:"name"`
+		URL  string `json:"browser_download_url"`
+	} `json:"assets"`
+}
+
+func (r rawRelease) release() (*Release, error) {
+	rel := &Release{Version: strings.TrimPrefix(r.Tag, "v"), URL: r.URL, Assets: map[string]string{}}
+	if _, ok := parseVersion(rel.Version); !ok {
+		return nil, fmt.Errorf("release tag %q is not a version", r.Tag)
+	}
+	for _, a := range r.Assets {
+		rel.Assets[a.Name] = a.URL
+	}
+	return rel, nil
+}
+
+// Latest asks GitHub for the newest published release (no draft; a pre-release only when the
+// running version is one).
 func (u *Updater) Latest(ctx context.Context) (*Release, error) {
 	base := u.APIBase
 	if base == "" {
 		base = "https://api.github.com"
 	}
-	data, err := u.get(ctx, fmt.Sprintf("%s/repos/%s/releases/latest", strings.TrimRight(base, "/"), u.repo()), 8<<20)
+	base = fmt.Sprintf("%s/repos/%s/releases", strings.TrimRight(base, "/"), u.repo())
+	if c, ok := parseVersion(u.Current); ok && c.pre != "" {
+		data, err := u.get(ctx, base+"?per_page=30", 8<<20)
+		if err != nil {
+			return nil, err
+		}
+		var raws []rawRelease
+		if err := json.Unmarshal(data, &raws); err != nil {
+			return nil, fmt.Errorf("release information: %w", err)
+		}
+		var best *Release
+		for _, r := range raws {
+			rel, err := r.release()
+			if r.Draft || err != nil {
+				continue
+			}
+			if best == nil || Newer(best.Version, rel.Version) {
+				best = rel
+			}
+		}
+		if best == nil {
+			return nil, fmt.Errorf("no release found")
+		}
+		return best, nil
+	}
+	data, err := u.get(ctx, base+"/latest", 8<<20)
 	if err != nil {
 		return nil, err
 	}
-	var raw struct {
-		Tag    string `json:"tag_name"`
-		URL    string `json:"html_url"`
-		Assets []struct {
-			Name string `json:"name"`
-			URL  string `json:"browser_download_url"`
-		} `json:"assets"`
-	}
+	var raw rawRelease
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("release information: %w", err)
 	}
-	rel := &Release{Version: strings.TrimPrefix(raw.Tag, "v"), URL: raw.URL, Assets: map[string]string{}}
-	if _, ok := parseVersion(rel.Version); !ok {
-		return nil, fmt.Errorf("release tag %q is not a version", raw.Tag)
-	}
-	for _, a := range raw.Assets {
-		rel.Assets[a.Name] = a.URL
-	}
-	return rel, nil
+	return raw.release()
 }
 
 // AssetName is the archive of a version for this system.
@@ -324,7 +361,31 @@ func Newer(current, latest string) bool {
 	case c.pre != "" && l.pre == "":
 		return true
 	}
-	return l.pre > c.pre
+	return comparePre(l.pre, c.pre) > 0
+}
+
+// comparePre orders pre-release labels part by part (split at dots, numbers as numbers), so
+// that beta.10 is above beta.9.
+func comparePre(a, b string) int {
+	x, y := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(x) && i < len(y); i++ {
+		m, errM := strconv.Atoi(x[i])
+		n, errN := strconv.Atoi(y[i])
+		switch {
+		case errM == nil && errN == nil && m != n:
+			return m - n
+		case errM == nil && errN == nil:
+		case errM == nil: // a number is below a word
+			return -1
+		case errN == nil:
+			return 1
+		default:
+			if c := strings.Compare(x[i], y[i]); c != 0 {
+				return c
+			}
+		}
+	}
+	return len(x) - len(y)
 }
 
 type version struct {

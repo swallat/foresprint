@@ -8,7 +8,7 @@ import { go } from './router.svelte';
 import { applyDensity, applyFeatures, applyTheme } from './theme';
 import type { PendingTag } from './types.data';
 import type { Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
-import type { Features } from './types.settings';
+import type { Features, UpdateInfo } from './types.settings';
 
 export interface Toast {
   id: number;
@@ -52,6 +52,8 @@ export const app = $state({
   calcMode: 'icon' as CalcMode,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
+  /** A newer program version is known (daily check at the start); undefined if none. */
+  update: undefined as UpdateInfo | undefined,
 });
 
 export type CalcMode = 'off' | 'icon' | 'inline';
@@ -244,6 +246,16 @@ export async function leaveDemo(): Promise<void> {
 
 let timer: ReturnType<typeof setInterval> | undefined;
 
+/** Looks for a new version (once a day, never in the demo or a development build); silent on failure. */
+export async function checkUpdate(): Promise<void> {
+  try {
+    const info = await api.CheckUpdate(true);
+    app.update = info.available ? info : undefined;
+  } catch {
+    app.update = undefined;
+  }
+}
+
 export async function start(): Promise<void> {
   // A reload of the window must not leave the core in demo mode while the window looks real.
   if (inProgram && (await api.InDemo())) await api.LeaveDemo();
@@ -253,5 +265,6 @@ export async function start(): Promise<void> {
   await loadTeams();
   await refreshStatus();
   app.ready = true;
+  void checkUpdate();
   timer ??= setInterval(refreshStatus, 15000);
 }

@@ -62,6 +62,11 @@
   <button class="search" type="button" title={t('Search and jump (Ctrl+K)')} onclick={() => (app.paletteOpen = true)}>
     <Icon name="search" /><span class="txt hide-mid">{t('Search')}</span><span class="small data hide-narrow hide-mid">Ctrl+K</span>
   </button>
+  {#if app.update}
+    <a class="chip-status ok" href={link('/settings/updates')} title={t('Version {latest} is available (installed: {version}).', { latest: app.update.latest, version: app.update.version })}>
+      <Icon name="cloud_download" /><span class="hide-narrow hide-mid">{t('Update {latest}', { latest: app.update.latest })}</span>
+    </a>
+  {/if}
   <TrackerChip />
   <StatusChip />
   <button class="btn hide-narrow" type="button" title={t('Fetch changes of others')} aria-label={t('Refresh')} disabled={!!app.busy} onclick={refresh}>
