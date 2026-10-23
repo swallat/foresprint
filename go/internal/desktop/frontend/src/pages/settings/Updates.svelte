@@ -49,11 +49,12 @@
       .catch((e) => toast(String(e), 'bad'));
   });
 
+  // "notice" (command line) behaves like "on": nothing is ever installed by itself.
   const modes = $derived([
-    { code: 'on', label: t('Look for new versions'), hint: t('Once a day at the start. Installing is always your click.') },
-    { code: 'notice', label: t('Only tell me'), hint: t('Same check; the command line only reports and never installs.') },
+    { code: 'on', label: t('Look for new versions'), hint: t('Once a day at the start. The program only tells you; installing is always your click.') },
     { code: 'off', label: t('Never look'), hint: t('The program does not contact GitHub by itself.') },
   ]);
+  const current = $derived(info?.mode === 'off' ? 'off' : 'on');
 
   function when(iso: string): string {
     return iso ? new Date(iso).toLocaleString(app.prefs?.language ?? 'en') : t('never');
@@ -111,8 +112,8 @@
           <button
             type="button"
             class="chip filter"
-            class:on={info.mode === m.code}
-            aria-pressed={info.mode === m.code}
+            class:on={current === m.code}
+            aria-pressed={current === m.code}
             disabled={info.modeEnv}
             title={m.hint}
             data-setting="update-mode"
@@ -122,7 +123,7 @@
           </button>
         {/each}
       </div>
-      <p class="small muted">{modes.find((m) => m.code === info?.mode)?.hint}</p>
+      <p class="small muted">{modes.find((m) => m.code === current)?.hint}</p>
       {#if info.modeEnv}
         <p class="small muted">{t('The environment variable FORESPRINT_AUTOUPDATE takes precedence.')}</p>
       {/if}
