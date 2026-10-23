@@ -123,8 +123,12 @@ jobs:
           # is stopped after five minutes (a dpkg left half-configured is repaired first).
           mkdir -p ~/apt-archives/partial
           for attempt in 1 2; do
-            timeout 300 sh -c 'sudo apt-get update && sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" libgtk-3-dev libwebkit2gtk-4.1-dev xvfb' && break
+            timeout -k 10 300 sh -c 'sudo apt-get update && sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" libgtk-3-dev libwebkit2gtk-4.1-dev xvfb' && break
             test "$attempt" = 2 && exit 1
+            # The stopped try can leave apt running and holding the dpkg lock: end it first.
+            sudo pkill -KILL -x apt-get || true
+            sudo pkill -KILL -x dpkg || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
             sudo dpkg --configure -a || true
           done
           sudo chown -R "$USER" ~/apt-archives
@@ -277,8 +281,12 @@ jobs:
           # The system packages come from the Ubuntu mirror, which sometimes hangs: stop after
           # five minutes and try once more.
           for attempt in 1 2; do
-            timeout 300 uv run playwright install-deps chromium && break
+            timeout -k 10 300 uv run playwright install-deps chromium && break
             test "$attempt" = 2 && exit 1
+            # The stopped try can leave apt running and holding the dpkg lock: end it first.
+            sudo pkill -KILL -x apt-get || true
+            sudo pkill -KILL -x dpkg || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
             sudo dpkg --configure -a || true
           done
           uv run playwright install chromium
