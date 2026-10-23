@@ -243,6 +243,11 @@ func TicketsFromDict(d *yamlx.Map, where string) (TicketsFile, error) {
 			return out, err
 		}
 		tk.Done = truthy(getOr(raw, "done", false))
+		if n, err := intOf(get(raw, "subtask_count"), at, "subtask_count", 0); err != nil {
+			return out, err
+		} else if n > 0 {
+			tk.SubtaskCount = n
+		}
 		if err = packageFieldsFrom(raw, &tk, at); err != nil {
 			return out, err
 		}
@@ -300,6 +305,9 @@ func TicketsToDict(f TicketsFile) *yamlx.Map {
 		}
 		if tk.Done {
 			put(entry, "done", true)
+		}
+		if tk.SubtaskCount > 0 {
+			put(entry, "subtask_count", int64(tk.SubtaskCount))
 		}
 		packageFieldsTo(entry, tk)
 		entries = append(entries, entry)

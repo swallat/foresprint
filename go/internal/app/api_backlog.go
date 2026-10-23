@@ -186,6 +186,7 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 		Earmark:        "",
 		TrackerSprint:  backlogStr(tk.InSprint),
 		Epic:           backlogStr(tk.Epic),
+		SubtaskCount:   tk.SubtaskCount,
 		Labels:         append([]string{}, tk.Labels...),
 		DependsOn:      append([]string{}, tk.DependsOn...),
 	}

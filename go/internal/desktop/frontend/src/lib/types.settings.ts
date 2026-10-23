@@ -100,6 +100,7 @@ export interface TrackerSettings {
   hitsFields: TrackerFields;
   removedTarget: '' | 'backlog' | 'pro_forma' | 'next';
   writeLabels: boolean;
+  includeSubtasks: boolean;
   packagePrefix: string;
   token: TokenState;
   tickets: number;

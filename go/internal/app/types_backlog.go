@@ -49,8 +49,10 @@ type BacklogTicket struct {
 	// Production is the share (0-100) that needs production access; nil = not set.
 	Production *float64 `json:"production"`
 	Epic       string   `json:"epic"`
-	Labels     []string `json:"labels"`
-	DependsOn  []string `json:"dependsOn"`
+	// SubtaskCount is the number of the ticket's tracker sub-tasks that were left out.
+	SubtaskCount int      `json:"subtaskCount"`
+	Labels       []string `json:"labels"`
+	DependsOn    []string `json:"dependsOn"`
 	// Blocked: a ticket this one depends on is earmarked for a later sprint or not at all.
 	Blocked bool `json:"blocked"`
 }

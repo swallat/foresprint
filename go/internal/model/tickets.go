@@ -175,6 +175,9 @@ type TrackerSettings struct {
 	// BoardID is the Jira board whose sprints the write-back looks up, so that a future sprint
 	// without any ticket is found too; nil = only sprints met in fetched tickets are known.
 	BoardID *int
+	// IncludeSubtasks keeps sub-tasks of the tracker as tickets; by default they are left out of
+	// the import (the parent counts how many there are) so that nothing is counted twice.
+	IncludeSubtasks bool
 	// FetchInterval is the time in minutes between two automatic fetches from the tracker, one
 	// of FetchIntervals; 0 = only on the button.
 	FetchInterval int
@@ -274,7 +277,9 @@ type Ticket struct {
 	// Product is the product of a work package.
 	Product  *string
 	Subtasks []Subtask
-	Comments []Comment
+	// SubtaskCount is the number of tracker sub-tasks left out of the import for this ticket.
+	SubtaskCount int
+	Comments     []Comment
 	// ProjectCandidates are the projects whose rules match via the same source (contradiction;
 	// Project stays empty).
 	ProjectCandidates []string
@@ -432,7 +437,7 @@ func (t TrackerSettings) IsDefault() bool {
 		samePtr(t.RefinedLabel, d.RefinedLabel) && t.RefinedAlsoIf == nil &&
 		sameStrings(t.ProjectMatchOrder, d.ProjectMatchOrder) && sameStrings(t.PriorityOrder, d.PriorityOrder) &&
 		t.DependencyGap == d.DependencyGap && t.BudgetBasis == d.BudgetBasis && t.RoughFactor == d.RoughFactor &&
-		t.WriteLabels == d.WriteLabels && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
+		t.WriteLabels == d.WriteLabels && t.IncludeSubtasks == d.IncludeSubtasks && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
 		t.RuleFields.Len() == 0 && samePtr(t.ProductionLabel, d.ProductionLabel) &&
 		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == "" && t.BoardID == nil && t.FetchInterval == 0
 }

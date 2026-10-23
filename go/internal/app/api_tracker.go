@@ -60,7 +60,7 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		ProdRules:       []ProdRule{},
 		RuleFields:      []RuleField{},
 		FixedSources:    append([]string{}, model.RuleSources...),
-		WriteSprint:     t.WriteSprint, RemovedTarget: t.RemovedTarget, WriteLabels: t.WriteLabels,
+		WriteSprint:     t.WriteSprint, RemovedTarget: t.RemovedTarget, WriteLabels: t.WriteLabels, IncludeSubtasks: t.IncludeSubtasks,
 		PackagePrefix: t.PackagePrefix,
 		BoardID:       trackerBoardOf(t.BoardID),
 		Token:         tokenState(t.BaseURL),
@@ -348,6 +348,7 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 		}
 	}
 	tr.WriteSprint, tr.RemovedTarget, tr.WriteLabels = in.WriteSprint, in.RemovedTarget, in.WriteLabels
+	tr.IncludeSubtasks = in.IncludeSubtasks
 	t.Tracker = tr
 	return nil
 }

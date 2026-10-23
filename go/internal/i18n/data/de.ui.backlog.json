@@ -26,6 +26,9 @@
   "{count} tickets are back in the backlog. Adjust them in the tracker.": "{count} Tickets sind zurück im Backlog. Im Tracker anpassen.",
   "{count} tickets moved to {name}. Adjust them in the tracker.": "{count} Tickets nach {name} verschoben. Im Tracker anpassen.",
   "{key} is back in the backlog. Adjust it in the tracker.": "{key} ist zurück im Backlog. Im Tracker anpassen.",
-  "{key} moved to {name}. Adjust it in the tracker.": "{key} nach {name} verschoben. Im Tracker anpassen."
+  "{key} moved to {name}. Adjust it in the tracker.": "{key} nach {name} verschoben. Im Tracker anpassen.",
+  "1 sub-task": "1 Unteraufgabe",
+  "{n} sub-tasks": "{n} Unteraufgaben",
+  "Sub-tasks left out of the import": "Unteraufgaben, die beim Import weggelassen wurden"
  }
 }

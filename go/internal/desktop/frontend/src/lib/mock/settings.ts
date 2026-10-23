@@ -71,6 +71,7 @@ let tracker: TrackerSettings = {
   fieldHits: { estimate: 41, remaining: 12, epic: 30, status: 46, project: 28 },
   removedTarget: 'backlog',
   writeLabels: false,
+  includeSubtasks: false,
   packagePrefix: '',
   token: { host: 'jira.example.org', stored: true, fromEnv: false, keychainUsable: true, variable: 'FORESPRINT_JIRA_TOKEN' },
   tickets: 46,
