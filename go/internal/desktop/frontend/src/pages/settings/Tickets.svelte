@@ -177,8 +177,22 @@
       }
       await api.SetTrackerToken(app.team, draft?.baseUrl ?? '', token);
       token = '';
-      toast(rows.length ? t('Token stored in the keychain. The other changes still need “Apply changes”.') : t('Token stored in the keychain.'), 'ok');
       await refreshToken();
+      // The token is useless without the choice of the tracker and its address: apply exactly these
+      // three; every other open change of the page stays in the draft.
+      if (draft && applied && (draft.source !== applied.source || draft.kind !== applied.kind || draft.baseUrl !== applied.baseUrl)) {
+        const keep = $state.snapshot(draft);
+        await api.SaveTrackerSettings(app.team, { ...structuredClone($state.snapshot(applied)), source: keep.source, kind: keep.kind, baseUrl: keep.baseUrl });
+        const fresh = await api.TrackerSettings(app.team);
+        fresh.boardId = fresh.boardId || null;
+        applied = fresh;
+        draft = { ...keep, token: fresh.token, hitsFields: fresh.hitsFields, sprints: fresh.sprints, fieldHits: fresh.fieldHits, tickets: fresh.tickets, imported: fresh.imported };
+        await loadFeatures();
+        await refreshStatus();
+        toast(rows.length ? t('Token, tracker and address applied. The other changes still need “Apply changes”.') : t('Token, tracker and address applied.'), 'ok');
+      } else {
+        toast(rows.length ? t('Token stored in the keychain. The other changes still need “Apply changes”.') : t('Token stored in the keychain.'), 'ok');
+      }
     });
 
   const removeToken = () =>
