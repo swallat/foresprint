@@ -121,6 +121,9 @@
   const appliedMap = (name: string) => applied?.sprints.find((x) => x.name === name)?.mapsTo ?? '';
   const needsMapping = (s: { open: number; name: string }) => s.open > 0 && !appliedMap(s.name) && !isProForma(s.name);
   const openRows = $derived(sprintRows.filter(needsMapping));
+  function restAsBacklog(): void {
+    for (const s of openRows) s.mapsTo = 'backlog';
+  }
   const otherRows = $derived(sprintRows.filter((s) => !needsMapping(s)));
 
   function removedLabel(v: unknown): string {
@@ -370,6 +373,10 @@
           {#if openRows.length}
             <p class="small"><span class="chip warn"><Icon name="warning" size={14} />{t('{n} sprints still need a match: they hold open tickets that are in no sprint of Foresprint.', { n: openRows.length })}</span></p>
             <div class="tw top">{@render sprintTable(openRows)}</div>
+            <div class="row top">
+              <button class="btn" type="button" onclick={restAsBacklog}><Icon name="inbox" />{t('Treat all of these as backlog')}</button>
+              <span class="small muted">{t('For old sprints that no longer matter. Their open tickets then count as backlog.')}</span>
+            </div>
           {:else if sprintRows.length}
             <p class="small muted">{t('Every sprint with open tickets is matched.')}</p>
           {/if}
