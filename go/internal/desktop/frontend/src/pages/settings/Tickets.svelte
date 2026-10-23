@@ -177,7 +177,7 @@
       }
       await api.SetTrackerToken(app.team, draft?.baseUrl ?? '', token);
       token = '';
-      toast(t('Token stored in the keychain.'), 'ok');
+      toast(rows.length ? t('Token stored in the keychain. The other changes still need “Apply changes”.') : t('Token stored in the keychain.'), 'ok');
       await refreshToken();
     });
 

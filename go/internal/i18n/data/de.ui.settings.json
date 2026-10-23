@@ -138,6 +138,9 @@
   "only on the button": "nur auf Knopfdruck",
   "{name} is pro forma": "{name} ist pro forma",
   "Choose from the list": "Aus der Liste wählen",
-  "Other (type the name or id)": "Anderes (Name oder ID eingeben)"
+  "Other (type the name or id)": "Anderes (Name oder ID eingeben)",
+  "1 change is not applied yet.": "1 Änderung ist noch nicht übernommen.",
+  "{count} changes are not applied yet.": "{count} Änderungen sind noch nicht übernommen.",
+  "Token stored in the keychain. The other changes still need “Apply changes”.": "Token im Schlüsselbund gespeichert. Die anderen Änderungen brauchen noch „Änderungen übernehmen“."
  }
 }

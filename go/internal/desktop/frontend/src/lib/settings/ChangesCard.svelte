@@ -40,9 +40,34 @@
   {/if}
 </div>
 
+{#if rows.length}
+  <div class="bar" role="region" aria-label={t('Changes before saving')}>
+    <span>{rows.length === 1 ? t('1 change is not applied yet.') : t('{count} changes are not applied yet.', { count: rows.length })}</span>
+    <button class="btn primary" type="button" disabled={busy} onclick={onapply}>{t('Apply changes')}</button>
+    <button class="btn" type="button" disabled={busy} onclick={onreset}>{t('Discard')}</button>
+  </div>
+{/if}
+
 <style>
   .wrap {
     white-space: normal;
+  }
+  .bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-ctl);
+    box-shadow: 0 -2px 8px rgb(0 0 0 / 12%);
+  }
+  .bar span {
+    flex: 1;
   }
   .actions {
     margin-top: 12px;
