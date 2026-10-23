@@ -155,6 +155,20 @@ export async function selectTeam(key: string): Promise<void> {
   await loadFeatures();
 }
 
+/** Reads the sprints of the selected team again, e.g. after the calendar changed them. A sprint
+ * that was renamed keeps its place in the selection: it is found again by its start date. */
+export async function refreshSprints(): Promise<void> {
+  if (!app.team) return;
+  const before = app.sprints.find((s) => s.id === app.sprint);
+  const list = await api.Sprints(app.team).catch(() => undefined);
+  if (!list) return;
+  app.sprints = list;
+  if (list.some((s) => s.id === app.sprint)) return;
+  const moved = before ? list.find((s) => s.start === before.start) : undefined;
+  const pick = moved ?? list.find((s) => s.state === 'future') ?? list.find((s) => s.state === 'current') ?? list.at(-1);
+  if (pick) selectSprint(pick.id);
+}
+
 export function selectSprint(id: string): void {
   app.sprint = id;
   if (!app.demo) store.set(`sprint.${app.team}`, id);
