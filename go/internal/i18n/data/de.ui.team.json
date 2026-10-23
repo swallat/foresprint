@@ -78,6 +78,8 @@
   "{name} no longer works in the team.": "{name} arbeitet nicht mehr im Team.",
   "{name} now works in the team.": "{name} arbeitet jetzt im Team.",
   "{name} removed as PO.": "{name} als PO entfernt.",
-  "{name} works in the team": "{name} arbeitet im Team"
+  "{name} works in the team": "{name} arbeitet im Team",
+  "Show more sprints": "Mehr Sprints zeigen",
+  "So that sprints created in the tracker can be matched.": "Damit sich im Ticket-System angelegte Sprints zuordnen lassen."
  }
 }
