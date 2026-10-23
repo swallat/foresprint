@@ -1,11 +1,11 @@
 <script lang="ts">
   import { api } from '../../lib/api';
-  import { app } from '../../lib/app.svelte';
+  import { app, toast } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import { fmt, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { ForecastView, WhatIfRow } from '../../lib/types.forecast';
+  import type { ForecastAssumption, ForecastView, WhatIfRow } from '../../lib/types.forecast';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { current, link } from '../../lib/router.svelte';
@@ -40,23 +40,27 @@
     };
   });
 
-  // What if: fewer person days and a different focus; nothing is saved.
+  // What if: another sprint choice, fewer person days, a different focus and a guess for the running
+  // sprint; nothing is saved unless it is saved as a prognosis.
+  let wiSprint = $state('');
   let extraDays = $state(0);
   let focus = $state(100);
+  let expected = $state<number | null>(null);
   let whatIf = $state<WhatIfRow[]>([]);
-  const changed = $derived(extraDays !== 0 || focus !== 100);
+  let saving = $state(false);
+  const changed = $derived(extraDays !== 0 || focus !== 100 || expected !== null);
+  const assumption = $derived<ForecastAssumption>({ sprint: wiSprint, extraAbsenceDays: extraDays || 0, focusPercent: focus ?? 100, expectedVelocity: expected, label: '' });
   $effect(() => {
     const team = app.team;
-    const days = extraDays;
-    const f = focus;
-    if (!team || !view || (days === 0 && f === 100)) {
+    const as = assumption;
+    if (!team || !view || !changed) {
       whatIf = [];
       return;
     }
     let stale = false;
     const timer = setTimeout(() => {
       api
-        .ForecastWhatIf(team, days, f)
+        .ForecastWhatIf(team, as)
         .then((rows) => {
           if (!stale) whatIf = rows;
         })
@@ -69,6 +73,25 @@
       clearTimeout(timer);
     };
   });
+  function reset(): void {
+    extraDays = 0;
+    focus = 100;
+    expected = null;
+  }
+  /** Only the sprint the planning uses can be kept as a prognosis. */
+  const canSave = $derived(changed && !!view && view.next !== '' && wiSprint === view.next && whatIf.length === 1);
+  async function save(): Promise<void> {
+    if (!app.team || saving) return;
+    saving = true;
+    try {
+      await api.ForecastSaveWhatIf(app.team, assumption);
+      toast(t('Saved as prognosis for {id}. The planning of that sprint shows it.', { id: wiSprint }), 'ok');
+    } catch (e) {
+      toast(String(e), 'bad');
+    } finally {
+      saving = false;
+    }
+  }
   const whatIfById = $derived(new Map(whatIf.map((r) => [r.id, r])));
 
   const tabs = $derived([
@@ -244,20 +267,39 @@
     <div class="grid cols-2">
       <section class="card stack" aria-labelledby="fc-wif" data-tour="forecast-whatif">
         <h2 id="fc-wif">{t('What if')}</h2>
-        <p class="small muted">{t('Try other assumptions. Nothing is saved; the chart and the table show the result.')}</p>
+        <p class="small muted">{t('Try other assumptions. Nothing is saved unless you keep it as a prognosis; the chart shows the result as a diamond.')}</p>
         <div class="row">
+          <div class="field">
+            <label for="wi-sprint">{t('Sprint')}</label>
+            <select id="wi-sprint" class="input" bind:value={wiSprint}>
+              <option value="">{t('All coming sprints')}</option>
+              {#each view.upcoming.filter((r) => r.plan !== null) as r (r.id)}<option value={r.id}>{r.id}</option>{/each}
+            </select>
+          </div>
           <div class="field">
             <label for="wi-days">{t('Additional days off per sprint (PD)')}</label>
             <input id="wi-days" class="input" type="number" min="0" step="0.5" bind:value={extraDays} />
           </div>
-          <div class="field">
-            <label for="wi-focus">{t('Focus (100 % = as measured)')}</label>
-            <input id="wi-focus" class="input" type="number" min="0" max="200" step="5" bind:value={focus} />
-          </div>
-          <button class="btn" type="button" disabled={!changed} onclick={() => ((extraDays = 0), (focus = 100))}>{t('Reset')}</button>
+          {#if view.running}
+            <div class="field">
+              <label for="wi-exp">{t('Expected velocity of {id}', { id: view.running })}</label>
+              <input id="wi-exp" class="input" type="number" min="0" step="any" placeholder={view.runningCommitment !== null ? fmt(view.runningCommitment, 1) : ''} bind:value={expected} />
+            </div>
+          {/if}
         </div>
+        <div class="field">
+          <label for="wi-focus">{t('Focus (100 % = as measured): {n} %', { n: fmt(focus ?? 100, 0) })}</label>
+          <input id="wi-focus" type="range" min="0" max="150" step="5" bind:value={focus} />
+        </div>
+        <div class="row">
+          <button class="btn" type="button" disabled={!changed} onclick={reset}>{t('Reset')}</button>
+          <button class="btn primary" type="button" disabled={!canSave || saving} onclick={save}>{t('Save as prognosis')}</button>
+        </div>
+        {#if changed && !canSave && view.next}
+          <p class="small muted">{t('Only {id}, the sprint after the running one, can be kept as a prognosis. Choose it above.', { id: view.next })}</p>
+        {/if}
         {#if changed && whatIf.length > 0 && next}
-          <p>
+          <p aria-live="polite">
             {t('Over {n} sprints the forecast changes from {a} to {b} points.', {
               n: whatIf.length,
               a: fmt(sum(whatIf.map((r) => r.base)), view.rounding),

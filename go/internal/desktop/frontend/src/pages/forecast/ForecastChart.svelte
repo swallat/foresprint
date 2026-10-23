@@ -62,7 +62,6 @@
   const showEvery = $derived(all.length > 12 ? 2 : 1);
 
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
-  const triangle = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy + r * 0.8} ${cx - r},${cy + r * 0.8}`;
 </script>
 
 <div class="legend small" aria-hidden="true">
@@ -71,7 +70,7 @@
   <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s fc dash" /><polygon points={diamond(9, 6, 5)} class="o fc" /></svg>{t('Forecast PLAN')}</span>
   <span><svg width="18" height="12"><line x1="9" x2="9" y1="0" y2="12" class="s fc" /><line x1="4" x2="14" y1="1" y2="1" class="s fc" /><line x1="4" x2="14" y1="11" y2="11" class="s fc" /></svg>{t('Range')}</span>
   {#if whatIf.length > 0}
-    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s wif dash" /><polygon points={triangle(9, 6, 5)} class="o wif" /></svg>{t('What if')}</span>
+    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s wif dash" /><polygon points={diamond(9, 6, 5)} class="f wif" /></svg>{t('What if')}</span>
   {/if}
 </div>
 
@@ -117,7 +116,7 @@
   {/each}
 
   {#each wiPts as p (p.w.id)}
-    <polygon points={triangle(p.x, p.y, 7)} class="o wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
+    <polygon points={diamond(p.x, p.y, 7)} class="f wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
     <text x={p.x + 11} y={p.y + 4} class="value wiftext">{label(p.w.forecast)}</text>
   {/each}
 </svg>
@@ -173,6 +172,7 @@
   .wif { stroke: var(--c-wif); }
   .f.vel { fill: var(--c-vel); stroke: var(--surface); stroke-width: 1.5; }
   .f.nv { fill: var(--c-nv); stroke: var(--surface); stroke-width: 1.5; }
+  .f.wif { fill: var(--c-wif); stroke: var(--surface); stroke-width: 1.5; }
   .o { fill: var(--surface); stroke-width: 2.5; }
   .value.wiftext { fill: var(--c-wif); }
 </style>
