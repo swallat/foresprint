@@ -174,6 +174,12 @@ different team and stays as it is (golden tests).
 | `personal-calc` | `/settings/personal` | |
 | `plan-present` | `/sprint/plan` | |
 | `settings-writeback` | `/settings/tickets` | |
+| `settings-storage` | `/settings/storage` | |
+| `topbar-status` | top bar | |
+| `topbar-refresh` | top bar | |
+| `topbar-save` | top bar | |
+| `data-conflicts` | `/data` (tab Conflicts) | |
+| `data-history` | `/data` (tab History and tags) | |
 | `plan-jira` | `/sprint/plan` | |
 | `plan-jira-write` | `/sprint/plan` | |
 

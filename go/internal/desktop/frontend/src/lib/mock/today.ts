@@ -44,10 +44,12 @@ function today(): TodayData {
     source: 'tracker',
     sprints: out,
     errors: 0,
-    notices: 2,
+    notices: 4,
     findings: [
       { level: 'notice', where: 'sprints/2026.22.yaml', message: 'Absences are announced only.', route: '/sprint/prepare' },
       { level: 'notice', where: 'products.yaml: platform', message: 'The product has no share in the sprint.', route: '/team/products' },
+      { level: 'notice', where: 'projects.yaml: self-service', message: 'Project Self-Service is at risk: the contingent is nearly used up (4.0 of 40.0 PD left).', route: '/projects' },
+      { level: 'notice', where: 'tickets', message: '2 open tickets have no estimate.', route: '/backlog' },
     ],
   };
 }

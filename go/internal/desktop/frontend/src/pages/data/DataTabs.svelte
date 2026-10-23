@@ -14,7 +14,7 @@
 
 <nav class="tabs" aria-label={t('Data')}>
   {#each tabs as tab (tab.path)}
-    <a href={link(tab.path)} class:active={current.path === tab.path} aria-current={current.path === tab.path ? 'page' : undefined}>
+    <a href={link(tab.path)} data-tour={tab.path === '/data/conflicts' ? 'data-conflicts' : tab.path === '/data/history' ? 'data-history' : undefined} class:active={current.path === tab.path} aria-current={current.path === tab.path ? 'page' : undefined}>
       <Icon name={tab.icon} />{t(tab.label)}
       {#if tab.path === '/data/conflicts' && (app.status.data?.conflicts ?? 0) > 0}
         <span class="chip bad data">{app.status.data.conflicts}</span>

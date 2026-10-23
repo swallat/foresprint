@@ -423,8 +423,10 @@ func (c *projectCtx) view() ProjectsView {
 	if c.rate > 0 && data.Team.Unit != model.UnitPT {
 		v.Rate = model.Ptr(c.rate)
 	}
-	for _, p := range data.Products {
-		v.Products = append(v.Products, ProductRef{ID: p.ID, Name: p.Name})
+	if data.Team.Features.Products {
+		for _, p := range data.Products {
+			v.Products = append(v.Products, ProductRef{ID: p.ID, Name: p.Name})
+		}
 	}
 	for _, s := range data.Sprints {
 		state := "future"
@@ -444,22 +446,26 @@ func (c *projectCtx) view() ProjectsView {
 			v.Projects = append(v.Projects, c.projectView(p))
 		}
 	}
-	v.ConflictSprint, v.Conflict = c.conflict()
+	v.ConflictSprint, v.Conflict, v.Daily = c.conflict()
+	v.DailyDoneSprint = c.currentSprint()
+	v.Fit = c.fit(v.Projects)
 	return v
 }
 
 // conflict is the demand of the projects in the next sprint against the budget of each product
-// (a recommendation; the PO decides).
-func (c *projectCtx) conflict() (string, []ConflictRow) {
+// (a recommendation; the PO decides), and the daily business of each product beside it.
+func (c *projectCtx) conflict() (string, []ConflictRow, []DailyRow) {
 	if c.dist == nil || len(c.dist.Sprints) == 0 {
-		return "", []ConflictRow{}
+		return "", []ConflictRow{}, []DailyRow{}
 	}
 	sprint := c.dist.Sprints[0]
 	rows := []ConflictRow{}
+	daily := []DailyRow{}
 	products := c.data.Products
 	if !c.data.Team.Features.Products || len(products) == 0 {
 		products = []model.Product{{ID: "", Name: c.data.Team.Name}}
 	}
+	current := c.currentSprint()
 	for _, pr := range products {
 		var key *string
 		if pr.ID != "" {
@@ -472,8 +478,13 @@ func (c *projectCtx) conflict() (string, []ConflictRow) {
 		}
 		row := ConflictRow{Product: pr.ID, Budget: round1(b.Base), Demand: []DemandCell{}}
 		byProject := map[string]float64{}
+		dailyPlanned := 0.0
 		for _, pl := range c.dist.InSprint(sprint) {
-			if pl.Project == nil || pl.Size == nil || !samePtr(pl.Product, key) {
+			if pl.Size == nil || !samePtr(pl.Product, key) {
+				continue
+			}
+			if pl.Project == nil {
+				dailyPlanned += *pl.Size
 				continue
 			}
 			byProject[*pl.Project] += *pl.Size
@@ -494,9 +505,145 @@ func (c *projectCtx) conflict() (string, []ConflictRow) {
 		default:
 			row.Light = "ok"
 		}
+		row.Suggest = c.suggest(sprint, key, row.Light)
 		rows = append(rows, row)
+
+		d := DailyRow{Product: pr.ID, Budget: c.pdOf(b.Base, sprint, true), Planned: c.pdOf(dailyPlanned, sprint, true)}
+		if current != "" && c.data.Team.Features.Tickets {
+			done := 0.0
+			for _, t := range c.data.Tickets {
+				if !t.Done || t.Estimate == nil || t.InSprint == nil || *t.InSprint != current || effectiveProject(c.data, t) != "" {
+					continue
+				}
+				if prod, _ := preplan.TicketProduct(t, c.data); samePtr(prod, key) {
+					done += c.pd(*t.Estimate, current, false)
+				}
+			}
+			d.Done = c.pdPtr(done)
+		}
+		daily = append(daily, d)
 	}
-	return sprint, rows
+	return sprint, rows, daily
+}
+
+// pdOf is points of one sprint as person days, nil while no rate is known.
+func (c *projectCtx) pdOf(points float64, sprint string, planned bool) *float64 {
+	if c.rate <= 0 {
+		return nil
+	}
+	return model.Ptr(round1(c.pd(points, sprint, planned)))
+}
+
+// ended reports whether a known sprint is over.
+func (c *projectCtx) ended(id string) bool {
+	s, ok := c.sprint[id]
+	return ok && !s.End.After(c.today)
+}
+
+// currentSprint is the id of the sprint that runs today, "" if none does.
+func (c *projectCtx) currentSprint() string {
+	for _, s := range c.sprint {
+		if !s.Start.After(c.today) && s.End.After(c.today) {
+			return s.ID
+		}
+	}
+	return ""
+}
+
+// suggest names what would give a full product room: the ticket of the project that is best off
+// (its light is not "bad"), the latest in the backlog order, one sprint later. Tickets the tracker
+// fixed in the sprint stay. A product with room needs nothing.
+func (c *projectCtx) suggest(sprint string, key *string, light string) ConflictSuggestion {
+	none := ConflictSuggestion{Kind: "none", Light: "none"}
+	if light == "ok" {
+		return none
+	}
+	var best *model.Ticket
+	var bestPl preplan.Placement
+	bestLight := ""
+	asked := false // a project asks something of this product at all
+	for _, pl := range c.dist.InSprint(sprint) {
+		if pl.Project == nil || pl.Size == nil || !samePtr(pl.Product, key) {
+			continue
+		}
+		asked = true
+		// A ticket the tracker or the PO fixed in the sprint stays; so does one without size.
+		if pl.Reason == preplan.ReasonFixedSprint || pl.Reason == preplan.ReasonEarmark || *pl.Size <= 0 {
+			continue
+		}
+		t := c.data.TicketByKey(pl.Ticket)
+		if t == nil {
+			continue
+		}
+		pj := "none"
+		if st := c.dist.Status(*pl.Project); st != nil {
+			if l := lightOf[st.Light]; l != "" {
+				pj = l
+			}
+		}
+		if pj == "bad" {
+			continue
+		}
+		if best == nil || lightRank[pj] < lightRank[bestLight] || (pj == bestLight && projectsLaterInBacklog(*t, *best)) {
+			best, bestPl, bestLight = t, pl, pj
+		}
+	}
+	switch {
+	case !asked:
+		return none // nobody asks for this budget, so there is nothing to move
+	case best == nil:
+		return ConflictSuggestion{Kind: "talk", Light: "none"}
+	}
+	out := ConflictSuggestion{Kind: "move", Ticket: best.Key, Project: *bestPl.Project, Light: bestLight, Points: round1(*bestPl.Size)}
+	if p := c.data.ProjectByID(out.Project); p != nil {
+		out.ProjectName = p.Name
+	}
+	return out
+}
+
+// projectsLaterInBacklog reports whether a comes after b in the order of the backlog (preplan.TicketOrder:
+// by rank as text, tickets without rank last, then by key).
+func projectsLaterInBacklog(a, b model.Ticket) bool {
+	if (a.Rank == nil) != (b.Rank == nil) {
+		return a.Rank == nil
+	}
+	if a.Rank != nil && *a.Rank != *b.Rank {
+		return *a.Rank > *b.Rank
+	}
+	return a.Key > b.Key
+}
+
+// fit sets the need of the open projects against what is left of their contingent: what is
+// consumed (entered by hand, else estimated from finished tickets) is taken off the booked amount.
+func (c *projectCtx) fit(projects []ProjectView) []ContingentFit {
+	out := []ContingentFit{}
+	for _, p := range projects {
+		if p.Booked == nil {
+			continue
+		}
+		spent := 0.0
+		switch {
+		case p.Used != nil:
+			spent = *p.Used
+		case p.Done != nil:
+			spent = *p.Done
+		}
+		rest := round1(*p.Booked - spent)
+		f := ContingentFit{Project: p.ID, Remaining: &rest, Need: p.Planned}
+		if p.Planned != nil {
+			switch need := *p.Planned; {
+			case need > rest:
+				f.Status = "over"
+				f.Missing = model.Ptr(round1(need - rest))
+			case need > rest*0.8:
+				f.Status = "tight"
+			default:
+				f.Status = "ok"
+			}
+		}
+		out = append(out, f)
+	}
+	return out
 }
 
 func samePtr(a, b *string) bool {
@@ -536,13 +683,29 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 		if t.Status != nil {
 			line.Status = *t.Status
 		}
+		_, source := preplan.TicketSize(t, c.data, 1)
+		line.Refined = source == model.EstimateRefined
+		if prod, _ := preplan.TicketProduct(t, c.data); prod != nil {
+			line.Product = *prod
+		}
+		// A sprint of the tracker or an earmark that is over does not count (as in the distribution).
+		switch e := c.data.Preplan.EarmarkFor(t.Key); {
+		case t.InSprint != nil && *t.InSprint != "" && (t.Done || !c.ended(*t.InSprint)):
+			line.Sprint = *t.InSprint
+		case e != nil && !c.ended(e.Sprint):
+			line.Sprint = e.Sprint
+		}
 		if c.dist != nil {
 			if pl := c.dist.Placement(t.Key); pl != nil && pl.Sprint != nil {
-				line.Sprint = *pl.Sprint
+				line.Forecast = *pl.Sprint
 			}
 		}
-		if line.Sprint == "" && t.InSprint != nil {
-			line.Sprint = *t.InSprint
+		if t.Estimate != nil {
+			when := line.Sprint
+			if when == "" {
+				when = line.Forecast
+			}
+			line.EstimatePD = c.pdOf(*t.Estimate, when, !t.Done)
 		}
 		out.Tickets = append(out.Tickets, line)
 	}
