@@ -2,9 +2,12 @@
 
 The ticket pre-planning ([design](design/ticket-planning.md), `features.tickets`) can read its
 tickets straight from **Jira Data Center** instead of from a CSV export. The import is
-**read-only**: the tool sends only `GET` requests and never changes anything in Jira. The one
-exception is the optional [label write-back](#writing-earmarks-as-labels) (`write_labels: true`,
-off by default), which adds or removes `planned_for_<sprint>` labels and nothing else.
+**read-only** by default: the tool sends only `GET` requests and never changes anything in Jira.
+There are two optional exceptions, both off by default: the [label write-back](#writing-earmarks-as-labels)
+(`write_labels: true`), which adds or removes `planned_for_<sprint>` labels, and the write-back of a
+planned sprint (Settings > Tickets and tracker), which moves tickets between a sprint and the
+backlog through the Agile API on an explicit click, with preview and undo. Order, estimate, status
+and texts are never written, and no sprint is created, started or closed.
 
 ## Setup
 

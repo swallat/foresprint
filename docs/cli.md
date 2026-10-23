@@ -42,6 +42,7 @@ commands write the same files as the window.
 | `foresprint check [--strict]` | validate all data (CI, before a commit) |
 | `foresprint settings TEAM` | change team settings |
 | `foresprint data-dir [PATH]`, `language [de\|en]`, `shortcut`, `update` | remembered data folder, UI language, desktop launcher, update |
+| `foresprint completion bash\|zsh\|fish\|powershell`, `version` | Tab completion script, version |
 | `foresprint help [TOPIC]` | workflow, terms, fields, team settings, commands |
 
 `--data PATH` and `--as-of DATE` go before the command; `--commit` on the editing commands
@@ -65,7 +66,8 @@ English in both languages. The YAML files are English regardless of the language
   and `foresprint help team`.
 - **Environment variables:** `FORESPRINT_DATA` (data directory), `FORESPRINT_AS_OF`
   (date that counts as today), `FORESPRINT_LANG` (`en` or `de`), `FORESPRINT_AUTOUPDATE`
-  (`on`, `notice` or `off`).
+  (`on`, `notice` or `off`), `FORESPRINT_JIRA_TOKEN` (see [Jira import](jira.md)),
+  `FORESPRINT_NO_BACKGROUND_FETCH` (`1` switches off the background fetch of the window).
 
 ## Updating
 

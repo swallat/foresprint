@@ -22,8 +22,7 @@ user and can be switched under **Settings > Storage**. The rules for finding the
 
 ## Pages
 
-The navigation on the left has these groups. Pages for the ticket pre-planning appear only for teams
-with the feature `tickets`.
+The navigation on the left has these groups. The Backlog appears only for teams with the feature `tickets`.
 
 | Group | Page | Content |
 |---|---|---|
@@ -32,7 +31,7 @@ with the feature `tickets`.
 | Sprints | Sprint overview | the sprints with their state |
 | | Prepare | absences per person and sprint with a live preview of capacity and forecast; per cell announced or confirmed |
 | | Pre-plan | per product, what should go into the sprint, compared with the default |
-| | Plan | the planning with the Forecast PLAN, planned amounts per product, what-if and the commitment; the sprint gets a name here |
+| | Plan | the planning with the Forecast PLAN, planned amounts per product, what-if and the commitment; freezes the allocation and can open the plan again |
 | | Review | velocity, scope creep, done per product; the available person days are frozen |
 | | Minutes | the minutes of the planning meetings |
 | Projects | Projects, project page | projects with milestones, end dates and contingents, a traffic light and a timeline; closing a project |
@@ -45,7 +44,7 @@ with the feature `tickets`.
 | | History and tags | history per team, sprint or file; restore an earlier state; tags |
 | Settings | Team | all team settings; changes are shown before saving |
 | | Tickets and tracker | tracker connection (Jira, CSV, work packages), field mapping, rules, import of a package |
-| | Storage | folder or Git server, sign-in, name and e-mail for saves, way of sharing |
+| | Storage | folder or Git server, sign-in, name and e-mail for saves, way of sharing, switching the branch |
 | | Personal | settings that only apply to you on this computer: language, theme (system, light, dark), density, how calculations are shown |
 | | Updates | the update mode (`on`, `notice`, `off`) and the check for a new version |
 | Help | Calculations, Guided flows | the formulas with your numbers, and the guided flows as a tutorial with the demo team |
@@ -57,8 +56,8 @@ Every figure opens its calculation. The sprint chosen in the header applies acro
 Every page saves to the YAML files. The Data area shows the state compared with the server (not
 yet shared, new from others, offline, when last checked) and the open changes.
 
-- **Save** commits your own changes; **Save and share** first commits, then fetches the others'
-  state, merges both and uploads the result. The window lists what was taken over from others
+- **Save** is one step: it commits your own changes, fetches the others' state, merges both and
+  uploads the result. The window lists what was taken over from others
   (who, when, which files). In a race (someone uploads in between) it fetches and uploads again.
   If the server has a completely different history (usually the wrong repository), nothing is
   merged or uploaded until you confirm explicitly.
@@ -95,24 +94,25 @@ with explicit confirmation; a repository that is not found, a rejected login or 
 certificate are never saved. Credentials in the address are rejected, never stored and never shown.
 For https servers, **Set up sign-in** hands an access token once to Git's credential helper and
 checks it; Foresprint never stores or shows the token. It creates no SSH keys and changes the
-global Git configuration only on request, and only the name and e-mail of the commits.
+global Git configuration only on request: the name and e-mail of the commits, and the credential
+helper when you click "Turn it on".
 
 ## Changes and history
 
-On **Data > History and tags**: *Discard* single files or all open changes, with a preview of what
-is lost. *History* per team, sprint or file (who, when, what). *Restore* an earlier state is itself
-a commit and can be undone with "Revert this change". *Tags*: show, set on any commit and delete,
+*Discard* (on **Data > Overview**) drops single files or all open changes, with a preview of what
+is lost. On **Data > History and tags**: *History* per team, sprint or file (who, when, what). *Restore* an earlier state is itself
+a commit and can be undone with "Take back this change". *Tags*: show, tag the current state and delete,
 also on the server; local-only tags can be pushed.
 
 Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are rejected. The model is
-"one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
-the app.
+"one branch, always in sync"; rebase, force push and stash are deliberately not part of the app (you can move the data to
+another branch in Settings > Storage).
 
 ## Servers that only take merge requests
 
 By default sharing pushes straight to the branch. For servers that protect `main` and require merge
 or pull requests, switch on **Share via merge request** in Settings > Storage (per data
-repository, stored in its local Git configuration). "Save and share" then merges the server state
+repository, stored in its local Git configuration). **Save** then merges the server state
 and uploads to your own branch; a further share updates the same request. `main` stays untouched
 until the request is merged; then **Refresh** brings it in. The app never holds an access token and
 never signs in to a web API; what happens after the push depends on the kind of server (detected
@@ -130,6 +130,7 @@ or sharing is rejected).
 
 ## Updates
 
-The program checks at most once a day for a new version, in the background. What happens then is a
-setting (**Settings > Updates**, or `foresprint update --auto on|notice|off`): install by itself,
-only point it out, or do nothing. See [Installation](installation.md#updating).
+The program checks at most once a day for a new version, in the background. **Settings > Updates**
+shows the installed and the newest version and installs on a click; the window only points out a
+new version and never installs by itself. The mode (`on`, `notice`, `off`) is also set there or
+with `foresprint update --auto on|notice|off`, see [Installation](installation.md#updating).
