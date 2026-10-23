@@ -33,7 +33,7 @@ function forecastView(): ForecastView {
       average: nvTrend, trend: nvTrend, plan, planSource: 'projection' as const, low: Math.floor((33 / ref) * cap), high: Math.floor((42 / ref) * cap),
       carryIn: k === 0 ? 4 : 0, carryAssumed: k === 0, plannable: Math.floor((plan - (k === 0 ? 4 : 0)) * 0.8), small: plan - (k === 0 ? 4 : 0) - Math.floor((plan - (k === 0 ? 4 : 0)) * 0.8) };
   });
-  return { team: 'atlas', today: iso(base + 10 * 14 * day + 3 * day), referenceCapacity: ref, window: 6, roadmapShare: 0.8, trendMode: 'flat', horizon: 4, rounding: 0, products: 3, samples: 6, fewSamples: false, rate: nvTrend / ref, past, upcoming };
+  return { team: 'atlas', today: iso(base + 10 * 14 * day + 3 * day), referenceCapacity: ref, window: 6, roadmapShare: 0.8, trendMode: 'flat', horizon: 4, rounding: 0, products: 3, samples: 6, fewSamples: false, rate: nvTrend / ref, running: upcoming[0]?.id ?? '', next: upcoming[1]?.id ?? '', runningCommitment: 36, past, upcoming };
 }
 
 /** An ISO day `n` days from today. */
@@ -104,13 +104,19 @@ const forecastMock: Partial<Api> = {
   async Forecast() {
     return forecastView();
   },
-  async ForecastWhatIf(_team, extraAbsenceDays, focusPercent): Promise<WhatIfRow[]> {
-    return forecastView().upcoming.map((r) => {
-      const capacity = Math.max(0, (r.capacity ?? 0) - extraAbsenceDays);
-      const forecast = Math.floor(((r.trend ?? 0) / 40) * capacity * (focusPercent / 100));
-      return { id: r.id, capacity, forecast, base: r.plan ?? 0, delta: forecast - (r.plan ?? 0) };
-    });
+  async ForecastWhatIf(_team, as): Promise<WhatIfRow[]> {
+    const view = forecastView();
+    // a running sprint that ends better or worse than the commitment moves the trend a little
+    const lift = as.expectedVelocity === null ? 0 : (as.expectedVelocity - (view.runningCommitment ?? 0)) * 0.1;
+    return view.upcoming
+      .filter((r) => as.sprint === '' || r.id === as.sprint)
+      .map((r) => {
+        const capacity = Math.max(0, (r.capacity ?? 0) - as.extraAbsenceDays);
+        const forecast = Math.floor((((r.trend ?? 0) + lift) / 40) * capacity * (as.focusPercent / 100));
+        return { id: r.id, capacity, forecast, base: r.plan ?? 0, delta: forecast - (r.plan ?? 0) };
+      });
   },
+  async ForecastSaveWhatIf(): Promise<void> {},
   async ForecastWhenProjects(): Promise<WhenProject[]> {
     return [
       { id: 'self-service', name: 'Self-Service 2.0', end: dayAfter(100), openScope: 120, open: 18 },

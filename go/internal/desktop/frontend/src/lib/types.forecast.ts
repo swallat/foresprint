@@ -39,8 +39,21 @@ export interface ForecastView {
   samples: number;
   fewSamples: boolean;
   rate: number | null;
+  /** The running sprint and the one after it ("" if none); the commitment of the running one. */
+  running: string;
+  next: string;
+  runningCommitment: number | null;
   past: ForecastRow[];
   upcoming: ForecastRow[];
+}
+
+/** What the Forecast page tries; sprint "" = all coming ones, expectedVelocity null = leave the running sprint. */
+export interface ForecastAssumption {
+  sprint: string;
+  extraAbsenceDays: number;
+  focusPercent: number;
+  expectedVelocity: number | null;
+  label: string;
 }
 
 export interface WhatIfRow {
@@ -136,7 +149,8 @@ export interface ForecastApi {
   ExcelImportPreview(team: string): Promise<ImportPreview>;
   ExcelImportApply(team: string, path: string, hash: string): Promise<string[]>;
   Forecast(team: string): Promise<ForecastView>;
-  ForecastWhatIf(team: string, extraAbsenceDays: number, focusPercent: number): Promise<WhatIfRow[]>;
+  ForecastWhatIf(team: string, as: ForecastAssumption): Promise<WhatIfRow[]>;
+  ForecastSaveWhatIf(team: string, as: ForecastAssumption): Promise<void>;
   ForecastWhenProjects(team: string): Promise<WhenProject[]>;
   ForecastWhenDone(team: string, remaining: number, sharePercent: number, project: string): Promise<WhenDoneView>;
 }
