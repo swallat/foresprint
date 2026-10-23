@@ -639,7 +639,7 @@ func (a *API) RunningHint(team, sprintID string) (*RunningHint, error) {
 	seen := map[string]bool{}
 	for _, t := range c.data.Tickets {
 		name := strings.TrimSpace(str(t.SprintName))
-		if t.Done || t.InSprint != nil || name == "" {
+		if t.Done || t.InSprint != nil || name == "" || trackerProForma(c.data, name) {
 			continue
 		}
 		if ticketimport.ResolveSprint(name, c.data.Team.Tracker, ticketimport.ForecastSprints{Forecast: c.fc}) != nil {

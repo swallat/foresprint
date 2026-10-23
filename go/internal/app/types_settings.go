@@ -117,6 +117,7 @@ type TrackerSettings struct {
 type TrackerSprint struct {
 	Name    string `json:"name"`
 	Tickets int    `json:"tickets"`
+	Open    int    `json:"open"`   // open tickets of it that Foresprint cannot place in a sprint yet
 	MapsTo  string `json:"mapsTo"` // sprint of Foresprint it is mapped to by hand, "" = by name
 }
 

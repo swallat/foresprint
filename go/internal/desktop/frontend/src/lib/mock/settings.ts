@@ -64,8 +64,8 @@ let tracker: TrackerSettings = {
   proForma: ['Refinement'],
   sprintIds: ['2026.1', '2026.2', '2026.3'],
   sprints: [
-    { name: 'Refinement', tickets: 6, mapsTo: '' },
-    { name: 'Ideas', tickets: 2, mapsTo: '' },
+    { name: 'Refinement', tickets: 6, open: 0, mapsTo: '' },
+    { name: 'Ideas', tickets: 2, open: 2, mapsTo: '' },
   ],
   hitsFields: { estimate: 'Story Points', remaining: '', epic: 'Epic Link', status: 'Status', acceptance: 'Acceptance Criteria', product: '', project: '', refined: '', production: '' },
   fieldHits: { estimate: 41, remaining: 12, epic: 30, status: 46, project: 28 },
