@@ -274,7 +274,8 @@ func (a *API) ForecastSaveWhatIf(team string, as ForecastAssumption) error {
 			kept = append(kept, old)
 		}
 	}
-	cur.Prognoses = append(kept, p)
+	kept = append(kept, p)
+	cur.Prognoses = kept
 	_, err = storage.NewRepository(a.DataDir()).SaveSprint(team, &cur)
 	storage.ClearTeamCache()
 	return err
