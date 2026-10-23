@@ -1,6 +1,7 @@
 /* App frame and shared components. Class names are those of the mocks (docs/redesign/mocks),
    so a page can be ported from its mock view without renaming. */
-html, body { height: 100%; margin: 0; }
+html, body, #app { height: 100%; margin: 0; }
+body { overflow: hidden; }
 body { background: var(--bg); color: var(--text); font: 14px/20px var(--font-ui); }
 * { box-sizing: border-box; }
 button, input, select, textarea { font: inherit; color: inherit; }

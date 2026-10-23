@@ -125,7 +125,7 @@
 
 <style>
   .bare {
-    min-height: 100%;
+    height: 100%;
     overflow: auto;
   }
   .demo-banner {
