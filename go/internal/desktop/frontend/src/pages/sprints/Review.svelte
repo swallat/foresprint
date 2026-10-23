@@ -81,7 +81,11 @@
 
   const commitmentNow = $derived(!info ? 0 : info.commitmentSet ? info.commitment : n(commitment));
   const notDoneNow = $derived(
-    info?.reviewed ? info.notDone : info?.tickets ? rows.filter((r) => !r.done && !r.added).reduce((sum, r) => sum + r.estimate, 0) : n(notDone),
+    info?.reviewed
+      ? info.notDone
+      : info?.tickets
+        ? Math.min(rows.filter((r) => !r.done && !r.added).reduce((sum, r) => sum + r.estimate, 0), info.frozen ? Infinity : commitmentNow)
+        : n(notDone),
   );
   // With tickets the scope numbers follow the table: what was pulled in and is done counts as
   // done in addition; the rest that continues in the next sprint is the final carry-over.
@@ -93,6 +97,8 @@
   );
   const listed = $derived(rows.filter((r) => !r.added));
   const addedRows = $derived(rows.filter((r) => r.added));
+  const pulledNow = $derived(info?.tickets ? rows.filter((r) => r.added && r.done) : []);
+  const noEstimateNow = $derived(pulledNow.filter((r) => r.estimate === 0).map((r) => r.key));
   const listSum = $derived(listed.reduce((sum, r) => sum + r.estimate, 0));
   // A closed Review shows what was stored; only an open one calculates while typing.
   const velocity = $derived(!info ? 0 : info.reviewed ? info.velocity : commitmentNow - notDoneNow + additionalNow);
@@ -253,10 +259,10 @@
       {#if info.tickets && info.prefill && !info.reviewed}
         <p class="small muted" data-testid="prefill">{t('Prefilled from assumption {label} of the pre-planning; done in the tracker counts as done.', { label: info.prefill })}</p>
       {/if}
-      {#if info.pulled.length > 0 && !info.reviewed}
+      {#if pulledNow.length > 0 && !info.reviewed}
         <p class="small muted" data-testid="pulled">
-          {t('Prefilled from {n} done tickets pulled in after the freeze: {keys}.', { n: info.pulled.length, keys: info.pulled.join(', ') })}
-          {#if info.noEstimate.length > 0}{t('Without an estimate: {keys}.', { keys: info.noEstimate.join(', ') })}{/if}
+          {t('Prefilled from {n} done tickets pulled in after the freeze: {keys}.', { n: pulledNow.length, keys: pulledNow.map((r) => r.key).join(', ') })}
+          {#if noEstimateNow.length > 0}{t('Without an estimate: {keys}.', { keys: noEstimateNow.join(', ') })}{/if}
         </p>
       {/if}
       <p class="small muted">

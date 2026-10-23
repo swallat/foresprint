@@ -206,13 +206,20 @@ func reviewRows(data *storage.TeamData, s model.Sprint, reviewed bool) []reviewR
 		listed[k] = true
 		out = append(out, reviewRow{key: k})
 	}
-	if reviewed {
-		return out
-	}
 	frozen := len(out) > 0
 	for _, t := range preplan.TicketOrder(data.Tickets) {
 		if str(t.InSprint) == s.ID && !listed[t.Key] {
+			listed[t.Key] = true
 			out = append(out, reviewRow{key: t.Key, added: frozen})
+		}
+	}
+	if reviewed {
+		// A closed Review keeps the tickets it carried over, even if the tracker moved them since.
+		for _, c := range s.Carry {
+			if k := str(c.Ticket); k != "" && !listed[k] {
+				listed[k] = true
+				out = append(out, reviewRow{key: k, added: frozen})
+			}
 		}
 	}
 	return out
@@ -249,6 +256,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 	out.Commitment = val(s.Commitment)
 	rows := reviewRows(data, s, out.Reviewed)
 	out.Tickets = data.Team.Features.Tickets && len(rows) > 0
+	out.Frozen = len(s.CommittedTickets) > 0
 	if out.Tickets {
 		carried := map[string]model.CarryItem{}
 		for _, c := range s.Carry {
@@ -286,7 +294,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				row.Done, row.Rest, row.Target = false, c.Rest, c.Target
 			} else if out.Reviewed {
 				row.Done = true
-			} else if !row.Done && out.Prefill != "" {
+			} else if !row.Done && !row.Added && out.Prefill != "" {
 				if c, ok := assumed[r.key]; ok {
 					row.Rest, row.Target = c.Rest, c.Target
 				} else {
@@ -313,6 +321,13 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 			if !r.Done && !r.Added {
 				out.NotDone += r.Estimate
 			}
+			if !r.Done && r.Target == "" {
+				out.RestNext += r.Rest
+			}
+		}
+		// Without a frozen list the commitment is the recorded one; not done cannot exceed it.
+		if !out.Frozen && out.NotDone > out.Commitment {
+			out.NotDone = out.Commitment
 		}
 		// A target that is not among the offered places stays selectable.
 		for _, r := range out.List {
@@ -478,6 +493,9 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			return ReviewClosed{}, fmt.Errorf("%s", i18n.T("The rest that continues cannot be more than what was not done."))
 		}
 		s.RestNext = model.Ptr(in.RestNext)
+	}
+	if view.Tickets && !view.Frozen && notDone > commitment {
+		notDone = commitment
 	}
 	if notDone > commitment {
 		return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Not done cannot be more than the commitment."))

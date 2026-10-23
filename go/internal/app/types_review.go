@@ -43,8 +43,10 @@ type SprintReview struct {
 	// Reviewed is true once the Review was closed (the velocity is recorded).
 	Reviewed bool `json:"reviewed"`
 	// Reopenable is true for the latest reviewed sprint.
-	Reopenable bool    `json:"reopenable"`
-	Tickets    bool    `json:"tickets"` // the team commits to tickets
+	Reopenable bool `json:"reopenable"`
+	Tickets    bool `json:"tickets"` // the team commits to tickets
+	// Frozen is true when the planning froze a ticket list; without one the commitment stays as recorded.
+	Frozen     bool    `json:"frozen"`
 	Commitment float64 `json:"commitment"`
 	// CommitmentSet is false for a sprint without a recorded commitment: the page asks for it.
 	CommitmentSet  bool    `json:"commitmentSet"`

@@ -38,6 +38,8 @@ export interface SprintReview {
   reopenable: boolean;
   /** The team commits to tickets: the list below replaces the typed numbers. */
   tickets: boolean;
+  /** The planning froze a ticket list; without one the commitment stays as recorded. */
+  frozen: boolean;
   commitment: number;
   /** False for a sprint without a recorded commitment: the page asks for it. */
   commitmentSet: boolean;

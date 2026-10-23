@@ -227,8 +227,20 @@ tickets:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.Tickets || len(r.List) != 2 || r.List[0].Added || !r.List[0].Done || r.List[1].Done || r.NotDone != 3 || r.AdditionalDone != 0 {
+	if !r.Tickets || r.Frozen || len(r.List) != 2 || r.List[0].Added || !r.List[0].Done || r.List[1].Done || r.NotDone != 3 || r.AdditionalDone != 0 {
 		t.Fatalf("tracker tickets not listed: %+v", r)
+	}
+	closed, err := api.CloseReview(team, id, ReviewInput{FrozenDays: 40, List: []ReviewTicket{{Key: "T-2", Rest: 1, Target: ""}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := closed.Review
+	if !c.Tickets || len(c.List) != 2 || c.RestNext != 1 || c.NotDone != 3 {
+		t.Fatalf("closed view lost the ticket table: %+v", c)
+	}
+	text, _ := api.MinutesText(team, closed.Minutes)
+	if !strings.Contains(text.Text, "T-2") {
+		t.Fatalf("minutes without the tickets:\n%s", text.Text)
 	}
 }
 

@@ -115,6 +115,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       reviewed: input !== undefined,
       reopenable: input !== undefined && latestReviewed() === id,
       tickets: options.tickets === true,
+      frozen: options.tickets === true,
       commitment,
       commitmentSet: true,
       notDone,
