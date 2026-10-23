@@ -12,7 +12,7 @@ import (
 	"github.com/swallat/foresprint/internal/sources"
 )
 
-// The comparison with golden/expected/ticketimport, written by scripts/golden_ext/ticketimport.py
+// The comparison with golden/expected/ticketimport, frozen from version 0.8
 // from the Python implementation.
 
 // --- JSON to model ---

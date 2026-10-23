@@ -51,6 +51,7 @@
     {@const yc = r.y + 20}
     <a class="row" href={link('/projects/:id', { id: r.project.id })} aria-label={t('Open project {name}', { name: r.project.name })}>
       <title>{r.project.name}: {t('ends {date}', { date: date(r.project.end) })}</title>
+      <rect class="hit" x="0" y={r.y} width={tl.W} height={r.h} />
       <line x1="8" x2={tl.W - tl.R} y1={r.y + r.h - 6} y2={r.y + r.h - 6} class="grid" />
       {#each r.name as line, k (k)}
         <text x="8" y={yc - 2 + k * 16} font-size="13" font-weight="600">{line}</text>
@@ -137,6 +138,9 @@
   }
   .grid {
     stroke: var(--border);
+  }
+  .hit {
+    fill: transparent;
   }
   .row {
     cursor: pointer;

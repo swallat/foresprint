@@ -37,7 +37,7 @@ const prefs: Prefs = {
     { code: 'dark', label: 'Dark' },
   ],
   dataDir: '/demo/teams',
-  recentDataDirs: ['/demo/teams'],
+  recentDataDirs: ['/demo/teams', '/demo/archive/teams'],
 };
 
 /** The settings of this machine and the selected team; areas read and replace them here. */

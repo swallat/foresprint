@@ -2,9 +2,10 @@ name: Holiday data
 
 # Once a month: is there a newer release of the Python "holidays" library? If so, the embedded
 # holiday data of the Go core (go/internal/holidays/data/holidays.zip) and the golden files that
-# depend on it are regenerated and a pull request against v1 shows the difference. The release
-# workflow regenerates the data again at every release; this run only keeps the repository
-# current in between.
+# depend on it (golden/expected/calendar) are regenerated and a pull request against v1 shows
+# the difference. The release workflow regenerates the data again at every release; this run
+# only keeps the repository current in between. scripts/gen_holidays.py is the only Python left
+# in the repository; it declares its dependency itself and runs with uv.
 #
 # A scheduled workflow runs from the default branch only. This file therefore takes effect when
 # v1 is merged into main (version 1.0); until then start it by hand from the Actions page after
@@ -31,18 +32,15 @@ jobs:
         with:
           ref: ${{ env.BASE }}
       - uses: jdx/mise-action@v3
-      - run: uv sync --locked --all-extras
       - name: Update
         id: update
         run: |
-          old=$(uv run --no-sync python -c "import holidays; print(holidays.__version__)")
+          old=$(unzip -p go/internal/holidays/data/holidays.zip meta.json | python3 -c "import json,sys; print(json.load(sys.stdin)['holidays_version'])")
           cp go/internal/holidays/data/holidays.zip "$RUNNER_TEMP/old.zip"
-          uv lock --upgrade-package holidays
-          uv sync --all-extras
-          new=$(uv run --no-sync python -c "import holidays; print(holidays.__version__)")
-          uv run --no-sync python scripts/gen_holidays.py
-          uv run --no-sync python scripts/golden.py
-          uv run --no-sync python scripts/gen_holidays.py --summary "$RUNNER_TEMP/old.zip" > "$RUNNER_TEMP/summary.md"
+          uv run scripts/gen_holidays.py
+          uv run scripts/gen_holidays.py --golden
+          uv run scripts/gen_holidays.py --summary "$RUNNER_TEMP/old.zip" > "$RUNNER_TEMP/summary.md"
+          new=$(unzip -p go/internal/holidays/data/holidays.zip meta.json | python3 -c "import json,sys; print(json.load(sys.stdin)['holidays_version'])")
           echo "old=$old" >> "$GITHUB_OUTPUT"
           echo "new=$new" >> "$GITHUB_OUTPUT"
           if [ -n "$(git status --porcelain)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi

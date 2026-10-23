@@ -63,8 +63,32 @@ if (($userPath -split ";") -notcontains $bin) {
 }
 
 if (-not $env:FORESPRINT_NO_SHORTCUT) {
-    # The program has no console of its own; wait for it so that its output is not lost.
-    Start-Process -FilePath $exe -ArgumentList "shortcut" -Wait -NoNewWindow
+    # A failing launcher must not make the installation look failed: the program is in place.
+    # Policies (AppLocker, antivirus) can refuse to start a freshly written, unsigned program.
+    try {
+        & $exe shortcut
+        if ($LASTEXITCODE -ne 0) { throw "foresprint shortcut exited with code $LASTEXITCODE" }
+    } catch {
+        Write-Warning "could not create the launcher with the program: $($_.Exception.Message)"
+        # Fall back to plain Windows shortcuts that only point at the program (it is not started).
+        try {
+            $shell = New-Object -ComObject WScript.Shell
+            foreach ($dir in @([Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("Programs"))) {
+                $link = $shell.CreateShortcut((Join-Path $dir "Foresprint.lnk"))
+                $link.TargetPath = $exe
+                $link.WorkingDirectory = $env:USERPROFILE
+                $link.IconLocation = "$exe,0"
+                $link.Description = "Foresprint"
+                $link.Save()
+            }
+            Write-Host "==> created the launcher on the desktop and in the Start menu"
+            Write-Host "Run 'foresprint shortcut' later to replace it with the regular launcher."
+        } catch {
+            Write-Warning "could not create the launcher: $($_.Exception.Message)"
+            Write-Host "The program is installed. Create the launcher later with: foresprint shortcut"
+            Write-Host "If Windows or your antivirus blocks the program, allow $exe and run that command again."
+        }
+    }
 }
 
 Write-Host "Done. Start with the launcher or: foresprint"

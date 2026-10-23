@@ -241,7 +241,7 @@
                     <span class="chip">{t('estimate')}</span>
                     {g.project.bookedPD == null ? t('no contingent') : t('of {n} PD booked', { n: fmt(g.project.bookedPD) })}
                   </span>
-                  <Calc label={g.project.name} topic="projects">
+                  <Calc label={g.project.name} topic="units">
                     <div class="data">{fmt(g.project.amount, 1)} {unitName(d)} ÷ {fmt(d.rate, 2)} = {fmt(g.project.needPD, 1)} {t('PD')}</div>
                   </Calc>
                 {:else}

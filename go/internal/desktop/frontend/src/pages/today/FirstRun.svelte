@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { api } from '../../lib/api';
+  import DemoChoice from '../../lib/ui/DemoChoice.svelte';
   import { app, enterDemo, leaveDemo, loadTeams, selectTeam } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -535,7 +536,9 @@
         {#if !adding}
         <div class="opt" class:on={d.team === 'demo'}>
           <input type="radio" id="opt-team-demo" name="team" value="demo" bind:group={d.team} />
-          <span><label for="opt-team-demo"><strong>{t('Open the demo team')}</strong></label><span class="block small muted">{t('Invented sample data to try things out. Nothing is read from or written to your data.')}</span></span>
+          <span><label for="opt-team-demo"><strong>{t('Open the demo team')}</strong></label><span class="block small muted">{t('Invented sample data to try things out. Nothing is read from or written to your data.')}</span>
+            {#if d.team === 'demo'}<DemoChoice id="firstrun" />{/if}
+          </span>
         </div>
         {/if}
       </div>

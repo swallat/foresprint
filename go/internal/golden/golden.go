@@ -1,5 +1,5 @@
 // Package golden compares the results of the Go core with the reference files that the Python
-// core wrote (repository folder golden/, produced by scripts/golden.py).
+// core wrote (repository folder golden/, frozen from the Python version 0.8).
 //
 // Tests load a reference with Load, build the same structure from the Go result (as a value that
 // encodes to the same JSON) and hand both to Compare. Numbers are compared with a small relative

@@ -18,8 +18,9 @@ concurrency:
 # Optionally on the self-hosted runner: repository variable SELF_HOSTED=true. Fork PRs always
 # run in the cloud (public repository); SELF_HOSTED=false switches back immediately.
 jobs:
-  test:
-    timeout-minutes: 20
+  # Repository hygiene: no spreadsheets (real team data).
+  hygiene:
+    timeout-minutes: 5
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
@@ -30,24 +31,9 @@ jobs:
             echo "::error::Spreadsheets must not be committed (real team data)."
             exit 1
           fi
-      - uses: jdx/mise-action@v3
-      - run: uv sync --locked --all-extras
-      - run: uv run ruff check
-      - run: uv run ruff format --check
-      - run: uv run pytest -n 4
-      - run: uv run foresprint --data examples/teams check
-      # The Go port compares against these files: they must be exactly what the Python core gives.
-      - name: Golden files are current
-        run: uv run python scripts/golden.py --check
-      - name: Holiday data is current
-        run: uv run python scripts/gen_holidays.py --check
-      - name: Text catalogs of the Go core are current
-        run: uv run python scripts/gen_locales.py --check
-      - name: Help texts are up to date
-        run: uv run python scripts/gen_guide.py --check
 
-  # The Go core (go/): format, vet, lint and tests, including the comparison with the golden
-  # files of the Python core, on all three desktop platforms.
+  # The Go core (go/): format, vet, lint and tests, including the comparison with the frozen
+  # golden files, on all three desktop platforms.
   go:
     timeout-minutes: 30
     runs-on: ${{ matrix.os }}
@@ -222,82 +208,3 @@ jobs:
           try { ./install.ps1 } catch { $accepted = $false }
           Stop-Process $server
           if ($accepted) { throw "a wrong checksum was accepted" }
-
-  build:
-    timeout-minutes: 10
-    runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
-      - run: uv build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: |
-            dist/*.whl
-            dist/*.tar.gz
-          retention-days: 14
-
-  # Browser tests (Playwright, Chromium) against the running web UI; separate from the fast
-  # tests so that a missing browser or a slow run does not hold them up.
-  e2e:
-    timeout-minutes: 30
-    runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      # A PR that only changes documentation (docs/ and *.md) needs no browser run. The job
-      # still runs and reports success so that the required check "e2e" is satisfied; on main
-      # and for every other change the tests run as before.
-      - name: Check affected files
-        id: scope
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          run=true
-          if [ "$EVENT" = "pull_request" ]; then
-            other=$(git diff --name-only "$BASE" HEAD | grep -vE '^(docs/|[^/]+\.md$)' || true)
-            if [ -z "$other" ]; then run=false; fi
-          fi
-          echo "run=$run" >> "$GITHUB_OUTPUT"
-          echo "E2E tests: $run"
-      - if: steps.scope.outputs.run == 'true'
-        uses: jdx/mise-action@v3
-      - if: steps.scope.outputs.run == 'true'
-        run: uv sync --locked --all-extras
-      - name: Cache the Chromium download
-        if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-      # The self-hosted runner has no sudo; the system packages for Chromium are already
-      # installed there, so only the browser itself.
-      - name: Install Chromium (GitHub-hosted, with system packages)
-        if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
-        run: |
-          # The system packages come from the Ubuntu mirror, which sometimes hangs: stop after
-          # five minutes and try once more.
-          for attempt in 1 2; do
-            timeout -k 10 300 uv run playwright install-deps chromium && break
-            test "$attempt" = 2 && exit 1
-            # The stopped try can leave apt running and holding the dpkg lock: end it first.
-            sudo pkill -KILL -x apt-get || true
-            sudo pkill -KILL -x dpkg || true
-            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
-            sudo dpkg --configure -a || true
-          done
-          uv run playwright install chromium
-      - name: Install Chromium (self-hosted, without system packages)
-        if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
-        run: uv run playwright install chromium
-      - if: steps.scope.outputs.run == 'true'
-        run: uv run pytest -m e2e -v -n 3
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: e2e-screenshots
-          path: test-results/e2e/
-          retention-days: 7

@@ -7,7 +7,10 @@
   "A finished sprint is locked.": "Ein abgeschlossener Sprint ist gesperrt.",
   "A project named {name} exists already.": "Ein Projekt namens {name} gibt es schon.",
   "A sync is already running.": "Ein Abruf läuft schon.",
-  "Absence days and focus must not be negative.": "Abwesenheitstage und Fokus dürfen nicht negativ sein.",
+  "Absence days, focus and velocity must not be negative.": "Abwesenheitstage, Fokus und Velocity dürfen nicht negativ sein.",
+  "Enter the velocity you expect for {id} to save the prognosis.": "Gib die erwartete Velocity von {id} ein, um die Prognose zu speichern.",
+  "Only the sprint after the running one can be saved as a prognosis.": "Als Prognose lässt sich nur der Sprint nach dem laufenden speichern.",
+  "There is no forecast for {id} yet.": "Für {id} gibt es noch keine Prognose.",
   "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
   "Carried over": "Übertragen",
   "Choose the Excel workbook or CSV table": "Excel-Arbeitsmappe oder CSV-Tabelle wählen",
@@ -160,6 +163,12 @@
   "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen).",
   "The board number is a positive whole number.": "Die Board-Nummer ist eine positive ganze Zahl.",
   "A development build does not update itself. Install a release from {url}.": "Ein Entwicklungsstand aktualisiert sich nicht selbst. Eine Version von {url} installieren.",
-  "The mode must be on, notice or off.": "Der Modus muss on, notice oder off sein."
+  "The mode must be on, notice or off.": "Der Modus muss on, notice oder off sein.",
+  "a milestone is late": "ein Meilenstein ist verspätet",
+  "the contingent is used up ({used} of {booked} PD)": "das Kontingent ist aufgebraucht ({used} von {booked} PT)",
+  "the contingent is nearly used up ({remaining} of {booked} PD left)": "das Kontingent ist fast aufgebraucht (noch {remaining} von {booked} PT)",
+  "Project {name} is at risk: {why}.": "Projekt {name} ist gefährdet: {why}.",
+  "1 open ticket has no estimate.": "1 offenes Ticket hat keine Schätzung.",
+  "{count} open tickets have no estimate.": "{count} offene Tickets haben keine Schätzung."
  }
 }
