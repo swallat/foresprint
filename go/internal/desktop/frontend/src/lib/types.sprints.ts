@@ -76,6 +76,8 @@ export interface SprintRow {
   velocity: number | null;
   normalized: number | null;
   rate: number | null;
+  /** The fixed factor valid for the sprint; null = the measured rate is used. */
+  factor?: number | null;
   next: NextStep;
 }
 

@@ -137,6 +137,9 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 		if r.Trend != nil && s.ReferenceCapacity > 0 {
 			rate := *r.Trend / s.ReferenceCapacity
 			v.Rate = &rate
+			if f := forecastFactor(&data.Team, fc, r.ID); f != nil {
+				v.Rate, v.RateFixed = f, true
+			}
 			break
 		}
 	}
@@ -440,4 +443,20 @@ func forecastFreeLabel(list []model.Prognosis, target string) string {
 		}
 	}
 	return "Z"
+}
+
+// forecastFactor is the fixed points-per-PD factor that applies to a sprint (decision 19), nil
+// for a sprint in person days or without a fixed factor: the measured rate is shown then.
+func forecastFactor(team *model.Team, fc *forecast.Forecast, id string) *float64 {
+	order := make([]string, len(fc.Entries))
+	for i, e := range fc.Entries {
+		order[i] = e.Sprint.ID
+	}
+	if planning.UnitAt(team, order, id) != model.UnitSP {
+		return nil
+	}
+	if f := planning.FactorAt(team, order, id); f != nil && *f > 0 {
+		return f
+	}
+	return nil
 }
