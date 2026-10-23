@@ -219,7 +219,7 @@
   {/if}
 
   <div class="grid cols-2">
-    <section class="card" aria-labelledby="s-kind">
+    <section class="card" aria-labelledby="s-kind" data-tour="settings-storage">
       <h2 id="s-kind">{t('Kind of storage')}</h2>
       <div class="stack">
         <div class="opt on">

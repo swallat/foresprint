@@ -1,6 +1,6 @@
 // The guided flows (Help > Guided flows, flows.md decision 13): one walk-through per flow F1 to
-// F6 and F8 to F11. Each step names a page, optionally the element to mark and a sprint to
-// select, and says in a few sentences what to do there. They run on the demo team (Team Atlas),
+// F6 and F8 to F11, and D1 to D6 for the data flows. Each step names a page, optionally the
+// element to mark and a sprint to select, and says in a few sentences what to do there. They run on the demo team (Team Atlas),
 // never on the person's data.
 //
 // `target` is a CSS selector, by convention `[data-tour="name"]` (the names are listed in
@@ -160,6 +160,66 @@ export const flows: Flow[] = [
     ],
     withoutTracker: [
       { route: '/settings/tickets', text: () => t('This team keeps its work packages in Foresprint, so there is nothing to write back. A team with a tracker finds the switch for writing back here, and in the planning "Reconcile with the tracker" and "Take over into the tracker".') },
+    ],
+  },
+  {
+    id: 'D1',
+    title: () => t('Set up the storage'),
+    summary: () => t('Where the team keeps its data: clone from a server or open a folder, sign in, enter name and email.'),
+    steps: [
+      { route: '/settings/storage', target: tour('settings-storage'), text: () => t('The team keeps its data in Git. Under Settings > Storage you load it from the address of the repository or open a folder that is already a repository.') },
+      { route: '/settings/storage', target: tour('settings-storage'), text: () => t('If the server asks for a sign-in you paste a token and test it. The token goes to the key chain of your system, never into the data.') },
+      { route: '/settings/storage', target: tour('settings-storage'), text: () => t('Name and email are entered once. They show up in the history as the author of a change.') },
+      { route: '/today', target: tour('topbar-status'), text: () => t('When everything works, the storage chip in the top bar says "Saved". It is the one place that tells you how the data stands.') },
+    ],
+  },
+  {
+    id: 'D2',
+    title: () => t('Save and refresh'),
+    summary: () => t('Take over the changes of others, save your own and see what the check finds first.'),
+    steps: [
+      { route: '/today', target: tour('topbar-status'), text: () => t('In the background Foresprint checks for changes of others. The storage chip then says how many there are and from whom.') },
+      { route: '/today', target: tour('topbar-refresh'), text: () => t('Refresh takes the changes over. Your own unsaved changes stay; different values are merged by key.') },
+      { route: '/today', target: tour('topbar-save'), text: () => t('Save makes your work visible to the team: it commits, pulls and pushes in one step. If the check finds errors you see them with links and can fix them or save anyway. In the demo nothing is saved.') },
+    ],
+  },
+  {
+    id: 'D3',
+    title: () => t('Resolve a conflict'),
+    summary: () => t('Two people changed the same value: decide per entry, then save.'),
+    steps: [
+      { route: '/today', target: tour('topbar-status'), text: () => t('A conflict turns the storage chip red. All other pages stay usable; only the affected file waits.') },
+      { route: '/data/conflicts', target: tour('data-conflicts'), text: () => t('Under Data > Conflicts each entry shows mine, theirs and the value before. Pick one of them or edit the value.') },
+      { route: '/data/conflicts', target: tour('data-conflicts'), text: () => t('When every entry is decided, Save finishes the merge. "Discard mine" takes theirs for all entries.') },
+    ],
+  },
+  {
+    id: 'D4',
+    title: () => t('Merge request on the server'),
+    summary: () => t('The server does not accept direct pushes: Foresprint pushes to its own branch and links the merge request.'),
+    steps: [
+      { route: '/settings/storage', target: tour('settings-storage'), text: () => t('Foresprint has no merge request workflow of its own. It only copes with servers that reject direct pushes to the main branch.') },
+      { route: '/today', target: tour('topbar-status'), text: () => t('If the push is rejected, Foresprint pushes to its own branch. The server creates or updates the merge request and the chip says "Waiting for review", with a link.') },
+      { route: '/data', target: tour('topbar-save'), text: () => t('Keep working. The next Save updates the same branch. Once the request is merged on the server, the next Refresh takes it over.') },
+    ],
+  },
+  {
+    id: 'D5',
+    title: () => t('Work without a connection'),
+    summary: () => t('Server not reachable: Save commits locally, Refresh pushes it later.'),
+    steps: [
+      { route: '/today', target: tour('topbar-status'), text: () => t('If the server is not reachable the chip says "Offline, saving locally". Nothing is lost: Save commits on your computer.') },
+      { route: '/today', target: tour('topbar-refresh'), text: () => t('When the connection is back, Refresh takes over the changes of others and pushes your pending saves.') },
+      { route: '/data/conflicts', target: tour('data-conflicts'), text: () => t('If someone changed the same value meanwhile, the conflict view helps, as in "Resolve a conflict".') },
+    ],
+  },
+  {
+    id: 'D6',
+    title: () => t('History and restore'),
+    summary: () => t('See who changed what, take back a change or restore an earlier state.'),
+    steps: [
+      { route: '/data/history', target: tour('data-history'), text: () => t('Data > History lists the changes: who, when and what. Choose the scope: team, sprint or file.') },
+      { route: '/data/history', target: tour('data-history'), text: () => t('"Take back this change" reverses it as an unsaved change. Any earlier state can be restored the same way; Save then shares it. Tags mark the finished sprints.') },
     ],
   },
 ];
