@@ -139,7 +139,7 @@
   const pastFiltered = $derived.by(() => {
     const q = pastQuery.trim().toLowerCase();
     return pastRows.filter(
-      (r) => (pastYear === '' || r.start.startsWith(pastYear) || r.end.startsWith(pastYear)) && (q === '' || r.id.toLowerCase().includes(q) || formatPeriod(r.start, r.end).toLowerCase().includes(q)),
+      (r) => (pastYear === '' || r.end.startsWith(pastYear)) && (q === '' || r.id.toLowerCase().includes(q) || formatPeriod(r.start, r.end).toLowerCase().includes(q)),
     );
   });
   const pastFiltering = $derived(pastQuery.trim() !== '' || pastYear !== '');
