@@ -118,6 +118,25 @@
   "The program checks the download against the checksums of the release. Installing replaces the program file; your data is not touched.": "Das Programm prüft den Download gegen die Prüfsummen des Releases. Beim Installieren wird die Programmdatei ersetzt; deine Daten bleiben unberührt.",
   "Automatic check": "Automatische Prüfung",
   "The environment variable FORESPRINT_AUTOUPDATE takes precedence.": "Die Umgebungsvariable FORESPRINT_AUTOUPDATE hat Vorrang.",
-  "Update {latest}": "Update {latest}"
+  "Update {latest}": "Update {latest}",
+  "Add pro-forma sprint": "Pro-forma-Sprint hinzufügen",
+  "After applying and fetching": "Nach Anwenden und Abruf",
+  "An automatic fetch keeps your own order of the backlog; only the button takes the order of {tracker} again.": "Ein automatischer Abruf lässt deine eigene Reihenfolge im Backlog stehen; nur der Knopf übernimmt die Reihenfolge aus {tracker} wieder.",
+  "Automatic": "Automatisch",
+  "Automatic fetch": "Automatischer Abruf",
+  "Hits": "Treffer",
+  "Mark which sprints are only a place to park tickets (pro forma, for example “Refinement”). They appear under the backlog and never count for capacity or forecast. None, one or several are possible.": "Lege fest, welche Sprints nur Ablagen sind (pro forma, zum Beispiel „Refinement“). Sie erscheinen unter dem Backlog und zählen nie für Kapazität oder Forecast. Keiner, einer oder mehrere sind möglich.",
+  "Matches sprint in Foresprint": "Entspricht Foresprint-Sprint",
+  "Name of a pro-forma sprint": "Name eines Pro-forma-Sprints",
+  "No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.": "Noch keine Sprint-Namen bekannt. Ruf die Tickets ab oder füge einen Pro-forma-Sprint mit Namen hinzu.",
+  "No ticket has a value": "Kein Ticket hat einen Wert",
+  "Not found in {tracker}": "In {tracker} nicht gefunden",
+  "Sprints in {tracker}": "Sprints aus {tracker}",
+  "automatically by name": "automatisch per Name",
+  "every hour": "stündlich",
+  "every {n} minutes": "alle {n} Minuten",
+  "only on the button": "nur auf Knopfdruck",
+  "{name} (not found)": "{name} (nicht gefunden)",
+  "{name} is pro forma": "{name} ist pro forma"
  }
 }

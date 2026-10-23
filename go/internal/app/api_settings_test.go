@@ -290,3 +290,46 @@ func TestTrackerBoardNumber(t *testing.T) {
 		t.Fatalf("board not cleared: %d", out.BoardID)
 	}
 }
+
+func TestTrackerFetchIntervalAndSprints(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	in, err := api.TrackerSettings(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if in.ProForma == nil || in.Sprints == nil || in.FieldHits == nil {
+		t.Fatalf("lists must never be null: %+v", in)
+	}
+	in.Source, in.Kind = "tracker", "jira"
+	in.FetchInterval = 15
+	in.ProForma = []string{"Refinement", "Ideas"}
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := api.TrackerSettings(team)
+	if out.FetchInterval != 15 || len(out.ProForma) != 2 {
+		t.Fatalf("not kept: %d %v", out.FetchInterval, out.ProForma)
+	}
+	names := map[string]bool{}
+	for _, s := range out.Sprints {
+		names[s.Name] = true
+	}
+	if !names["Refinement"] || !names["Ideas"] {
+		t.Errorf("pro-forma names missing in the table: %+v", out.Sprints)
+	}
+	if info := api.TrackerInfo(team); info.Interval != 15 {
+		t.Errorf("status interval %d", info.Interval)
+	}
+	in.FetchInterval = 7
+	if err := api.SaveTrackerSettings(team, in); err == nil {
+		t.Error("an unknown interval must be refused")
+	}
+	in.FetchInterval = 0
+	in.ProForma = nil // a caller without the list keeps it
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	if out, _ = api.TrackerSettings(team); len(out.ProForma) != 2 || out.FetchInterval != 0 {
+		t.Errorf("after: %d %v", out.FetchInterval, out.ProForma)
+	}
+}

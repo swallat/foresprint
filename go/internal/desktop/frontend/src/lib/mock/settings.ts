@@ -60,6 +60,13 @@ let tracker: TrackerSettings = {
   fixedSources: ['epic', 'component', 'label', 'priority', 'type', 'status'],
   writeSprint: false,
   boardId: null,
+  fetchInterval: 15,
+  proForma: ['Refinement'],
+  sprints: [
+    { name: 'Refinement', tickets: 6, mapsTo: '' },
+    { name: 'Ideas', tickets: 2, mapsTo: '' },
+  ],
+  fieldHits: { estimate: 41, remaining: 12, epic: 30, status: 46, project: 28 },
   removedTarget: 'backlog',
   writeLabels: false,
   packagePrefix: '',
@@ -175,6 +182,7 @@ const settingsMock: SettingsApi = {
       last: tracker.imported,
       syncing: false,
       failed: '',
+      interval: tracker.fetchInterval,
     };
   },
   async SetDensity(code) {
@@ -199,6 +207,9 @@ const settingsMock: SettingsApi = {
   },
   async PackageImportApply(): Promise<Result> {
     return { ok: true, message: '3 work packages imported.' };
+  },
+  async SyncTrackerAuto(): Promise<Result> {
+    return { ok: true, message: '46 tickets read, no changes.' };
   },
   async SyncTracker(): Promise<Result> {
     tracker = { ...tracker, imported: new Date().toISOString() };

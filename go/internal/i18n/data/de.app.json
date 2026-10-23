@@ -160,6 +160,7 @@
   "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen).",
   "The board number is a positive whole number.": "Die Board-Nummer ist eine positive ganze Zahl.",
   "A development build does not update itself. Install a release from {url}.": "Ein Entwicklungsstand aktualisiert sich nicht selbst. Eine Version von {url} installieren.",
-  "The mode must be on, notice or off.": "Der Modus muss on, notice oder off sein."
+  "The mode must be on, notice or off.": "Der Modus muss on, notice oder off sein.",
+  "The interval of the automatic fetch is 5, 15 or 60 minutes, or by hand only.": "Der automatische Abruf läuft alle 5, 15 oder 60 Minuten oder nur auf Knopfdruck."
  }
 }

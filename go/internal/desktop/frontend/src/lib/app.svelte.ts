@@ -31,7 +31,7 @@ export const app = $state({
     detail: '',
     incoming: 0,
     findings: 0,
-    tracker: { enabled: false, name: '', last: '', syncing: false, failed: '' },
+    tracker: { enabled: false, name: '', last: '', syncing: false, failed: '', interval: 0 },
     data: undefined,
   } as unknown as Status,
   busy: '' as '' | 'save' | 'refresh' | 'sync',
@@ -245,6 +245,27 @@ export async function leaveDemo(): Promise<void> {
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;
+let fetchTimer: ReturnType<typeof setInterval> | undefined;
+const lastTry = new Map<string, number>(); // per team: when the window last started an automatic fetch
+
+/** Fetches the tickets when the interval of the team has passed. Silent: the top bar chip shows a
+ * failure, and the own order of the backlog stays (only the button takes the tracker's again). */
+export async function autoFetch(): Promise<void> {
+  const tr = app.status.tracker;
+  if (app.demo || !app.team || app.busy || !tr.enabled || tr.interval <= 0 || tr.syncing) return;
+  const since = Math.max(lastTry.get(app.team) ?? 0, Date.parse(tr.last) || 0);
+  if (Date.now() - since < tr.interval * 60000) return;
+  const team = app.team;
+  lastTry.set(team, Date.now());
+  try {
+    await api.SyncTrackerAuto(team);
+  } catch {
+    /* shown by the chip through refreshStatus */
+  }
+  const before = tr.last;
+  await refreshStatus();
+  if (app.team === team && app.status.tracker.last !== before) app.rev++;
+}
 
 /** Looks for a new version (once a day, never in the demo or a development build); silent on failure. */
 export async function checkUpdate(): Promise<void> {
@@ -267,4 +288,5 @@ export async function start(): Promise<void> {
   app.ready = true;
   void checkUpdate();
   timer ??= setInterval(refreshStatus, 15000);
+  fetchTimer ??= setInterval(autoFetch, 30000);
 }
