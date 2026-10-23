@@ -34,6 +34,7 @@ export interface BacklogTicket {
   trackerSprint: string;
   production: number | null;
   epic: string;
+  subtaskCount?: number;
   labels: string[];
   dependsOn: string[];
   blocked: boolean;

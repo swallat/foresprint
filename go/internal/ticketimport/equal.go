@@ -53,7 +53,8 @@ func ticketEqual(a, b model.Ticket) bool {
 		stringPtrEqual(a.Rank, b.Rank) && stringPtrEqual(a.Epic, b.Epic) &&
 		stringsEqual(a.Labels, b.Labels) && stringsEqual(a.Components, b.Components) &&
 		stringsEqual(a.DependsOn, b.DependsOn) && stringPtrEqual(a.Project, b.Project) &&
-		stringsEqual(a.ProjectCandidates, b.ProjectCandidates) && a.Done == b.Done
+		stringsEqual(a.ProjectCandidates, b.ProjectCandidates) && a.Done == b.Done &&
+		a.SubtaskCount == b.SubtaskCount
 }
 
 func ticketsEqual(a, b []model.Ticket) bool {

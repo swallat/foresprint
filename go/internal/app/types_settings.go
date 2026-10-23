@@ -107,10 +107,12 @@ type TrackerSettings struct {
 	HitsFields    TrackerFields `json:"hitsFields"`
 	RemovedTarget string        `json:"removedTarget"` // "backlog", "pro_forma" or "next"
 	WriteLabels   bool          `json:"writeLabels"`
-	PackagePrefix string        `json:"packagePrefix"`
-	Token         TokenState    `json:"token"`
-	Tickets       int           `json:"tickets"`  // tickets in the last import
-	Imported      string        `json:"imported"` // time of the last import (RFC 3339), "" if none
+	// IncludeSubtasks keeps the tracker's sub-tasks as tickets; off = left out of the import.
+	IncludeSubtasks bool       `json:"includeSubtasks"`
+	PackagePrefix   string     `json:"packagePrefix"`
+	Token           TokenState `json:"token"`
+	Tickets         int        `json:"tickets"`  // tickets in the last import
+	Imported        string     `json:"imported"` // time of the last import (RFC 3339), "" if none
 }
 
 // TrackerSprint is a sprint name met in the tracker.

@@ -84,6 +84,7 @@
     { label: t('Board number'), get: (s) => s.boardId || '' },
     { label: t('Removed tickets go to'), get: (s) => s.removedTarget, show: removedLabel },
     { label: t('Label planned_for_<sprint>'), get: (s) => s.writeLabels },
+    { label: t('Keep sub-tasks'), get: (s) => s.includeSubtasks },
     { label: t('Prefix of work packages'), get: (s) => s.packagePrefix },
   ]);
 
@@ -404,6 +405,13 @@
               <span class="chip {queryCheck.ok ? 'ok' : 'bad'}"><Icon name={queryCheck.ok ? 'check_circle' : 'error'} size={14} />{queryCheck.message}</span>
             {/if}
           </div>
+        </div>
+
+        <div class="card full">
+          <h2>{t('Sub-tasks')}</h2>
+          <Switch bind:checked={draft.includeSubtasks} title={t('Keep sub-tasks as tickets')}>
+            {t('Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.')}
+          </Switch>
         </div>
 
         <div class="card full" data-tour="settings-writeback">
