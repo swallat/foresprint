@@ -2,7 +2,8 @@ package app
 
 import (
 	"testing"
-	"time"
+
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 func TestTodayOfTheDemoTeam(t *testing.T) {
@@ -16,7 +17,12 @@ func TestTodayOfTheDemoTeam(t *testing.T) {
 	if err != nil || len(sprints) < 3 {
 		t.Fatalf("sprints = %v, %v", sprints, err)
 	}
-	mid, _ := time.Parse("2006-01-02", sprints[len(sprints)-3].Start)
+	// the selector also offers coming sprints of the calendar, so take the recorded ones
+	data, err := storage.NewRepository(api.DataDir()).Load(teams[0].Key)
+	if err != nil || len(data.Sprints) < 3 {
+		t.Fatalf("recorded sprints = %d, %v", len(data.Sprints), err)
+	}
+	mid := data.Sprints[len(data.Sprints)-3].Start
 	today, err := api.todayAt(teams[0].Key, mid.AddDate(0, 0, 3))
 	if err != nil {
 		t.Fatal(err)
