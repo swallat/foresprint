@@ -327,3 +327,132 @@ func TestClosedKeepsTheEndDate(t *testing.T) {
 		t.Fatalf("reopened project = end %q closedAt %q state %q", d.Project.End, d.Project.ClosedAt, d.Project.State)
 	}
 }
+
+// A full product gets a recommendation, daily business has its own row, and the project's need is
+// set against what is left of its contingent.
+func TestConflictRecommendationDailyAndFit(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	est := func(v float64) *float64 { return &v }
+	tickets := []model.Ticket{
+		{Key: "T-1", Title: "One", Estimate: est(2.9), Remaining: est(2.9), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha"), Rank: model.Ptr("a")},
+		{Key: "T-3", Title: "Done", Estimate: est(2), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha"), Done: true, InSprint: model.Ptr("2026.21")},
+		{Key: "D-2", Title: "Daily done", Estimate: est(1.5), EstimateSource: model.EstimateRefined, Product: model.Ptr("portal"), Done: true, InSprint: model.Ptr("2026.21")},
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	total := 2.0
+	data, _ := repo.Load(team)
+	data.Projects[0].Contingent.Total = &total
+	if _, err := repo.SaveProjects(team, data.Projects); err != nil {
+		t.Fatal(err)
+	}
+	v, err := api.Projects(team)
+	if err != nil || v.Problem != "" {
+		t.Fatalf("view: %+v, %v", v.Problem, err)
+	}
+	if len(v.Daily) != len(v.Conflict) || v.DailyDoneSprint != "2026.21" {
+		t.Fatalf("daily %d conflict %d done sprint %q", len(v.Daily), len(v.Conflict), v.DailyDoneSprint)
+	}
+	for i, r := range v.Conflict {
+		if r.Light == "ok" && r.Suggest.Kind != "none" {
+			t.Errorf("%s has room but suggests %+v", r.Product, r.Suggest)
+		}
+		if r.Product != "portal" {
+			continue
+		}
+		d := v.Daily[i]
+		if d.Product != "portal" || d.Done == nil || *d.Done != 1.5 || d.Budget == nil || d.Planned == nil {
+			t.Errorf("daily row = %+v", d)
+		}
+		if r.Light == "ok" {
+			t.Fatalf("the project nearly fills the budget of portal: %+v", r)
+		}
+		if s := r.Suggest; s.Kind != "move" || s.Ticket != "T-1" || s.Project != "alpha" || s.ProjectName != "Alpha" || s.Points != 2.9 {
+			t.Errorf("suggest = %+v", s)
+		}
+	}
+	if len(v.Fit) != 1 || v.Fit[0].Project != "alpha" || v.Fit[0].Remaining == nil || *v.Fit[0].Remaining != 0 {
+		t.Fatalf("fit = %+v", v.Fit)
+	}
+	if f := v.Fit[0]; f.Status != "over" || f.Missing == nil || *f.Missing != 2.9 {
+		t.Errorf("a project that needs 2.9 PD with nothing left is over: %+v", f)
+	}
+}
+
+// Tickets are grouped by the sprint of the tracker or the earmark; the forecast is only a hint.
+func TestTicketLinesKeepEarmarkAndForecastApart(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	data.Preplan.Earmarks = []model.Earmark{{Ticket: "T-2", Sprint: "2026.24"}}
+	if _, err := repo.SavePreplan(team, data.Preplan); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := map[string]TicketLine{}
+	for _, l := range d.Tickets {
+		by[l.Key] = l
+	}
+	if l := by["T-1"]; l.Sprint != "" || l.Forecast == "" || !l.Refined || l.Product != "portal" || l.EstimatePD == nil {
+		t.Errorf("not earmarked: %+v", l)
+	}
+	if l := by["T-2"]; l.Sprint != "2026.24" {
+		t.Errorf("earmarked: %+v", l)
+	}
+	if l := by["T-3"]; l.Sprint != "2026.21" || l.Forecast != "" {
+		t.Errorf("in a sprint of the tracker: %+v", l)
+	}
+}
+
+// The recommendation takes the latest ticket of the backlog (no rank is last), never a ticket
+// fixed in the sprint, and says nothing about a product nobody asks anything of.
+func TestSuggestOrderAndFixedTickets(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	est := func(v float64) *float64 { return &v }
+	tickets := []model.Ticket{
+		{Key: "T-1", Title: "Ranked", Estimate: est(1.4), Remaining: est(1.4), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha"), Rank: model.Ptr("a")},
+		{Key: "T-2", Title: "No rank", Estimate: est(1.4), Remaining: est(1.4), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha")},
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := api.Projects(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range v.Conflict {
+		switch r.Product {
+		case "portal":
+			if r.Light == "ok" {
+				t.Fatalf("both tickets fill portal: %+v", r)
+			}
+			if r.Suggest.Kind != "move" || r.Suggest.Ticket != "T-2" {
+				t.Errorf("a ticket without rank comes last in the backlog: %+v", r.Suggest)
+			}
+		default:
+			if r.Suggest.Kind != "none" {
+				t.Errorf("%s: nobody asks for this budget: %+v", r.Product, r.Suggest)
+			}
+		}
+	}
+	// A tracker sprint that is over does not fix a ticket; the line then has no sprint.
+	tickets[0].InSprint = model.Ptr("2026.19")
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range d.Tickets {
+		if l.Key == "T-1" && l.Sprint != "" {
+			t.Errorf("an ended sprint of the tracker is no sprint: %+v", l)
+		}
+	}
+}

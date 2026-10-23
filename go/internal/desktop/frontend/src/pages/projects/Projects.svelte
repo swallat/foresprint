@@ -10,6 +10,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import Amount from './Amount.svelte';
   import CloseProject from './CloseProject.svelte';
+  import ConflictView from './ConflictView.svelte';
   import { date, num, productColor } from './format';
   import LightChip from './LightChip.svelte';
   import Meter from './Meter.svelte';
@@ -206,6 +207,33 @@
               <td><Meter booked={p.booked} done={p.done} planned={p.planned} /></td>
             </tr>
           {/each}
+          {#if view.daily.length > 0}
+            <tr class="sub">
+              <td colspan={view.products.length > 1 ? 8 : 7}>
+                {view.products.length > 1
+                  ? t('Daily business per product, no light: the budget comes from the pre-planning, not from a project')
+                  : t('Daily business, no light: the budget comes from the pre-planning, not from a project')}
+              </td>
+            </tr>
+            {#each view.daily as r (r.product)}
+              <tr>
+                <td class="name"><span class="chip">{t('Daily business')}</span></td>
+                {#if view.products.length > 1}
+                  <td class="wrap">
+                    <span class="chip"><span class="dot" style:background={productColor(productIndex(r.product))}></span>{productName(r.product)}</span>
+                  </td>
+                {/if}
+                <td class="muted">{t('ongoing')}</td>
+                <td class="muted">{t('no light')}</td>
+                <td class="num"><Amount value={r.budget} est={estimated} /></td>
+                <td class="num"><Amount value={r.done} est={estimated} /></td>
+                <td class="num"><Amount value={r.planned} est={estimated} /></td>
+                <td class="small muted">
+                  {t('Budget of sprint {sprint}; done = sprint {done}', { sprint: view.conflictSprint, done: view.dailyDoneSprint || '–' })}
+                </td>
+              </tr>
+            {/each}
+          {/if}
         </tbody>
       </table>
     </div>
@@ -217,46 +245,7 @@
   {/if}
 
   {#if view.conflict.length > 0}
-    <section class="card" style="margin-top:16px" data-tour="projects-conflict">
-      <div class="row">
-        <h2 style="margin:0;flex:1">{t('Conflict view: demand and product budget')}</h2>
-        <span class="chip"><Icon name="event_available" size={16} />{t('Sprint')} <span class="data">{view.conflictSprint}</span></span>
-      </div>
-      <p class="muted" style="margin:4px 0 12px">
-        {t('What the projects ask of the next sprint, against the pre-planned budget of each product. Everything here is a recommendation. The PO decides.')}
-      </p>
-      <div class="tw">
-        <table class="t">
-          <thead>
-            <tr>
-              <th>{t('Product')}</th>
-              <th class="num">{t('Budget ({unit})', { unit: view.unit })}</th>
-              {#each view.projects as p (p.id)}<th class="num wrapth">{p.name}</th>{/each}
-              <th class="num">{t('Left for daily business')}</th>
-              <th>{t('Rating')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each view.conflict as r (r.product)}
-              <tr>
-                <td>{r.product ? productName(r.product) : app.teams.find((x) => x.key === app.team)?.name}</td>
-                <td class="num">{num(r.budget, 1)}</td>
-                {#each view.projects as p (p.id)}
-                  <td class="num">{num(r.demand.find((d) => d.project === p.id)?.points ?? 0, 1) === '0' ? '–' : num(r.demand.find((d) => d.project === p.id)?.points, 1)}</td>
-                {/each}
-                <td class="num"><strong>{num(r.rest, 1)}</strong></td>
-                <td><LightChip light={r.light} label={r.light === 'ok' ? t('room left') : r.light === 'warn' ? t('nearly full') : t('no room')} /></td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-      <Banner>
-        <strong>{t('The PO decides.')}</strong>
-        {t('Foresprint changes nothing here. Ways out: move work to a later sprint, accept the risk, or talk to the project lead.')}
-        {#snippet action()}<a class="btn" href={link('/sprint/preplan')}><Icon name="low_priority" />{t('To pre-planning')}</a>{/snippet}
-      </Banner>
-    </section>
+    <ConflictView {view} />
   {/if}
 
   {#if view.closed.length > 0}
@@ -346,19 +335,16 @@
     white-space: normal;
     min-width: 200px;
   }
+  tr.sub td {
+    background: var(--surface-2);
+    font-weight: 600;
+    font-size: 0.9em;
+  }
   .nowrap {
     flex-wrap: nowrap;
     gap: 4px;
   }
-  .wrapth {
-    white-space: normal;
-    min-width: 90px;
-  }
   summary {
     cursor: pointer;
-  }
-  a.btn {
-    text-decoration: none;
-    color: var(--text);
   }
 </style>
