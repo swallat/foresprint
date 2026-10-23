@@ -1,33 +1,33 @@
 [
  {
   "what": "new_branch",
-  "message": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
+  "message": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
   "kind": "new_branch",
   "hint": "",
   "hint_md": "",
   "raw": false,
-  "render_md": "The server has no branch “`main`” (available: `dev`). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
-  "full": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead."
+  "render_md": "The server has no branch “`main`” (available: `dev`). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
  },
  {
   "what": "new_branch",
-  "message": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
+  "message": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
   "kind": "new_branch",
   "hint": "",
   "hint_md": "",
   "raw": false,
-  "render_md": "This data folder has no saved data yet, but the server does (available: `main`, `dev`, `a`, `b`, `c`, …). The first share would create a new branch “`main`” there without the data of the team arriving. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
-  "full": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Clone repository” further down on this page instead."
+  "render_md": "This data folder has no saved data yet, but the server does (available: `main`, `dev`, `a`, `b`, `c`, …). The first share would create a new branch “`main`” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
  },
  {
   "what": "new_branch",
-  "message": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
+  "message": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
   "kind": "new_branch",
   "hint": "",
   "hint_md": "",
   "raw": false,
-  "render_md": "The server has no branch “`x`” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead.",
-  "full": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Clone repository” further down on this page instead."
+  "render_md": "The server has no branch “`x`” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
  },
  {
   "what": "unrelated",

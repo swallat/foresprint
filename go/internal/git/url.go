@@ -112,13 +112,13 @@ func NewBranchError(branch string, heads []string, unborn bool) *Error {
 			text = i18n.T("This data folder has no saved data yet, but the server does (available: "+
 				"{heads}). The first share would create a new branch “{branch}” there "+
 				"without the data of the team arriving. Anyone joining an existing team "+
-				"should choose “Clone repository” further down on this page instead.",
+				"should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
 				"branch", quote(branch), "heads", list)
 		} else {
 			text = i18n.T("The server has no branch “{branch}” (available: {heads}). The first share "+
 				"would create it there. That is only right if this really is the data "+
-				"repository. Anyone joining an existing team should choose “Clone "+
-				"repository” further down on this page instead.",
+				"repository. Anyone joining an existing team should choose “Or copy "+
+				"the data of a team from a server” in Settings > Storage instead.",
 				"branch", quote(branch), "heads", list)
 		}
 		return Scrub(text)
