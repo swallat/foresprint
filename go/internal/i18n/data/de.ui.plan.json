@@ -214,6 +214,8 @@
   "{project} in {unit}": "{project} in {unit}",
   "pre-planned": "vorgeplant",
   "{n} open {items} sit in tracker sprints that Foresprint cannot match to a sprint: {names}. Fetch again after naming them under Tickets and tracker, sprint names.": "{n} offene {items} liegen in Tracker-Sprints, die Foresprint keinem Sprint zuordnen kann: {names}. Benenne sie unter Tickets und Tracker (Sprintnamen) und rufe danach erneut ab.",
-  "Open Tickets and tracker": "Tickets und Tracker öffnen"
+  "Open Tickets and tracker": "Tickets und Tracker öffnen",
+  "{sprint} is running. The what-if analysis (what will probably be finished here, and so how much fits into the next sprint) is on the pre-planning of {next}.": "{sprint} läuft. Die Was-wäre-wenn-Analyse (was hier voraussichtlich fertig wird und wie viel dadurch in den nächsten Sprint passt) steht in der Vorplanung von {next}.",
+  "Open pre-planning of {next}": "Vorplanen von {next} öffnen"
  }
 }

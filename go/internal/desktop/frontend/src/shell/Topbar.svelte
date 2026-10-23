@@ -95,12 +95,17 @@
   .sel select {
     appearance: none;
     border: 0;
-    background: transparent;
+    /* not transparent: the open list of the select takes this color (white on Windows otherwise) */
+    background: var(--surface);
     padding: 0 20px 0 2px;
     height: 24px;
     cursor: pointer;
     max-width: 18ch;
     color: inherit;
+  }
+  .sel select option {
+    background-color: var(--surface);
+    color: var(--text);
   }
   .sel :global(.ic:last-child) {
     position: absolute;
