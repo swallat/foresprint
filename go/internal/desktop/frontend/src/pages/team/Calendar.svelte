@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageProps } from '../../lib/routes';
   import { api } from '../../lib/api';
-  import { app, toast } from '../../lib/app.svelte';
+  import { app, refreshSprints, toast } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -46,6 +46,7 @@
     try {
       view = await api.Calendar(app.team, COUNT);
       failed = '';
+      await refreshSprints();
       if (view.pattern && pattern === '{JJJJ}.{NN}') pattern = view.pattern;
     } catch (e) {
       failed = e instanceof Error ? e.message : String(e);
@@ -105,6 +106,7 @@
 
   async function afterChange(result: { view: CalendarView; moved: number; undo: number }, message: string) {
     view = result.view;
+    await refreshSprints();
     toast(message, 'ok', result.undo ? { label: t('Undo'), run: () => void undo(result.undo) } : undefined);
   }
 
