@@ -8,7 +8,7 @@ import { num } from './format';
 export type Note = 'accept' | 'talk';
 
 /** The products that are tight or full and the contingents that do not last, one line each. */
-function lines(view: ProjectsView): string[] {
+function lines(view: ProjectsView): { products: string[]; short: string[] } {
   const name = (id: string) => view.products.find((p) => p.id === id)?.name ?? id;
   const short = view.fit
     .filter((f) => f.status === 'over')
@@ -28,14 +28,20 @@ function lines(view: ProjectsView): string[] {
         rest: num(r.rest, 1),
       })}`;
     });
-  return [...products, ...short];
+  return { products, short };
 }
 
 /** The text of a note for the PO: accepting the risk, or talking to the project lead. */
 export function noteText(view: ProjectsView, kind: Note): string {
-  const head =
-    kind === 'accept'
+  const { products, short } = lines(view);
+  // The head says what the lines below it are about.
+  const onlyContingent = products.length === 0 && short.length > 0;
+  const head = onlyContingent
+    ? kind === 'accept'
+      ? t('The PO accepts the risk that the contingent of these projects does not last.')
+      : t('The contingent of these projects does not last. What should change?')
+    : kind === 'accept'
       ? t('Sprint {sprint}: the PO accepts the risk that the projects crowd out daily business.', { sprint: view.conflictSprint })
       : t('Sprint {sprint}: the projects ask more than the budget of these products allows. Which project can wait?', { sprint: view.conflictSprint });
-  return [head, '', ...lines(view)].join('\n');
+  return [head, '', ...products, ...short].join('\n');
 }

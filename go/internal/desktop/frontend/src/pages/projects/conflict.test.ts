@@ -33,6 +33,16 @@ describe('noteText', () => {
     expect(text).toMatch(/5[.,]5/);
   });
 
+  it('talks only about the contingent when every product has room', () => {
+    const roomy = { ...view, conflict: view.conflict.map((r) => ({ ...r, light: 'ok' as const })) } as ProjectsView;
+    for (const kind of ['accept', 'talk'] as const) {
+      const text = noteText(roomy, kind);
+      expect(text).toContain('contingent');
+      expect(text).toContain('Self-Service: ');
+      expect(text).not.toContain('Portal');
+    }
+  });
+
   it('names the sprint in both notes', () => {
     expect(noteText(view, 'accept')).toContain('2026.22');
     expect(noteText(view, 'talk')).toContain('2026.22');
