@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { shortNames } from '../../lib/axis';
   import { fmt } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { ForecastRow, WhatIfRow } from '../../lib/types.forecast';
@@ -27,17 +28,7 @@
   const wi = $derived(new Map(whatIf.map((r) => [r.id, r])));
 
   // Names that share a prefix ("Team Sprint 41", "Team Sprint 42") drop it on the axis; the tooltip keeps the full name.
-  const axisNames = $derived.by(() => {
-    const ids = all.map((r) => r.id);
-    if (ids.length < 2) return ids;
-    let n = 0;
-    while (n < (ids[0]?.length ?? 0) && ids.every((id) => id[n] === ids[0]?.[n])) n++;
-    const first = ids[0] ?? '';
-    const shared = first.slice(0, n);
-    // Cut after the last separator inside the shared prefix, never in the middle of a word.
-    const pre = shared.slice(0, Math.max(...[...shared].map((c, i) => (/[\s\-_.:/]/.test(c) ? i + 1 : 0)), 0));
-    return ids.map((id) => (id.length > pre.length ? id.slice(pre.length) : id));
-  });
+  const axisNames = $derived(shortNames(all.map((r) => r.id)));
   const slot = $derived((W - M0.l - M0.r) / Math.max(1, all.length));
   const needed = $derived(Math.max(0, ...axisNames.map((n) => n.length)) * CHAR + 6);
   // Labels that would touch alternate between two rows; if even that is too tight, every other one is skipped.
