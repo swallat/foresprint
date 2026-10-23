@@ -188,7 +188,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     team: 'atlas', sprint: sid, start: sp?.start ?? '', end: sp?.end ?? '', days: 10, stage: st,
     unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
-    absences: idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
+    absences: absencesFrozen.has(sid) || idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
     plan, planOriginal: f.plan, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
     split: { plan, carryIn: rest, plannable: free, smallStuff: Math.max(plan - rest, 0) - free, overbooked: rest > plan },
     carryLater: use?.later ?? sw?.later ?? 0, preplanned: multi ? preSum : (sprintPre[sid] ?? 0), removed: removedMock[sid] ?? [], sprintPre: multi ? null : (sprintPre[sid] ?? null), earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
@@ -210,6 +210,9 @@ export function planEarmark(ticket: string, sprint: string): boolean {
   if (x) x.sprint = sprint;
   return !!x;
 }
+
+/** Sprints whose allocation was frozen in the mock of the sprint pages. */
+export const absencesFrozen = new Set<string>();
 
 export const planMock: PlanApi = {
   async PlanSprint(_team, sprint, assume) {

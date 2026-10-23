@@ -39,6 +39,32 @@
   });
 
   const d = $derived(model.data);
+
+  /** People with announced absence days in this sprint (names and days only), for the banner. */
+  let announced = $state<{ name: string; days: number }[]>([]);
+  let announcedSeq = 0;
+  const bannerSprint = $derived(d && d.absences !== 'confirmed' && d.stage !== 'past' ? d.sprint : '');
+  $effect(() => {
+    const team = app.team;
+    const sprint = bannerSprint;
+    const mine = ++announcedSeq;
+    announced = [];
+    if (!team || !sprint) return;
+    api.AbsenceGrid(team, sprint, 1).then(
+      (g) => {
+        if (mine !== announcedSeq) return;
+        announced = g.rows.flatMap((r) => {
+          const c = r.cells[0];
+          return c && c.days > 0 && c.state !== 'confirmed' ? [{ name: r.name, days: c.days }] : [];
+        });
+      },
+      () => {
+        if (mine === announcedSeq) announced = [];
+      },
+    );
+  });
+  const freezeAbsences = () =>
+    model.change(async () => void (await api.FreezeAbsences(app.team, d!.sprint)), t('Allocation of {sprint} frozen.', { sprint: d!.sprint }));
   /** Tickets the tracker still has in the sprint that the team took out (saved with the sprint). */
   const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
@@ -185,7 +211,15 @@
       <div class="grow">
         <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
         {t('Capacity and Forecast PLAN can still change. This blocks nothing.')}
-        <div class="row gap"><a class="btn" href="#/sprint/prepare">{t('Confirm in Prepare')}</a></div>
+        {#if announced.length}
+          <div class="small">{t('Announced days:')} {announced.map((x) => `${x.name} (${fmt(x.days, 1)})`).join(', ')}</div>
+        {/if}
+        <div class="row gap">
+          {#if d.stage !== 'past'}
+            <button type="button" class="btn" id="freeze-absences" onclick={freezeAbsences}><Icon name="lock" />{t('Freeze allocation')}</button>
+          {/if}
+          <a class="btn ghost" href="#/sprint/prepare">{t('Confirm in Prepare')}</a>
+        </div>
       </div>
     </div>
   {/if}
@@ -337,7 +371,7 @@
                 <tr>
                   <td>{r.p.name}</td><td class="num">{fmt(r.amount, 1)}</td><td class="num">≈ {fmt(r.need, 1)}</td><td class="num">{fmt(r.rest, 1)}</td>
                   <td>
-                    {#if r.rest != null && r.rest < 0}<span class="chip bad">{t('over contingent')}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn">{t('tight')}</span>{:else if r.rest != null}<span class="chip ok">{t('on plan')}</span>{/if}
+                    {#if r.rest != null && r.rest < 0}<span class="chip bad"><Icon name="cancel" size={14} />{t('{n} PD over contingent', { n: fmt(Math.max(-r.rest, 0.1), 1) })}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn"><Icon name="error" size={14} />{t('tight, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{:else if r.rest != null}<span class="chip ok"><Icon name="check_circle" size={14} />{t('on plan, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{/if}
                     <Calc label={r.p.name} topic="projects"><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></Calc>
                   </td>
                 </tr>
