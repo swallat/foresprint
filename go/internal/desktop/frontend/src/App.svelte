@@ -30,6 +30,7 @@
   // page change focus <main>, unless the user is typing or has moved focus somewhere deliberate.
   $effect(() => {
     void current.path;
+    void app.ready;
     void tick().then(() => {
       const active = document.activeElement;
       if (active && active !== document.body && active !== document.documentElement && !active.closest('a, nav')) return;
