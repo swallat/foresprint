@@ -12,6 +12,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/analysis"
 	"github.com/swallat/foresprint/internal/capacity"
+	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
@@ -408,7 +409,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 }
 
 func assumptionOf(p model.Prognosis) Assumption {
-	as := Assumption{Label: labelOf(p), Commitment: p.Commitment, NotDone: p.NotDone, Extra: p.AdditionalDone, RestNext: p.RestNext, Carry: []CarryInput{}}
+	as := Assumption{Label: labelOf(p), Commitment: p.Commitment, NotDone: p.NotDone, Extra: p.AdditionalDone, RestNext: p.RestNext, FocusPercent: p.FocusPercent, ExtraAbsenceDays: p.ExtraAbsenceDays, Carry: []CarryInput{}}
 	for _, it := range p.Carry {
 		as.Carry = append(as.Carry, CarryInput{Ticket: str(it.Ticket), Rest: it.Rest, Target: it.Target})
 	}
@@ -726,16 +727,34 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 	if b, ok := analysis.BandOf(c.fc, c.entry); ok {
 		low, high = &b.Low, &b.High
 	}
+	ent := c.entry
+	adjusted := as.FocusPercent != nil || as.ExtraAbsenceDays != nil
 	if w.Touched {
 		if e, fc2, err := c.refore(cur.Sprint.ID, w.Commitment, w.Velocity); err != nil {
 			return nil, err
 		} else if e != nil {
+			ent = e
 			plan = e.Result.Plan
 			low, high = nil, nil
 			if b, ok := analysis.BandOf(fc2, e); ok {
 				low, high = &b.Low, &b.High
 			}
 		}
+	}
+	if adjusted {
+		// focus and extra absence of the Forecast page change the plan the same way there
+		before := plan
+		plan = planAdjusted(&c.data.Team, ent.Result, as.ExtraAbsenceDays, as.FocusPercent)
+		if before != nil && plan != nil && *before > 0 {
+			scale := func(b *float64) *float64 {
+				if b == nil {
+					return nil
+				}
+				return model.Ptr(engine.RoundDown(*b**plan / *before, c.data.Team.Forecast.Rounding))
+			}
+			low, high = scale(low), scale(high)
+		}
+		w.Touched = true
 	}
 	w.Plan, w.Low, w.High = plan, low, high
 	if plan != nil {
@@ -817,6 +836,7 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 	if w.Extra > 0 {
 		p.AdditionalDone = &w.Extra
 	}
+	p.FocusPercent, p.ExtraAbsenceDays = as.FocusPercent, as.ExtraAbsenceDays
 	for _, it := range as.Carry {
 		key := it.Ticket
 		p.Carry = append(p.Carry, model.CarryItem{Ticket: &key, Rest: it.Rest, Target: it.Target})
@@ -1319,4 +1339,16 @@ func (a *API) UseMatrix(team, sprintID string) error {
 		}
 		return nil
 	})
+}
+
+// planAdjusted is the plan of a forecast result with person days off in addition to the known
+// absences and a share (percent, 100 = as measured) of the capacity that turns into points. It
+// is the Forecast page's what-if, so a saved prognosis plans the same on both pages.
+func planAdjusted(team *model.Team, r engine.SprintResult, extraAbsence, focusPercent *float64) *float64 {
+	trend, ref := r.NormalizedVelocity.Trend, team.Forecast.ReferenceCapacity
+	if r.PlanCapacity == nil || trend == nil || ref <= 0 {
+		return r.Plan
+	}
+	capacity := max(0, *r.PlanCapacity-floatOr(extraAbsence, 0))
+	return model.Ptr(engine.RoundDown(*trend/ref*capacity*floatOr(focusPercent, 100)/100, team.Forecast.Rounding))
 }

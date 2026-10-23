@@ -137,9 +137,11 @@ function whatIf(sid: string, as: Assumption): WhatIf | null {
       if (c) (c.target === '' || c.target === sid ? (rest += c.rest) : (later += c.rest));
     }
   }
-  const touched = noT ? notDone > 0 || extra > 0 || as.commitment != null : as.carry.length > 0;
+  const adjusted = as.focusPercent != null || as.extraAbsenceDays != null;
+  const touched = adjusted || (noT ? notDone > 0 || extra > 0 || as.commitment != null : as.carry.length > 0);
   const velocity = Math.max(commitment - notDone + extra, 0);
-  const k = touched ? 1 + (velocity - commitment) / (commitment * 12) : 1;
+  const capShare = Math.max(f.cap - (as.extraAbsenceDays ?? 0), 0) / f.cap * ((as.focusPercent ?? 100) / 100);
+  const k = (touched ? 1 + (velocity - commitment) / (commitment * 12) : 1) * capShare;
   const plan = Math.round(f.plan * k);
   const free = Math.floor(Math.max(plan - rest, 0) * SHARE);
   return {

@@ -99,6 +99,9 @@ export interface Assumption {
   notDone: number | null;
   extra: number | null;
   restNext: number | null;
+  /** From the Forecast page: share of the capacity in percent and extra person days off. */
+  focusPercent?: number | null;
+  extraAbsenceDays?: number | null;
 }
 
 export interface WhatIf {
