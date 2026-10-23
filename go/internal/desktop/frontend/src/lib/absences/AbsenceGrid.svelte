@@ -24,8 +24,10 @@
     totals?: boolean;
     /** Called with the changed column after every edit, so that a page can refresh its figures. */
     onchange?: (column: AbsenceColumn) => void;
+    /** Changes when the people or periods behind the grid changed elsewhere: the grid reads again. */
+    version?: number;
   }
-  let { team, from = '', count = 4, focus = '', totals = true, onchange }: Props = $props();
+  let { team, from = '', count = 4, focus = '', totals = true, onchange, version = 0 }: Props = $props();
 
   let grid = $state<AbsenceGrid | undefined>();
   let error = $state('');
@@ -47,7 +49,7 @@
 
   // Reload when team, start or width change; not when the grid itself changes.
   $effect(() => {
-    void [team, from, count];
+    void [team, from, count, version];
     untrack(load);
   });
 
