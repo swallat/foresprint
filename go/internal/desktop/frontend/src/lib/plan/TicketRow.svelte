@@ -19,8 +19,9 @@
     moveIcon?: 'arrow_forward' | 'arrow_back';
     onmove?: () => void;
     ondragstart?: (e: DragEvent) => void;
+    ondragend?: () => void;
   }
-  let { ticket, d, drag = false, showProduct = true, showProject = true, moveLabel = '', moveIcon = 'arrow_forward', onmove, ondragstart }: Props = $props();
+  let { ticket, d, drag = false, showProduct = true, showProject = true, moveLabel = '', moveIcon = 'arrow_forward', onmove, ondragstart, ondragend }: Props = $props();
   const product = $derived(d.products.find((p) => p.id === ticket.product));
   const project = $derived(d.projects.find((p) => p.id === ticket.project));
 </script>
@@ -33,6 +34,7 @@
   role="listitem"
   tabindex="0"
   {ondragstart}
+  {ondragend}
 >
   <span class="handle" aria-hidden="true">{#if drag}<Icon name="drag_indicator" />{/if}</span>
   <span class="key">
