@@ -161,17 +161,17 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
 ## Documentation
 
 - [Installation and updates](docs/installation.md)
+- [The window](docs/window.md): pages, saving and sharing with Git, server setup, history
 - [Sprint workflow](docs/sprint-workflow.md): what to do when
 - [Command line and configuration](docs/cli.md): all commands, the data directory, language
 - [Data format](docs/data-format.md): `team.yaml`, `people.yaml`, `products.yaml`, sprint files
 - [Calculation](docs/calculation.md): formulas, capacity sources, trend modes, uncertainty
 - [Jira import](docs/jira.md) and [Data repository](docs/data-repository.md)
+- [Releasing](docs/releasing.md), [Code signing](docs/code-signing.md) and
+  [Performance](docs/performance.md)
 - [The window (developer notes)](go/internal/desktop/README.md) and the
   [1.0 plan](docs/redesign/plan.md)
-- `foresprint help [workflow|terms|fields|team|commands]` and the *Help* page of the window
-
-Parts of the documentation under `docs/` still describe the 0.x line (a browser UI) and are being
-updated for 1.0.
+- `foresprint help [workflow|terms|fields|team|commands]` and the *Help* pages of the window
 
 ## Development
 

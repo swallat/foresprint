@@ -8,17 +8,17 @@ are excluded from the code repository through `.gitignore`).
 
 - YAML files, one sprint per file, easy to diff and merge.
 - Parallel maintenance by POs and Scrum Masters works because every sprint is its own file;
-  different values in the same file are merged automatically (see [Web UI](web-ui.md) for the
+  different values in the same file are merged automatically (see [The window](window.md) for the
   details and the conflict resolution).
 - Every change has an author, a time and a history; an earlier state can be restored.
 - Closed sprints are marked with the tag `TEAM/SPRINT`.
-- No server component: the web UI runs locally on the clone, and the hosted Git service
+- No server component: the window runs locally on the clone, and the hosted Git service
   (GitHub, GitLab, ...) handles sharing and access control.
 
 ## Template
 
 The template [`templates/daten-repo/`](../templates/daten-repo) is the starting point for a new
-data repository (the web UI's **Data folder** page creates a repository with `.gitignore` and a
+data repository (the first-start guide of the window creates a repository with `.gitignore` and a
 `teams` folder with `.gitattributes` through "Create new data repository"; the task file and the
 workflow come from the template):
 
@@ -43,7 +43,7 @@ data-repo/
 - `.gitattributes` forces LF line endings for `*.yaml`, `*.yml` and `*.md` even with
   `core.autocrlf` on Windows; otherwise the first save would rewrite every line ending and add
   noise to the history.
-  An existing repository without it gets an offer: on the "Data folder" page (Settings), the
+  An existing repository without it gets an offer: in **Settings > Storage**, the
   section "Set line endings" shows the lines to be added (an existing `.gitattributes` is
   extended, never rewritten) and the tracked files that are stored with CRLF and would be
   converted to LF. Nothing is written before you click "Create `.gitattributes`", and the

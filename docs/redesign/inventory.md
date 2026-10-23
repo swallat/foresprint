@@ -2,7 +2,7 @@
 
 Superseded: the navigation and the home of every function are defined in [flows.md](flows.md). This table is kept as the first rough pass.
 
-Source: [docs/web-ui.md](../web-ui.md), [docs/sprint-workflow.md](../sprint-workflow.md). Fate: keep, merge, rework, drop (proposal, to be confirmed in review).
+Source: `docs/web-ui.md` of the 0.x line (branch `main`), [docs/sprint-workflow.md](../sprint-workflow.md). Fate: keep, merge, rework, drop (proposal, to be confirmed in review).
 
 | 0.8 page | Fate in 1.0 | Notes |
 | --- | --- | --- |
