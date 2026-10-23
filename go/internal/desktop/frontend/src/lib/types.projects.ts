@@ -17,6 +17,7 @@ export interface MilestoneView {
   tickets: string[];
   done: number;
   total: number;
+  open: number;
   light: Light;
   /** The light set by hand; '' = derived from the tickets. */
   hand: HandLight;

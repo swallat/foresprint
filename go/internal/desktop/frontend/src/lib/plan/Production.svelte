@@ -50,7 +50,7 @@
               : t('fits')}
         </span>
       {/if}
-      <Calc label={t('Production')} topic="production">
+      <Calc label={t('Production')} topic="units">
         {#each prod.people as p (p.name)}
           <div>{p.name}: <span class="data">{fmt(p.capacity, 1)} {t('PD')}</span></div>
         {/each}

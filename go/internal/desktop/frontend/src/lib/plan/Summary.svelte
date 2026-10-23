@@ -64,7 +64,7 @@
     </h2>
     <div class="row">
       <span class="big fc">{fmt(d.plan, 0)} {unit}</span>
-      <Calc label={t('Forecast PLAN')} topic="forecast-plan">
+      <Calc label={t('Forecast PLAN')} topic="forecast">
         <div>{t('Capacity times the rate (trend of the normalized velocity).')}</div>
         <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(ratio, 2)} = {fmt(d.plan, 0)}</div>
       </Calc>
@@ -121,7 +121,7 @@
       <h2>{t('Production')}</h2>
       <div class="row">
         <span class="big">{prod.demandSet ? fmt(prod.demand, 1) : '–'} {t('of')} {fmt(prod.available, 1)} {t('PD')}</span>
-        <Calc label={t('Production')} topic="production">
+        <Calc label={t('Production')} topic="units">
           <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
           <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
         </Calc>

@@ -248,6 +248,7 @@ func (c *projectCtx) milestoneViews(p model.Project) []MilestoneView {
 				v.Light = "none"
 			}
 			v.Source = st.Source
+			v.Open = st.Open
 			if st.Late != nil {
 				v.Late = st.Late
 			}

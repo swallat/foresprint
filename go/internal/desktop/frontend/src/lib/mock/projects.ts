@@ -43,6 +43,7 @@ const milestone = (id: string, name: string, date: string, light: Light, done = 
   tickets: Array.from({ length: total }, (_, i) => `AT-${100 + i}`),
   done,
   total,
+  open: Math.max(total - done, 0),
   light,
   hand,
   source: hand ? 'hand' : total > done ? 'derived' : 'none',

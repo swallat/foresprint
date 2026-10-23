@@ -386,7 +386,7 @@
               <strong>{t('Backlog')}</strong>
               <span class="chip data">{items.length}</span>
               <span class="muted small data">{fmt(sum(items))} {unit}</span>
-              <Calc label={t('Backlog')} topic="backlog-sum">
+              <Calc label={t('Backlog')} topic="sums">
                 <span class="data">{t('{count} tickets in the list', { count: items.length })}</span><br />
                 <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: fmt(sum(items)), unit })}</span><br />
                 <span class="data">{t('Without estimate (count 0): {count}', { count: items.filter((tk) => tk.size == null).length })}</span><br />
@@ -492,7 +492,7 @@
                 {:else}
                   <span class="data"><strong>{fmt(used)}</strong> {t('earmarked, no forecast yet')}</span>
                 {/if}
-                <Calc label={t('Earmarked in {sprint}', { sprint: l.sprint })} topic="earmarked-sum">
+                <Calc label={t('Earmarked in {sprint}', { sprint: l.sprint })} topic="sums">
                   <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: fmt(used), unit })}</span><br />
                   <span class="data">{t('Without estimate (count 0): {count}', { count: l.tickets.filter((tk) => tk.size == null).length })}</span><br />
                   {#if l.plan != null}

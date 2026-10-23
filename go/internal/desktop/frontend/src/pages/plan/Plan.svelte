@@ -372,7 +372,7 @@
                   <td>{r.p.name}</td><td class="num">{fmt(r.amount, 1)}</td><td class="num">≈ {fmt(r.need, 1)}</td><td class="num">{fmt(r.rest, 1)}</td>
                   <td>
                     {#if r.rest != null && r.rest < 0}<span class="chip bad"><Icon name="cancel" size={14} />{t('{n} PD over contingent', { n: fmt(Math.max(-r.rest, 0.1), 1) })}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn"><Icon name="error" size={14} />{t('tight, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{:else if r.rest != null}<span class="chip ok"><Icon name="check_circle" size={14} />{t('on plan, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{/if}
-                    <Calc label={r.p.name} topic="projects"><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></Calc>
+                    <Calc label={r.p.name} topic="units"><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></Calc>
                   </td>
                 </tr>
               {/each}
