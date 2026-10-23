@@ -33,7 +33,42 @@ Foresprint 1.0 is a single native program written in Go with a [Wails](https://w
 (Svelte frontend). The window and the command line are the same file, and nothing else has to be
 installed.
 
-**Get started:** [install it](#installation) with one command, then [try the demo](#quick-start).
+
+
+## Install
+
+One command downloads the program for your system from the newest release and checks it against
+the published SHA-256 sums. Git is needed only for data kept in a Git repository (details in
+[Installation](docs/installation.md)).
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex"
+```
+
+A specific version (the default is the newest release): set it first, for example
+`$env:FORESPRINT_VERSION = "1.0.0-beta.5"; irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex`.
+
+**Linux / macOS:**
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/v1/install.sh | sh
+# a specific version: curl -LsSf …/install.sh | FORESPRINT_VERSION=1.0.0 sh
+```
+
+The scripts are taken from the `v1` branch until 1.0 moves to `main`. Then open a new terminal.
+The script also creates a launcher "Foresprint" (desktop and Start menu on Windows, `~/Applications` on macOS, application entry on Linux); a double click opens the
+window. On Linux the window needs GTK 3 and WebKitGTK 4.1, and there is a CLI-only archive for
+servers (`FORESPRINT_VARIANT=cli`), see [Installation](docs/installation.md).
+
+The program is not signed, so Windows SmartScreen and macOS Gatekeeper warn once on the first
+start, see [Not signed](docs/installation.md#not-signed-smartscreen-and-gatekeeper).
+
+**Update:** run the installer again, or `foresprint update`. The program also checks once a day and
+can install new versions by itself (`foresprint update --auto on|notice|off`).
+**Uninstall** (keeps your data): `uninstall.sh` / `uninstall.ps1`, see
+[Uninstalling](docs/installation.md#uninstalling).
 
 ## Features
 
@@ -55,37 +90,6 @@ installed.
 - **Unit-neutral:** the estimation unit, story points (SP) or person days (PD), is a team setting.
 - **English and German:** window and command line in both languages, light and dark theme. The YAML
   files are always English.
-
-## Installation
-
-One command downloads the program for your system from the newest release and checks it against
-the published SHA-256 sums. Git is needed only for data kept in a Git repository (details in
-[Installation](docs/installation.md)).
-
-**Windows (PowerShell):**
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
-```
-
-**Linux / macOS:**
-
-```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
-```
-
-Then open a new terminal. The script also creates a launcher "Foresprint" (desktop and Start menu
-on Windows, `~/Applications` on macOS, application entry on Linux); a double click opens the
-window. On Linux the window needs GTK 3 and WebKitGTK 4.1, and there is a CLI-only archive for
-servers (`FORESPRINT_VARIANT=cli`), see [Installation](docs/installation.md).
-
-The program is not signed, so Windows SmartScreen and macOS Gatekeeper warn once on the first
-start, see [Not signed](docs/installation.md#not-signed-smartscreen-and-gatekeeper).
-
-**Update:** run the installer again, or `foresprint update`. The program also checks once a day and
-can install new versions by itself (`foresprint update --auto on|notice|off`).
-**Uninstall** (keeps your data): `uninstall.sh` / `uninstall.ps1`, see
-[Uninstalling](docs/installation.md#uninstalling).
 
 ## Quick start
 
