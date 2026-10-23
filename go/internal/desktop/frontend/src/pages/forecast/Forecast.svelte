@@ -2,7 +2,7 @@
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { fmt, pct, shortDate } from '../../lib/format';
+  import { fmt, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { ForecastView, WhatIfRow, WhenDoneView } from '../../lib/types.forecast';
@@ -188,7 +188,7 @@
               <tr>
                 <td>
                   <span class="data">{r.id}</span>
-                  <span class="small muted data">{shortDate(r.start)} – {shortDate(r.end)}</span>
+                  <span class="small muted data">{formatPeriod(r.start, r.end)}</span>
                   {#if r.state === 'current'}<span class="chip ok">{t('in progress')}</span>{/if}
                 </td>
                 <td class="num">{fmt(r.capacity)}</td>
@@ -382,7 +382,7 @@
             <tbody>
               {#each [...view.past].reverse() as r (r.id)}
                 <tr>
-                  <td><span class="data">{r.id}</span> <span class="small muted data">{shortDate(r.start)} – {shortDate(r.end)}</span></td>
+                  <td><span class="data">{r.id}</span> <span class="small muted data">{formatPeriod(r.start, r.end)}</span></td>
                   <td class="num">{fmt(r.capacity)}</td>
                   <td class="num">{fmt(r.commitment)}</td>
                   <td class="num">{fmt(r.velocity)}</td>

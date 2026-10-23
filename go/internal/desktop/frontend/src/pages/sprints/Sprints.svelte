@@ -4,7 +4,7 @@
   // any sprint opens; nothing is locked.
   import { api } from '../../lib/api';
   import { days } from '../../lib/absences/format';
-  import { shortDate } from '../../lib/absences/format';
+  import { formatPeriod } from '../../lib/format';
   import { app, selectSprint } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import { t } from '../../lib/i18n.svelte';
@@ -105,7 +105,7 @@
         {#each data.rows as r (r.id)}
           <tr class:cur={r.id === app.sprint}>
             <td><span class="data"><strong>{r.name}</strong></span></td>
-            <td class="data">{shortDate(r.start)} – {shortDate(r.end)}</td>
+            <td class="data">{formatPeriod(r.start, r.end)}</td>
             <td><span class="chip {r.state === 'current' ? 'ok' : ''}">{stateText(r)}</span></td>
             <td>
               <span class="chip {r.absences === 'confirmed' ? 'ok' : r.absences === 'announced' ? 'warn' : ''}">

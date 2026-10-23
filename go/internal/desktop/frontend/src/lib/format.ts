@@ -30,3 +30,9 @@ export function pct(value: number | null | undefined, digits = 0): string {
 export function shortDate(iso: string): string {
   return formatDay(iso, 'short');
 }
+
+/** A period of days with the year on both ends, e.g. "30.09.2026 – 14.10.2026". */
+export function formatPeriod(start: string, end: string): string {
+  const f = new Intl.DateTimeFormat(language(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return `${f.format(parseDay(start))} – ${f.format(parseDay(end))}`;
+}
