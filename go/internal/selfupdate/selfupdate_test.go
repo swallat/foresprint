@@ -28,6 +28,9 @@ func TestNewer(t *testing.T) {
 		{"1.0.0-beta.1", "1.0.0", true},
 		{"1.0.0", "1.0.0-beta.2", false},
 		{"v1.0.0", "v1.1.0", true},
+		{"1.0.0-beta.9", "1.0.0-beta.10", true},
+		{"1.0.0-beta.10", "1.0.0-beta.9", false},
+		{"1.0.0-beta.2", "1.0.0-rc.1", true},
 		{"dev", "9.9.9", false},
 		{"1.0.0", "weird", false},
 	} {

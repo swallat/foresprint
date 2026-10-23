@@ -361,7 +361,31 @@ func Newer(current, latest string) bool {
 	case c.pre != "" && l.pre == "":
 		return true
 	}
-	return l.pre > c.pre
+	return comparePre(l.pre, c.pre) > 0
+}
+
+// comparePre orders pre-release labels part by part (split at dots, numbers as numbers), so
+// that beta.10 is above beta.9.
+func comparePre(a, b string) int {
+	x, y := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(x) && i < len(y); i++ {
+		m, errM := strconv.Atoi(x[i])
+		n, errN := strconv.Atoi(y[i])
+		switch {
+		case errM == nil && errN == nil && m != n:
+			return m - n
+		case errM == nil && errN == nil:
+		case errM == nil: // a number is below a word
+			return -1
+		case errN == nil:
+			return 1
+		default:
+			if c := strings.Compare(x[i], y[i]); c != 0 {
+				return c
+			}
+		}
+	}
+	return len(x) - len(y)
 }
 
 type version struct {

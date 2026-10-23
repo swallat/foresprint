@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/swallat/foresprint/internal/i18n"
@@ -23,6 +24,26 @@ type UpdateInfo struct {
 	Restart   bool   `json:"restart"`   // an update was installed, the next start uses it
 }
 
+// updateMu serializes the changes of update.json: a check on its way must not undo a mode set
+// meanwhile. updateInstalledVersion is the version this process has put in place.
+var (
+	updateMu               sync.Mutex
+	updateInstalledVersion string
+)
+
+// updateRemember stores what a check found and leaves the rest of the state (the mode) as it
+// is now.
+func updateRemember(latest string) {
+	updateMu.Lock()
+	defer updateMu.Unlock()
+	st := selfupdate.LoadState()
+	st.LastCheck = time.Now().UTC()
+	if latest != "" {
+		st.Latest = latest
+	}
+	_ = st.Save()
+}
+
 func (a *API) updateInfo(latest, url string) UpdateInfo {
 	st := selfupdate.LoadState()
 	if latest == "" {
@@ -30,12 +51,13 @@ func (a *API) updateInfo(latest, url string) UpdateInfo {
 	}
 	info := UpdateInfo{
 		Version: a.Version, Latest: latest, URL: url, Mode: string(selfupdate.CurrentMode()),
-		ModeEnv: os.Getenv(selfupdate.ModeEnv) != "", Dev: selfupdate.IsDevelopment(a.Version),
+		ModeEnv: updateEnvMode(), Dev: selfupdate.IsDevelopment(a.Version),
 	}
 	if !st.LastCheck.IsZero() {
 		info.LastCheck = st.LastCheck.UTC().Format(time.RFC3339)
 	}
-	info.Available = !info.Dev && latest != "" && selfupdate.Newer(a.Version, latest)
+	info.Restart = latest != "" && latest == updateInstalledVersion
+	info.Available = !info.Dev && !info.Restart && info.Mode != string(selfupdate.Off) && latest != "" && selfupdate.Newer(a.Version, latest)
 	if info.URL == "" && latest != "" {
 		info.URL = "https://github.com/" + selfupdate.DefaultRepo + "/releases/tag/v" + latest
 	}
@@ -51,23 +73,20 @@ func (a *API) CheckUpdate(auto bool) (UpdateInfo, error) {
 	if selfupdate.IsDevelopment(a.Version) {
 		return a.updateInfo("", ""), nil
 	}
-	st := selfupdate.LoadState()
-	if auto && (selfupdate.CurrentMode() == selfupdate.Off || !st.Due(time.Now())) {
+	if auto && (selfupdate.CurrentMode() == selfupdate.Off || !selfupdate.LoadState().Due(time.Now())) {
 		return a.updateInfo("", ""), nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	rel, err := (&selfupdate.Updater{Current: a.Version}).Latest(ctx)
-	st.LastCheck = time.Now().UTC() // also after a failure: try again tomorrow, not at every start
 	if err != nil {
-		_ = st.Save()
+		updateRemember("") // also after a failure: try again tomorrow, not at every start
 		if auto {
 			return a.updateInfo("", ""), nil
 		}
 		return a.updateInfo("", ""), updateErr("The newest version could not be determined: {error}", "error", err.Error())
 	}
-	st.Latest = rel.Version
-	_ = st.Save()
+	updateRemember(rel.Version)
 	return a.updateInfo(rel.Version, rel.URL), nil
 }
 
@@ -91,12 +110,11 @@ func (a *API) InstallUpdate() (UpdateInfo, error) {
 	if err := u.Install(ctx, rel); err != nil {
 		return a.updateInfo(rel.Version, rel.URL), updateErr("The update failed: {error}", "error", err.Error())
 	}
-	st := selfupdate.LoadState()
-	st.LastCheck, st.Latest = time.Now().UTC(), rel.Version
-	_ = st.Save()
-	info := a.updateInfo(rel.Version, rel.URL)
-	info.Restart = true
-	return info, nil
+	updateRemember(rel.Version)
+	updateMu.Lock()
+	updateInstalledVersion = rel.Version
+	updateMu.Unlock()
+	return a.updateInfo(rel.Version, rel.URL), nil
 }
 
 // SetUpdateMode saves the automatic mode: on, notice or off. In the window every mode only
@@ -106,6 +124,8 @@ func (a *API) SetUpdateMode(mode string) error {
 	if !ok {
 		return updateErr("The mode must be on, notice or off.")
 	}
+	updateMu.Lock()
+	defer updateMu.Unlock()
 	st := selfupdate.LoadState()
 	st.Mode = string(m)
 	if err := st.Save(); err != nil {
@@ -115,3 +135,9 @@ func (a *API) SetUpdateMode(mode string) error {
 }
 
 func updateErr(text string, values ...any) error { return errors.New(i18n.T(text, values...)) }
+
+// updateEnvMode reports whether the environment variable holds a mode (that is when it wins).
+func updateEnvMode() bool {
+	_, ok := selfupdate.ParseMode(os.Getenv(selfupdate.ModeEnv))
+	return ok
+}

@@ -43,3 +43,30 @@ func TestUpdateDevelopmentBuildDoesNotUpdate(t *testing.T) {
 		t.Error("a development build installed an update")
 	}
 }
+
+func TestUpdateRememberKeepsModeAndInstalledHidesOffer(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("APPDATA", "")
+	t.Setenv(selfupdate.ModeEnv, "yes") // not a mode: must not claim precedence
+	a := &API{Version: "1.0.0"}
+	if err := a.SetUpdateMode("notice"); err != nil {
+		t.Fatal(err)
+	}
+	updateRemember("1.0.1") // a check that ended after the mode was set
+	got := a.UpdateStatus()
+	if got.Mode != "notice" || got.ModeEnv || !got.Available {
+		t.Fatalf("after check: %+v", got)
+	}
+	updateInstalledVersion = "1.0.1"
+	t.Cleanup(func() { updateInstalledVersion = "" })
+	if got := a.UpdateStatus(); got.Available || !got.Restart {
+		t.Errorf("after install: %+v", got)
+	}
+	updateInstalledVersion = ""
+	if err := a.SetUpdateMode("off"); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.UpdateStatus(); got.Available {
+		t.Errorf("offered with mode off: %+v", got)
+	}
+}
