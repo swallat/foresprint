@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -657,5 +658,40 @@ func TestAssumptionFocusAndAbsenceLowerThePlan(t *testing.T) {
 	}
 	if saved == nil || saved.FocusPercent == nil || *saved.FocusPercent != 50 || saved.ExtraAbsenceDays == nil || *saved.ExtraAbsenceDays != 2 {
 		t.Fatalf("saved = %+v", saved)
+	}
+}
+
+func TestMoveWorkPackageShowsInThePlanLane(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	for _, k := range []string{"T-2", "T-3"} {
+		if err := api.EarmarkTicket(team, k, next, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keys := func() string {
+		v, err := api.PlanSprint(team, next, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, x := range v.Tickets {
+			out = append(out, x.Key)
+		}
+		return strings.Join(out, ",")
+	}
+	before := keys()
+	if err := api.MoveWorkPackage(team, "T-3", "T-2", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "T-3,T-2" {
+		t.Errorf("lane after the move = %s (before %s)", got, before)
 	}
 }
