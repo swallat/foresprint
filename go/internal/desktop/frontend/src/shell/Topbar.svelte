@@ -100,7 +100,7 @@
     padding: 0 20px 0 2px;
     height: 24px;
     cursor: pointer;
-    max-width: 18ch;
+    max-width: 36ch;
     color: inherit;
   }
   .sel select option {

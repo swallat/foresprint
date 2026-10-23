@@ -283,7 +283,8 @@
   }
   .to {
     height: 28px;
-    width: 120px;
+    width: 220px;
+    max-width: 100%;
     padding-top: 0;
     padding-bottom: 0;
   }
