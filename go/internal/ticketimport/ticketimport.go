@@ -500,21 +500,18 @@ func removeEarmark(p *model.Preplan, ticket string) {
 }
 
 // splitSubtasks takes the sub-tasks out of the raw tickets unless the tracker settings keep
-// them, and counts them per parent. A sub-task whose parent is not among the tickets is kept
-// (nothing would show it then).
+// them, and counts them per parent (a parent that is not part of the fetch counts nothing).
 func splitSubtasks(raws []sources.RawTicket, tracker model.TrackerSettings) ([]sources.RawTicket, map[string]int) {
 	counts := map[string]int{}
 	if tracker.IncludeSubtasks {
 		return raws, counts
 	}
-	known := map[string]bool{}
-	for _, r := range raws {
-		known[r.Key] = true
-	}
 	kept := make([]sources.RawTicket, 0, len(raws))
 	for _, r := range raws {
-		if r.Parent != "" && known[r.Parent] {
-			counts[r.Parent]++
+		if r.Subtask {
+			if r.Parent != "" {
+				counts[r.Parent]++
+			}
 			continue
 		}
 		kept = append(kept, r)
