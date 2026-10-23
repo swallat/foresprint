@@ -6,5 +6,8 @@ export function shortNames(ids: string[]): string[] {
   while (n < first.length && ids.every((id) => id[n] === first[n])) n++;
   let cut = 0;
   for (let i = 0; i < n; i++) if (/[\s\-_.:/]/.test(first[i] ?? '')) cut = i + 1;
-  return ids.map((id) => (id.length > cut ? id.slice(cut) : id));
+  const trimmed = ids.map((id) => (id.length > cut ? id.slice(cut) : id));
+  // Some names carry the prefix and some do not ("2026.10" next to "Team Sprint 2026.22"): fall back to the last word.
+  const last = trimmed.map((id) => id.split(/\s+/).at(-1) ?? id);
+  return trimmed.some((id) => /\s/.test(id)) && new Set(last).size === last.length ? last : trimmed;
 }
