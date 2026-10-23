@@ -67,8 +67,7 @@ own signatures where they have one.
 Foresprint does not send your planning data to the project or to third parties.
 The only network access is what you configure (your own Git remote, your own
 issue tracker) and the update check: once a day the program asks GitHub for the
-latest release. By default it also installs the update by itself. Switch this
-to report-only or off with `foresprint update --auto notice` or
-`foresprint update --auto off`, or with the environment variable
+latest release. It only reports a new version and never installs by itself. Switch
+the check off with `foresprint update --auto off`, or with the environment variable
 `FORESPRINT_AUTOUPDATE` (`on`, `notice`, `off`), which takes precedence.
 Signing itself does not add any data collection.

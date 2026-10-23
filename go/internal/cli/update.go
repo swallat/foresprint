@@ -37,7 +37,7 @@ func updateCommand(env *Env) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&check, "check", false, i18n.T("Only check, do not install."))
 	f.BoolVar(&force, "force", false, i18n.T("Reinstall even without a new version."))
-	f.StringVar(&auto, "auto", "", i18n.T("Set automatic mode: on (installs itself), notice (only report), off."))
+	f.StringVar(&auto, "auto", "", i18n.T("Set automatic mode: on or notice (look once a day and report, never install), off (never look)."))
 	return cmd
 }
 
@@ -90,9 +90,9 @@ func runUpdate(env *Env, u *selfupdate.Updater, check, force bool) error {
 	return nil
 }
 
-// AutoUpdate is the daily check after a command: it installs a newer version (mode on) or
-// reports it (mode notice). It never makes the command fail and stays silent without a
-// connection.
+// AutoUpdate is the daily check after a command: it reports a newer version (mode on or
+// notice) and never installs one, that is `update` or a click in the window. It never makes the
+// command fail and stays silent without a connection.
 func AutoUpdate(env *Env, args []string) {
 	if selfupdate.IsDevelopment(Version) || slices.Contains([]string{"update", "completion", "version"}, firstWord(args)) ||
 		slices.ContainsFunc(args, func(a string) bool { return a == "--version" || a == "--help" || a == "-h" }) {
@@ -117,16 +117,8 @@ func AutoUpdate(env *Env, args []string) {
 	if !selfupdate.Newer(Version, rel.Version) {
 		return
 	}
-	if mode == selfupdate.Notice {
-		_, _ = fmt.Fprintln(env.Err, i18n.P("Version {latest} is available (installed: {version}). Update with: {command}",
-			"latest", rel.Version, "version", Version, "command", progName+" update"))
-		return
-	}
-	if err := u.Install(ctx, rel); err != nil {
-		_, _ = fmt.Fprintln(env.Err, i18n.P("The update failed: {error}", "error", err.Error()))
-		return
-	}
-	_, _ = fmt.Fprintln(env.Err, i18n.P("Updated to version {latest}. The next start uses it.", "latest", rel.Version))
+	_, _ = fmt.Fprintln(env.Err, i18n.P("Version {latest} is available (installed: {version}). Update with: {command}",
+		"latest", rel.Version, "version", Version, "command", progName+" update"))
 }
 
 // firstWord is the command name: the first argument that is not an option.

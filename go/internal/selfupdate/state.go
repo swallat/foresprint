@@ -19,7 +19,7 @@ const CheckInterval = 24 * time.Hour
 // Mode says what happens when a newer version exists.
 type Mode string
 
-// The modes: on installs by itself, notice only reports, off does not even look.
+// The modes: on and notice look once a day and only report (nothing is installed by itself), off does not even look.
 const (
 	On     Mode = "on"
 	Notice Mode = "notice"

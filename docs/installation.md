@@ -116,8 +116,8 @@ happens then is a setting:
 | Command / variable | Effect |
 |---|---|
 | `foresprint update` | check and update now (`--check`: check only, `--force`: reinstall) |
-| `foresprint update --auto on` | install new versions by itself (default) |
-| `foresprint update --auto notice` | only point out new versions |
+| `foresprint update --auto on` | look once a day and point out new versions (default); never installs by itself |
+| `foresprint update --auto notice` | same as `on` |
 | `foresprint update --auto off` | never check |
 | `FORESPRINT_AUTOUPDATE=on\|notice\|off` | like `--auto`, takes precedence (for managed machines) |
 
