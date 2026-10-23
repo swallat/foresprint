@@ -20,8 +20,13 @@ $arch = switch ($env:PROCESSOR_ARCHITECTURE) {
 
 $version = $env:FORESPRINT_VERSION
 if (-not $version) {
-    $latest = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
-    $version = $latest.tag_name
+    # releases/latest skips pre-releases and still points at the Python-era 0.x while 1.0 is in
+    # beta. Take the newest stable release of 1.x or later, else the newest pre-release of 1.x.
+    $all = @(Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=30" | Where-Object { -not $_.draft -and $_.tag_name -match '^v[1-9]' })
+    $pick = $all | Where-Object { -not $_.prerelease } | Select-Object -First 1
+    if (-not $pick) { $pick = $all | Select-Object -First 1 }
+    if (-not $pick) { throw "could not find the newest version" }
+    $version = $pick.tag_name
 }
 $version = $version.TrimStart("v")
 $name = "foresprint_${version}_windows_${arch}.zip"
