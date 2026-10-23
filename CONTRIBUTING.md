@@ -2,7 +2,7 @@
 
 Thank you for helping with Foresprint. This page covers the local setup, the checks every change
 has to pass and how pull requests are reviewed. The 1.0 line (branch `v1`) is a Go core with a
-[Wails](https://wails.io) window and a Svelte frontend; The Python 0.x line
+[Wails](https://wails.io) window and a Svelte frontend. The Python 0.x line
 lives on `main` and only gets bug fixes. Pull requests for 1.0 target `v1`.
 
 ## Setup
