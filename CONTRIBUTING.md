@@ -5,12 +5,21 @@ change has to pass and how pull requests are reviewed.
 
 ## Setup
 
-[mise](https://mise.jdx.dev) installs the pinned Python and uv versions from `mise.toml`:
+[mise](https://mise.jdx.dev) installs the pinned Go, Node, Python and uv versions from `mise.toml`.
+The Go core and the window are built and tested with the mise tasks (see the *Development* section
+of the [README](README.md)):
 
 ```bash
 mise install
+mise run test      # go vet + go test
+mise run check     # frontend checks
+mise run app       # program with the window into dist/
+```
+
+The sections below that mention `uv`, `pytest` and `ruff` describe the Python code of the 0.x line.
+
+```bash
 uv sync --all-extras
-uv run foresprint --data examples/teams web   # run the web UI from source
 ```
 
 `uv sync --all-extras` also installs the development group (pytest, ruff, Playwright, the Excel
