@@ -224,7 +224,8 @@ func containsString(list []string, s string) bool {
 
 // ResolveSprint returns the tool's sprint id for a sprint name of the tracker: the name itself
 // when it is a known id (recorded, in the forecast or in the calendar ahead), else
-// tracker.sprint_names, else the one known id the name contains as a word, else nil (the raw name stays on the ticket).
+// tracker.sprint_names, else the one known id with a separator (2026.20) the name contains as a
+// word, else nil (the raw name stays on the ticket).
 func ResolveSprint(name string, tracker model.TrackerSettings, sprints Sprints) *string {
 	if name == "" {
 		return nil
@@ -245,8 +246,8 @@ var sprintWords = regexp.MustCompile(`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`)
 func sprintWord(name string, sprints Sprints) *string {
 	var found *string
 	for _, w := range sprintWords.FindAllString(name, -1) {
-		if _, ok := sprints.End(w); !ok {
-			continue
+		if _, ok := sprints.End(w); !ok || !strings.ContainsAny(w, "._-") {
+			continue // a bare number may be anything ("Release 45"): only yearly ids count
 		}
 		if found != nil && *found != w {
 			return nil

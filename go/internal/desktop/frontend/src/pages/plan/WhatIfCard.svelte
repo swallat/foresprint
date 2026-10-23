@@ -163,10 +163,10 @@
           <div>
             <div class="small muted">{t('Forecast PLAN {sprint}', { sprint: d.sprint })}</div>
             <div class="data big">
-              {#if touched(a)}{fmt(r.planOriginal)} <Icon name="arrow_forward" size={16} /> <span class="fc">{fmt(r.plan)}</span>{:else}<span class="fc">{fmt(r.plan)}</span>{/if}
+              {#if touched(a, !noT)}{fmt(r.planOriginal)} <Icon name="arrow_forward" size={16} /> <span class="fc">{fmt(r.plan)}</span>{:else}<span class="fc">{fmt(r.plan)}</span>{/if}
             </div>
             <div class="small muted">
-              {#if touched(a)}{delta > 0 ? '+' : ''}{fmt(delta)} · {/if}{#if r.low != null}{t('range')} {fmt(r.low)} – {fmt(r.high)}{:else}{t('unchanged')}{/if}
+              {#if touched(a, !noT)}{delta > 0 ? '+' : ''}{fmt(delta)} · {/if}{#if r.low != null}{t('range')} {fmt(r.low)} – {fmt(r.high)}{:else}{t('unchanged')}{/if}
             </div>
           </div>
           <div>
@@ -185,10 +185,10 @@
       {/if}
 
       <div class="row foot">
-        <button class="btn" type="button" id="wi-save" disabled={!touched(a)} onclick={save}>
+        <button class="btn" type="button" id="wi-save" disabled={!touched(a, !noT)} onclick={save}>
           <Icon name="bookmark_add" />{t('Save as prognosis')}
         </button>
-        <button class="btn ghost" type="button" disabled={!touched(a)} onclick={() => { assumptions.reset(); void model.reload(); }}>
+        <button class="btn ghost" type="button" disabled={!touched(a, !noT)} onclick={() => { assumptions.reset(); void model.reload(); }}>
           {t('Clear assumption {label}', { label: a.label })}
         </button>
       </div>

@@ -136,7 +136,6 @@ function whatIf(sid: string, as: Assumption): WhatIf | null {
       } else if (!c) extra += x.est ?? 0;
       if (c) (c.target === '' || c.target === sid ? (rest += c.rest) : (later += c.rest));
     }
-    if (as.commitment != null) commitment = as.commitment;
   }
   const touched = noT ? notDone > 0 || extra > 0 || as.commitment != null : as.carry.length > 0;
   const velocity = Math.max(commitment - notDone + extra, 0);

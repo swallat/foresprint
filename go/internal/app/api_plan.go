@@ -20,6 +20,7 @@ import (
 	"github.com/swallat/foresprint/internal/products"
 	"github.com/swallat/foresprint/internal/protocol"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/ticketimport"
 )
 
 // The methods for the Pre-plan and Plan pages (work package P3). PlanSprint reads, the others
@@ -535,7 +536,7 @@ func (c *planCtx) fillProjects(v *PlanSprint) {
 		if pp == nil || (pp.Amount == 0 && pp.Tickets == 0 && !pp.Manual && pp.Booked == nil) {
 			continue
 		}
-		if rate > 0 {
+		if rate > 0 && (pp.Amount > 0 || pp.Tickets > 0 || pp.Manual) {
 			need := pp.Amount / rate
 			pp.NeedPD = &need
 		}
@@ -627,10 +628,7 @@ func (a *API) RunningHint(team, sprintID string) (*RunningHint, error) {
 		if t.Done || t.InSprint != nil || name == "" {
 			continue
 		}
-		if _, ok := c.data.Team.Tracker.SprintNames.Get(name); ok {
-			continue
-		}
-		if known, err := c.fc.LookupSprint(name, forecast.DefaultLookupAhead); err != nil || known != nil {
+		if ticketimport.ResolveSprint(name, c.data.Team.Tracker, ticketimport.ForecastSprints{Forecast: c.fc}) != nil {
 			continue
 		}
 		h.Unresolved++
