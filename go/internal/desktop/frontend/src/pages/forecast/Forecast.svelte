@@ -129,6 +129,27 @@
       default: return source || '–';
     }
   }
+  // Completed sprints: the latest few, with a filter by name and year.
+  const PAST_SHORT = 6;
+  let pastQuery = $state('');
+  let pastYear = $state('');
+  let pastAll = $state(false);
+  const pastRows = $derived([...(view?.past ?? [])].reverse());
+  const pastYears = $derived([...new Set(pastRows.map((r) => r.end.slice(0, 4)))].sort().reverse());
+  const pastFiltered = $derived.by(() => {
+    const q = pastQuery.trim().toLowerCase();
+    return pastRows.filter(
+      (r) => (pastYear === '' || r.end.startsWith(pastYear)) && (q === '' || r.id.toLowerCase().includes(q) || formatPeriod(r.start, r.end).toLowerCase().includes(q)),
+    );
+  });
+  const pastFiltering = $derived(pastQuery.trim() !== '' || pastYear !== '');
+  const pastShown = $derived(pastAll || pastFiltering ? pastFiltered : pastFiltered.slice(0, PAST_SHORT));
+  $effect(() => {
+    void app.team;
+    pastQuery = '';
+    pastYear = '';
+    pastAll = false;
+  });
   const sum = (rows: (number | null)[]): number => rows.reduce<number>((a, v) => a + (v ?? 0), 0);
   function totalRange(rows: { low: number | null; high: number | null }[], digits: number): string {
     const lo = total(rows.map((r) => r.low), digits);
@@ -336,6 +357,27 @@
       {#if view.past.length === 0}
         <p class="muted">{t('No completed sprints yet.')}</p>
       {:else}
+        {#if pastRows.length > PAST_SHORT}
+          <div class="row past-filter">
+            <div class="field">
+              <label for="past-q">{t('Search sprint')}</label>
+              <input id="past-q" class="input" type="search" placeholder={t('Name or date')} bind:value={pastQuery} />
+            </div>
+            <div class="field">
+              <label for="past-year">{t('Year')}</label>
+              <select id="past-year" class="input" bind:value={pastYear}>
+                <option value="">{t('All years')}</option>
+                {#each pastYears as y (y)}<option value={y}>{y}</option>{/each}
+              </select>
+            </div>
+            {#if pastFiltering}
+              <button class="btn" type="button" onclick={() => ((pastQuery = ''), (pastYear = ''))}>{t('Reset filter')}</button>
+            {/if}
+          </div>
+        {/if}
+        {#if pastShown.length === 0}
+          <p class="muted">{t('No completed sprint fits this filter.')}</p>
+        {:else}
         <div class="tw">
           <table class="t">
             <thead>
@@ -346,11 +388,10 @@
                 <th class="num">{t('Velocity')}</th>
                 <th class="num">{t('Fulfillment ratio')}</th>
                 <th class="num">{t('Normalized velocity')}</th>
-                <th class="num">{t('Trend')}</th>
               </tr>
             </thead>
             <tbody>
-              {#each [...view.past].reverse() as r (r.id)}
+              {#each pastShown as r (r.id)}
                 <tr>
                   <td><span class="data">{r.id}</span> <span class="small muted data">{formatPeriod(r.start, r.end)}</span></td>
                   <td class="num">{fmt(r.capacity)}</td>
@@ -358,12 +399,20 @@
                   <td class="num">{fmt(r.velocity)}</td>
                   <td class="num">{pct(r.fulfillment)}</td>
                   <td class="num">{fmt(r.normalizedVelocity)}</td>
-                  <td class="num">{fmt(r.trend)}</td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
+        {/if}
+        {#if !pastFiltering && pastRows.length > PAST_SHORT}
+          <button class="btn past-toggle" type="button" aria-expanded={pastAll} onclick={() => (pastAll = !pastAll)}>
+            <Icon name={pastAll ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} size={18} />
+            {pastAll ? t('Show fewer') : t('Show all {n} sprints', { n: pastRows.length })}
+          </button>
+        {:else if pastFiltering}
+          <p class="small muted">{t('{n} of {total} sprints', { n: pastFiltered.length, total: pastRows.length })}</p>
+        {/if}
       {/if}
     </section>
   </div>
@@ -392,6 +441,13 @@
   .calc-cell {
     white-space: normal;
     min-width: 36px;
+  }
+  .past-filter {
+    margin-bottom: 12px;
+    align-items: end;
+  }
+  .past-toggle {
+    margin-top: 12px;
   }
   .stack p {
     margin: 0;
