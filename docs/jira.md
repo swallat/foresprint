@@ -8,12 +8,9 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 
 ## Setup
 
-1. **Install the extra `[jira]`.** The installer does it; run it again on an older installation
-   (it keeps your plugins). By hand:
-   `uv tool install --force "foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"`
-   (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
-   the CSV import still works.
-2. **Configure the tracker.** Either on the web page *Jira connection* (Manage team; address,
+1. **Install Foresprint.** Jira is part of the program; no extra package is needed (see
+   [Installation](installation.md)). Without a tracker the CSV import still works.
+2. **Configure the tracker.** Either in **Settings > Tickets and tracker** (address,
    query and fields, with suggestions from your instance once the token is set, see step 5) or
    in `team.yaml` (details: [data-format.md](data-format.md)):
 
@@ -48,11 +45,9 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    foresprint tickets TEAM --set-token
    ```
 
-   The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
-   stored under the
-   service `foresprint-jira` (the former `sprintforecast-jira` is still read) and the **host** of `base_url` only: one token per Jira host,
-   shared by all teams and paths on it. The environment variable comes first when both exist
-   (`--set-token` warns about that).
+   The entry is stored under the service `foresprint-jira` and the **host** of `base_url` only: one
+   token per Jira host, shared by all teams and paths on it. The environment variable comes first
+   when both exist (`--set-token` warns about that).
 5. **Test the connection.** Shows the account the token belongs to and the fields found in the
    instance; writes nothing:
 
@@ -60,19 +55,19 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    foresprint tickets TEAM --test-connection
    ```
 
-   On the web page *Jira connection* the token can be entered too (hidden input, **Store in
+   In **Settings > Tickets and tracker** the token can be entered too (hidden input, **Store in
    keychain**, **Replace**, **Remove**): it goes only into the same keychain entry, never into
    `team.yaml`, the data folder or any other file, and is never shown again. Without a usable
-   keychain (package missing, or Linux without a Secret Service) the page only explains the
-   environment variable; there is no substitute store. The page shows the active source; the
-   environment variable takes precedence over a stored token.
+   keychain (for example Linux without a Secret Service) the page only explains the environment
+   variable; there is no substitute store. The page shows the active source; the environment
+   variable takes precedence over a stored token.
 
-   The web page *Jira connection* does the same with **Test connection**, and in addition offers
-   the number fields and epic links of the instance as choices for `fields.estimate`,
-   `fields.remaining` and `fields.epic` (a hint marks the likeliest by its name) and counts the
-   tickets the query matches. Components and labels need no setting; they are always read. The
-   page also sets the label of refined tickets and the order of the project assignment criteria
-   (epic, component, label); the criteria of each project are on the page Tickets.
+   The same page has **Test connection**, and in addition offers the number fields and epic links
+   of the instance as choices for `fields.estimate`, `fields.remaining` and `fields.epic` (a hint
+   marks the likeliest by its name) and counts the tickets the query matches. Components and labels
+   need no setting; they are always read. The page also sets the label of refined tickets and the
+   order of the project assignment criteria (epic, component, label); the criteria of each project
+   are set per project.
 
 ## Reading tickets
 
@@ -133,7 +128,7 @@ Reading uses only `GET` requests, to these endpoints:
 |---|---|
 | `/rest/api/2/myself` | connection test: the display name of the account |
 | `/rest/api/2/field` | resolves the field names from `tracker.fields` to `customfield_…` ids; finds the sprint, rank and epic link fields by their schema |
-| `/rest/api/2/search` | with `maxResults=1`: the number of tickets the query matches (web page *Jira connection*) |
+| `/rest/api/2/search` | with `maxResults=1`: the number of tickets the query matches (*Test connection*) |
 | `/rest/api/2/search` | the tickets of `tracker.query`, 100 per page, with `fields=` limited to what is needed (summary, status, issue type, labels, components, resolution, issue links, parent, estimate, remaining, epic, sprint, rank) |
 
 Authentication is the header `Authorization: Bearer <token>`; the certificate is always verified
@@ -168,17 +163,14 @@ and every request has a 30 second timeout. Proxy settings of the environment (`H
 | The proxy requires authentication (407) | Check `HTTPS_PROXY` and its credentials. |
 | No Jira token found | Set `FORESPRINT_JIRA_TOKEN` or run `--set-token`. |
 
-## Manual test against a real instance
+## Trying it against a real instance
 
-The test suite never touches the network. One test is deselected by default and runs against a
-real instance when you ask for it:
+The automated tests never touch the network. To try a real instance without changing anything:
 
 ```bash
-FORESPRINT_JIRA_URL=https://jira.example.org \
-FORESPRINT_JIRA_TOKEN=... \
-FORESPRINT_JIRA_JQL='project = ABC AND sprint in openSprints()' \
-uv run --extra jira pytest -m jira_live
+export FORESPRINT_JIRA_TOKEN=...
+foresprint tickets TEAM --test-connection   # the account and the fields found
+foresprint tickets TEAM --fetch             # preview only, nothing is written
 ```
 
-Optionally `FORESPRINT_JIRA_ESTIMATE`, `_REMAINING` and `_EPIC` name the fields. The test
-prints only counts.
+Both commands only send `GET` requests and print counts and field names.

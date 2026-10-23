@@ -1,8 +1,8 @@
 # Calculation
 
 How foresprint turns the [data files](data-format.md) into a forecast. Every figure can be
-traced with the numbers substituted: in the web UI through tooltips (the "i" next to figures and
-column headers) and the collapsible **Calculation** on the Forecast and Planning pages, on the
+traced with the numbers substituted: in the window through the calculator icon next to figures and the
+**Calculations** help page, on the
 command line with `foresprint forecast TEAM --explain SPRINT` (`-` = the next planning).
 `foresprint capacity TEAM [SPRINT]` shows the capacity calculation in detail.
 
@@ -39,7 +39,7 @@ In this order:
      absences*
    - *unknown*: calendar and people, reduced by the average absences of the last
      `absence_history` sprints **with confirmed absences** (confirmed sprints without absences
-     count as 0; the sprints used are shown on the *Prepare sprint: Absences* page): source
+     count as 0; the sprints used are shown on the *Prepare* page): source
      *expected absences*; if there is no such history yet, without deduction: source *calendar,
      absences unknown* (warning)
 3. Only **without a people list**: capacity trend: source *trend* (warning)
@@ -86,7 +86,7 @@ distribution per product); where both appear, they are shown separately with the
 ## Supplementary analyses
 
 `foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
-**Analysis** page, in addition to the forecast; the existing figures stay unchanged:
+**Forecast** page, in addition to the forecast; the existing figures stay unchanged:
 
 - **Range:** forecast with the lowest, middle and highest normalized velocity of the last sprints
   (conservative / middle / optimistic).
