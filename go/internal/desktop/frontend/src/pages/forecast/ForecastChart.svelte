@@ -116,7 +116,7 @@
   {/each}
 
   {#each wiPts as p (p.w.id)}
-    <polygon points={diamond(p.x, p.y, 7)} class="f wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
+    <polygon points={diamond(p.x, p.y, 5)} class="f wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
     <text x={p.x + 11} y={p.y + 4} class="value wiftext">{label(p.w.forecast)}</text>
   {/each}
 </svg>

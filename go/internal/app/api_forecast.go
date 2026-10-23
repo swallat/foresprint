@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/swallat/foresprint/internal/analysis"
@@ -185,12 +186,17 @@ func forecastRows(data *storage.TeamData, fc, fc2 *forecast.Forecast, as Forecas
 			continue
 		}
 		r := e.Result
-		e2 := fc2.Entry(e.Sprint.ID)
-		if r.Plan == nil || r.PlanCapacity == nil || e2 == nil || e2.Result.NormalizedVelocity.Trend == nil {
+		// the running sprint with an expected velocity has a result of its own and no projection
+		// any more; its row keeps the trend it had
+		trend := r.NormalizedVelocity.Trend
+		if e2 := fc2.Entry(e.Sprint.ID); e2 != nil && e2.Result.NormalizedVelocity.Trend != nil {
+			trend = e2.Result.NormalizedVelocity.Trend
+		}
+		if r.Plan == nil || r.PlanCapacity == nil || trend == nil {
 			continue
 		}
 		capacity := max(0, *r.PlanCapacity-as.ExtraAbsenceDays)
-		value := engine.RoundDown(*e2.Result.NormalizedVelocity.Trend/ref*capacity*as.FocusPercent/100, data.Team.Forecast.Rounding)
+		value := engine.RoundDown(*trend/ref*capacity*as.FocusPercent/100, data.Team.Forecast.Rounding)
 		out = append(out, WhatIfRow{ID: e.Sprint.ID, Capacity: capacity, Forecast: value, Base: *r.Plan, Delta: value - *r.Plan})
 	}
 	return out
@@ -235,15 +241,33 @@ func (a *API) ForecastSaveWhatIf(team string, as ForecastAssumption) error {
 	if len(rows) != 1 {
 		return errors.New(i18n.T("There is no forecast for {id} yet.", "id", next))
 	}
+	cur := fc.Entry(running).Sprint.Clone()
+	if as.ExpectedVelocity == nil && cur.Commitment == nil {
+		return errors.New(i18n.T("Enter the velocity you expect for {id} to save the prognosis.", "id", running))
+	}
+	// The expectation is stored the way the plan page does: commitment, and what is not done or
+	// gained on top. A velocity that is not entered means the commitment is met.
+	expected := floatOr(as.ExpectedVelocity, floatOr(cur.Commitment, 0))
+	commitment := floatOr(cur.Commitment, expected)
 	label := as.Label
 	if label == "" {
-		label = "A"
+		label = forecastFreeLabel(cur.Prognoses, next)
 	}
 	n := now()
 	plan := rows[0].Forecast
 	p := model.Prognosis{At: time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), 0, time.UTC),
-		Target: &next, Plan: &plan, Label: &label, ExpectedDone: as.ExpectedVelocity}
-	cur := fc.Entry(running).Sprint.Clone()
+		Target: &next, Plan: &plan, Label: &label, Commitment: &commitment, ExpectedDone: &expected}
+	if expected < commitment {
+		p.NotDone = model.Ptr(commitment - expected)
+	} else if expected > commitment {
+		p.AdditionalDone = model.Ptr(expected - commitment)
+	}
+	// what the newest prognosis says about the carry-over stays: readers take the newest one
+	if old := newestPrognosis(&cur, next, ""); old != nil {
+		p.Carry = slices.Clone(old.Carry)
+		p.RestNext = old.RestNext
+		p.Preplanned = old.Preplanned
+	}
 	kept := make([]model.Prognosis, 0, len(cur.Prognoses)+1)
 	for _, old := range cur.Prognoses {
 		if str(old.Target) != next || labelOf(old) != label {
@@ -392,4 +416,21 @@ func forecastProductCount(data *storage.TeamData) int {
 		return 0
 	}
 	return len(data.Products)
+}
+
+// forecastFreeLabel is the first letter that no prognosis for the target carries yet, so that
+// saving never replaces an assumption of the plan page.
+func forecastFreeLabel(list []model.Prognosis, target string) string {
+	used := map[string]bool{}
+	for _, p := range list {
+		if str(p.Target) == target {
+			used[labelOf(p)] = true
+		}
+	}
+	for c := 'A'; c <= 'Z'; c++ {
+		if !used[string(c)] {
+			return string(c)
+		}
+	}
+	return "Z"
 }

@@ -219,7 +219,12 @@ func TestForecastWhatIfForTheRunningSprint(t *testing.T) {
 		t.Errorf("all coming sprints expected, got %d", len(all))
 	}
 
-	save := ForecastAssumption{Sprint: v.Next, FocusPercent: 100, ExpectedVelocity: &low, Label: "B"}
+	allWith, _ := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 100, ExpectedVelocity: &high})
+	if len(allWith) != len(all) {
+		t.Errorf("an expected velocity must not drop a sprint: %d vs %d", len(allWith), len(all))
+	}
+
+	save := ForecastAssumption{Sprint: v.Next, FocusPercent: 100, ExpectedVelocity: &low}
 	if err := api.ForecastSaveWhatIf(key, save); err != nil {
 		t.Fatal(err)
 	}
@@ -233,13 +238,30 @@ func TestForecastWhatIfForTheRunningSprint(t *testing.T) {
 			continue
 		}
 		for _, p := range s.Prognoses {
-			if str(p.Label) == "B" && str(p.Target) == v.Next && p.Plan != nil {
+			if str(p.Target) == v.Next && p.Plan != nil && p.ExpectedDone != nil && p.Commitment != nil {
 				found = true
 			}
 		}
 	}
 	if !found {
 		t.Error("the prognosis is not in the running sprint")
+	}
+	if err := api.ForecastSaveWhatIf(key, save); err != nil {
+		t.Fatal(err)
+	}
+	data, _ = storage.NewRepository(dir).Load(key)
+	labels := map[string]bool{}
+	for _, s := range data.Sprints {
+		if s.ID == v.Running {
+			for _, p := range s.Prognoses {
+				if str(p.Target) == v.Next {
+					labels[labelOf(p)] = true
+				}
+			}
+		}
+	}
+	if len(labels) < 2 {
+		t.Errorf("a second save must not replace the first: labels %v", labels)
 	}
 	save.Sprint = ""
 	if err := api.ForecastSaveWhatIf(key, save); err == nil {

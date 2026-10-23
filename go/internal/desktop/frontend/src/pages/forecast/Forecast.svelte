@@ -48,24 +48,38 @@
   let expected = $state<number | null>(null);
   let whatIf = $state<WhatIfRow[]>([]);
   let saving = $state(false);
-  const changed = $derived(extraDays !== 0 || focus !== 100 || expected !== null);
-  const assumption = $derived<ForecastAssumption>({ sprint: wiSprint, extraAbsenceDays: extraDays || 0, focusPercent: focus ?? 100, expectedVelocity: expected, label: '' });
+  let pending = $state(false);
+  let wiProblem = $state('');
+  // a cleared number field is null
+  const changed = $derived((extraDays ?? 0) !== 0 || (focus ?? 100) !== 100 || expected != null);
+  const assumption = $derived<ForecastAssumption>({ sprint: wiSprint, extraAbsenceDays: extraDays ?? 0, focusPercent: focus ?? 100, expectedVelocity: expected ?? null, label: '' });
+  // the choices belong to the team
+  $effect(() => {
+    void app.team;
+    wiSprint = '';
+    extraDays = 0;
+    focus = 100;
+    expected = null;
+  });
   $effect(() => {
     const team = app.team;
     const as = assumption;
+    wiProblem = '';
     if (!team || !view || !changed) {
       whatIf = [];
+      pending = false;
       return;
     }
     let stale = false;
+    pending = true;
     const timer = setTimeout(() => {
       api
         .ForecastWhatIf(team, as)
         .then((rows) => {
-          if (!stale) whatIf = rows;
+          if (!stale) (whatIf = rows), (pending = false);
         })
-        .catch(() => {
-          if (!stale) whatIf = [];
+        .catch((e) => {
+          if (!stale) (whatIf = []), (wiProblem = String(e)), (pending = false);
         });
     }, 150);
     return () => {
@@ -79,12 +93,14 @@
     expected = null;
   }
   /** Only the sprint the planning uses can be kept as a prognosis. */
-  const canSave = $derived(changed && !!view && view.next !== '' && wiSprint === view.next && whatIf.length === 1);
+  const canSave = $derived(changed && !!view && view.next !== '' && wiSprint === view.next && whatIf.length === 1 && !pending && !wiProblem);
   async function save(): Promise<void> {
     if (!app.team || saving) return;
     saving = true;
     try {
-      await api.ForecastSaveWhatIf(app.team, assumption);
+      const team = app.team;
+      await api.ForecastSaveWhatIf(team, assumption);
+      view = await api.Forecast(team);
       toast(t('Saved as prognosis for {id}. The planning of that sprint shows it.', { id: wiSprint }), 'ok');
     } catch (e) {
       toast(String(e), 'bad');
@@ -298,15 +314,16 @@
         {#if changed && !canSave && view.next}
           <p class="small muted">{t('Only {id}, the sprint after the running one, can be kept as a prognosis. Choose it above.', { id: view.next })}</p>
         {/if}
-        {#if changed && whatIf.length > 0 && next}
-          <p aria-live="polite">
+        {#if wiProblem}<Banner tone="bad">{wiProblem}</Banner>{/if}
+        <p aria-live="polite">
+          {#if changed && whatIf.length > 0 && next}
             {t('Over {n} sprints the forecast changes from {a} to {b} points.', {
               n: whatIf.length,
               a: fmt(sum(whatIf.map((r) => r.base)), view.rounding),
               b: fmt(sum(whatIf.map((r) => r.forecast)), view.rounding),
             })}
-          </p>
-        {/if}
+          {/if}
+        </p>
       </section>
     </div>
 
