@@ -5,13 +5,14 @@
   import { fmt, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { ForecastView, WhatIfRow, WhenDoneView } from '../../lib/types.forecast';
+  import type { ForecastView, WhatIfRow } from '../../lib/types.forecast';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { current, link } from '../../lib/router.svelte';
   import Icon from '../../lib/Icon.svelte';
   import ProductsOverTime from './ProductsOverTime.svelte';
   import Reports from './Reports.svelte';
+  import WhenDone from './WhenDone.svelte';
   import ForecastChart from './ForecastChart.svelte';
 
   let { params }: PageProps = $props();
@@ -70,33 +71,10 @@
   });
   const whatIfById = $derived(new Map(whatIf.map((r) => [r.id, r])));
 
-  // When is it done?
-  let remaining = $state(60);
-  let share = $state(50);
-  let done = $state<WhenDoneView>();
-  let doneProblem = $state('');
-  let asked = 0;
-  async function ask(): Promise<void> {
-    const team = app.team;
-    const id = ++asked;
-    doneProblem = '';
-    try {
-      const result = await api.ForecastWhenDone(team, remaining, share);
-      if (id === asked && team === app.team) done = result;
-    } catch (e) {
-      if (id === asked && team === app.team) doneProblem = String(e);
-    }
-  }
-  $effect(() => {
-    void app.team;
-    asked++;
-    done = undefined;
-    doneProblem = '';
-  });
-
   const tabs = $derived([
     { id: 'forecast', icon: 'monitoring' as const, label: t('Forecast') },
     ...(view && view.products > 1 ? [{ id: 'products', icon: 'stacked_bar_chart' as const, label: t('Products over time') }] : []),
+    { id: 'when', icon: 'event_available' as const, label: t('Analysis') },
     { id: 'reports', icon: 'ios_share' as const, label: t('Reports and export') },
   ]);
   const activeTab = $derived(tabs.some((x) => x.id === current.query.tab) ? (current.query.tab ?? 'forecast') : 'forecast');
@@ -149,6 +127,8 @@
 
   {#if activeTab === 'products'}
     <ProductsOverTime />
+  {:else if activeTab === 'when'}
+    <WhenDone roadmapShare={view.roadmapShare} />
   {:else if activeTab === 'reports'}
     <Reports />
   {:else}
@@ -286,79 +266,6 @@
           </p>
         {/if}
       </section>
-
-      <section class="card stack" aria-labelledby="fc-done" data-tour="forecast-analysis">
-        <h2 id="fc-done">{t('When is it done?')}</h2>
-        <p class="small muted">{t('Simulates the coming sprints from the velocities so far. A likelihood, not a promise.')}</p>
-        <form
-          class="row"
-          onsubmit={(e) => {
-            e.preventDefault();
-            void ask();
-          }}
-        >
-          <div class="field">
-            <label for="wd-rest">{t('Remaining work (points)')}</label>
-            <input id="wd-rest" class="input" type="number" min="1" step="1" bind:value={remaining} />
-          </div>
-          <div class="field">
-            <label for="wd-share">{t('Share of the forecast for it (%)')}</label>
-            <input id="wd-share" class="input" type="number" min="1" max="100" step="any" bind:value={share} />
-          </div>
-          <button class="btn primary" type="submit">{t('Calculate')}</button>
-        </form>
-        <div aria-live="polite">
-        {#if doneProblem}
-          <Banner tone="bad">{doneProblem}</Banner>
-        {:else if done && !done.available}
-          <Banner tone="info">
-            {#if done.remaining <= 0 || done.share <= 0}
-              {t('Enter the remaining work and a share above 0 to simulate.')}
-            {:else}
-              {t('There are too few sprints with a velocity to simulate. At least 2 are needed.')}
-            {/if}
-          </Banner>
-        {:else if done}
-          <div>
-            <p>
-              {#if done.p50 && done.p85}
-                {t('Done in sprint {p50} in half of the runs, in sprint {p85} in 85 % of them.', { p50: done.p50, p85: done.p85 })}
-              {:else if done.p50}
-                {t('Done in sprint {p50} in half of the runs; in 85 % of them not within the simulated period.', { p50: done.p50 })}
-              {:else}
-                {t('Not done within the simulated period.')}
-              {/if}
-            </p>
-            <div class="tw">
-              <table class="t">
-                <thead>
-                  <tr><th>{t('Sprint')}</th><th class="num">{t('Done by then')}</th><th><span class="sr-only">{t('Bar')}</span></th></tr>
-                </thead>
-                <tbody>
-                  {#each done.sprints.slice(0, 10) as id, i (id)}
-                    {@const c = done.cumulative[i] ?? 0}
-                    <tr>
-                      <td class="data">{id}</td>
-                      <td class="num">{pct(c)}</td>
-                      <td class="barcell"><span class="bar" style:width="{c * 100}%"></span></td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-            {#if done.trendCapacity.length > 0}
-              <p class="small muted">{t('From sprint {id} on there is no people list; the average capacity of the last sprints is used.', { id: done.trendCapacity[0] ?? '' })}</p>
-            {/if}
-            <p class="small muted">
-              {t('Expected per sprint: {n} points ({runs} runs, {samples} sprints as basis).', { n: fmt(done.perSprint), runs: fmt(done.runs, 0), samples: done.samples })}
-              <Calc label={t('When is it done?')} topic="whendone">
-                <div class="muted">{t('For each coming sprint a normalized velocity of the last sprints is drawn at random, scaled to the sprint capacity and multiplied by the share. The sprint in which the sum reaches the remaining work is counted over all runs.')}</div>
-              </Calc>
-            </p>
-          </div>
-        {/if}
-        </div>
-      </section>
     </div>
 
     <section aria-labelledby="fc-hist" data-tour="forecast-history">
@@ -422,25 +329,6 @@
   .calc-cell {
     white-space: normal;
     min-width: 36px;
-  }
-  .barcell {
-    width: 40%;
-    min-width: 120px;
-  }
-  .bar {
-    display: block;
-    height: 10px;
-    border-radius: 5px;
-    background: var(--c-fc);
-    min-width: 2px;
-  }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
   .stack p {
     margin: 0;

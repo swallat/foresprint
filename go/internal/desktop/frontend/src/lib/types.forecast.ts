@@ -63,6 +63,20 @@ export interface WhenDoneView {
   perSprint: number;
   trendCapacity: string[];
   available: boolean;
+  earliest: string;
+  starts: string[];
+  ends: string[];
+  projectName: string;
+  projectEnd: string;
+  light: 'ok' | 'warn' | 'bad' | 'none';
+}
+
+export interface WhenProject {
+  id: string;
+  name: string;
+  end: string;
+  openScope: number | null;
+  open: number;
 }
 
 export interface ProductCell {
@@ -123,5 +137,6 @@ export interface ForecastApi {
   ExcelImportApply(team: string, path: string, hash: string): Promise<string[]>;
   Forecast(team: string): Promise<ForecastView>;
   ForecastWhatIf(team: string, extraAbsenceDays: number, focusPercent: number): Promise<WhatIfRow[]>;
-  ForecastWhenDone(team: string, remaining: number, sharePercent: number): Promise<WhenDoneView>;
+  ForecastWhenProjects(team: string): Promise<WhenProject[]>;
+  ForecastWhenDone(team: string, remaining: number, sharePercent: number, project: string): Promise<WhenDoneView>;
 }

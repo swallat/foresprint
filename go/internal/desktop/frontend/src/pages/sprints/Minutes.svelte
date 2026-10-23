@@ -8,6 +8,7 @@
   import { parse, type Inline } from '../../lib/markdown';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import SprintFigures from '../../lib/plan/SprintFigures.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { MinutesRow, MinutesText } from '../../lib/types.review';
 
@@ -81,6 +82,8 @@
 
 <PageHead title={t('Sprint minutes')} lead={t('Every save of the pre-planning, the planning and the review writes a minutes file.')} />
 <StageNav stage="minutes" />
+
+{#if app.team && app.sprint}<SprintFigures />{/if}
 
 {#if error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>
