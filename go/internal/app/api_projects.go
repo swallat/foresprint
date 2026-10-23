@@ -15,6 +15,7 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 	"github.com/swallat/foresprint/internal/preplan"
 	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/rules"
@@ -103,6 +104,11 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		c.problem = err.Error()
 		return c
 	}
+	order := make([]string, len(fc.Entries))
+	for i, e := range fc.Entries {
+		order[i] = e.Sprint.ID
+	}
+	var fixed float64 // the fixed factor of the newest sprint, 0 = measured
 	for _, e := range fc.Entries {
 		if _, ok := c.sprint[e.Sprint.ID]; !ok {
 			c.sprint[e.Sprint.ID] = e.Sprint
@@ -111,6 +117,13 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		if data.Team.Unit == model.UnitPT {
 			continue // person days need no conversion
 		}
+		// a fixed factor wins over the measured rate (decision 19)
+		if f := planning.FactorAt(&data.Team, order, e.Sprint.ID); f != nil && *f > 0 {
+			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = *f, *f
+			fixed = *f
+			continue
+		}
+		fixed = 0
 		if r.Velocity.Value != nil && r.Capacity.Value != nil && *r.Capacity.Value > 0 && *r.Velocity.Value > 0 {
 			c.doneRate[e.Sprint.ID] = *r.Velocity.Value / *r.Capacity.Value
 		}
@@ -122,6 +135,8 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 	switch {
 	case data.Team.Unit == model.UnitPT:
 		c.rate = 1
+	case fixed > 0:
+		c.rate = fixed
 	case analysis.AvailableCount(fc) >= engine.MinThinHistory && data.Team.Forecast.ReferenceCapacity > 0:
 		hist := analysis.NormalizedHistory(fc)
 		if len(hist) > 0 {

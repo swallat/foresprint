@@ -512,3 +512,56 @@ func TestRunningHintNamesUnknownTrackerSprints(t *testing.T) {
 		t.Errorf("hint = %+v err = %v", h, err)
 	}
 }
+
+// A fixed conversion factor wins over the measured rate in the plan view and in the project
+// contingents (decision 19).
+func TestFixedFactorWinsInPlanAndProjects(t *testing.T) {
+	api, team := planTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.Team.Unit != model.UnitSP {
+		tm := data.Team
+		tm.Unit = model.UnitSP
+		if _, err := repo.SaveTeam(tm); err != nil {
+			t.Fatal(err)
+		}
+		if data, err = repo.Load(team); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	before, err := api.PlanSprint(team, next, nil)
+	if err != nil || before.Rate == nil {
+		t.Fatalf("view = %+v, err %v", before, err)
+	}
+	factor := math.Round(*before.Rate) + 1.5
+	tm := data.Team
+	tm.Estimation.Factor = &factor
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	after, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Rate == nil || math.Abs(*after.Rate-factor) > 1e-6 {
+		t.Fatalf("plan rate = %v, want the fixed %v", floatOr(after.Rate, -1), factor)
+	}
+	pv, err := api.Projects(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pv.Rate == nil || math.Abs(*pv.Rate-factor) > 1e-6 {
+		t.Errorf("project rate = %v, want the fixed %v", pv.Rate, factor)
+	}
+}

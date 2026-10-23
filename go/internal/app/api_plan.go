@@ -333,6 +333,14 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	}
 	if tm.Unit == model.UnitSP {
 		v.OtherUnit = "PT"
+		// a fixed factor wins over the measured rate (decision 19)
+		order := make([]string, len(c.fc.Entries))
+		for i, e := range c.fc.Entries {
+			order[i] = e.Sprint.ID
+		}
+		if f := planning.FactorAt(&tm, order, s.ID); f != nil && *f > 0 {
+			v.Rate = f
+		}
 	} else {
 		one := 1.0
 		v.Rate = &one
