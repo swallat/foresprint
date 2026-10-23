@@ -2,10 +2,12 @@ package gitsync
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 	"github.com/swallat/foresprint/internal/yamlx"
 )
@@ -52,17 +54,28 @@ func SetCodec(c Codec) {
 	hookMu.Unlock()
 }
 
-// FolderValidator is the data check of the core (validate.CheckFolder) on a team folder: the
-// validator in use unless SetValidator sets another one (tests do). Only errors count.
+// FolderValidator is the data check of the core (validate.CheckFolder): the validator in use unless
+// SetValidator sets another one (tests do). dir is the data folder holding the team folders, or a
+// single team folder itself. Only errors count.
 func FolderValidator(_ context.Context, dir string, today time.Time) ([]Issue, error) {
 	dir = filepath.Clean(dir)
 	var out []Issue
-	for _, i := range validate.CheckFolder(filepath.Dir(dir), filepath.Base(dir), today) {
-		if i.Level == validate.Error {
-			out = append(out, Issue{Where: i.Where, Message: i.Message})
-		}
+	if _, err := os.Stat(filepath.Join(dir, "team.yaml")); err == nil {
+		return appendErrors(out, "", filepath.Dir(dir), filepath.Base(dir), today), nil
+	}
+	for _, team := range storage.NewRepository(dir).Teams() {
+		out = appendErrors(out, team, dir, team, today)
 	}
 	return out, nil
+}
+
+func appendErrors(out []Issue, key, root, team string, today time.Time) []Issue {
+	for _, i := range validate.CheckFolder(root, team, today) {
+		if i.Level == validate.Error {
+			out = append(out, Issue{Key: key, Where: i.Where, Message: i.Message})
+		}
+	}
+	return out
 }
 
 // SetValidator sets the data check that runs after a merge (new errors prevent the upload).
