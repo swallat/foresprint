@@ -49,7 +49,7 @@ const coreMock: Partial<Api> = {
     return refreshMock();
   },
   // The mock is always the demo team; entering and leaving only flips the routing in api.ts.
-  async EnterDemo() {
+  async EnterDemo(_lang: string, _team: string, _source: string) {
     return 'atlas';
   },
   async LeaveDemo() {},
