@@ -9,7 +9,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { BacklogTicket } from '../../lib/types.backlog';
-  import { fmt } from '../../lib/format';
+  import { fmt, formatPeriod } from '../../lib/format';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
@@ -98,10 +98,6 @@
     if (minutes < 60) return rtf.format(-minutes, 'minute');
     if (minutes < 60 * 24) return rtf.format(-Math.round(minutes / 60), 'hour');
     return rtf.format(-Math.round(minutes / 1440), 'day');
-  }
-
-  function day(iso: string): string {
-    return new Intl.DateTimeFormat(language(), { day: 'numeric', month: 'short' }).format(new Date(iso));
   }
 
   // --- drag and drop ---------------------------------------------------------------------
@@ -476,7 +472,7 @@
             <div class="lane-head">
               <div class="row">
                 <strong class="data">{l.sprint}</strong>
-                <span class="muted small data">{day(l.start)} – {day(l.end)}</span>
+                <span class="muted small data">{formatPeriod(l.start, l.end)}</span>
                 <span class="grow"></span>
                 {#if l.absences === 'confirmed'}
                   <span class="chip ok"><Icon name="check" size={14} />{t('Absences confirmed')}</span>

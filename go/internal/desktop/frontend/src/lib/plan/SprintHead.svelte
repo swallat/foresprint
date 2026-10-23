@@ -2,6 +2,7 @@
   // Title, lead and stage steps of the sprint workspace for Pre-plan and Plan. The steps are
   // links, never gates: every stage opens at any time and says what is missing.
   import type { Snippet } from 'svelte';
+  import { formatPeriod } from '../format';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { PlanSprint } from '../types.plan';
@@ -45,13 +46,12 @@
         : t('Take {items} into the sprint together until the sum, products and projects fit.', { items: itemWord(d) }),
   );
   const hint = $derived(steps.find((s) => s.id === stage)?.missing ?? '');
-  const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
 </script>
 
 <PageHead title={`${stage === 'preplan' ? t('Pre-plan') : t('Plan')}: ${t('Sprint')} ${d.sprint}`} {lead} {actions} />
 <p class="small muted head-meta">
   <span class="chip">{stageChip}</span>
-  <span class="data">{fmtDate(d.start)} – {fmtDate(d.end)}</span> · {t('{n} working days', { n: d.days })}
+  <span class="data">{formatPeriod(d.start, d.end)}</span> · {t('{n} working days', { n: d.days })}
 </p>
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}
