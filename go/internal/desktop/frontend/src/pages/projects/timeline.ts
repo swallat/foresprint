@@ -222,11 +222,19 @@ export function buildTimeline(args: {
   const all = bandsOf(sprints, args.sprintDays, win.to).filter((b) => b.end >= win.from && b.start <= win.to);
   const short = shortNames(all.map((b) => b.id));
   const labelW = Math.max(0, ...short.map((n) => n.length)) * 6.8 + 10;
-  const every = Math.max(1, Math.ceil(labelW / ((plotW * Math.max(1, args.sprintDays)) / (t1 - t0))));
+  const spans = all.map((b) => ({ x0: Math.max(L, x(b.start)), x1: Math.min(W - R, x(addDays(b.end, 1))) }));
+  // Thin by the narrowest full band, not by the configured length: calendar sprints can differ from it.
+  const full = spans.slice(1, -1).map((sp) => sp.x1 - sp.x0);
+  const narrow = Math.max(1, Math.min(...(full.length > 0 ? full : spans.map((sp) => sp.x1 - sp.x0)), plotW));
+  const every = Math.max(1, Math.ceil(labelW / narrow));
+  let labelEnd = -Infinity;
   const bands: BandDraw[] = all.map((b, i) => {
-    const x0 = Math.max(L, x(b.start));
-    const x1 = Math.min(W - R, x(addDays(b.end, 1)));
-    return { band: b, x0, x1, short: short[i] ?? b.id, label: i % every === 0 && (x0 + x1) / 2 + labelW / 2 < W, shaded: i % 2 === 0 };
+    const { x0, x1 } = spans[i] ?? { x0: L, x1: L };
+    const mid = (x0 + x1) / 2;
+    // A label is drawn only if it fits inside the plot and does not touch the previous one.
+    const label = i % every === 0 && mid + labelW / 2 < W && mid - labelW / 2 > labelEnd;
+    if (label) labelEnd = mid + labelW / 2;
+    return { band: b, x0, x1, short: short[i] ?? b.id, label, shaded: i % 2 === 0 };
   });
 
   const months: Timeline['months'] = [];
