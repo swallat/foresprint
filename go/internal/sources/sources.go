@@ -68,8 +68,10 @@ type RawTicket struct {
 	Epic       string
 	Labels     []string
 	Components []string
-	// Parent is the key of the parent ticket when the tracker says this one is a sub-task.
-	Parent string
+	// Subtask: the tracker says this one is a sub-task; Parent is the key of its parent (it may
+	// be empty or missing from the fetch, e.g. a parent that is already done).
+	Subtask bool
+	Parent  string
 	// BlockedBy lists the keys of tickets that must be finished first (Jira: inward "Blocks").
 	BlockedBy []string
 	// Resolved is true for a ticket that is done according to the tracker.
