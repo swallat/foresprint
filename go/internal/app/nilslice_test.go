@@ -124,7 +124,7 @@ func TestReadAnswersHaveNoNilLists(t *testing.T) {
 		"TrackerInfo": {team}, "Sprints": {team}, "PlanSprint": {team, future, (*Assumption)(nil)},
 		"RunningTickets": {team, future}, "PlanWritePreview": {team, future},
 		"Teams": {}, "Prefs": {}, "Info": {}, "Storage": {}, "Conflicts": {}, "DataIncoming": {},
-		"PendingTags": {}, "UnsavedChanges": {},
+		"PendingTags": {}, "UnsavedChanges": {}, "UpdateStatus": {},
 	}
 	for _, target := range []struct {
 		name string

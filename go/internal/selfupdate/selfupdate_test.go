@@ -202,3 +202,23 @@ func TestAssetNameOfTheCLIVariant(t *testing.T) {
 		}
 	}
 }
+
+func TestLatestForPreReleaseLooksAtAllReleases(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/swallat/foresprint/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v0.8.0","html_url":"u","assets":[]}`))
+	})
+	mux.HandleFunc("/repos/swallat/foresprint/releases", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"tag_name":"v1.0.0-beta.4","html_url":"u4","assets":[]},
+			{"tag_name":"v1.0.0-beta.9","draft":true,"assets":[]},
+			{"tag_name":"v1.0.0-beta.3","html_url":"u3","assets":[]},{"tag_name":"v0.8.0","assets":[]}]`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	for current, want := range map[string]string{"1.0.0-beta.3": "1.0.0-beta.4", "0.8.0": "0.8.0", "": "0.8.0"} {
+		rel, err := (&Updater{APIBase: srv.URL, Current: current}).Latest(context.Background())
+		if err != nil || rel.Version != want {
+			t.Errorf("current %q: got %+v, %v; want %s", current, rel, err, want)
+		}
+	}
+}
