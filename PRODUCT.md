@@ -2,7 +2,7 @@
 
 Durable context for everyone (and every agent) who designs or builds the 1.0 interface. It is
 the input of the redesign; the visual system is in [DESIGN.md](DESIGN.md), the screens and flows
-in [docs/redesign/](docs/redesign/). Status: **draft for round 1, confirm or correct**.
+in [docs/redesign/](docs/redesign/). Status: **approved**; the 1.0 line is built on it (Go core, Wails window, Svelte frontend).
 
 ## What it is
 
@@ -24,8 +24,8 @@ this document assumes that one user.
 | Say per product what should go into the sprint, keep the backlog in order, check whether projects reach their milestones and end date, report contingent use back to project leads | before each planning |
 | Set up Jira and Git, create teams, products and people | rarely |
 
-Primary context: a Windows laptop in a company, no admin rights, a company Jira (read only) and a
-company Git server, German and English speakers. The tool is open source: nothing may be tied to
+Primary context: a Windows laptop in a company, no admin rights, a Jira (read only) and a Git
+server, German and English speakers. The tool is open source: nothing may be tied to
 one tracker, Git host or company.
 
 ## Purpose of the interface
@@ -63,7 +63,8 @@ address).
 
 ## Constraints
 
-- One executable per platform for the 1.0 release, no admin rights, no required internet except
+- One executable per platform for the 1.0 release (Go, with a Wails window; the command line is the
+  same file), no admin rights, no required internet except
   the team's own Jira and Git servers.
 - Windows 10/11 first; macOS and Linux supported.
 - Jira stays read only by default (PAT); optional writes: the label `planned_for_<sprint>` and the sprint
