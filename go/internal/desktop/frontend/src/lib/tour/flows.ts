@@ -16,6 +16,8 @@ export interface Step {
   route: string;
   /** Element to mark. */
   target?: string;
+  /** Query of the page, e.g. the tab to show. */
+  query?: Record<string, string>;
   /** Sprint to select before showing the page. */
   sprint?: SprintPick;
   /** The page has nothing to show for a team that keeps its work packages in Foresprint. */
@@ -109,7 +111,7 @@ export const flows: Flow[] = [
       { route: '/forecast', target: tour('forecast-chart'), text: () => t('The forecast is always reachable. The chart shows the velocity of past sprints and the forecast PLAN of the coming ones with their range.') },
       { route: '/forecast', target: tour('forecast-table'), text: () => t('The table lists capacity, forecast PLAN and range. Missing absences are only a hint; the page stays usable. The calculator symbol explains each row.') },
       { route: '/forecast', target: tour('forecast-whatif'), text: () => t('What if: change an assumption and see the result in the chart. Only if you save it explicitly does it become a prognosis; otherwise the forecast stays as it is.') },
-      { route: '/forecast', target: tour('forecast-analysis'), text: () => t('Analysis: pick a project. Foresprint names the likely sprint with its range and compares it with the end of the project.') },
+      { route: '/forecast', query: { tab: 'when' }, target: tour('forecast-analysis'), text: () => t('Analysis: pick a project. Foresprint names the likely sprint with its range and compares it with the end of the project.') },
       { route: '/forecast', target: tour('forecast-history'), text: () => t('Products over time: the same stages as in the sprint views, across many sprints and grouped by PO. Check that budgets match the agreement.') },
       { route: '/forecast', target: tour('forecast-reports'), text: () => t('Reports and export: Excel or a Markdown report. The question is answered and the result is where it is needed.') },
     ],

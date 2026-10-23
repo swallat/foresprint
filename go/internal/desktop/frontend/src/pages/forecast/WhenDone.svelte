@@ -53,9 +53,14 @@
     project = id;
     const p = projects.find((x) => x.id === id);
     if (p) {
-      if (p.openScope !== null) remaining = p.openScope;
       share = Math.round(roadmapShare * 100);
-      await ask();
+      if (p.openScope !== null) {
+        remaining = p.openScope;
+        await ask();
+      } else {
+        asked++;
+        done = undefined;
+      }
     }
   }
 
@@ -107,7 +112,7 @@
     {/if}
     <div class="field">
       <label for="wd-rest">{t('Remaining work (points)')}</label>
-      <input id="wd-rest" class="input" type="number" min="1" step="1" bind:value={remaining} />
+      <input id="wd-rest" class="input" type="number" min="0" step="any" bind:value={remaining} />
     </div>
     <div class="field">
       <label for="wd-share">{t('Share of the forecast for it (%)')}</label>
@@ -128,20 +133,20 @@
       {/if}
     </p>
   {/if}
-  <div aria-live="polite">
+  <div>
     {#if problem}
-      <Banner tone="bad">{problem}</Banner>
+      <div aria-live="polite"><Banner tone="bad">{problem}</Banner></div>
     {:else if done && !done.available}
-      <Banner tone="info">
+      <div aria-live="polite"><Banner tone="info">
         {#if done.remaining <= 0 || done.share <= 0}
           {t('Enter the remaining work and a share above 0 to simulate.')}
         {:else}
           {t('There are too few sprints with a velocity to simulate. At least 2 are needed.')}
         {/if}
-      </Banner>
+      </Banner></div>
     {:else if done}
       <div class="stack">
-        <p>
+        <p aria-live="polite">
           {#if done.p50}
             {t('Probably done in sprint {p50}.', { p50: done.p50 })}
             {#if done.earliest && done.p85}
@@ -154,8 +159,8 @@
           {/if}
         </p>
         {#if done.projectEnd}
-          <p>
-            <span class="chip {done.light}"><Icon name={lightIcon(done.light)} size={16} />{lightText(done.light, formatDate(done.projectEnd))}</span>
+          <p aria-live="polite">
+            <span class="chip wd-light {done.light}"><Icon name={lightIcon(done.light)} size={16} />{lightText(done.light, formatDate(done.projectEnd))}</span>
           </p>
         {:else if done.projectName}
           <p class="small muted">{t('The project has no end date, so there is nothing to compare with.')}</p>
@@ -193,6 +198,10 @@
 </section>
 
 <style>
+  .wd-light {
+    height: auto;
+    white-space: normal;
+  }
   .barcell {
     width: 40%;
     min-width: 120px;
