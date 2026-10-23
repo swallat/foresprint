@@ -35,7 +35,7 @@ export interface Api
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
   /** Writes Team Atlas into a throwaway folder and works on it until LeaveDemo; returns its key. */
-  EnterDemo(lang: string): Promise<string>;
+  EnterDemo(lang: string, team: string, source: string): Promise<string>;
   LeaveDemo(): Promise<void>;
   InDemo(): Promise<boolean>;
 }

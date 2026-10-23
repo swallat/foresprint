@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -31,9 +32,47 @@ const (
 	past       = 6 // finished sprints before the current one
 )
 
-// Write creates the team Key below root, with the dates relative to today. lang ("de", "en")
-// chooses the language of titles and names.
+// The teams and the sources of work the window offers (the choice on the first-start screen).
+const (
+	TeamAtlas      = "atlas"    // every feature: products with product owners, projects, production
+	TeamSimple     = "simple"   // products only: no product owners, no projects, no production share
+	SourcePackages = "packages" // work packages kept in Foresprint
+	SourceTracker  = "tracker"  // tickets of a tracker such as Jira (the cached import)
+	SourceNone     = "none"     // no tickets: amounts only
+)
+
+// Options choose the variant of the demo team. The zero value is the full Atlas with work
+// packages.
+type Options struct {
+	Team   string // TeamAtlas (default) or TeamSimple
+	Source string // SourcePackages (default), SourceTracker or SourceNone
+}
+
+// view is what the templates see.
+type view struct {
+	Full    bool   // all features (Atlas)
+	Tickets bool   // the team has tickets
+	Source  string // one of the Source constants
+}
+
+// Write creates the full Atlas with work packages below root; see WriteWith.
 func Write(root string, today time.Time, lang string) error {
+	return WriteWith(root, today, lang, Options{})
+}
+
+// WriteWith creates the team Key below root, with the dates relative to today. lang ("de", "en")
+// chooses the language of titles and names.
+func WriteWith(root string, today time.Time, lang string, opt Options) error {
+	if opt.Team == "" {
+		opt.Team = TeamAtlas
+	}
+	if opt.Source == "" {
+		opt.Source = SourcePackages
+	}
+	if (opt.Team != TeamAtlas && opt.Team != TeamSimple) || (opt.Source != SourcePackages && opt.Source != SourceTracker && opt.Source != SourceNone) {
+		return fmt.Errorf("unknown demo variant %q / %q", opt.Team, opt.Source)
+	}
+	v := view{Full: opt.Team == TeamAtlas, Tickets: opt.Source != SourceNone, Source: opt.Source}
 	dir := filepath.Join(root, Key)
 	if err := os.MkdirAll(filepath.Join(dir, "sprints"), 0o755); err != nil {
 		return err
@@ -64,12 +103,28 @@ func Write(root string, today time.Time, lang string) error {
 		if err != nil {
 			return err
 		}
+		name := strings.TrimSuffix(e.Name(), ".tmpl")
+		switch {
+		case name == "projects.yaml" && !v.Full:
+			continue
+		case (name == "arbeitspakete.yaml" || name == "preplan.yaml") && !v.Tickets:
+			continue
+		}
 		var buf bytes.Buffer
-		if err := t.Execute(&buf, nil); err != nil {
+		if err := t.Execute(&buf, v); err != nil {
 			return err
 		}
-		name := strings.TrimSuffix(e.Name(), ".tmpl")
-		if err := os.WriteFile(filepath.Join(dir, name), buf.Bytes(), 0o644); err != nil {
+		out := buf.Bytes()
+		if !v.Full && name == "arbeitspakete.yaml" {
+			out = projectLine.ReplaceAll(out, nil) // no projects, so no project of a ticket
+		}
+		if v.Source == SourceTracker {
+			out = bytes.ReplaceAll(out, []byte("AP-"), []byte("ATL-"))
+			if name == "arbeitspakete.yaml" {
+				name = "tickets.yaml" // the cached import of the tracker
+			}
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), out, 0o644); err != nil {
 			return err
 		}
 	}
@@ -82,6 +137,8 @@ func Write(root string, today time.Time, lang string) error {
 	}
 	return nil
 }
+
+var projectLine = regexp.MustCompile(`(?m)^  project: .*\n`)
 
 // currentStart is the start of the current sprint: the Monday of last week, so that today lies
 // in the second week of the sprint.

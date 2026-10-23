@@ -9,7 +9,7 @@ import (
 func TestDemoModeLoadsTutorialTeam(t *testing.T) {
 	a := newAPI(t, t.TempDir())
 	home := a.DataDir()
-	key, err := a.EnterDemo("en")
+	key, err := a.EnterDemo("en", "", "")
 	if err != nil || key != "atlas" {
 		t.Fatalf("%q %v", key, err)
 	}
@@ -52,7 +52,7 @@ func TestDemoModeLoadsTutorialTeam(t *testing.T) {
 // The pages the guided flows open must have data in the tutorial team.
 func TestDemoServesTheGuidedFlows(t *testing.T) {
 	a := newAPI(t, t.TempDir())
-	key, err := a.EnterDemo("de")
+	key, err := a.EnterDemo("de", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,11 +80,11 @@ func TestDemoServesTheGuidedFlows(t *testing.T) {
 func TestDemoEnteredTwiceAndDataDirChange(t *testing.T) {
 	home := t.TempDir()
 	a := newAPI(t, home)
-	if _, err := a.EnterDemo("en"); err != nil {
+	if _, err := a.EnterDemo("en", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	first := a.DataDir()
-	if _, err := a.EnterDemo("en"); err != nil {
+	if _, err := a.EnterDemo("en", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(first); !os.IsNotExist(err) {
@@ -93,7 +93,7 @@ func TestDemoEnteredTwiceAndDataDirChange(t *testing.T) {
 	if err := a.LeaveDemo(); err != nil || a.DataDir() != home {
 		t.Fatalf("back to %q: %v", a.DataDir(), err)
 	}
-	if _, err := a.EnterDemo("en"); err != nil {
+	if _, err := a.EnterDemo("en", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	other := t.TempDir()
@@ -110,7 +110,7 @@ func TestDemoEnteredTwiceAndDataDirChange(t *testing.T) {
 
 func TestDemoRefusesFolderActionsBeforeTouchingTheDisk(t *testing.T) {
 	a := newAPI(t, t.TempDir())
-	if _, err := a.EnterDemo("en"); err != nil {
+	if _, err := a.EnterDemo("en", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = a.LeaveDemo() }()
@@ -123,5 +123,27 @@ func TestDemoRefusesFolderActionsBeforeTouchingTheDisk(t *testing.T) {
 	}
 	if _, err := os.Stat(target); !os.IsNotExist(err) {
 		t.Errorf("a folder was created on disk: %v", err)
+	}
+}
+
+func TestEnterDemoVariants(t *testing.T) {
+	a := newAPI(t, t.TempDir())
+	t.Cleanup(func() { _ = a.LeaveDemo() })
+	for _, c := range []struct{ team, source, kind string }{
+		{"simple", "none", SourceNone},
+		{"atlas", "tracker", SourceTracker},
+		{"simple", "packages", SourcePackages},
+	} {
+		key, err := a.EnterDemo("en", c.team, c.source)
+		if err != nil {
+			t.Fatalf("%s/%s: %v", c.team, c.source, err)
+		}
+		today, err := a.Today(key)
+		if err != nil || today.Source != c.kind {
+			t.Fatalf("%s/%s: today source = %q, %v", c.team, c.source, today.Source, err)
+		}
+	}
+	if _, err := a.EnterDemo("en", "huge", ""); err == nil {
+		t.Error("an unknown team must be refused")
 	}
 }
