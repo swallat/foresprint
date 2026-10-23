@@ -22,10 +22,10 @@ $version = $env:FORESPRINT_VERSION
 if (-not $version) {
     # releases/latest skips pre-releases and still points at the Python-era 0.x while 1.0 is in
     # beta. Take the newest stable release of 1.x or later, else the newest pre-release of 1.x.
-    $all = @(Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=30" | Where-Object { -not $_.draft -and $_.tag_name -match '^v[1-9]' })
+    $all = @((Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=30") | Where-Object { -not $_.draft -and $_.tag_name -match '^v[1-9]' })
     $pick = $all | Where-Object { -not $_.prerelease } | Select-Object -First 1
     if (-not $pick) { $pick = $all | Select-Object -First 1 }
-    if (-not $pick) { throw "could not find the newest version" }
+    if (-not $pick) { throw "could not find the newest version (GitHub API limit? set FORESPRINT_VERSION, for example 1.0.0-beta.6)" }
     $version = $pick.tag_name
 }
 $version = $version.TrimStart("v")

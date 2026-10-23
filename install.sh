@@ -56,7 +56,7 @@ if [ -z "$version" ]; then
         awk '/^    "tag_name":/ {match($0, /"v[^"]*"/); t = substr($0, RSTART + 1, RLENGTH - 2)}
              /^    "prerelease":/ {p = ($2 ~ /true/); if (t ~ /^v[1-9]/) {if (!p && !s) s = t; if (!f) f = t} t = ""}
              END {print (s != "" ? s : f)}')
-    [ -n "$version" ] || fail "could not find the newest version"
+    [ -n "$version" ] || fail "could not find the newest version (GitHub API limit? set FORESPRINT_VERSION, for example 1.0.0-beta.6)"
 fi
 version="${version#v}"
 prefix=foresprint
