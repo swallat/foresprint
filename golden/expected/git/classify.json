@@ -158,22 +158,22 @@
   "url": "",
   "message": "ssh: connect to host h port 22: Permission denied",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`ssh: connect to host h port 22: Permission denied`",
-  "full": "ssh: connect to host h port 22: Permission denied The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "ssh: connect to host h port 22: Permission denied The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "ssh: connect to host h port 22: Permission denied",
   "url": "https://h/x.git",
   "message": "ssh: connect to host h port 22: Permission denied",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`ssh: connect to host h port 22: Permission denied`",
-  "full": "ssh: connect to host h port 22: Permission denied The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "ssh: connect to host h port 22: Permission denied The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "remote: Permission denied",
@@ -378,44 +378,44 @@
   "url": "",
   "message": "fatal: repository 'https://h/x.git/' not found",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: repository 'https://h/x.git/' not found`",
-  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "fatal: repository 'https://h/x.git/' not found",
   "url": "https://h/x.git",
   "message": "fatal: repository 'https://h/x.git/' not found",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: repository 'https://h/x.git/' not found`",
-  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "ERROR: Repository not found.\nfatal: Could not read from remote repository.",
   "url": "",
   "message": "ERROR: Repository not found.\nfatal: Could not read from remote repository.",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`ERROR: Repository not found.`  \n`fatal: Could not read from remote repository.`",
-  "full": "ERROR: Repository not found.\nfatal: Could not read from remote repository. The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "ERROR: Repository not found.\nfatal: Could not read from remote repository. The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "ERROR: Repository not found.\nfatal: Could not read from remote repository.",
   "url": "https://h/x.git",
   "message": "ERROR: Repository not found.\nfatal: Could not read from remote repository.",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`ERROR: Repository not found.`  \n`fatal: Could not read from remote repository.`",
-  "full": "ERROR: Repository not found.\nfatal: Could not read from remote repository. The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "ERROR: Repository not found.\nfatal: Could not read from remote repository. The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "fatal: unable to access 'https://h/x.git/': SSL certificate problem: self-signed certificate",
@@ -444,44 +444,44 @@
   "url": "",
   "message": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`fatal: unable to access 'https://h/x.git/': Could not resolve host: h`",
-  "full": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h",
   "url": "https://h/x.git",
   "message": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`fatal: unable to access 'https://h/x.git/': Could not resolve host: h`",
-  "full": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "fatal: unable to access 'https://h/x.git/': Could not resolve host: h The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository.",
   "url": "",
   "message": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository.",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`ssh: connect to host h port 22: Connection timed out`  \n`fatal: Could not read from remote repository.`",
-  "full": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository. The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository. The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository.",
   "url": "https://h/x.git",
   "message": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository.",
   "kind": "offline",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
-  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later.",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
+  "hint_md": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later.",
   "raw": true,
   "render_md": "`ssh: connect to host h port 22: Connection timed out`  \n`fatal: Could not read from remote repository.`",
-  "full": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository. The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "full": "ssh: connect to host h port 22: Connection timed out\nfatal: Could not read from remote repository. The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "in": "fatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights",
@@ -532,22 +532,22 @@
   "url": "",
   "message": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs",
   "kind": "rejected",
-  "hint": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first.",
-  "hint_md": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first.",
+  "hint": "Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first.",
+  "hint_md": "Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first.",
   "raw": true,
   "render_md": "`To h`  \n`  ! [rejected]        main -> main (fetch first) `  \n`error: failed to push some refs`",
-  "full": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first."
+  "full": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first."
  },
  {
   "in": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs",
   "url": "https://h/x.git",
   "message": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs",
   "kind": "rejected",
-  "hint": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first.",
-  "hint_md": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first.",
+  "hint": "Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first.",
+  "hint_md": "Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first.",
   "raw": true,
   "render_md": "`To h`  \n`  ! [rejected]        main -> main (fetch first) `  \n`error: failed to push some refs`",
-  "full": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first."
+  "full": "To h\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first."
  },
  {
   "in": "error: Pulling is not possible because you have unmerged files.",
@@ -664,66 +664,66 @@
   "url": "",
   "message": "There is no tracking information for the current branch.",
   "kind": "no_upstream",
-  "hint": "The branch is not connected to the server yet. “Save and share” sets that up the first time.",
-  "hint_md": "The branch is not connected to the server yet. “Save and share” sets that up the first time.",
+  "hint": "The branch is not connected to the server yet. “Save” sets that up the first time.",
+  "hint_md": "The branch is not connected to the server yet. “Save” sets that up the first time.",
   "raw": true,
   "render_md": "`There is no tracking information for the current branch.`",
-  "full": "There is no tracking information for the current branch. The branch is not connected to the server yet. “Save and share” sets that up the first time."
+  "full": "There is no tracking information for the current branch. The branch is not connected to the server yet. “Save” sets that up the first time."
  },
  {
   "in": "There is no tracking information for the current branch.",
   "url": "https://h/x.git",
   "message": "There is no tracking information for the current branch.",
   "kind": "no_upstream",
-  "hint": "The branch is not connected to the server yet. “Save and share” sets that up the first time.",
-  "hint_md": "The branch is not connected to the server yet. “Save and share” sets that up the first time.",
+  "hint": "The branch is not connected to the server yet. “Save” sets that up the first time.",
+  "hint_md": "The branch is not connected to the server yet. “Save” sets that up the first time.",
   "raw": true,
   "render_md": "`There is no tracking information for the current branch.`",
-  "full": "There is no tracking information for the current branch. The branch is not connected to the server yet. “Save and share” sets that up the first time."
+  "full": "There is no tracking information for the current branch. The branch is not connected to the server yet. “Save” sets that up the first time."
  },
  {
   "in": "fatal: No configured push destination.",
   "url": "",
   "message": "fatal: No configured push destination.",
   "kind": "no_remote",
-  "hint": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there.",
-  "hint_md": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there.",
+  "hint": "This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there.",
+  "hint_md": "This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there.",
   "raw": true,
   "render_md": "`fatal: No configured push destination.`",
-  "full": "fatal: No configured push destination. This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there."
+  "full": "fatal: No configured push destination. This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there."
  },
  {
   "in": "fatal: No configured push destination.",
   "url": "https://h/x.git",
   "message": "fatal: No configured push destination.",
   "kind": "no_remote",
-  "hint": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there.",
-  "hint_md": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there.",
+  "hint": "This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there.",
+  "hint_md": "This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there.",
   "raw": true,
   "render_md": "`fatal: No configured push destination.`",
-  "full": "fatal: No configured push destination. This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there."
+  "full": "fatal: No configured push destination. This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there."
  },
  {
   "in": "fatal: 'origin' does not appear to be a git repository",
   "url": "",
   "message": "fatal: 'origin' does not appear to be a git repository",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: 'origin' does not appear to be a git repository`",
-  "full": "fatal: 'origin' does not appear to be a git repository The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: 'origin' does not appear to be a git repository The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "fatal: 'origin' does not appear to be a git repository",
   "url": "https://h/x.git",
   "message": "fatal: 'origin' does not appear to be a git repository",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: 'origin' does not appear to be a git repository`",
-  "full": "fatal: 'origin' does not appear to be a git repository The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: 'origin' does not appear to be a git repository The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "something nobody expects",

@@ -32,7 +32,7 @@
  {
   "kind": "offline",
   "title": "Server not reachable",
-  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save” again later."
  },
  {
   "kind": "denied",
@@ -42,7 +42,7 @@
  {
   "kind": "rejected",
   "title": "Upload rejected because something new arrived in the meantime",
-  "hint": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first."
+  "hint": "Someone else has uploaded changes in the meantime. Choose “Save” once more; they will be taken over first."
  },
  {
   "kind": "merge_in_progress",
@@ -57,7 +57,7 @@
  {
   "kind": "invalid",
   "title": "Merged data is not valid",
-  "hint": "The merge was technically possible, but the data is now invalid in content (see list). Nothing was uploaded. Please correct the values and choose “Save and share” again – or deliberately “Share anyway”."
+  "hint": "The merge was technically possible, but the data is now invalid in content (see list). Nothing was uploaded. Please correct the values and choose “Save” again – or deliberately “Share anyway”."
  },
  {
   "kind": "dirty",
@@ -72,27 +72,27 @@
  {
   "kind": "no_upstream",
   "title": "Branch is not connected to the server",
-  "hint": "The branch is not connected to the server yet. “Save and share” sets that up the first time."
+  "hint": "The branch is not connected to the server yet. “Save” sets that up the first time."
  },
  {
   "kind": "no_remote",
   "title": "No server set up",
-  "hint": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there."
+  "hint": "This data folder has no server yet. In Settings > Storage, under “Server”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Or copy the data of a team from a server” there."
  },
  {
   "kind": "not_repo",
   "title": "No Git repository",
-  "hint": "The data folder must be inside a Git repository: create a new one with `git init` or fetch an existing one with `git clone`. An unpacked ZIP archive (“Download source code” on GitHub or GitLab) is not a repository because it lacks the hidden `.git` folder. For an existing team repository, choose “Clone repository” on the “Data folder” page instead."
+  "hint": "The data folder must be inside a Git repository: create a new one with `git init` or fetch an existing one with `git clone`. An unpacked ZIP archive (“Download source code” on GitHub or GitLab) is not a repository because it lacks the hidden `.git` folder. For an existing team repository, choose “Or copy the data of a team from a server” in Settings > Storage instead."
  },
  {
   "kind": "not_found",
   "title": "Repository not found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "kind": "unrelated_histories",
   "title": "Server has a different history",
-  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)”. If the data repository on the server is the right one, merging must be confirmed explicitly."
+  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly."
  },
  {
   "kind": "tag_exists",
