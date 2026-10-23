@@ -4,6 +4,8 @@
 
 import type {
   CloseInput,
+  ConflictSuggestion,
+  ContingentFit,
   HandLight,
   Light,
   MilestoneView,
@@ -165,6 +167,8 @@ let state = seed();
 const undoStack: (typeof state)[] = [];
 const remember = () => undoStack.push(clone(state));
 
+const none: ConflictSuggestion = { kind: 'none', ticket: '', project: '', projectName: '', light: 'none', points: 0 };
+
 function view(): ProjectsView {
   const t = today();
   const sprints = sprintList();
@@ -186,11 +190,33 @@ function view(): ProjectsView {
     sprintDays: 14,
     conflictSprint: sprints.find((s) => s.state === 'future')?.id ?? '',
     conflict: [
-      { product: 'portal', budget: 14, demand: [{ project: 'self-service', points: 8 }, { project: 'login', points: 4 }], rest: 2, light: 'warn' },
-      { product: 'billing', budget: 8, demand: [{ project: 'e-invoice', points: 5 }], rest: 3, light: 'ok' },
-      { product: 'mobile', budget: 10, demand: [{ project: 'self-service', points: 6 }, { project: 'login', points: 4 }], rest: 0, light: 'bad' },
-      { product: 'platform', budget: 8, demand: [{ project: 'e-invoice', points: 2 }], rest: 6, light: 'ok' },
+      {
+        product: 'portal',
+        budget: 14,
+        demand: [{ project: 'self-service', points: 8 }, { project: 'login', points: 4 }],
+        rest: 2,
+        light: 'warn',
+        suggest: { kind: 'move', ticket: 'AT-103', project: 'login', projectName: 'Login migration', light: 'ok', points: 3 },
+      },
+      { product: 'billing', budget: 8, demand: [{ project: 'e-invoice', points: 5 }], rest: 3, light: 'ok', suggest: none },
+      { product: 'mobile', budget: 10, demand: [{ project: 'self-service', points: 6 }, { project: 'login', points: 4 }], rest: 0, light: 'bad', suggest: { kind: 'talk', ticket: '', project: '', projectName: '', light: 'none', points: 0 } },
+      { product: 'platform', budget: 8, demand: [{ project: 'e-invoice', points: 2 }], rest: 6, light: 'ok', suggest: none },
     ],
+    daily: [
+      { product: 'portal', budget: 9.3, done: 7.3, planned: 8 },
+      { product: 'billing', budget: 5.3, done: 4, planned: 3.3 },
+      { product: 'mobile', budget: 6.7, done: 5.3, planned: 6.7 },
+      { product: 'platform', budget: 5.3, done: 3.3, planned: 5.3 },
+    ],
+    dailyDoneSprint: sprints.find((s) => s.state === 'current')?.id ?? '',
+    fit: state.open
+      .filter((p) => p.booked !== null)
+      .map((p) => {
+        const remaining = (p.booked ?? 0) - (p.used ?? p.done ?? 0);
+        const need = p.planned;
+        const status = need === null ? '' : need > remaining ? 'over' : need > remaining * 0.8 ? 'tight' : 'ok';
+        return { project: p.id, remaining, need, status, missing: status === 'over' && need !== null ? need - remaining : null } satisfies ContingentFit;
+      }),
     problem: '',
   };
 }
@@ -228,9 +254,14 @@ export const projectsMock: ProjectsApi = {
         key: `AT-${100 + i}`,
         title: `Work item ${i + 1}`,
         status: i === 0 ? 'Done' : 'In progress',
-        sprint: v.sprints[2 + (i % 2)]?.id ?? '',
+        // The first work item is finished, the second is earmarked, the others only have a forecast.
+        sprint: i === 0 ? (v.sprints.find((s) => s.state === 'current')?.id ?? '') : i === 1 ? (v.sprints[3]?.id ?? '') : '',
         estimate: 3,
         done: i === 0,
+        product: p.products[i % p.products.length] ?? '',
+        estimatePD: 2,
+        refined: i !== 3,
+        forecast: i < 2 ? '' : (v.sprints[4 + (i % 2)]?.id ?? ''),
       })),
     } satisfies ProjectDetail;
   },

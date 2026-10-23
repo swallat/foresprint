@@ -103,6 +103,41 @@ type ConflictRow struct {
 	Rest    float64      `json:"rest"`
 	// Light is "ok", "warn" (nearly full) or "bad" (no room left).
 	Light string `json:"light"`
+	// Suggest is what the core recommends for the product; the PO decides.
+	Suggest ConflictSuggestion `json:"suggest"`
+}
+
+// ConflictSuggestion is a recommendation for one product of the conflict view. Kind is "none"
+// (room left, nothing to do), "move" (moving Ticket one sprint later frees Points) or "talk"
+// (no ticket can be moved: every project with a ticket here is at risk or its tickets are fixed).
+type ConflictSuggestion struct {
+	Kind        string  `json:"kind"`
+	Ticket      string  `json:"ticket"`
+	Project     string  `json:"project"`
+	ProjectName string  `json:"projectName"`
+	Light       string  `json:"light"`
+	Points      float64 `json:"points"`
+}
+
+// DailyRow is the daily business of one product, without a light: the budget of the sprint ahead,
+// what finished in the running sprint and what is planned. Amounts are person days (nil without
+// a rate).
+type DailyRow struct {
+	Product string   `json:"product"`
+	Budget  *float64 `json:"budget"`
+	Done    *float64 `json:"done"`
+	Planned *float64 `json:"planned"`
+}
+
+// ContingentFit sets the need of a project from the sprint ahead against what is left of its
+// contingent (person days). Status is "ok", "tight" (the need is above 80 % of what is left),
+// "over" or "" (not known); Missing is the shortfall when over.
+type ContingentFit struct {
+	Project   string   `json:"project"`
+	Remaining *float64 `json:"remaining"`
+	Need      *float64 `json:"need"`
+	Status    string   `json:"status"`
+	Missing   *float64 `json:"missing"`
 }
 
 // ProjectsView is the portfolio.
@@ -125,6 +160,12 @@ type ProjectsView struct {
 	SprintDays     int           `json:"sprintDays"`
 	ConflictSprint string        `json:"conflictSprint"`
 	Conflict       []ConflictRow `json:"conflict"`
+	// Daily is the daily business per product (budget of ConflictSprint, finished in
+	// DailyDoneSprint, the running sprint); Fit the need of each open project against its
+	// contingent.
+	Daily           []DailyRow      `json:"daily"`
+	DailyDoneSprint string          `json:"dailyDoneSprint"`
+	Fit             []ContingentFit `json:"fit"`
 	// Problem is set when the distribution could not be calculated (no lights then).
 	Problem string `json:"problem"`
 }
@@ -142,9 +183,16 @@ type TicketLine struct {
 	Key      string   `json:"key"`
 	Title    string   `json:"title"`
 	Status   string   `json:"status"`
-	Sprint   string   `json:"sprint"` // planned sprint ("" = not earmarked)
+	Sprint   string   `json:"sprint"` // sprint in the tracker, else the earmark ("" = not earmarked)
 	Estimate *float64 `json:"estimate"`
 	Done     bool     `json:"done"`
+	// Product is the product whose budget the ticket uses; EstimatePD the estimate in person
+	// days (nil without a rate); Refined says the estimate is final; Forecast is the sprint the
+	// distribution puts a ticket without sprint in.
+	Product    string   `json:"product"`
+	EstimatePD *float64 `json:"estimatePD"`
+	Refined    bool     `json:"refined"`
+	Forecast   string   `json:"forecast"`
 }
 
 // MilestoneInput is a milestone as the form sends it.
