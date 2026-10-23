@@ -38,7 +38,7 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 		}
 	}
 
-	same, err := api.ForecastWhatIf(key, 0, 100)
+	same, err := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 100})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,15 +47,15 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 			t.Errorf("%s: unchanged assumptions change the forecast by %v", r.ID, r.Delta)
 		}
 	}
-	focused, _ := api.ForecastWhatIf(key, 0, 90)
+	focused, _ := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 90})
 	if len(focused) > 0 && focused[0].Forecast > focused[0].Base {
 		t.Errorf("a lower focus must not raise the forecast: %v > %v", focused[0].Forecast, focused[0].Base)
 	}
-	less, _ := api.ForecastWhatIf(key, 3, 100)
+	less, _ := api.ForecastWhatIf(key, ForecastAssumption{ExtraAbsenceDays: 3, FocusPercent: 100})
 	if len(less) > 0 && less[0].Delta >= 0 {
 		t.Errorf("fewer person days must lower the forecast, delta %v", less[0].Delta)
 	}
-	if _, err := api.ForecastWhatIf(key, -1, 100); err == nil {
+	if _, err := api.ForecastWhatIf(key, ForecastAssumption{ExtraAbsenceDays: -1, FocusPercent: 100}); err == nil {
 		t.Error("negative days must be refused")
 	}
 
@@ -186,5 +186,85 @@ func TestWhenDoneForAProject(t *testing.T) {
 	}
 	if free, _ := api.ForecastWhenDone(key, 40, 50, "open-ended"); free.Light != "none" || free.ProjectEnd != "" {
 		t.Errorf("no project end: %+v", free)
+	}
+}
+
+func TestForecastWhatIfForTheRunningSprint(t *testing.T) {
+	dir := t.TempDir()
+	copyTree(t, demoDir(t), dir)
+	api := newAPI(t, dir)
+	key := api.Teams()[0].Key
+	v, err := api.Forecast(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Running == "" || v.Next == "" {
+		t.Skip("the demo data has no running sprint")
+	}
+	low, high := 1.0, 1000.0
+	base := ForecastAssumption{Sprint: v.Next, FocusPercent: 100}
+	same, err := api.ForecastWhatIf(key, base)
+	if err != nil || len(same) != 1 || same[0].ID != v.Next {
+		t.Fatalf("one sprint expected, got %v, %v", same, err)
+	}
+	base.ExpectedVelocity = &low
+	worse, _ := api.ForecastWhatIf(key, base)
+	base.ExpectedVelocity = &high
+	better, _ := api.ForecastWhatIf(key, base)
+	if len(worse) != 1 || len(better) != 1 || worse[0].Forecast > better[0].Forecast {
+		t.Errorf("a better running sprint must not lower the next one: %v vs %v", worse, better)
+	}
+	all, _ := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 100})
+	if len(all) < 2 {
+		t.Errorf("all coming sprints expected, got %d", len(all))
+	}
+
+	allWith, _ := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 100, ExpectedVelocity: &high})
+	if len(allWith) != len(all) {
+		t.Errorf("an expected velocity must not drop a sprint: %d vs %d", len(allWith), len(all))
+	}
+
+	save := ForecastAssumption{Sprint: v.Next, FocusPercent: 100, ExpectedVelocity: &low}
+	if err := api.ForecastSaveWhatIf(key, save); err != nil {
+		t.Fatal(err)
+	}
+	data, err := storage.NewRepository(dir).Load(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, s := range data.Sprints {
+		if s.ID != v.Running {
+			continue
+		}
+		for _, p := range s.Prognoses {
+			if str(p.Target) == v.Next && p.Plan != nil && p.ExpectedDone != nil && p.Commitment != nil {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("the prognosis is not in the running sprint")
+	}
+	if err := api.ForecastSaveWhatIf(key, save); err != nil {
+		t.Fatal(err)
+	}
+	data, _ = storage.NewRepository(dir).Load(key)
+	labels := map[string]bool{}
+	for _, s := range data.Sprints {
+		if s.ID == v.Running {
+			for _, p := range s.Prognoses {
+				if str(p.Target) == v.Next {
+					labels[labelOf(p)] = true
+				}
+			}
+		}
+	}
+	if len(labels) < 2 {
+		t.Errorf("a second save must not replace the first: labels %v", labels)
+	}
+	save.Sprint = ""
+	if err := api.ForecastSaveWhatIf(key, save); err == nil {
+		t.Error("saving without the next sprint must be refused")
 	}
 }

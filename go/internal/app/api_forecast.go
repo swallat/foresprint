@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/swallat/foresprint/internal/analysis"
@@ -128,6 +129,10 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 	for _, e := range fc.Upcoming() {
 		v.Upcoming = append(v.Upcoming, forecastRow(fc, e, true))
 	}
+	v.Running, v.Next = forecastRunning(fc)
+	if cur := fc.Current(); cur != nil {
+		v.RunningCommitment = cur.Sprint.Commitment
+	}
 	for _, r := range v.Upcoming {
 		if r.Trend != nil && s.ReferenceCapacity > 0 {
 			rate := *r.Trend / s.ReferenceCapacity
@@ -138,29 +143,142 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 	return v, nil
 }
 
-// ForecastWhatIf calculates the coming sprints again with fewer person days (extraAbsenceDays
-// per sprint, in addition to the known absences) and a changed share of the capacity that turns
-// into points (focusPercent, 100 = as measured). Nothing is saved.
-func (a *API) ForecastWhatIf(team string, extraAbsenceDays, focusPercent float64) ([]WhatIfRow, error) {
-	if extraAbsenceDays < 0 || focusPercent < 0 {
-		return nil, errors.New(i18n.T("Absence days and focus must not be negative."))
+// forecastRunning is the running sprint and the one after it; "" if none runs or none follows.
+func forecastRunning(fc *forecast.Forecast) (running, next string) {
+	cur := fc.Current()
+	if cur == nil {
+		return "", ""
+	}
+	for i := range fc.Entries {
+		if fc.Entries[i].Sprint.ID == cur.Sprint.ID && i+1 < len(fc.Entries) {
+			return cur.Sprint.ID, fc.Entries[i+1].Sprint.ID
+		}
+	}
+	return cur.Sprint.ID, ""
+}
+
+// forecastAssumed builds the forecast again under the expectation for the running sprint; without
+// one, or without a running sprint, it is the forecast itself.
+func forecastAssumed(data *storage.TeamData, fc *forecast.Forecast, as ForecastAssumption) (*forecast.Forecast, error) {
+	running, _ := forecastRunning(fc)
+	if as.ExpectedVelocity == nil || running == "" {
+		return fc, nil
+	}
+	return forecast.WhatIf(data, fc.Today, running, model.Prognosis{ExpectedDone: as.ExpectedVelocity})
+}
+
+func forecastCheck(as ForecastAssumption) error {
+	if as.ExtraAbsenceDays < 0 || as.FocusPercent < 0 || (as.ExpectedVelocity != nil && *as.ExpectedVelocity < 0) {
+		return errors.New(i18n.T("Absence days, focus and velocity must not be negative."))
+	}
+	return nil
+}
+
+// forecastRows calculates the coming sprints under the assumption: the running sprint ends with
+// the expected velocity, fewer person days (ExtraAbsenceDays per sprint, in addition to the known
+// absences) and a changed share of the capacity that turns into points (FocusPercent, 100 = as
+// measured). Only the chosen sprint, or all coming ones if none is chosen.
+func forecastRows(data *storage.TeamData, fc, fc2 *forecast.Forecast, as ForecastAssumption) []WhatIfRow {
+	ref := data.Team.Forecast.ReferenceCapacity
+	out := []WhatIfRow{}
+	for _, e := range fc.Upcoming() {
+		if as.Sprint != "" && e.Sprint.ID != as.Sprint {
+			continue
+		}
+		r := e.Result
+		// the running sprint with an expected velocity has a result of its own and no projection
+		// any more; its row keeps the trend it had
+		trend := r.NormalizedVelocity.Trend
+		if e2 := fc2.Entry(e.Sprint.ID); e2 != nil && e2.Result.NormalizedVelocity.Trend != nil {
+			trend = e2.Result.NormalizedVelocity.Trend
+		}
+		if r.Plan == nil || r.PlanCapacity == nil || trend == nil {
+			continue
+		}
+		capacity := max(0, *r.PlanCapacity-as.ExtraAbsenceDays)
+		value := engine.RoundDown(*trend/ref*capacity*as.FocusPercent/100, data.Team.Forecast.Rounding)
+		out = append(out, WhatIfRow{ID: e.Sprint.ID, Capacity: capacity, Forecast: value, Base: *r.Plan, Delta: value - *r.Plan})
+	}
+	return out
+}
+
+// ForecastWhatIf calculates the coming sprints again under an assumption. Nothing is saved.
+func (a *API) ForecastWhatIf(team string, as ForecastAssumption) ([]WhatIfRow, error) {
+	if err := forecastCheck(as); err != nil {
+		return nil, err
 	}
 	data, fc, err := a.forecastOf(team)
 	if err != nil {
 		return nil, err
 	}
-	s := data.Team.Forecast
-	out := []WhatIfRow{}
-	for _, e := range fc.Upcoming() {
-		r := e.Result
-		if r.Plan == nil || r.PlanCapacity == nil || r.NormalizedVelocity.Trend == nil {
-			continue
-		}
-		capacity := max(0, *r.PlanCapacity-extraAbsenceDays)
-		forecastValue := engine.RoundDown(*r.NormalizedVelocity.Trend/s.ReferenceCapacity*capacity*focusPercent/100, s.Rounding)
-		out = append(out, WhatIfRow{ID: e.Sprint.ID, Capacity: capacity, Forecast: forecastValue, Base: *r.Plan, Delta: forecastValue - *r.Plan})
+	fc2, err := forecastAssumed(data, fc, as)
+	if err != nil {
+		return nil, err
 	}
-	return out, nil
+	return forecastRows(data, fc, fc2, as), nil
+}
+
+// ForecastSaveWhatIf keeps the assumption for the sprint after the running one as a prognosis
+// ("Prognose") with the label: the running sprint's file holds it, the review compares it with
+// the result. Only that one sprint can be saved, the one the planning uses.
+func (a *API) ForecastSaveWhatIf(team string, as ForecastAssumption) error {
+	if err := forecastCheck(as); err != nil {
+		return err
+	}
+	data, fc, err := a.forecastOf(team)
+	if err != nil {
+		return err
+	}
+	running, next := forecastRunning(fc)
+	if running == "" || next == "" || as.Sprint != next {
+		return errors.New(i18n.T("Only the sprint after the running one can be saved as a prognosis."))
+	}
+	fc2, err := forecastAssumed(data, fc, as)
+	if err != nil {
+		return err
+	}
+	rows := forecastRows(data, fc, fc2, as)
+	if len(rows) != 1 {
+		return errors.New(i18n.T("There is no forecast for {id} yet.", "id", next))
+	}
+	cur := fc.Entry(running).Sprint.Clone()
+	if as.ExpectedVelocity == nil && cur.Commitment == nil {
+		return errors.New(i18n.T("Enter the velocity you expect for {id} to save the prognosis.", "id", running))
+	}
+	// The expectation is stored the way the plan page does: commitment, and what is not done or
+	// gained on top. A velocity that is not entered means the commitment is met.
+	expected := floatOr(as.ExpectedVelocity, floatOr(cur.Commitment, 0))
+	commitment := floatOr(cur.Commitment, expected)
+	label := as.Label
+	if label == "" {
+		label = forecastFreeLabel(cur.Prognoses, next)
+	}
+	n := now()
+	plan := rows[0].Forecast
+	p := model.Prognosis{At: time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), 0, time.UTC),
+		Target: &next, Plan: &plan, Label: &label, Commitment: &commitment, ExpectedDone: &expected}
+	if expected < commitment {
+		p.NotDone = model.Ptr(commitment - expected)
+	} else if expected > commitment {
+		p.AdditionalDone = model.Ptr(expected - commitment)
+	}
+	// what the newest prognosis says about the carry-over stays: readers take the newest one
+	if old := newestPrognosis(&cur, next, ""); old != nil {
+		p.Carry = slices.Clone(old.Carry)
+		p.RestNext = old.RestNext
+		p.Preplanned = old.Preplanned
+	}
+	kept := make([]model.Prognosis, 0, len(cur.Prognoses)+1)
+	for _, old := range cur.Prognoses {
+		if str(old.Target) != next || labelOf(old) != label {
+			kept = append(kept, old)
+		}
+	}
+	kept = append(kept, p)
+	cur.Prognoses = kept
+	_, err = storage.NewRepository(a.DataDir()).SaveSprint(team, &cur)
+	storage.ClearTeamCache()
+	return err
 }
 
 // forecastOpenScope is the open scope of a project in the unit of the team: the sizes of its
@@ -299,4 +417,21 @@ func forecastProductCount(data *storage.TeamData) int {
 		return 0
 	}
 	return len(data.Products)
+}
+
+// forecastFreeLabel is the first letter that no prognosis for the target carries yet, so that
+// saving never replaces an assumption of the plan page.
+func forecastFreeLabel(list []model.Prognosis, target string) string {
+	used := map[string]bool{}
+	for _, p := range list {
+		if str(p.Target) == target {
+			used[labelOf(p)] = true
+		}
+	}
+	for c := 'A'; c <= 'Z'; c++ {
+		if !used[string(c)] {
+			return string(c)
+		}
+	}
+	return "Z"
 }
