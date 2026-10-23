@@ -33,7 +33,37 @@ Foresprint 1.0 is a single native program written in Go with a [Wails](https://w
 (Svelte frontend). The window and the command line are the same file, and nothing else has to be
 installed.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/forecast-dark.png">
+  <img src="docs/assets/screenshots/forecast-light.png" alt="Forecast: velocity, trend and the PLAN range for the coming sprints">
+</picture>
 
+<details>
+<summary>More screenshots</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/today-dark.png">
+  <img src="docs/assets/screenshots/today-light.png" alt="Today: what comes next and what stands out">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/preplan-dark.png">
+  <img src="docs/assets/screenshots/preplan-light.png" alt="Pre-plan with the what-if for the running sprint">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/projects-dark.png">
+  <img src="docs/assets/screenshots/projects-light.png" alt="Projects with milestones, traffic lights and contingents">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/analysis-dark.png">
+  <img src="docs/assets/screenshots/analysis-light.png" alt="When is it done? Monte Carlo analysis">
+</picture>
+
+</details>
+
+*The screenshots show the invented demo team "Atlas".*
 
 ## Install
 
@@ -131,17 +161,17 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
 ## Documentation
 
 - [Installation and updates](docs/installation.md)
+- [The window](docs/window.md): pages, saving and sharing with Git, server setup, history
 - [Sprint workflow](docs/sprint-workflow.md): what to do when
 - [Command line and configuration](docs/cli.md): all commands, the data directory, language
 - [Data format](docs/data-format.md): `team.yaml`, `people.yaml`, `products.yaml`, sprint files
 - [Calculation](docs/calculation.md): formulas, capacity sources, trend modes, uncertainty
 - [Jira import](docs/jira.md) and [Data repository](docs/data-repository.md)
+- [Releasing](docs/releasing.md), [Code signing](docs/code-signing.md) and
+  [Performance](docs/performance.md)
 - [The window (developer notes)](go/internal/desktop/README.md) and the
   [1.0 plan](docs/redesign/plan.md)
-- `foresprint help [workflow|terms|fields|team|commands]` and the *Help* page of the window
-
-Parts of the documentation under `docs/` still describe the 0.x line (a browser UI) and are being
-updated for 1.0.
+- `foresprint help [workflow|terms|fields|team|commands]` and the *Help* pages of the window
 
 ## Development
 

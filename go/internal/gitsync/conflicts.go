@@ -316,6 +316,7 @@ func reason(err error) string {
 
 // Issues of the data check.
 func issueSet(ctx context.Context, dir string, today time.Time) (map[Issue]bool, error) {
+	dir = filepath.Clean(dir)
 	check := currentValidator()
 	if check == nil {
 		return map[Issue]bool{}, nil

@@ -16,6 +16,8 @@ export interface Step {
   route: string;
   /** Element to mark. */
   target?: string;
+  /** Step of the first-start wizard this step belongs to ("storage", "signin", "team", "tickets"); the tour and the wizard follow each other. */
+  wizard?: string;
   /** Query of the address, e.g. `{ tab: 'when' }` for a tab of the page. */
   query?: Record<string, string>;
   /** Sprint to select before showing the page. */
@@ -42,10 +44,10 @@ export const flows: Flow[] = [
     title: () => t('First start'),
     summary: () => t('From the empty app to Today: storage, sign-in, team and where the work comes from.'),
     steps: [
-      { route: '/setup', target: tour('firstrun-step'), text: () => t('The app does not know your data yet, so it starts with the setup. Choose where the team keeps its data: load it from an address, open a folder or start a new one.') },
-      { route: '/setup', target: tour('firstrun-step'), text: () => t('If the server asks for a sign-in you paste a token and test it. Your name and email are entered once.') },
-      { route: '/setup', target: tour('firstrun-step'), text: () => t('Then the team: open one that is already in the data, create a new one with name, region and first sprint, or open the demo team.') },
-      { route: '/setup', target: tour('firstrun-step'), text: () => t('Finally the source of the work: work packages kept in Foresprint, no tickets, or a tracker such as Jira. You can change this later under Settings.') },
+      { route: '/setup', wizard: 'storage', target: tour('firstrun-step'), text: () => t('The app does not know your data yet, so it starts with the setup. Choose where the team keeps its data: load it from an address, open a folder or start a new one.') },
+      { route: '/setup', wizard: 'signin', target: tour('firstrun-step'), text: () => t('Only a server asks for a sign-in: you paste a token and test it. For a folder on this computer the step is called Name. Name and email are entered once and appear in the history next to your changes.') },
+      { route: '/setup', wizard: 'team', target: tour('firstrun-step'), text: () => t('Then the team: open one that is already in the data, create a new one with name, region and first sprint, or open the demo team.') },
+      { route: '/setup', wizard: 'tickets', target: tour('firstrun-step'), text: () => t('Finally the source of the work: work packages kept in Foresprint, no tickets, or a tracker such as Jira. You can change this later under Settings.') },
       { route: '/today', target: tour('today-running'), text: () => t('Today shows the next step for every sprint. The setup is finished; each choice stays changeable in the settings.') },
     ],
   },

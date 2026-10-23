@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { shortNames } from '../../lib/axis';
   import { fmt } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { ForecastRow, WhatIfRow } from '../../lib/types.forecast';
@@ -16,11 +17,24 @@
 
   const W = 760;
   const H = 300;
-  const M = { l: 44, r: 52, t: 24, b: 44 };
+  const M0 = { l: 44, r: 52, t: 24, b: 44 };
+
+  // Space between two axis labels and the width of one character (12px data font).
+  const CHAR = 7.4;
+  const ROW = 15;
 
   const history = $derived(past.slice(-shown));
   const all = $derived([...history, ...upcoming]);
   const wi = $derived(new Map(whatIf.map((r) => [r.id, r])));
+
+  // Names that share a prefix ("Team Sprint 41", "Team Sprint 42") drop it on the axis; the tooltip keeps the full name.
+  const axisNames = $derived(shortNames(all.map((r) => r.id)));
+  const slot = $derived((W - M0.l - M0.r) / Math.max(1, all.length));
+  const needed = $derived(Math.max(0, ...axisNames.map((n) => n.length)) * CHAR + 6);
+  // Labels that would touch alternate between two rows; if even that is too tight, every other one is skipped.
+  const rows = $derived(needed > slot ? 2 : 1);
+  const showEvery = $derived(needed > slot * rows ? Math.ceil(needed / (slot * rows)) : 1);
+  const M = $derived({ ...M0, b: M0.b + (rows - 1) * ROW });
 
   const top = $derived.by(() => {
     let max = 0;
@@ -59,7 +73,6 @@
   });
   // Labels in the plot are rounded to one decimal so they stay short; tooltips keep the team's rounding.
   const label = (v: number | null) => fmt(v, 1);
-  const showEvery = $derived(all.length > 12 ? 2 : 1);
 
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
 </script>
@@ -86,7 +99,7 @@
 
   {#each all as r, i (r.id)}
     {#if i % showEvery === 0}
-      <text x={x(i)} y={H - M.b + 18} text-anchor="middle" class="axis">{r.id}</text>
+      <text x={x(i)} y={H - M.b + 18 + (rows > 1 ? ((i / showEvery) % 2) * ROW : 0)} text-anchor="middle" class="axis"><title>{r.id}</title>{axisNames[i]}</text>
     {/if}
   {/each}
 
