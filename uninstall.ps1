@@ -1,7 +1,7 @@
 # Uninstalls Foresprint on Windows, including the installation under the old name
 # "sprintforecast". Your data is never deleted.
 #
-#   powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
+#   powershell -NoProfile -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
 #
 # Removed, under both names (foresprint and sprintforecast):
 #   - the uv tool with its commands (foresprint.exe, foresprint-app.exe, sprintforecast.exe, ...)

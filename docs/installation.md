@@ -9,7 +9,7 @@ keep your team data in a Git repository.
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 ```
 
 **Linux / macOS:**
@@ -144,5 +144,5 @@ curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.s
 ```
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
+powershell -NoProfile -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
 ```

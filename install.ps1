@@ -1,6 +1,6 @@
 # Installs foresprint (command line and window in one program) on Windows.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
+#   powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 #
 # Running it again updates. The program also updates itself (foresprint update).
 #   $env:FORESPRINT_VERSION = "1.0.0"      install this version instead of the newest one
@@ -55,6 +55,8 @@ try {
     }
     Move-Item (Join-Path $tmp "foresprint.exe") $exe -Force
     Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue
+    # Clear a possible download mark (Mark of the Web) so SmartScreen and policies do not treat it as blocked.
+    Unblock-File $exe -ErrorAction SilentlyContinue
     Write-Host "==> installed $exe"
 } finally {
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
@@ -71,7 +73,13 @@ if (-not $env:FORESPRINT_NO_SHORTCUT) {
     # A failing launcher must not make the installation look failed: the program is in place.
     # Policies (AppLocker, antivirus) can refuse to start a freshly written, unsigned program.
     try {
-        & $exe shortcut
+        try {
+            & $exe shortcut
+        } catch {
+            # Security software may still be scanning the new file: wait a moment and try once more.
+            Start-Sleep -Seconds 3
+            & $exe shortcut
+        }
         if ($LASTEXITCODE -ne 0) { throw "foresprint shortcut exited with code $LASTEXITCODE" }
     } catch {
         Write-Warning "could not create the launcher with the program: $($_.Exception.Message)"
