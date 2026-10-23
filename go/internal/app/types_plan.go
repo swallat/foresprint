@@ -148,15 +148,21 @@ type PlanProject struct {
 // PlanProduction compares the production time of the sprint with the production part of the
 // planned work.
 type PlanProduction struct {
-	People       []PlanProdPerson `json:"people"`
-	Time         float64          `json:"time"` // before the cap, PD
-	CapPercent   float64          `json:"capPercent"`
-	Available    float64          `json:"available"` // PD
-	Demand       float64          `json:"demand"`    // PD
-	DemandSet    bool             `json:"demandSet"`
-	DemandAmount float64          `json:"demandAmount"` // in the unit
-	Load         *float64         `json:"load"`
-	Status       string           `json:"status"` // "ok", "tight" or "over"
+	People     []PlanProdPerson `json:"people"`
+	Time       float64          `json:"time"` // before the cap, PD
+	CapPercent float64          `json:"capPercent"`
+	Available  float64          `json:"available"` // PD
+	// Scaled: Available is Basis × Share × cap (needs a Forecast PLAN); otherwise it is Time × cap.
+	Scaled bool `json:"scaled"`
+	// Share is the part of the capacity that has production access (0 to 1).
+	Share float64 `json:"share"`
+	// Basis is the plannable amount in PD.
+	Basis        float64  `json:"basis"`
+	Demand       float64  `json:"demand"` // PD
+	DemandSet    bool     `json:"demandSet"`
+	DemandAmount float64  `json:"demandAmount"` // in the unit
+	Load         *float64 `json:"load"`
+	Status       string   `json:"status"` // "ok", "tight" or "over"
 	// Manual is the value entered without tickets (PD), nil if none.
 	Manual *float64 `json:"manual"`
 }

@@ -100,6 +100,19 @@ func DemandOf(items []Item, rate float64) (demand float64, ok bool) {
 	return pymath.Sum(parts) / rate, true
 }
 
+// AvailableOf is the production time that can be planned in PD: the plannable amount (in PD)
+// times the share of the production time in the capacity (at most 1), times the cap in percent.
+// The production time is gross (presence), the plannable amount net (the velocity already holds
+// meetings and small stuff), so the gross time alone would be far too generous. ok is false
+// without a capacity.
+func AvailableOf(plannablePD, prodTime, capacity, capPercent float64) (available, share float64, ok bool) {
+	if !(capacity > 0) || math.IsInf(capacity, 0) {
+		return 0, 0, false
+	}
+	share = math.Min(math.Max(prodTime/capacity, 0), 1)
+	return float64(float64(plannablePD*share)*math.Max(capPercent, 0)) / 100, share, true
+}
+
 // Compare sets the demand against the available production time: tight above 80 %, over above
 // 100 %. Without available time any demand is over, no demand is fine.
 func Compare(demand, available float64) Production {

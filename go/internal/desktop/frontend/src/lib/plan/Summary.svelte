@@ -122,8 +122,14 @@
       <div class="row">
         <span class="big">{prod.demandSet ? fmt(prod.demand, 1) : '–'} {t('of')} {fmt(prod.available, 1)} {t('PD')}</span>
         <Calc label={t('Production')} topic="units">
-          <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
-          <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+          {#if prod.scaled}
+            <div>{t('The plannable amount times the share of the capacity that has production access, times the cap.')}</div>
+            <div class="data">{fmt(prod.time, 1)} ÷ {fmt(d.capacity, 1)} {t('PD')} = {fmt(prod.share * 100)} %</div>
+            <div class="data">{fmt(prod.basis, 1)} {t('PD')} × {fmt(prod.share * 100)} % × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+          {:else}
+            <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
+            <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+          {/if}
         </Calc>
       </div>
       <div class="small row">

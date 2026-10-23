@@ -197,7 +197,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     committed: frozen[sid]?.commitment ?? null, products, tickets: lane, candidates: cand, projects,
     matrix: multi ? { projects: PROJECTS.map((p) => ({ id: p.id, name: p.name })), cells: Object.entries(matrixMock[sid] ?? {}).flatMap(([product, row]) => Object.entries(row).map(([project, value]) => ({ product, project, value }))) } : null,
     prod: multi ? {
-      people: [{ name: 'Jonas Weber', capacity: 6.2, absence: 1 }, { name: 'Tarek Aydin', capacity: 5.2, absence: 0 }], time: avail, capPercent: 100, available: avail,
+      people: [{ name: 'Jonas Weber', capacity: 6.2, absence: 1 }, { name: 'Tarek Aydin', capacity: 5.2, absence: 0 }], time: avail, capPercent: 100, available: avail, scaled: false, share: 0, basis: 0,
       demand, demandSet: noT ? prodPT[sid] != null : true, demandAmount: noT ? demand * rate : demandAmount, load, manual: prodPT[sid] ?? null,
       status: load == null ? 'ok' : load > 1 ? 'over' : load > 0.8 ? 'tight' : 'ok',
     } : null,
