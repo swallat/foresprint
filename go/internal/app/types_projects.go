@@ -19,6 +19,8 @@ type MilestoneView struct {
 	// Done and Total count the tickets of the milestone that are finished, and all that exist.
 	Done  int `json:"done"`
 	Total int `json:"total"`
+	// Open is the number of different open tickets the light is derived from.
+	Open int `json:"open"`
 	// Light is "ok", "warn", "bad" or "none" (no hand value and no open tickets).
 	Light string `json:"light"`
 	// Hand is the light the PO set by hand ("green", "yellow", "red"), "" = none. Source says

@@ -2,13 +2,13 @@
 
 Thank you for helping with Foresprint. This page covers the local setup, the checks every change
 has to pass and how pull requests are reviewed. The 1.0 line (branch `v1`) is a Go core with a
-[Wails](https://wails.io) window and a Svelte frontend; `main` still carries the Python 0.x line,
-which only gets bug fixes. Pull requests for 1.0 target `v1`.
+[Wails](https://wails.io) window and a Svelte frontend; The Python 0.x line
+lives on `main` and only gets bug fixes. Pull requests for 1.0 target `v1`.
 
 ## Setup
 
-[mise](https://mise.jdx.dev) installs the pinned Go and Node versions from `mise.toml` (Python and
-uv are in there too, for the helper scripts in `scripts/`):
+[mise](https://mise.jdx.dev) installs the pinned Go and Node versions from `mise.toml` (and uv,
+which runs `scripts/gen_holidays.py` for the public holiday data):
 
 ```bash
 mise install
@@ -39,14 +39,10 @@ mise run check   # frontend: svelte-check, translations, vitest
 mise run all     # everything plus the build of the window
 ```
 
-CI additionally runs `gofmt`, `golangci-lint`, the golden files against the Python reference, the
-generated holiday data and text catalogs, a build of the window on Windows, Linux and macOS, the
-installer scripts and the browser tests in `tests/e2e/`. Format your Go code with `gofmt` before
+CI additionally runs `gofmt`, `golangci-lint`, a build of the window on Windows, Linux and macOS,
+and the installer scripts. Format your Go code with `gofmt` before
 pushing. Behaviour changes need tests; new methods that return lists must return empty lists, not
 `nil`, and belong in `go/internal/app/nilslice_test.go`.
-
-The Python tests of the 0.x line (`uv sync --all-extras`, `uv run pytest`, `uv run ruff check`)
-still exist for the golden-file reference and for fixes on `main`.
 
 ## Translations
 
@@ -72,9 +68,9 @@ not translated.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and on manual dispatch. The main jobs are `test` (Python
-reference, golden files, generated data), `go` (format, vet, lint, tests), `desktop` (frontend
-checks and the window on all three platforms), `installers` and `e2e`. Pull requests also get an
+`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and on manual dispatch. The jobs are `hygiene` (no
+spreadsheets in the repository), `go` (format, vet, lint, tests), `desktop` (frontend checks and
+the window on all three platforms) and `installers`. Pull requests also get an
 automated review by Claude (`.github/workflows/claude-code-review.yml`); its comments are
 suggestions, the code owner decides.
 

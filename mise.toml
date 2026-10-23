@@ -5,8 +5,7 @@
 [tools]
 go = "1.24.7"
 node = "22"
-# Only for scripts/ (holidays, locales, golden files) and the Python tests of the 0.x line.
-python = "3.14"
+# uv runs scripts/gen_holidays.py (public holiday data), which fetches its own Python.
 uv = "0.13.1"
 
 [tasks.frontend]

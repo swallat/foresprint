@@ -140,13 +140,13 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
   [1.0 plan](docs/redesign/plan.md)
 - `foresprint help [workflow|terms|fields|team|commands]` and the *Help* page of the window
 
-Parts of the documentation still describe the 0.x line (Python and a browser UI) and are being
+Parts of the documentation under `docs/` still describe the 0.x line (a browser UI) and are being
 updated for 1.0.
 
 ## Development
 
 The toolchain is managed by [mise](https://mise.jdx.dev): `mise install` fetches Go 1.24 (Wails
-v2.12 does not build with Go 1.25 or newer), Node 22 and, for the helper scripts, Python and uv.
+v2.12 does not build with Go 1.25 or newer), Node 22 and uv (for the holiday data script).
 Then:
 
 ```bash

@@ -24,7 +24,7 @@ workflow come from the template):
 
 ```
 data-repo/
-├─ mise.toml                      # tool versions + task `mise run sf -- ...`
+├─ mise.toml                      # data directory + task `mise run sf -- ...`
 ├─ .gitignore, .gitattributes     # no spreadsheets and *.tmp; YAML and reports always with LF
 ├─ .github/workflows/forecast.yml # checks changes, updates FORECAST.md (GitLab: analogous)
 └─ teams/
@@ -37,10 +37,9 @@ data-repo/
    └─ team-b/ ...
 ```
 
-- `mise.toml` pins Python and uv and defines the task `mise run sf -- forecast team-a`, which
-  runs foresprint through `uvx` from the Git ref pinned there (`@main` in the template; pin
-  a tag and raise it when you update).
-  It also points the data directory at `teams` for the repository.
+- `mise.toml` defines the task `mise run sf -- forecast team-a`, which runs the `foresprint`
+  program (install it first, see [Installation](installation.md)), and points the data directory
+  at `teams` for the repository.
 - `.gitattributes` forces LF line endings for `*.yaml`, `*.yml` and `*.md` even with
   `core.autocrlf` on Windows; otherwise the first save would rewrite every line ending and add
   noise to the history.
@@ -53,7 +52,8 @@ data-repo/
   once Git applies `eol=lf` to those files, also through a `.gitattributes` elsewhere.
 - `.gitignore` keeps spreadsheets out of the repository: they can contain real team data, and
   the app refuses to commit them anyway.
-- `forecast.yml` runs `check` on every change under `teams/`, and on pushes to `main` and on a
+- `forecast.yml` installs the command line variant of a pinned release (raise the version in
+  the workflow when you update) and runs `check` on every change under `teams/`, and on pushes to `main` and on a
   weekday schedule regenerates `FORECAST.md` and commits it.
 
 The file formats are described in [Data format](data-format.md).

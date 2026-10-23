@@ -51,11 +51,10 @@ jobs:
             [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::The tag $TAG is at $tagged, but this run is on $GITHUB_SHA. Start the run from the tag under 'Use workflow from'."; exit 1; }
           fi
       - uses: jdx/mise-action@v3
-      - run: uv sync --locked --all-extras
-      - run: uv pip install --upgrade holidays
+      # The script declares its own dependency and takes the newest "holidays" release.
       - run: |
           mkdir -p out
-          uv run --no-sync python scripts/gen_holidays.py --output out/holidays.zip
+          uv run scripts/gen_holidays.py --output out/holidays.zip
       - uses: actions/upload-artifact@v4
         with:
           name: holidays-data
@@ -99,6 +98,15 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Program icon (Windows)
+        if: matrix.goos == 'windows'
+        working-directory: go
+        shell: bash
+        run: |
+          # The icon of the exe (launchers, Explorer, taskbar): a resource file next to main.go that
+          # go build links in. Generated here, not committed.
+          cd cmd/foresprint
+          go run github.com/tc-hib/go-winres@v0.3.3 make --in winres/winres.json --arch amd64
       - name: Build
         working-directory: go
         run: |

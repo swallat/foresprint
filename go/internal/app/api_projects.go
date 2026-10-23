@@ -15,6 +15,7 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 	"github.com/swallat/foresprint/internal/preplan"
 	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/rules"
@@ -103,13 +104,36 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		c.problem = err.Error()
 		return c
 	}
+	order := make([]string, len(fc.Entries))
+	for i, e := range fc.Entries {
+		order[i] = e.Sprint.ID
+	}
+	curID := ""
+	if cur := fc.Current(); cur != nil {
+		curID = cur.Sprint.ID
+	}
+	var fixed float64 // the fixed factor of the current sprint, 0 = measured
+	curPD := false    // the current sprint plans in person days
 	for _, e := range fc.Entries {
 		if _, ok := c.sprint[e.Sprint.ID]; !ok {
 			c.sprint[e.Sprint.ID] = e.Sprint
 		}
 		r := e.Result
-		if data.Team.Unit == model.UnitPT {
-			continue // person days need no conversion
+		// the unit of the sprint decides, not the one the team started with (decision 19)
+		if planning.UnitAt(&data.Team, order, e.Sprint.ID) == model.UnitPT {
+			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = 1, 1 // person days need no conversion
+			if e.Sprint.ID == curID {
+				curPD = true
+			}
+			continue
+		}
+		// a fixed factor wins over the measured rate
+		if f := planning.FactorAt(&data.Team, order, e.Sprint.ID); f != nil && *f > 0 {
+			c.doneRate[e.Sprint.ID], c.planRate[e.Sprint.ID] = *f, *f
+			if e.Sprint.ID == curID {
+				fixed = *f
+			}
+			continue
 		}
 		if r.Velocity.Value != nil && r.Capacity.Value != nil && *r.Capacity.Value > 0 && *r.Velocity.Value > 0 {
 			c.doneRate[e.Sprint.ID] = *r.Velocity.Value / *r.Capacity.Value
@@ -120,8 +144,10 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		}
 	}
 	switch {
-	case data.Team.Unit == model.UnitPT:
+	case data.Team.Unit == model.UnitPT || curPD:
 		c.rate = 1
+	case fixed > 0:
+		c.rate = fixed
 	case analysis.AvailableCount(fc) >= engine.MinThinHistory && data.Team.Forecast.ReferenceCapacity > 0:
 		hist := analysis.NormalizedHistory(fc)
 		if len(hist) > 0 {
@@ -248,6 +274,7 @@ func (c *projectCtx) milestoneViews(p model.Project) []MilestoneView {
 				v.Light = "none"
 			}
 			v.Source = st.Source
+			v.Open = st.Open
 			if st.Late != nil {
 				v.Late = st.Late
 			}

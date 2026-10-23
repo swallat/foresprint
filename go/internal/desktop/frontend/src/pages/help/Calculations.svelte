@@ -2,11 +2,13 @@
   import { tick } from 'svelte';
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
-  import { fmt, pct } from '../../lib/format';
+  import { fmt, formatDate, pct } from '../../lib/format';
+  import Icon from '../../lib/Icon.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { current } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { ForecastView } from '../../lib/types.forecast';
+  import type { ForecastView, ProductsOverTime } from '../../lib/types.forecast';
+  import type { ProjectsView } from '../../lib/types.projects';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
   let { params }: PageProps = $props();
@@ -26,6 +28,47 @@
       .catch(() => {});
   });
 
+  // Products over time and the projects give the numbers for the four topics that need them.
+  let products = $state<ProductsOverTime>();
+  let projects = $state<ProjectsView>();
+  $effect(() => {
+    const team = app.team;
+    products = undefined;
+    projects = undefined;
+    if (!team) return;
+    api
+      .ForecastProducts(team)
+      .then((v) => {
+        if (team === app.team) products = v;
+      })
+      .catch(() => {});
+    api
+      .Projects(team)
+      .then((v) => {
+        if (team === app.team) projects = v;
+      })
+      .catch(() => {});
+  });
+  const signed = (n: number, digits = 1): string => {
+    const r = Math.round(n * 10 ** digits) / 10 ** digits;
+    return (r > 0 ? '+' : r < 0 ? '−' : '') + fmt(Math.abs(r), digits);
+  };
+  // The default per product for the sprint in focus.
+  const standards = $derived.by(() => {
+    if (!products?.enabled) return [];
+    const i = products.sprints.indexOf(products.current);
+    const rows = products.lines.map((l) => ({ name: l.name, value: i >= 0 ? (l.cells[i]?.standard ?? null) : null }));
+    const sum = rows.reduce((a, r) => a + (r.value ?? 0), 0);
+    return rows.filter((r) => r.value !== null && sum > 0).map((r) => ({ name: r.name, value: r.value ?? 0, share: (r.value ?? 0) / sum }));
+  });
+  const standardsTotal = $derived(standards.reduce((a, r) => a + r.value, 0));
+  // A project with points, for the conversion into person days.
+  const pointsProject = $derived(projects?.projects.find((p) => p.plannedPoints > 0 || p.donePoints > 0));
+  // A project whose milestones have tickets, for the light.
+  const lightProject = $derived(projects?.projects.find((p) => p.milestones.some((m) => m.tickets.length > 0)));
+  const lightIcon = (l: string): 'check_circle' | 'error' | 'cancel' | 'info' => (l === 'ok' ? 'check_circle' : l === 'warn' ? 'error' : l === 'bad' ? 'cancel' : 'info');
+  const lightName = (l: string): string => (l === 'ok' ? t('green') : l === 'warn' ? t('yellow') : l === 'bad' ? t('red') : t('no light'));
+
   const topic = $derived(current.query.topic ?? '');
   const ref = $derived(view?.referenceCapacity ?? 40);
   const last = $derived(view?.past.at(-1));
@@ -35,6 +78,7 @@
   let opened = $state<Record<string, boolean>>({ rate: true });
   $effect(() => {
     const id = topic;
+    void products; // the sections of the products appear when their data is there
     if (!id) return;
     opened[id] = true;
     void tick().then(() => document.getElementById(`calc-${id}`)?.scrollIntoView({ block: 'start' }));
@@ -115,6 +159,80 @@
   {/snippet}
   {@render section('plannable', t('Plannable and small items'), t('The part of the plan for planned work.'), plannableBody)}
 
+  {#snippet standardBody()}
+    <p class="formula data">{t('Default = basis × share of the product; the basis is the Forecast PLAN (frozen at Planning, else the current one) or the Forecast PLAN × plannable share, without subtracting the carried-over rest (team setting)')}</p>
+    <ul>
+      <li>{t('Products without a fixed share split the rest equally.')}</li>
+      <li>{t('Fixed shares may add up to 100 % at most; otherwise a notice appears with the products.')}</li>
+      <li>{t('It is a suggestion: pre-planned and planned may differ, the balance shows it.')}</li>
+    </ul>
+    {#if standards.length > 0 && products}
+      {@render example(t('{sprint}: {parts} = {sum} points', { sprint: products.current, parts: standards.map((r) => `${r.name} ${pct(r.share)} → ${fmt(r.value, 1)}`).join(', '), sum: fmt(standardsTotal, 1) }))}
+    {/if}
+  {/snippet}
+  {#if products?.enabled}
+    {@render section('standard', t('Default per product'), t('The share of the Forecast PLAN each product is entitled to.'), standardBody)}
+  {/if}
+
+  {#snippet unitsBody()}
+    <p class="formula data">{t('PD ≈ points ÷ rate; planned work: forecast rate of the sprint, done work: actual rate of the sprint')}</p>
+    <ul>
+      <li>{t('Projects book contingents in person days, the team plans in points. Foresprint converts with the team\'s own rate and marks the result as an estimate.')}</li>
+      <li>{t('The conversion is only as good as the rate. With little data a notice stands next to it.')}</li>
+      <li>{t('Contingents are recommendations for the talk with the project lead; the PO decides.')}</li>
+    </ul>
+    {#if projects?.rate}
+      {#if pointsProject}
+        {@const planned = pointsProject.plannedPoints > 0}
+        {@render example(`${pointsProject.name}: ${fmt(planned ? pointsProject.plannedPoints : pointsProject.donePoints, 1)} ${t('points')} → ${fmt((planned ? pointsProject.planned : pointsProject.done) ?? 0, 1)} ${t('PD')} ${planned ? t('(planned)') : t('(done)')}`)}
+      {:else}
+        {@render example(`10 ${t('points')} ÷ ${fmt(projects.rate, 2)} = ${fmt(10 / projects.rate, 1)} ${t('PD')}`)}
+      {/if}
+    {/if}
+  {/snippet}
+  {@render section('units', t('Points in person days'), t('How points become person days for contingents and production.'), unitsBody)}
+
+  {#snippet trafficBody()}
+    <p class="formula data">{t('Milestone: green: every open ticket ends by the date · yellow: late tickets end in the sprint of the date or the one after · red: later, or not placed')}</p>
+    <ul>
+      <li>{t('The sprint of the date is the one that contains it. Done tickets do not count.')}</li>
+      <li>{t('A light the PO sets by hand wins over the derived one and is marked as such.')}</li>
+      <li>{t('Without open tickets there is no derived light; a light set by hand still shows.')}</li>
+      <li>{t('Tickets without an estimate cannot be placed and turn the light red; rough or unclear refinement counts with the rough factor.')}</li>
+      <li>{t('Project: green if the last ticket is placed by the project end, yellow if it ends in the sprint of the end date itself, red if it is later or a ticket cannot be placed; without an end date it is green. The light of a project is the worse of this and its milestone lights.')}</li>
+    </ul>
+    {#if lightProject}
+      <div class="tw">
+        <table class="t">
+          <caption class="small muted">{t('With your numbers')}: {lightProject.name}</caption>
+          <thead>
+            <tr><th scope="col">{t('Milestone')}</th><th scope="col">{t('Date')}</th><th scope="col" class="num">{t('Late / open tickets')}</th><th scope="col">{t('Light')}</th></tr>
+          </thead>
+          <tbody>
+            {#each lightProject.milestones as m (m.id)}
+              <tr>
+                <td>{m.name}</td>
+                <td>{formatDate(m.date)}</td>
+                <td class="num">{m.open > 0 ? `${m.late.length} / ${m.open}` : '–'}</td>
+                <td><span class="chip {m.light}"><Icon name={lightIcon(m.light)} size={16} />{lightName(m.light)}</span>{#if m.source === 'hand'} <span class="small muted">{t('(by hand)')}</span>{/if}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+  {/snippet}
+  {@render section('traffic', t('Light for projects and milestones'), t('Whether the tickets set aside for a project or milestone are done before its date.'), trafficBody)}
+
+  {#snippet sumsBody()}
+    <p class="formula data">{t('Sum = estimates of the tickets in the list; tickets without an estimate count 0')}</p>
+    <ul>
+      <li>{t('Tickets that are not refined are counted and marked in the list.')}</li>
+      <li>{t('For an earmarked sprint the sum is compared with its Forecast PLAN; the distance is a hint for the PO, not a limit.')}</li>
+    </ul>
+  {/snippet}
+  {@render section('sums', t('Sums of estimates'), t('What the sums in the backlog and on the earmarked sprints add up.'), sumsBody)}
+
   {#snippet whendoneBody()}
     <p>{t('For each coming sprint a normalized velocity of the last sprints is drawn at random, scaled to the capacity of that sprint and multiplied by the share of the forecast that is available. The sprint in which the sum reaches the remaining work is counted over 10,000 runs.')}</p>
     <ul>
@@ -126,6 +244,31 @@
     </ul>
   {/snippet}
   {@render section('whendone', t('When is it done?'), t('A likelihood from a simulation, not a promise.'), whendoneBody)}
+  {#snippet balanceBody()}
+    <p class="formula data">{t('Balance = Σ done − Σ default (only sprints in which a done value is entered)')}</p>
+    <ul>
+      <li>{t('Missing values do not count as 0.')}</li>
+      <li>{t('Done includes finished parts of open tickets if the team counts that way; it should be the same across the team.')}</li>
+    </ul>
+    {#if products?.enabled && products.lines.length > 1}
+      <div class="tw">
+        <table class="t">
+          <caption class="small muted">{t('With your numbers')}</caption>
+          <thead>
+            <tr><th scope="col">{t('Product')}</th><th scope="col" class="num">{t('Σ done')}</th><th scope="col" class="num">{t('Σ default')}</th><th scope="col" class="num">{t('Balance sheet')}</th></tr>
+          </thead>
+          <tbody>
+            {#each products.lines as l (l.id)}
+              <tr><td>{l.name}</td><td class="num">{fmt(l.done, 1)}</td><td class="num">{fmt(l.standard, 1)}</td><td class="num">{signed(l.difference)}</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+  {/snippet}
+  {#if products?.enabled}
+    {@render section('balance', t('Balance sheet per product'), t('Whether a product got more or less over the sprints than its default.'), balanceBody)}
+  {/if}
 </div>
 
 <style>
