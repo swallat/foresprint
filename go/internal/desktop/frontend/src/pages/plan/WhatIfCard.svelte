@@ -243,7 +243,7 @@
     </td>
     <td>
       {#if c}
-        <select class="input to" aria-label={t('{key} continues in', { key: x.key })} onchange={(e) => setTarget(x, e.currentTarget.value)}>
+        <select class="input to" aria-label={t('{key} continues in', { key: x.key })} title={targets.find((o) => o.value === c.target)?.label} onchange={(e) => setTarget(x, e.currentTarget.value)}>
           {#each targets as o (o.value)}<option value={o.value} selected={o.value === c.target}>{o.label}</option>{/each}
         </select>
       {:else}<span class="muted">–</span>{/if}
@@ -283,7 +283,9 @@
   }
   .to {
     height: 28px;
-    width: 120px;
+    width: auto;
+    min-width: 120px;
+    max-width: 260px;
     padding-top: 0;
     padding-bottom: 0;
   }
