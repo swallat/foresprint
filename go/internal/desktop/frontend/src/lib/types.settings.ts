@@ -109,6 +109,7 @@ export interface TrackerSettings {
 export interface TrackerSprint {
   name: string;
   tickets: number;
+  open: number;
   mapsTo: string;
 }
 

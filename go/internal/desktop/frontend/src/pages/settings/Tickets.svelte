@@ -111,10 +111,14 @@
   const sprintRows = $derived.by(() => {
     const rows = [...(draft?.sprints ?? [])];
     for (const name of draft?.proForma ?? []) {
-      if (!rows.some((r) => r.name.toLowerCase() === name.toLowerCase())) rows.push({ name, tickets: 0, mapsTo: '' });
+      if (!rows.some((r) => r.name.toLowerCase() === name.toLowerCase())) rows.push({ name, tickets: 0, open: 0, mapsTo: '' });
     }
     return rows;
   });
+  /** Names that keep tickets out of every sprint until they are mapped. */
+  const needsMapping = (s: { open: number; mapsTo: string; name: string }) => s.open > 0 && !s.mapsTo && !isProForma(s.name);
+  const openRows = $derived(sprintRows.filter(needsMapping));
+  const otherRows = $derived(sprintRows.filter((s) => !needsMapping(s)));
 
   function removedLabel(v: unknown): string {
     return ({ '': t('the backlog'), backlog: t('the backlog'), pro_forma: t('a pro-forma sprint'), next: t('the next sprint') })[String(v) as 'next'] ?? String(v);
@@ -357,34 +361,20 @@
             {t('Mark which sprints are only a place to park tickets (pro forma, for example “Refinement”). They appear under the backlog and never count for capacity or forecast. None, one or several are possible.')}
           </p>
           <div class="tw">
-            <table class="t">
-              <thead>
-                <tr><th>{t('Sprint in {tracker}', { tracker })}</th><th class="num">{t('Tickets')}</th><th>{t('Pro forma')}</th><th>{t('Matches sprint in Foresprint')}</th></tr>
-              </thead>
-              <tbody>
-                {#each sprintRows as s (s.name)}
-                  <tr>
-                    <td class="data">{s.name}</td>
-                    <td class="num data">{s.tickets}</td>
-                    <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
-                    <td>
-                      {#if isProForma(s.name)}
-                        <span class="muted">–</span>
-                      {:else}
-                        <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
-                          <option value="">{t('automatically by name')}</option>
-                          <option value="backlog">{t('Backlog (not a sprint)')}</option>
-                          {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
-                          {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
-                        </select>
-                      {/if}
-                    </td>
-                  </tr>
-                {:else}
-                  <tr><td colspan="4" class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</td></tr>
-                {/each}
-              </tbody>
-            </table>
+            {#if openRows.length}
+              <p class="small"><span class="chip warn"><Icon name="warning" size={14} />{t('{n} sprints still need a match: they hold open tickets that are in no sprint of Foresprint.', { n: openRows.length })}</span></p>
+              {@render sprintTable(openRows)}
+            {:else if sprintRows.length}
+              <p class="small muted">{t('Every sprint with open tickets is matched.')}</p>
+            {/if}
+            {#if otherRows.length}
+              <details>
+                <summary class="small">{t('Matched, or without open tickets ({n})', { n: otherRows.length })}</summary>
+                {@render sprintTable(otherRows)}
+              </details>
+            {:else if !sprintRows.length}
+              <p class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</p>
+            {/if}
           </div>
           <div class="row top">
             <input class="input data" style="max-width:240px" aria-label={t('Name of a pro-forma sprint')} placeholder="Refinement" bind:value={newSprint} onkeydown={(e) => e.key === 'Enter' && addSprint()} />
@@ -448,6 +438,36 @@
 {:else}
   <p class="muted">{t('Loading …')}</p>
 {/if}
+
+{#snippet sprintTable(list: typeof sprintRows)}
+  <table class="t">
+    <thead>
+      <tr><th>{t('Sprint in {tracker}', { tracker })}</th><th class="num">{t('Tickets')}</th><th class="num">{t('Still open')}</th><th>{t('Pro forma')}</th><th>{t('Matches sprint in Foresprint')}</th></tr>
+    </thead>
+    <tbody>
+      {#each list as s (s.name)}
+                  <tr>
+                    <td class="data">{s.name}</td>
+                    <td class="num data">{s.tickets}</td>
+          <td class="num data">{s.open}</td>
+                    <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
+                    <td>
+                      {#if isProForma(s.name)}
+                        <span class="muted">–</span>
+                      {:else}
+                        <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
+                          <option value="">{t('automatically by name')}</option>
+                          <option value="backlog">{t('Backlog (not a sprint)')}</option>
+                          {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
+                          {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
+                        </select>
+                      {/if}
+                    </td>
+                  </tr>
+      {/each}
+    </tbody>
+  </table>
+{/snippet}
 
 <style>
   .source {
