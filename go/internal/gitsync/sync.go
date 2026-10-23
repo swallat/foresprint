@@ -563,5 +563,5 @@ func openMergeRequestNote(ctx context.Context, root string, current SyncState) (
 			"open pull request, fetch them again after the merge.", "branch", branch)}, nil
 	}
 	return []string{i18n.T("Your changes are not shared yet (not in {branch}, no merge request on the "+
-		"server). “Save and share” creates it.", "branch", branch)}, nil
+		"server). “Save” creates it.", "branch", branch)}, nil
 }

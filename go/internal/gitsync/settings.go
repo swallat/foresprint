@@ -314,7 +314,7 @@ func pushMergeRequest(ctx context.Context, root string, current SyncState, title
 	if proc.Code != 0 && len(options) > 0 && strings.Contains(message, "does not support push options") {
 		if host == HostGitLab {
 			return "", "", git.New(i18n.T("The server does not support push options, so sharing via "+
-				"merge request is not possible. Please switch the setting off on the “Data folder” page."),
+				"merge request is not possible. Please switch the setting off in Settings > Storage."),
 				"error", "")
 		}
 		// Not GitLab: only upload the branch, the pull request is opened on the server.

@@ -101,11 +101,11 @@
   "url": "https://h/x.git",
   "message": "fatal: repository 'https://h/x.git/' not found",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: repository 'https://h/x.git/' not found`",
-  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "fatal: repository 'https://h/x.git/' not found",
@@ -113,11 +113,11 @@
   "url": "ssh://git@h/x.git",
   "message": "fatal: repository 'https://h/x.git/' not found",
   "kind": "not_found",
-  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
-  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”.",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
+  "hint_md": "The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”.",
   "raw": true,
   "render_md": "`fatal: repository 'https://h/x.git/' not found`",
-  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+  "full": "fatal: repository 'https://h/x.git/' not found The repository was not found or you have no access. Check address and permission; the address can be changed in Settings > Storage under “Server”."
  },
  {
   "in": "fatal: Could not read from remote repository.",

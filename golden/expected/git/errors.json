@@ -33,11 +33,11 @@
   "what": "unrelated",
   "message": "The server (https://h/x.git branch main) contains a different history than this data folder.",
   "kind": "unrelated_histories",
-  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
-  "hint_md": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
+  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
+  "hint_md": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
   "raw": false,
   "render_md": "The server (`https://u:p@h/x.git?x=1`, branch `main`) contains a different history than this data folder.",
-  "full": "The server (https://u:p@h/x.git?x=1, branch main) contains a different history than this data folder. The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)”. If the data repository on the server is the right one, merging must be confirmed explicitly."
+  "full": "The server (https://u:p@h/x.git?x=1, branch main) contains a different history than this data folder. The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly."
  },
  {
   "what": "secret",
@@ -63,14 +63,14 @@
   "what": "nothing",
   "message": "The data folder holds no saved data yet, so there is nothing to share.",
   "kind": "nothing_to_share",
-  "hint": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Clone repository” on the “Data folder” page.",
-  "hint_md": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Clone repository” on the “Data folder” page.",
+  "hint": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage.",
+  "hint_md": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage.",
   "raw": false,
   "render_md": "The data folder holds no saved data yet, so there is nothing to share.",
-  "full": "The data folder holds no saved data yet, so there is nothing to share. Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Clone repository” on the “Data folder” page."
+  "full": "The data folder holds no saved data yet, so there is nothing to share. Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage."
  },
  {
   "what": "unwritable",
-  "text": "The file could not be written. Either another program is using it right now (editor, spreadsheet program, virus scanner, sync service; on Windows usually the reason), or it is write-protected or your user account may not change it. Close other programs, check the write protection and permissions, and choose “Save and share” again: the interrupted merge is then continued and nothing is lost. If that does not help, ask whoever looks after the computer."
+  "text": "The file could not be written. Either another program is using it right now (editor, spreadsheet program, virus scanner, sync service; on Windows usually the reason), or it is write-protected or your user account may not change it. Close other programs, check the write protection and permissions, and choose “Save” again: the interrupted merge is then continued and nothing is lost. If that does not help, ask whoever looks after the computer."
  }
 ]

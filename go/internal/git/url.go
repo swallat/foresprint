@@ -147,7 +147,7 @@ func NothingToShareError() *Error {
 	return New(i18n.T("The data folder holds no saved data yet, so there is nothing to share."),
 		"nothing_to_share",
 		i18n.T("Create data first (e.g. a team) and save it. Anyone joining an existing team "+
-			"chooses “Clone repository” on the “Data folder” page."))
+			"chooses “Or copy the data of a team from a server” in Settings > Storage."))
 }
 
 func badURL(message string) *Error { return New(message, "bad_url", "") }
