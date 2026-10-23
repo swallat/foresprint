@@ -229,12 +229,10 @@
               </button>
             </td>
             <td class="num data">
-              <span class="row nowrap end">
-                {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
-                <Calc label={t('Days per sprint of {name}', { name: p.name })} topic="capacity">
-                  {fmtNum(cur?.fte ?? 0)} {t('FTE')} × {view.sprintDays || 10} {t('working days')} = {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
-                </Calc>
-              </span>
+              {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
+              <Calc label={t('Days per sprint of {name}', { name: p.name })} topic="capacity">
+                {fmtNum(cur?.fte ?? 0)} {t('FTE')} × {view.sprintDays || 10} {t('working days')} = {fmtNum((cur?.fte ?? 0) * (view.sprintDays || 10))}
+              </Calc>
             </td>
             <td class="actions">
               <button class="btn icon ghost" type="button" title={t('Times and leaving')} aria-label={t('Times and leaving {name}', { name: p.name })} onclick={() => (panel = { kind: 'times', id: p.id })}>
@@ -288,13 +286,9 @@
   <section class="grid-sec" aria-labelledby="abs-h">
     <div class="row head">
       <h2 id="abs-h">{t('Absences over several sprints')}</h2>
-      <span class="chip warn small"><Icon name="lock_open" size={14} />{t('announced')}</span>
-      <span class="chip ok small"><Icon name="lock" size={14} />{t('confirmed')}</span>
     </div>
-    <p class="small muted">{t('The number is person days, never a reason. Typing an entry is enough; it is confirmed when the sprint is prepared (Prepare).')}</p>
-    {#key gridKey}
-      <AbsenceGrid team={app.team} count={4} />
-    {/key}
+    <p class="small muted">{t('The number is person days, never a reason. Typing an entry is enough; the lock confirms it, as on Prepare.')}</p>
+    <AbsenceGrid team={app.team} count={4} version={gridKey} />
   </section>
 {/if}
 
@@ -334,6 +328,7 @@
         } catch (e) {
           toast(e instanceof Error ? e.message : String(e), 'bad');
           absences = await api.AbsencePeriods(app.team);
+          gridKey++;
         }
       }}
     />
@@ -364,12 +359,6 @@
   }
   .note {
     margin: 8px 0 0;
-  }
-  .nowrap {
-    flex-wrap: nowrap;
-  }
-  .end {
-    justify-content: flex-end;
   }
   .grid-sec {
     margin-top: 24px;

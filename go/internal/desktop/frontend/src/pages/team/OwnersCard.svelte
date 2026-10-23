@@ -159,7 +159,7 @@
                   {#each productsOf(o).filter((p) => !p.ended) as p (p.id)}
                     <a class="chip small" href={link('/team/products')}>{p.name}</a>{' '}
                   {:else}
-                    <span class="muted small">{t('No product yet')} <a href={link('/team/products')}>{t('Products')}</a></span>
+                    <span class="muted small">{productsOf(o).length ? t('Only ended products') : t('No product yet')} <a href={link('/team/products')}>{t('Products')}</a></span>
                   {/each}
                 </td>
                 <td>
@@ -172,16 +172,14 @@
                     <span class="muted">–</span>
                   {/if}
                 </td>
-                <td class="num">
+                <td class="num data">
                   {#if o.inTeam}
-                    <span class="row nowrap end data">
-                      {fmtNum(o.fte * (people?.sprintDays || 10))}
-                      <Calc label={t('Days per sprint of {name}', { name: o.name })} topic="capacity">
-                        {fmtNum(o.fte)} {t('FTE')} × {people?.sprintDays || 10} {t('working days')} = {fmtNum(o.fte * (people?.sprintDays || 10))}
-                      </Calc>
-                    </span>
+                    {fmtNum(o.fte * (people?.sprintDays || 10))}
+                    <Calc label={t('Days per sprint of {name}', { name: o.name })} topic="capacity">
+                      {fmtNum(o.fte)} {t('FTE')} × {people?.sprintDays || 10} {t('working days')} = {fmtNum(o.fte * (people?.sprintDays || 10))}
+                    </Calc>
                   {:else}
-                    <span class="muted data">0</span>
+                    <span class="muted">0</span>
                   {/if}
                 </td>
                 <td>
@@ -245,12 +243,6 @@
   }
   .name {
     width: 200px;
-  }
-  .nowrap {
-    flex-wrap: nowrap;
-  }
-  .end {
-    justify-content: flex-end;
   }
   .share {
     width: 64px;
