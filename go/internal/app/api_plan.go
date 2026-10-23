@@ -729,6 +729,11 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 	}
 	ent := c.entry
 	adjusted := as.FocusPercent != nil || as.ExtraAbsenceDays != nil
+	if adjusted && (floatOr(as.FocusPercent, 100) < 0 || floatOr(as.ExtraAbsenceDays, 0) < 0) {
+		return nil, errors.New(i18n.T("Absence days, focus and velocity must not be negative."))
+	}
+	// the Forecast page plans with the running sprint's expected velocity, so the page does too
+	w.Touched = w.Touched || adjusted
 	if w.Touched {
 		if e, fc2, err := c.refore(cur.Sprint.ID, w.Commitment, w.Velocity); err != nil {
 			return nil, err
@@ -754,7 +759,6 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 			}
 			low, high = scale(low), scale(high)
 		}
-		w.Touched = true
 	}
 	w.Plan, w.Low, w.High = plan, low, high
 	if plan != nil {
@@ -1346,7 +1350,7 @@ func (a *API) UseMatrix(team, sprintID string) error {
 // is the Forecast page's what-if, so a saved prognosis plans the same on both pages.
 func planAdjusted(team *model.Team, r engine.SprintResult, extraAbsence, focusPercent *float64) *float64 {
 	trend, ref := r.NormalizedVelocity.Trend, team.Forecast.ReferenceCapacity
-	if r.PlanCapacity == nil || trend == nil || ref <= 0 {
+	if r.Plan == nil || r.PlanCapacity == nil || trend == nil || ref <= 0 {
 		return r.Plan
 	}
 	capacity := max(0, *r.PlanCapacity-floatOr(extraAbsence, 0))
