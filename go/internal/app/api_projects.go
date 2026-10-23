@@ -423,8 +423,10 @@ func (c *projectCtx) view() ProjectsView {
 	if c.rate > 0 && data.Team.Unit != model.UnitPT {
 		v.Rate = model.Ptr(c.rate)
 	}
-	for _, p := range data.Products {
-		v.Products = append(v.Products, ProductRef{ID: p.ID, Name: p.Name})
+	if data.Team.Features.Products {
+		for _, p := range data.Products {
+			v.Products = append(v.Products, ProductRef{ID: p.ID, Name: p.Name})
+		}
 	}
 	for _, s := range data.Sprints {
 		state := "future"
@@ -532,6 +534,12 @@ func (c *projectCtx) pdOf(points float64, sprint string, planned bool) *float64 
 	return model.Ptr(round1(c.pd(points, sprint, planned)))
 }
 
+// ended reports whether a known sprint is over.
+func (c *projectCtx) ended(id string) bool {
+	s, ok := c.sprint[id]
+	return ok && !s.End.After(c.today)
+}
+
 // currentSprint is the id of the sprint that runs today, "" if none does.
 func (c *projectCtx) currentSprint() string {
 	for _, s := range c.sprint {
@@ -546,49 +554,63 @@ func (c *projectCtx) currentSprint() string {
 // (its light is not "bad"), the latest in the backlog order, one sprint later. Tickets the tracker
 // fixed in the sprint stay. A product with room needs nothing.
 func (c *projectCtx) suggest(sprint string, key *string, light string) ConflictSuggestion {
+	none := ConflictSuggestion{Kind: "none", Light: "none"}
 	if light == "ok" {
-		return ConflictSuggestion{Kind: "none"}
+		return none
 	}
-	type candidate struct {
-		pl    preplan.Placement
-		light string
-		rank  string
-	}
-	var best *candidate
+	var best *model.Ticket
+	var bestPl preplan.Placement
+	bestLight := ""
+	asked := false // a project asks something of this product at all
 	for _, pl := range c.dist.InSprint(sprint) {
-		if pl.Project == nil || pl.Size == nil || *pl.Size <= 0 || !samePtr(pl.Product, key) {
+		if pl.Project == nil || pl.Size == nil || !samePtr(pl.Product, key) {
+			continue
+		}
+		asked = true
+		// A ticket the tracker or the PO fixed in the sprint stays; so does one without size.
+		if pl.Reason == preplan.ReasonFixedSprint || pl.Reason == preplan.ReasonEarmark || *pl.Size <= 0 {
 			continue
 		}
 		t := c.data.TicketByKey(pl.Ticket)
-		if t == nil || (t.InSprint != nil && *t.InSprint != "") {
+		if t == nil {
 			continue
 		}
 		pj := "none"
 		if st := c.dist.Status(*pl.Project); st != nil {
-			pj = lightOf[st.Light]
-			if pj == "" {
-				pj = "none"
+			if l := lightOf[st.Light]; l != "" {
+				pj = l
 			}
 		}
 		if pj == "bad" {
 			continue
 		}
-		cand := candidate{pl: pl, light: pj}
-		if t.Rank != nil {
-			cand.rank = *t.Rank
-		}
-		if best == nil || lightRank[cand.light] < lightRank[best.light] || (cand.light == best.light && cand.rank > best.rank) {
-			best = &cand
+		if best == nil || lightRank[pj] < lightRank[bestLight] || (pj == bestLight && projectsLaterInBacklog(*t, *best)) {
+			best, bestPl, bestLight = t, pl, pj
 		}
 	}
-	if best == nil {
-		return ConflictSuggestion{Kind: "talk"}
+	switch {
+	case !asked:
+		return none // nobody asks for this budget, so there is nothing to move
+	case best == nil:
+		return ConflictSuggestion{Kind: "talk", Light: "none"}
 	}
-	out := ConflictSuggestion{Kind: "move", Ticket: best.pl.Ticket, Project: *best.pl.Project, Light: best.light, Points: round1(*best.pl.Size)}
+	out := ConflictSuggestion{Kind: "move", Ticket: best.Key, Project: *bestPl.Project, Light: bestLight, Points: round1(*bestPl.Size)}
 	if p := c.data.ProjectByID(out.Project); p != nil {
 		out.ProjectName = p.Name
 	}
 	return out
+}
+
+// projectsLaterInBacklog reports whether a comes after b in the order of the backlog (preplan.TicketOrder:
+// by rank as text, tickets without rank last, then by key).
+func projectsLaterInBacklog(a, b model.Ticket) bool {
+	if (a.Rank == nil) != (b.Rank == nil) {
+		return a.Rank == nil
+	}
+	if a.Rank != nil && *a.Rank != *b.Rank {
+		return *a.Rank > *b.Rank
+	}
+	return a.Key > b.Key
 }
 
 // fit sets the need of the open projects against what is left of their contingent: what is
@@ -666,10 +688,11 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 		if prod, _ := preplan.TicketProduct(t, c.data); prod != nil {
 			line.Product = *prod
 		}
+		// A sprint of the tracker or an earmark that is over does not count (as in the distribution).
 		switch e := c.data.Preplan.EarmarkFor(t.Key); {
-		case t.InSprint != nil && *t.InSprint != "":
+		case t.InSprint != nil && *t.InSprint != "" && (t.Done || !c.ended(*t.InSprint)):
 			line.Sprint = *t.InSprint
-		case e != nil:
+		case e != nil && !c.ended(e.Sprint):
 			line.Sprint = e.Sprint
 		}
 		if c.dist != nil {

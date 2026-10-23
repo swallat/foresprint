@@ -320,12 +320,14 @@
               <strong>{lane.id ? t('Sprint {id}', { id: lane.id }) : t('Not earmarked')}</strong>
               {#if lane.id && d.sprints.find((x) => x.id === lane.id)?.state === 'current'}<span class="chip">{t('running now')}</span>{/if}
               <span class="muted small">
-                {#if estimated}
+                {#if estimated && lane.tickets.some((x) => x.estimatePD !== null)}
                   {t('{n} tickets, {points} points, about {pd} PD', {
                     n: lane.tickets.length,
                     points: num(sum(lane.tickets.map((x) => x.estimate)), 1),
                     pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1),
                   })}
+                {:else if estimated}
+                  {t('{n} tickets, {points} points', { n: lane.tickets.length, points: num(sum(lane.tickets.map((x) => x.estimate)), 1) })}
                 {:else}
                   {t('{n} tickets, {pd} PD', { n: lane.tickets.length, pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1) })}
                 {/if}

@@ -408,3 +408,51 @@ func TestTicketLinesKeepEarmarkAndForecastApart(t *testing.T) {
 		t.Errorf("in a sprint of the tracker: %+v", l)
 	}
 }
+
+// The recommendation takes the latest ticket of the backlog (no rank is last), never a ticket
+// fixed in the sprint, and says nothing about a product nobody asks anything of.
+func TestSuggestOrderAndFixedTickets(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	est := func(v float64) *float64 { return &v }
+	tickets := []model.Ticket{
+		{Key: "T-1", Title: "Ranked", Estimate: est(1.4), Remaining: est(1.4), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha"), Rank: model.Ptr("a")},
+		{Key: "T-2", Title: "No rank", Estimate: est(1.4), Remaining: est(1.4), EstimateSource: model.EstimateRefined, Project: model.Ptr("alpha")},
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := api.Projects(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range v.Conflict {
+		switch r.Product {
+		case "portal":
+			if r.Light == "ok" {
+				t.Fatalf("both tickets fill portal: %+v", r)
+			}
+			if r.Suggest.Kind != "move" || r.Suggest.Ticket != "T-2" {
+				t.Errorf("a ticket without rank comes last in the backlog: %+v", r.Suggest)
+			}
+		default:
+			if r.Suggest.Kind != "none" {
+				t.Errorf("%s: nobody asks for this budget: %+v", r.Product, r.Suggest)
+			}
+		}
+	}
+	// A tracker sprint that is over does not fix a ticket; the line then has no sprint.
+	tickets[0].InSprint = model.Ptr("2026.19")
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range d.Tickets {
+		if l.Key == "T-1" && l.Sprint != "" {
+			t.Errorf("an ended sprint of the tracker is no sprint: %+v", l)
+		}
+	}
+}
