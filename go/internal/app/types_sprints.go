@@ -116,7 +116,8 @@ type SprintRow struct {
 	Commitment *float64 `json:"commitment"`
 	Velocity   *float64 `json:"velocity"`
 	Normalized *float64 `json:"normalized"` // velocity at the reference capacity
-	Rate       *float64 `json:"rate"`       // velocity per person day
+	Rate       *float64 `json:"rate"`       // velocity per person day, as measured
+	Factor     *float64 `json:"factor"`     // the fixed factor valid for the sprint, nil = measured rate
 	Next       string   `json:"next"`
 }
 

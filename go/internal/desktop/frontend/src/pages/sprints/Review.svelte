@@ -355,6 +355,9 @@
         <div>
           <div class="data stat" data-testid="rate">{rate === null ? '–' : days(rate)} {info.unit === 'PT' ? '' : unit} {t('per PD')}</div>
           <span class="small muted">{t('actual rate (estimate)')}</span>
+          {#if info.factor != null}
+            <span class="small muted" data-testid="rate-factor">{t('Fixed factor {factor} per PD applies to conversions.', { factor: days(info.factor) })}</span>
+          {/if}
           {#if rate !== null}
             <Calc label={t('Actual rate')} topic="rate">{days(velocity)} {unit} ÷ {days(frozenDays)} {t('PD')} = {days(rate)}</Calc>
           {/if}

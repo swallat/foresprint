@@ -57,6 +57,8 @@ type ForecastView struct {
 	// Rate is the team rate (normalized velocity trend per reference capacity day, i.e.
 	// points per person day) of the next sprint, nil if there is no forecast yet.
 	Rate *float64 `json:"rate"`
+	// RateFixed says Rate is the fixed factor of the team (decision 19), not a measured rate.
+	RateFixed bool `json:"rateFixed"`
 	// Running is the running sprint and Next the one after it ("" if none); RunningCommitment is
 	// the commitment of the running sprint. The what-if expects a velocity for the running one.
 	Running           string   `json:"running"`

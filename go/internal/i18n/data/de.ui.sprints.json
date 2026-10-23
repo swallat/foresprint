@@ -118,6 +118,8 @@
   "Without absence": "Ohne Abwesenheit",
   "Written": "Geschrieben",
   "actual rate (estimate)": "tatsächliche Rate (Schätzung)",
+  "Fixed factor {factor} per PD applies to conversions.": "Für Umrechnungen gilt der feste Faktor {factor} je PT.",
+  "factor {factor}": "Faktor {factor}",
   "current": "aktuell",
   "of which production": "davon Produktion",
   "of which production {name}": "davon Produktion {name}",

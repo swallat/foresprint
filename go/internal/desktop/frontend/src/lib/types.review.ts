@@ -51,6 +51,8 @@ export interface SprintReview {
   plannedDays: number;
   frozenDays: number;
   rate: number | null;
+  /** The fixed factor valid for the sprint; null = the measured rate is used. */
+  factor?: number | null;
   products: ReviewProduct[];
   productsOn: boolean;
   productionOn: boolean;

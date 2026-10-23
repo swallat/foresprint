@@ -561,6 +561,22 @@ func TestFixedFactorWinsInPlanAndProjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fv, err := api.Forecast(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fv.RateFixed || fv.Rate == nil || math.Abs(*fv.Rate-factor) > 1e-6 {
+		t.Errorf("forecast rate = %v fixed %v, want the fixed %v", floatOr(fv.Rate, -1), fv.RateFixed, factor)
+	}
+	ov, err := api.SprintOverview(team, -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range ov.Rows {
+		if r.ID == next && (r.Factor == nil || math.Abs(*r.Factor-factor) > 1e-6) {
+			t.Errorf("sprint row factor = %v", r.Factor)
+		}
+	}
 	if pv.Rate == nil || math.Abs(*pv.Rate-factor) > 1e-6 {
 		t.Errorf("project rate = %v, want the fixed %v", pv.Rate, factor)
 	}

@@ -39,6 +39,8 @@ export interface ForecastView {
   samples: number;
   fewSamples: boolean;
   rate: number | null;
+  /** True when rate is the fixed factor of the team, not a measured rate. */
+  rateFixed?: boolean;
   /** The running sprint and the one after it ("" if none); the commitment of the running one. */
   running: string;
   next: string;

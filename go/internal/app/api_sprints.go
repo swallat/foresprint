@@ -412,7 +412,7 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 				continue
 			}
 		}
-		row := SprintRow{
+		row := SprintRow{Factor: forecastFactor(&data.Team, fc, s.ID),
 			ID: s.ID, Name: displayName(data, fc, s), Start: s.Start.Format("2006-01-02"),
 			End: s.End.Add(-24 * time.Hour).Format("2006-01-02"), Absences: absenceState(s),
 			Capacity: e.Result.Input.Capacity, Commitment: e.Result.Commitment.Value, Velocity: e.Result.Velocity.Value,
