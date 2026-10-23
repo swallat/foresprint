@@ -13,7 +13,8 @@
   let { params }: PageProps = $props();
   void params;
 
-  const COUNT = 8;
+  const STEP = 8;
+  let count = $state(STEP);
   let view = $state<CalendarView>();
   let failed = $state('');
 
@@ -44,7 +45,7 @@
 
   async function load() {
     try {
-      view = await api.Calendar(app.team, COUNT);
+      view = await api.Calendar(app.team, count);
       failed = '';
       await refreshSprints();
       if (view.pattern && pattern === '{JJJJ}.{NN}') pattern = view.pattern;
@@ -76,7 +77,7 @@
     pending = true;
     timer = setTimeout(async () => {
       try {
-        const next = await api.NamingPreview(app.team, args[0], args[1], args[2], COUNT);
+        const next = await api.NamingPreview(app.team, args[0], args[1], args[2], count);
         if (mine === run) {
           preview = next;
           previewError = '';
@@ -123,7 +124,7 @@
   async function setLast(row: CalendarRow, value: string) {
     if (!value || value === row.last) return load();
     try {
-      const result = await api.SaveLastDays(app.team, [{ id: row.id, last: value }], COUNT);
+      const result = await api.SaveLastDays(app.team, [{ id: row.id, last: value }], count);
       const now = result.view.rows.find((r) => r.id === row.id);
       await afterChange(
         result,
@@ -143,7 +144,7 @@
     const name = value.trim();
     if (!name || name === row.id) return load();
     try {
-      const result = await api.RenameSprint(app.team, row.id, name, COUNT);
+      const result = await api.RenameSprint(app.team, row.id, name, count);
       await afterChange(result, t('Sprint {old} is now called {new}. References in tickets and minutes move along.', { old: row.id, new: name }));
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
@@ -155,7 +156,7 @@
     if (busy) return;
     busy = true;
     try {
-      const result = await api.ApplyNaming(app.team, pattern, from, history === 'all', COUNT);
+      const result = await api.ApplyNaming(app.team, pattern, from, history === 'all', count);
       from = '';
       await afterChange(result, t('{count} sprints renamed. The pattern names the sprints that follow.', { count: result.moved }));
     } catch (e) {
@@ -317,6 +318,12 @@
       </tbody>
     </table>
   </div>
+  {#if count < 52}
+    <div class="row top">
+      <button class="btn" type="button" onclick={() => { count += 2 * STEP; void load(); }}><Icon name="add" />{t('Show more sprints')}</button>
+      <span class="small muted">{t('So that sprints created in the tracker can be matched.')}</span>
+    </div>
+  {/if}
 
   <div class="grid cols-2 below">
     <div class="card">
