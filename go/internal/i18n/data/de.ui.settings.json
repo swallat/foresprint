@@ -147,6 +147,10 @@
   "Once a day at the start. The program only tells you; installing is always your click.": "Einmal täglich beim Start. Das Programm sagt nur Bescheid; installiert wird immer erst auf deinen Klick.",
   "{n} sprints still need a match: they hold open tickets that are in no sprint of Foresprint.": "{n} Sprints brauchen noch eine Zuordnung: Ihre offenen Tickets liegen in keinem Sprint von Foresprint.",
   "Every sprint with open tickets is matched.": "Jeder Sprint mit offenen Tickets ist zugeordnet.",
-  "Matched, or without open tickets ({n})": "Zugeordnet oder ohne offene Tickets ({n})"
+  "Matched, or without open tickets ({n})": "Zugeordnet oder ohne offene Tickets ({n})",
+  "Keep sub-tasks": "Unteraufgaben behalten",
+  "Sub-tasks": "Unteraufgaben",
+  "Keep sub-tasks as tickets": "Unteraufgaben als Tickets behalten",
+  "Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.": "Aus: Unteraufgaben werden beim nächsten Abruf weggelassen, das übergeordnete Ticket zeigt ihre Anzahl. An: Sie zählen als eigene Tickets, ihre Punkte können dann doppelt zählen."
  }
 }

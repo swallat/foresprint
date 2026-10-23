@@ -127,6 +127,7 @@ func trackerFrom(d *yamlx.Map, where string) (model.TrackerSettings, error) {
 		tr.RoughFactor = *rough
 	}
 	tr.WriteLabels = truthy(getOr(d, "write_labels", false))
+	tr.IncludeSubtasks = truthy(getOr(d, "include_subtasks", false))
 	if tr.SprintNames, err = orderedTexts(get(d, "sprint_names"), at, "sprint_names"); err != nil {
 		return tr, err
 	}
@@ -196,6 +197,9 @@ func trackerTo(tr model.TrackerSettings) *yamlx.Map {
 	put(out, "budget_basis", string(tr.BudgetBasis))
 	put(out, "rough_factor", clean(tr.RoughFactor))
 	put(out, "write_labels", tr.WriteLabels)
+	if tr.IncludeSubtasks {
+		put(out, "include_subtasks", true)
+	}
 	if tr.SprintNames.Len() > 0 {
 		put(out, "sprint_names", orderedStrings(tr.SprintNames))
 	}

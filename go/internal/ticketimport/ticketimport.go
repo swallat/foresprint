@@ -499,6 +499,29 @@ func removeEarmark(p *model.Preplan, ticket string) {
 	}
 }
 
+// splitSubtasks takes the sub-tasks out of the raw tickets unless the tracker settings keep
+// them, and counts them per parent. A sub-task whose parent is not among the tickets is kept
+// (nothing would show it then).
+func splitSubtasks(raws []sources.RawTicket, tracker model.TrackerSettings) ([]sources.RawTicket, map[string]int) {
+	counts := map[string]int{}
+	if tracker.IncludeSubtasks {
+		return raws, counts
+	}
+	known := map[string]bool{}
+	for _, r := range raws {
+		known[r.Key] = true
+	}
+	kept := make([]sources.RawTicket, 0, len(raws))
+	for _, r := range raws {
+		if r.Parent != "" && known[r.Parent] {
+			counts[r.Parent]++
+			continue
+		}
+		kept = append(kept, r)
+	}
+	return kept, counts
+}
+
 // PlanImport converts the raw tickets and reconciles them with the last import and the earmarks
 // (spec section 6.5); nothing is written. With adoptLabels false the planned_for_* labels stay
 // unread (the label write-back plans against the earmarks of the tool only).
@@ -522,6 +545,7 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 
 	seen := map[string]model.Ticket{}
 	var order []string
+	raws, subtasks := splitSubtasks(raws, env.Tracker)
 	for _, raw := range raws {
 		if _, dup := seen[raw.Key]; dup {
 			plan.Warnings = append(plan.Warnings,
@@ -534,6 +558,7 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 	plan.Tickets = make([]model.Ticket, len(order))
 	for i, key := range order {
 		plan.Tickets[i] = seen[key]
+		plan.Tickets[i].SubtaskCount = subtasks[key]
 	}
 
 	add := func(c Change) { plan.Changes = append(plan.Changes, c) }
