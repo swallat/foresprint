@@ -42,6 +42,7 @@ button.chip-status { font: inherit; color: inherit; }
 .rail a.sub { padding-left: 38px; }
 .rail .count { margin-left: auto; font: 12px var(--font-data); color: var(--text-muted); }
 .main { overflow: auto; min-width: 0; position: relative; }
+.main:focus { outline: none; }
 .page { padding: 20px 24px 64px; max-width: 1400px; }
 .page-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .page-head h1 { margin: 0; font: 600 22px/28px var(--font-ui); text-wrap: balance; }

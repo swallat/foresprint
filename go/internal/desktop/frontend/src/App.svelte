@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { app, leaveDemo, refresh, save, start } from './lib/app.svelte';
   import { t } from './lib/i18n.svelte';
   import { current, go, match } from './lib/router.svelte';
@@ -24,6 +24,18 @@
 
   $effect(() => {
     document.title = `${found ? t(found.def.title) : 'Foresprint'} – Foresprint`;
+  });
+
+  // The document no longer scrolls, so keys like PageDown act on the focused container: after a
+  // page change focus <main>, unless the user is typing or has moved focus somewhere deliberate.
+  $effect(() => {
+    void current.path;
+    void app.ready;
+    void tick().then(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body && active !== document.documentElement && !active.closest('a, nav')) return;
+      document.getElementById('main')?.focus({ preventScroll: true });
+    });
   });
 
   onMount(async () => {
@@ -69,7 +81,7 @@
     <div class="app">
       <Topbar />
       <Rail />
-      <main class="main" id="main">
+      <main class="main" id="main" tabindex="-1">
         <div class="page">
           {#if app.demo}
             <div class="demo-banner">
