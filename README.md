@@ -157,7 +157,7 @@ mise run all         # test + check + app
 
 The tasks run `scripts/build.mjs`, a Node script that works the same on Windows, Linux and macOS and
 builds like the release workflow does (`go build -tags desktop,production`, plus `webkit2_41` on
-Linux, the UniformTypeIdentifiers link flag on macOS, the program icon on Windows). Set
+Linux, and the UniformTypeIdentifiers link flag on macOS). Set
 `FORESPRINT_VERSION=1.0.0` to stamp a version. Building the window needs cgo and a C compiler;
 on Linux also `sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev`. Without mise, install Go and
 Node yourself and call `node scripts/build.mjs <task>` directly. More in the

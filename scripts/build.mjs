@@ -29,7 +29,7 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
-const version = opt("version", process.env.FORESPRINT_VERSION || "dev");
+const version = opt("version", process.env.FORESPRINT_VERSION || "dev").replace(/^v/, "");
 const outDir = resolve(root, opt("out", "dist"));
 const exe = win ? "foresprint.exe" : "foresprint";
 
@@ -42,6 +42,7 @@ function run(cmd, cmdArgs, { cwd = root, env = {} } = {}) {
     env: { ...process.env, ...env },
   });
   if (r.status !== 0) {
+    if (r.error) console.error(r.error.message);
     console.error(`\nfailed: ${cmd} ${cmdArgs.join(" ")}`);
     process.exit(r.status ?? 1);
   }
@@ -63,8 +64,11 @@ function build(desktop) {
     if (process.platform === "linux") tags += ",webkit2_41"; // libwebkit2gtk-4.1-dev
     if (process.platform === "darwin") env.CGO_LDFLAGS = "-framework UniformTypeIdentifiers";
     env.CGO_ENABLED = "1";
+  } else {
+    env.CGO_ENABLED = "0"; // like the CLI archives of the release
   }
-  // Program icon in the exe (Windows): go build links the generated .syso automatically.
+  // Program icon in the exe (Windows): once winres/winres.json exists (#383), go-winres writes a
+  // .syso that go build links automatically. Not part of the release workflow yet.
   if (win && existsSync(join(winresDir, "winres.json"))) {
     run("go", ["run", goWinres, "make", "--arch", "amd64"], { cwd: join(goDir, "cmd", "foresprint") });
   }

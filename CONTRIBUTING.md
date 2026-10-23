@@ -55,7 +55,8 @@ Every user-facing text has an English source and a German translation.
 - Frontend: `t('English source text', { name })`; the German text goes to
   `go/internal/i18n/data/de.ui.<area>.json`. `npm run check` (or `mise run check`) fails when a
   text is missing, unused or in two files.
-- Go: messages of the core use the catalogs in `go/internal/i18n/data/de.<area>.json`.
+- Go: messages of the core use the catalogs in `go/internal/i18n/data/de.<area>.json`. Generated
+  files such as `de.json` (from `scripts/gen_locales.py`) are not edited by hand.
 
 Never build a sentence from pieces; use placeholders. YAML keys, file names and command names are
 not translated.
@@ -71,7 +72,7 @@ not translated.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on pull requests and pushes. The main jobs are `test` (Python
+`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and on manual dispatch. The main jobs are `test` (Python
 reference, golden files, generated data), `go` (format, vet, lint, tests), `desktop` (frontend
 checks and the window on all three platforms), `installers` and `e2e`. Pull requests also get an
 automated review by Claude (`.github/workflows/claude-code-review.yml`); its comments are
