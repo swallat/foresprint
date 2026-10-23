@@ -45,7 +45,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
   const DAYS = 49;
   const closed = new Map<string, ReviewInput>();
   const files: { row: MinutesRow; text: string }[] = [];
-  const list = (): ReviewTicket[] => tickets.map(([key, title, estimate]) => ({ key, title, estimate, done: false, rest: estimate, target: '' }));
+  const list = (): ReviewTicket[] => tickets.map(([key, title, estimate]) => ({ key, title, estimate, status: 'In Progress', added: false, done: false, rest: estimate, target: '' }));
   const targetsOf = (id: string) => {
     const later = sprints.filter((s) => s.start > (sprints.find((x) => x.id === id)?.start ?? ''));
     return [
@@ -132,6 +132,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
       productsOn: true,
       productionOn: true,
       production: 0,
+      prefill: '',
       tag: `atlas/${id}`,
     };
   };

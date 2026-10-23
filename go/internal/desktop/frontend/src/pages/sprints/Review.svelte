@@ -11,6 +11,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import ExpectSeg from '../../lib/plan/ExpectSeg.svelte';
   import SprintFigures from '../../lib/plan/SprintFigures.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
@@ -80,10 +81,21 @@
 
   const commitmentNow = $derived(!info ? 0 : info.commitmentSet ? info.commitment : n(commitment));
   const notDoneNow = $derived(
-    info?.reviewed ? info.notDone : info?.tickets ? rows.filter((r) => !r.done).reduce((sum, r) => sum + r.estimate, 0) : n(notDone),
+    info?.reviewed ? info.notDone : info?.tickets ? rows.filter((r) => !r.done && !r.added).reduce((sum, r) => sum + r.estimate, 0) : n(notDone),
   );
+  // With tickets the scope numbers follow the table: what was pulled in and is done counts as
+  // done in addition; the rest that continues in the next sprint is the final carry-over.
+  const additionalNow = $derived(
+    info?.reviewed ? info.additionalDone : info?.tickets ? rows.filter((r) => r.added && r.done).reduce((sum, r) => sum + r.estimate, 0) : n(additional),
+  );
+  const restNow = $derived(
+    info?.reviewed ? info.restNext : rows.filter((r) => !r.done && r.target === '').reduce((sum, r) => sum + n(rests[r.key] ?? '0'), 0),
+  );
+  const listed = $derived(rows.filter((r) => !r.added));
+  const addedRows = $derived(rows.filter((r) => r.added));
+  const listSum = $derived(listed.reduce((sum, r) => sum + r.estimate, 0));
   // A closed Review shows what was stored; only an open one calculates while typing.
-  const velocity = $derived(!info ? 0 : info.reviewed ? info.velocity : commitmentNow - notDoneNow + n(additional));
+  const velocity = $derived(!info ? 0 : info.reviewed ? info.velocity : commitmentNow - notDoneNow + additionalNow);
   const frozenDays = $derived(n(frozen));
   const rate = $derived(info?.reviewed ? info.rate : frozenDays > 0 ? velocity / frozenDays : null);
   const doneSum = $derived(info ? info.products.reduce((sum, p) => sum + n(done[p.id] ?? '0'), 0) : 0);
@@ -108,7 +120,7 @@
     const input: ReviewInput = {
       commitment: info.commitmentSet ? null : n(commitment),
       notDone: n(notDone),
-      additionalDone: n(additional),
+      additionalDone: info.tickets ? additionalNow : n(additional),
       restNext: n(restNext),
       list: rows.map((r) => ({ ...r, rest: n(rests[r.key] ?? '0') })),
       frozenDays: frozenDays,
@@ -195,7 +207,7 @@
         <span class="big data" data-testid="velocity">{days(velocity)}</span>
         <span class="muted">{unit} {t('done')}</span>
         <Calc label={t('Velocity')} topic="rate">
-          {days(commitmentNow)} − {days(notDoneNow)} + {days(n(additional))} = {days(velocity)} {unit}
+          {days(commitmentNow)} − {days(notDoneNow)} + {days(additionalNow)} = {days(velocity)} {unit}
         </Calc>
       </div>
       <p class="small muted">{t('Commitment {n} minus not done plus done in addition.', { n: days(commitmentNow) })}</p>
@@ -219,17 +231,28 @@
             <label for="rv-rest">{t('of which rest in the next sprint')} ({unit})</label>
             <input id="rv-rest" class="input data" inputmode="decimal" bind:value={restNext} disabled={locked} />
           </div>
+          <div class="field">
+            <label for="rv-extra">{t('Done in addition')} ({unit})</label>
+            <input id="rv-extra" class="input data" inputmode="decimal" bind:value={additional} disabled={locked} />
+          </div>
         {:else}
           <div class="field">
             <span class="lbl">{t('Not done')} ({unit})</span>
-            <span class="data stat">{days(notDoneNow)}</span>
+            <span class="data stat" data-testid="not-done">{days(notDoneNow)}</span>
+          </div>
+          <div class="field">
+            <span class="lbl">{t('of which rest in the next sprint')} ({unit})</span>
+            <span class="data stat" data-testid="rest-next">{days(restNow)}</span>
+          </div>
+          <div class="field">
+            <span class="lbl">{t('Done in addition')} ({unit})</span>
+            <span class="data stat" data-testid="additional">{days(additionalNow)}</span>
           </div>
         {/if}
-        <div class="field">
-          <label for="rv-extra">{t('Done in addition')} ({unit})</label>
-          <input id="rv-extra" class="input data" inputmode="decimal" bind:value={additional} disabled={locked} />
-        </div>
       </div>
+      {#if info.tickets && info.prefill && !info.reviewed}
+        <p class="small muted" data-testid="prefill">{t('Prefilled from assumption {label} of the pre-planning; done in the tracker counts as done.', { label: info.prefill })}</p>
+      {/if}
       {#if info.pulled.length > 0 && !info.reviewed}
         <p class="small muted" data-testid="pulled">
           {t('Prefilled from {n} done tickets pulled in after the freeze: {keys}.', { n: info.pulled.length, keys: info.pulled.join(', ') })}
@@ -238,7 +261,7 @@
       {/if}
       <p class="small muted">
         {#if info.tickets}
-          {t('Mark the tickets of the commitment that are done. What is not done is missing in full from the velocity; only its rest continues.')}
+          {t('The numbers follow the ticket table. Not done is missing in full from the velocity; only its rest continues. Change them there.')}
         {:else}
           {t('Not done is missing in full from the velocity. The rest that continues in the next sprint is the final carry-over and replaces the assumption from the pre-planning.')}
         {/if}
@@ -249,39 +272,27 @@
   {#if info.tickets}
     <section class="block" aria-labelledby="tk-h">
       <h2 id="tk-h">{t('Tickets of the commitment')}</h2>
+      {#if Math.abs(listSum - commitmentNow) > 0.001 && !info.reviewed}
+        <p class="small muted" data-testid="sum-hint">{t('The tickets add up to {sum}, the commitment is {commitment}.', { sum: days(listSum), commitment: days(commitmentNow) })}</p>
+      {/if}
       <div class="tw">
         <table class="t">
           <thead>
             <tr>
-              <th scope="col">{t('Done')}</th>
               <th scope="col">{t('Ticket')}</th>
-              <th scope="col" class="num">{t('Estimate')}</th>
+              <th scope="col">{t('Status')}</th>
+              <th scope="col" class="num">{t('Size')}</th>
+              <th scope="col">{t('Expectation')}</th>
               <th scope="col" class="num">{t('Rest')}</th>
               <th scope="col">{t('Continues in')}</th>
             </tr>
           </thead>
           <tbody>
-            {#each rows as r (r.key)}
-              <tr>
-                <td><input type="checkbox" bind:checked={r.done} disabled={locked} aria-label={t('{key} is done', { key: r.key })} /></td>
-                <td class="ticket"><span class="key">{r.key}</span> {r.title}</td>
-                <td class="num">{days(r.estimate)}</td>
-                <td class="num">
-                  {#if r.done}<span class="muted">–</span>{:else}
-                    <input class="input data narrow" inputmode="decimal" bind:value={rests[r.key]} disabled={locked} aria-label={t('Rest of {key}', { key: r.key })} />
-                  {/if}
-                </td>
-                <td>
-                  {#if r.done}<span class="muted">–</span>{:else}
-                    <select class="input" bind:value={r.target} disabled={locked} aria-label={t('Where {key} continues', { key: r.key })}>
-                      {#each info.targets as target (target.id)}
-                        <option value={target.id}>{target.id === '' ? t('Next sprint') : target.id === 'backlog' ? t('Back to the backlog') : targetName(target.id)}</option>
-                      {/each}
-                    </select>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
+            {#each listed as r (r.key)}{@render trow(r)}{/each}
+            {#if addedRows.length > 0}
+              <tr class="sum"><td colspan="6"><Icon name="call_received" size={14} /> {t('Pulled in after the planning')} <span class="small muted">{t('(new in the sprint since freezing, not part of the commitment)')}</span></td></tr>
+              {#each addedRows as r (r.key)}{@render trow(r)}{/each}
+            {/if}
           </tbody>
         </table>
       </div>
@@ -385,6 +396,29 @@
     </ul>
   {/if}
 {/if}
+
+{#snippet trow(r: ReviewTicket)}
+  <tr>
+    <td class="ticket"><span class="key">{r.key}</span> {r.title}</td>
+    <td><span class="chip">{r.status}</span></td>
+    <td class="num">{days(r.estimate)}</td>
+    <td><ExpectSeg ticket={r.key} carry={!r.done} disabled={locked} onchange={(on) => (r.done = !on)} /></td>
+    <td class="num">
+      {#if r.done}<span class="muted">–</span>{:else}
+        <input class="input data narrow" inputmode="decimal" bind:value={rests[r.key]} disabled={locked} aria-label={t('Rest of {key}', { key: r.key })} />
+      {/if}
+    </td>
+    <td>
+      {#if r.done}<span class="muted">–</span>{:else}
+        <select class="input" bind:value={r.target} disabled={locked} aria-label={t('Where {key} continues', { key: r.key })}>
+          {#each info?.targets ?? [] as target (target.id)}
+            <option value={target.id}>{target.id === '' ? t('Next sprint') : target.id === 'backlog' ? t('Back to the backlog') : targetName(target.id)}</option>
+          {/each}
+        </select>
+      {/if}
+    </td>
+  </tr>
+{/snippet}
 
 <style>
   .block {

@@ -174,7 +174,7 @@ tickets:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.Tickets || len(r.List) != 3 || !r.List[0].Done || r.List[1].Rest != 1 || r.List[2].Rest != 8 {
+	if !r.Tickets || len(r.List) != 4 || !r.List[3].Added || !r.List[0].Done || r.List[1].Rest != 1 || r.List[2].Rest != 8 {
 		t.Fatalf("tickets review: %+v", r)
 	}
 	if len(r.Pulled) != 1 || r.Pulled[0] != "T-4" || r.AdditionalDone != 2 {
@@ -191,7 +191,7 @@ tickets:
 		t.Fatal(err)
 	}
 	c := closed.Review
-	if c.NotDone != 8 || c.Velocity != c.Commitment-8 {
+	if c.NotDone != 8 || c.Velocity != c.Commitment-8+2 {
 		t.Fatalf("closed: %+v", c)
 	}
 	if c.List[1].Done != true || c.List[2].Done || c.List[2].Rest != 4 || c.List[2].Target != "backlog" {
@@ -200,6 +200,35 @@ tickets:
 	text, _ := api.MinutesText(team, closed.Minutes)
 	if !strings.Contains(text.Text, "T-3") || !strings.Contains(text.Text, "T-1") {
 		t.Fatalf("minutes without the tickets:\n%s", text.Text)
+	}
+}
+
+func TestReviewTicketsFromTrackerWithoutFrozenList(t *testing.T) {
+	dir := copyDemo(t)
+	api := newAPI(t, dir)
+	team := api.Teams()[0].Key
+	id := latestPast(t, api, team)
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	teamFile := dir + "/" + team + "/team.yaml"
+	b, _ := os.ReadFile(teamFile)
+	if err := os.WriteFile(teamFile, []byte(strings.Replace(string(b), "features:\n", "features:\n  tickets: true\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dir+"/"+team+"/tickets.yaml", []byte(fmt.Sprintf(`schema: 1
+tickets:
+- {key: T-1, title: First, estimate: 5, done: true, in_sprint: "%[1]s"}
+- {key: T-2, title: Second, estimate: 3, remaining: 1, in_sprint: "%[1]s"}
+`, id)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := api.SprintReview(team, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Tickets || len(r.List) != 2 || r.List[0].Added || !r.List[0].Done || r.List[1].Done || r.NotDone != 3 || r.AdditionalDone != 0 {
+		t.Fatalf("tracker tickets not listed: %+v", r)
 	}
 }
 

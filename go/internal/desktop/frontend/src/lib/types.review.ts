@@ -6,6 +6,10 @@ export interface ReviewTicket {
   key: string;
   title: string;
   estimate: number;
+  /** The tracker status. */
+  status: string;
+  /** Pulled into the sprint after the freeze: done it counts as done in addition. */
+  added: boolean;
   done: boolean;
   /** What is left of a ticket that is not done. */
   rest: number;
@@ -58,6 +62,8 @@ export interface SprintReview {
   productionOn: boolean;
   production: number;
   tag: string;
+  /** Label of the what-if assumption that prefilled the ticket table; '' = tracker status only. */
+  prefill: string;
 }
 
 export interface ReviewInput {
