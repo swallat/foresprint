@@ -269,10 +269,11 @@
   {/if}
 
   {#if isTracker}
-    <div class="grid cols-2 pad">
+    <div class="layout">
+      <div class="trio" class:one={!jira}>
       <div class="card">
         <h2>{t('Kind of tracker')}</h2>
-        <div class="field" style="max-width:280px">
+        <div class="field">
           <label for="t-kind">{t('Tracker')}</label>
           <select id="t-kind" class="input" bind:value={draft.kind}>
             <option value="jira">Jira</option>
@@ -357,35 +358,36 @@
             {#if rows.length}<span class="small muted">{t('Apply or discard the changes first.')}</span>{/if}
           </div>
         </div>
+      {/if}
+      </div>
 
-        <div class="card full">
+      {#if jira}
+        <div class="card">
           <h2>{t('Sprints in {tracker}', { tracker })}</h2>
           <p class="small muted">
             {t('Mark which sprints are only a place to park tickets (pro forma, for example “Refinement”). They appear under the backlog and never count for capacity or forecast. None, one or several are possible.')}
           </p>
-          <div class="tw">
-            {#if openRows.length}
-              <p class="small"><span class="chip warn"><Icon name="warning" size={14} />{t('{n} sprints still need a match: they hold open tickets that are in no sprint of Foresprint.', { n: openRows.length })}</span></p>
-              {@render sprintTable(openRows)}
-            {:else if sprintRows.length}
-              <p class="small muted">{t('Every sprint with open tickets is matched.')}</p>
-            {/if}
-            {#if otherRows.length}
-              <details>
-                <summary class="small">{t('Matched, or without open tickets ({n})', { n: otherRows.length })}</summary>
-                {@render sprintTable(otherRows)}
-              </details>
-            {:else if !sprintRows.length}
-              <p class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</p>
-            {/if}
-          </div>
+          {#if openRows.length}
+            <p class="small"><span class="chip warn"><Icon name="warning" size={14} />{t('{n} sprints still need a match: they hold open tickets that are in no sprint of Foresprint.', { n: openRows.length })}</span></p>
+            <div class="tw top">{@render sprintTable(openRows)}</div>
+          {:else if sprintRows.length}
+            <p class="small muted">{t('Every sprint with open tickets is matched.')}</p>
+          {/if}
+          {#if otherRows.length}
+            <details class="top">
+              <summary class="small">{t('Matched, or without open tickets ({n})', { n: otherRows.length })}</summary>
+              <div class="tw top">{@render sprintTable(otherRows)}</div>
+            </details>
+          {:else if !sprintRows.length}
+            <p class="muted">{t('No sprint names met yet. Fetch the tickets, or add a pro-forma sprint by name.')}</p>
+          {/if}
           <div class="row top">
-            <input class="input data" style="max-width:240px" aria-label={t('Name of a pro-forma sprint')} placeholder="Refinement" bind:value={newSprint} onkeydown={(e) => e.key === 'Enter' && addSprint()} />
+            <input class="input data pro-forma" aria-label={t('Name of a pro-forma sprint')} placeholder="Refinement" bind:value={newSprint} onkeydown={(e) => e.key === 'Enter' && addSprint()} />
             <button class="btn" type="button" disabled={!newSprint.trim()} onclick={addSprint}><Icon name="add" />{t('Add pro-forma sprint')}</button>
           </div>
         </div>
 
-        <div class="card full">
+        <div class="card">
           <h2>{t('Query')}</h2>
           <div class="field">
             <label for="t-query">{t('Which tickets Foresprint reads (JQL)')}</label>
@@ -399,14 +401,14 @@
           </div>
         </div>
 
-        <div class="card full">
+        <div class="card">
           <h2>{t('Sub-tasks')}</h2>
           <Switch bind:checked={draft.includeSubtasks} title={t('Keep sub-tasks as tickets')}>
             {t('Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.')}
           </Switch>
         </div>
 
-        <div class="card full" data-tour="settings-writeback">
+        <div class="card" data-tour="settings-writeback">
           <div class="row head">
             <h2>{t('Write to {tracker}', { tracker })}</h2>
             <span class="chip {draft.writeSprint ? 'warn' : ''}">{draft.writeSprint ? t('Writing back on') : t('Read only')}</span>
@@ -456,24 +458,24 @@
     </thead>
     <tbody>
       {#each list as s (s.name)}
-                  <tr>
-                    <td class="data">{s.name}</td>
-                    <td class="num data">{s.tickets}</td>
+        <tr>
+          <td class="data">{s.name}</td>
+          <td class="num data">{s.tickets}</td>
           <td class="num data">{s.open}</td>
-                    <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
-                    <td>
-                      {#if isProForma(s.name)}
-                        <span class="muted">–</span>
-                      {:else}
-                        <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
-                          <option value="">{t('automatically by name')}</option>
-                          <option value="backlog">{t('Backlog (not a sprint)')}</option>
-                          {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
-                          {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
-                        </select>
-                      {/if}
-                    </td>
-                  </tr>
+          <td><input type="checkbox" checked={isProForma(s.name)} aria-label={t('{name} is pro forma', { name: s.name })} onchange={(e) => setProForma(s.name, e.currentTarget.checked)} /></td>
+          <td>
+            {#if isProForma(s.name)}
+              <span class="muted">–</span>
+            {:else}
+              <select class="input data" aria-label={t('Sprint in Foresprint for {name}', { name: s.name })} bind:value={s.mapsTo}>
+                <option value="">{t('automatically by name')}</option>
+                <option value="backlog">{t('Backlog (not a sprint)')}</option>
+                {#if s.mapsTo && !sprintIds.includes(s.mapsTo)}<option value={s.mapsTo}>{s.mapsTo}</option>{/if}
+                {#each sprintIds.filter((id) => id !== 'backlog') as id (id)}<option value={id}>{id}</option>{/each}
+              </select>
+            {/if}
+          </td>
+        </tr>
       {/each}
     </tbody>
   </table>
@@ -486,8 +488,33 @@
   .pad {
     margin-bottom: 16px;
   }
-  .full {
-    grid-column: 1 / -1;
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  /* The three cards share the width and the height of the tallest. */
+  .trio {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+  @media (max-width: 1100px) {
+    .trio {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .trio.one {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pro-forma {
+    width: 240px;
+    max-width: 100%;
+  }
+  details > summary {
+    cursor: pointer;
   }
   .opt {
     display: flex;
