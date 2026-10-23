@@ -272,6 +272,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 		}
 		out.Velocity = out.Commitment - out.NotDone + out.AdditionalDone
 	}
+	out.Factor = forecastFactor(&data.Team, fc, s.ID)
 	if out.FrozenDays > 0 {
 		r := out.Velocity / out.FrozenDays
 		out.Rate = &r

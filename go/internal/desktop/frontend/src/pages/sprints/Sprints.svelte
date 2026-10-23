@@ -117,7 +117,7 @@
             <td class="num">{num(r.commitment)}</td>
             <td class="num">{num(r.velocity)}</td>
             <td class="num">
-              {num(r.normalized)}{#if r.rate !== null}<span class="muted small rate">({days(r.rate)} {t('per PD')})</span>{/if}
+              {num(r.normalized)}{#if r.rate !== null}<span class="muted small rate">({days(r.rate)} {t('per PD')})</span>{/if}{#if r.factor != null}<span class="muted small rate">{t('factor {factor}', { factor: days(r.factor) })}</span>{/if}
               {#if r.normalized !== null && r.velocity !== null && r.capacity !== null}
                 <Calc label={t('Normalized velocity')} topic="rate">
                   {days(r.velocity)} ÷ {days(r.capacity)} {t('PD')} × {days(data.reference)} {t('PD')} = {days(r.normalized)}
