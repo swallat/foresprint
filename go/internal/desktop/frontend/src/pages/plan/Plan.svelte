@@ -5,6 +5,7 @@
   // the team agrees on an amount per product and a commitment. Moving works by drag, by the
   // buttons and by Alt+arrow; nothing is locked before the agreement.
   import { api } from '../../lib/api';
+  import { isNoopMove } from '../../lib/plan/moves';
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -91,7 +92,7 @@
   async function move(key: string, to: 'sprint' | 'candidates'): Promise<void> {
     if (!d || frozen) return;
     const x = [...d.tickets, ...d.candidates].find((q) => q.key === key);
-    if (!x) return;
+    if (!x || isNoopMove(d, key, to)) return;
     const wasRemoved = removed.includes(key);
     const earmark = x.sprint;
     // A ticket the tracker has in a sprint is decided there: it is taken out with a mark, never earmarked.
