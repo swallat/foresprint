@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { app, loadFeatures, toast } from '../../lib/app.svelte';
   import { api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { TeamSettings } from '../../lib/types.settings';
+  import type { Region } from '../../lib/types.setup';
   import ChangesCard from '../../lib/settings/ChangesCard.svelte';
   import NumInput from '../../lib/settings/NumInput.svelte';
   import Switch from '../../lib/settings/Switch.svelte';
@@ -21,6 +23,7 @@
   let query = $state('');
   let newName = $state('');
   let factorText = $state('');
+  let regions = $state<Region[]>([]);
 
   async function load(team: string): Promise<void> {
     applied = draft = undefined;
@@ -38,6 +41,15 @@
   $effect(() => {
     void load(app.team);
   });
+  onMount(async () => {
+    try {
+      regions = await api.SetupRegions();
+    } catch (e) {
+      toast(String(e), 'bad');
+    }
+  });
+  const country = $derived(regions.find((r) => r.country === draft?.country));
+  const countryName = (code: unknown) => regions.find((r) => r.country === code)?.name ?? String(code);
 
   const trends = $derived([
     ['flat', t('Flat (default)')],
@@ -66,6 +78,8 @@
     { label: t('Cap of the production time (%)'), get: (s) => s.productionCap },
     { label: t('Projects and contingents'), get: (s) => s.projects },
     { label: t('Pro-forma sprints'), get: (s) => s.proForma },
+    { label: t('Country'), get: (s) => s.country, show: countryName },
+    { label: t('Region'), get: (s) => s.region, show: (v) => String(v) || t('Whole country') },
   ]);
 
   const rows = $derived(
@@ -130,6 +144,7 @@
     features: t('Features products product owners production access cap projects contingents'),
     budget: t('Budget basis share'),
     unit: t('Estimation unit conversion story points person days factor'),
+    holidays: t('Holidays country region state federal state public holidays calendar'),
     proforma: t('Pro-forma sprints refinement'),
   });
   const q = $derived(query.trim().toLowerCase());
@@ -221,6 +236,28 @@
             {t('Projects with milestones and a contingent in person days. They also work without a tracker.')}
           </Switch>
         </div>
+      </div>
+    {/if}
+
+    {#if shows('holidays', t('Holidays'))}
+      <div class="card">
+        <h2>{t('Holidays')}</h2>
+        <div class="fields">
+          <div class="field">
+            <label for="t-country">{t('Country')}</label>
+            <select id="t-country" class="input" bind:value={draft.country} onchange={() => (draft!.region = '')}>
+              {#each regions as r (r.country)}<option value={r.country}>{r.name}</option>{/each}
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-region">{t('Region')}</label>
+            <select id="t-region" class="input" bind:value={draft.region}>
+              <option value="">{t('Whole country')}</option>
+              {#each country?.regions ?? [] as r (r)}<option value={r}>{r}</option>{/each}
+            </select>
+          </div>
+        </div>
+        <p class="small muted">{t('The public holidays of this country and region reduce the working days of every sprint.')}</p>
       </div>
     {/if}
 

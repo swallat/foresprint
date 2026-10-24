@@ -34,6 +34,9 @@ export interface TeamSettings {
   productionCap: number;
   projects: boolean;
   proForma: string[];
+  /** Holiday calendar: ISO country code and region within it, "" = whole country. */
+  country: string;
+  region: string;
 }
 
 export interface TrackerFields {

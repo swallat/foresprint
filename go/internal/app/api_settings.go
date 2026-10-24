@@ -3,11 +3,13 @@ package app
 import (
 	"errors"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -78,6 +80,10 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 		Projects:      t.Features.Projects,
 		ProForma:      append([]string{}, t.Sprint.ProForma...),
 		UnitChanges:   []UnitChangeInfo{},
+		Country:       t.Capacity.Country,
+	}
+	if t.Capacity.Region != nil {
+		out.Region = *t.Capacity.Region
 	}
 	for _, c := range t.Estimation.Changes {
 		out.UnitChanges = append(out.UnitChanges, UnitChangeInfo{From: c.From, Unit: string(c.Unit)})
@@ -125,6 +131,12 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	if err != nil {
 		return err
 	}
+	if !knownCountry(in.Country) {
+		return bad("Unknown country: {country}", "country", in.Country)
+	}
+	if in.Region != "" && !slices.Contains(holidays.Subdivisions(in.Country), in.Region) {
+		return bad("Unknown region: {region}", "region", in.Region)
+	}
 
 	t.Forecast.Window = f.Window
 	t.Forecast.TrendMode = model.TrendMode(f.Trend)
@@ -142,6 +154,12 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Features.Production, t.Features.Projects = in.Production, in.Projects
 	t.Features.Explicit = true
 	t.Capacity.ProductionCap = round6(in.ProductionCap)
+	t.Capacity.Country = in.Country
+	t.Capacity.Region = nil
+	if in.Region != "" {
+		r := in.Region
+		t.Capacity.Region = &r
+	}
 	t.Estimation.Factor = in.Factor
 
 	if current, _ := effectiveUnit(data, time.Now()); string(current) != in.Unit {
