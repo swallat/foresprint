@@ -291,6 +291,9 @@ export const planMock: PlanApi = {
     if (!noT) for (const x of lane) planned[sprint]![x.product] = (planned[sprint]![x.product] ?? 0) + (x.est ?? 0);
     return `${sprint}-planning-20261022-140500.md`;
   },
+  async SavePreplanMinutes(_t, sprint) {
+    return `${sprint}-vorplanung-20261022-140500.md`;
+  },
   async ReopenPlan(_t, sprint) {
     delete frozen[sprint];
     delete planned[sprint];
