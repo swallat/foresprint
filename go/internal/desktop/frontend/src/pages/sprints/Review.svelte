@@ -405,7 +405,7 @@
 
 {#snippet trow(r: ReviewTicket)}
   <tr>
-    <td class="ticket"><span class="key">{r.key}</span> {r.title}</td>
+    <td class="tk"><span class="key">{r.key}</span> {r.title}</td>
     <td><span class="chip">{r.status}</span></td>
     <td class="num">{days(r.estimate)}</td>
     <td><ExpectSeg ticket={r.key} carry={!r.done} disabled={locked} onchange={(on) => (r.done = !on)} /></td>
@@ -461,12 +461,12 @@
   .top {
     margin-top: 8px;
   }
-  .ticket {
+  .tk {
     white-space: normal;
     min-width: 280px;
     max-width: 440px;
   }
-  .ticket .key {
+  .tk .key {
     white-space: nowrap;
   }
   td select.input {
