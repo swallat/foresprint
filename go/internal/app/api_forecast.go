@@ -80,6 +80,8 @@ func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) Fo
 		out.PlanSource = "projection"
 		if *r.PlanSource == engine.PlanActual {
 			out.PlanSource = "actual"
+		} else if *r.PlanSource == engine.PlanStart {
+			out.PlanSource = "start"
 		}
 	}
 	if state != "past" && r.Plan != nil {

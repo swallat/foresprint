@@ -387,6 +387,9 @@ func CheckTeam(data *storage.TeamData, today time.Time) []Issue {
 	if !(f.ReferenceCapacity > 0) {
 		r.error("team.yaml", msg("forecast.reference_capacity must be > 0"))
 	}
+	if f.StartRate < 0 {
+		r.error("team.yaml", msg("forecast.start_rate must be ≥ 0"))
+	}
 	if f.Window < 1 {
 		r.error("team.yaml", msg("forecast.window must be ≥ 1"))
 	}

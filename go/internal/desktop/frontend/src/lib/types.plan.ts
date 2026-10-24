@@ -149,6 +149,10 @@ export interface PlanSprint {
   capacity: number | null;
   plan: number | null;
   planOriginal: number | null;
+  /** "start" if the PLAN comes from the start rate (no history yet), else "". */
+  planSource: string;
+  /** Start rate of the team, 0 if none. */
+  startRate: number;
   low: number | null;
   high: number | null;
   rate: number | null;
@@ -202,6 +206,7 @@ export interface PlanApi {
   SetProjectAmount(team: string, sprint: string, project: string, value: number | null): Promise<void>;
   SetProductionPT(team: string, sprint: string, value: number | null): Promise<void>;
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
+  SetStartRate(team: string, rate: number | null): Promise<void>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
   SavePreplanMinutes(team: string, sprint: string): Promise<string>;

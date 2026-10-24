@@ -65,6 +65,7 @@
     { label: t('Sprints in the average'), get: (s) => s.forecast.window },
     { label: t('Trend'), get: (s) => s.forecast.trend, show: trendLabel },
     { label: t('Reference capacity (PD)'), get: (s) => s.forecast.referenceCapacity },
+    { label: t('Start rate (per PD, 0 = none)'), get: (s) => s.forecast.startRate },
     { label: t('Plannable share (%)'), get: (s) => s.forecast.plannableShare },
     { label: t('Rounding (decimals)'), get: (s) => s.forecast.rounding },
     { label: t('Horizon of the forecast (sprints)'), get: (s) => s.forecast.horizon },
@@ -182,6 +183,7 @@
             </select>
           </div>
           <NumInput id="t-refcap" label={t('Reference capacity (PD)')} bind:value={draft.forecast.referenceCapacity} min={0.1} max={10000} />
+          <NumInput id="t-start" label={t('Start rate (per PD, 0 = none)')} bind:value={draft.forecast.startRate} min={0} max={100} />
           <NumInput id="t-share" label={t('Plannable share (%)')} bind:value={draft.forecast.plannableShare} min={0} max={100} />
           <div class="field">
             <label for="t-rounding">{t('Rounding')}</label>

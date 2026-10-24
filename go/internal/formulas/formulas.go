@@ -373,6 +373,11 @@ func (f Formatter) PlainExplanation(fc *forecast.Forecast, e *forecast.TimelineE
 		return f.t("Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
 			"value", f.np(r.Commitment.Value), "unit", unit, "plan", textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""))
 	}
+	if r.PlanSource != nil && *r.PlanSource == engine.PlanStart {
+		return f.t("No history yet: capacity {capacity} × start rate {rate} = {plan} {unit}, rounded down.",
+			"capacity", f.exact(r.PlanCapacity), "rate", f.nd(fs.StartRate, 2),
+			"plan", textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), "unit", unit)
+	}
 	i := indexOf(fc, e)
 	basis := basisSprints(fc, i)
 	trend := r.NormalizedVelocity.Trend
@@ -423,7 +428,7 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 	fs := team.Forecast
 	r := e.Result
 	unit := string(team.Unit)
-	if r.Plan == nil || (r.PlanSource != nil && *r.PlanSource == engine.PlanActual) {
+	if r.Plan == nil || (r.PlanSource != nil && (*r.PlanSource == engine.PlanActual || *r.PlanSource == engine.PlanStart)) {
 		return Explanation{Message: f.PlainExplanation(fc, e, note), Inputs: []Pair{}, Notes: []string{}}
 	}
 	i := indexOf(fc, e)

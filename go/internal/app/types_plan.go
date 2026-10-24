@@ -37,9 +37,13 @@ type PlanSprint struct {
 	// cannot be measured yet).
 	Plan         *float64 `json:"plan"`
 	PlanOriginal *float64 `json:"planOriginal"`
-	Low          *float64 `json:"low"`
-	High         *float64 `json:"high"`
-	Rate         *float64 `json:"rate"`
+	// PlanSource is "start" if the PLAN comes from the start rate (no history yet), else "".
+	// StartRate is the start rate of the team, 0 if none.
+	PlanSource string   `json:"planSource"`
+	StartRate  float64  `json:"startRate"`
+	Low        *float64 `json:"low"`
+	High       *float64 `json:"high"`
+	Rate       *float64 `json:"rate"`
 	// RateKnown: the other unit (PD for points) can be shown; false for a team planning in PD.
 	OtherUnit string `json:"otherUnit"`
 	// Share is the plannable share; Split the PLAN split into carry-over, plannable and small
