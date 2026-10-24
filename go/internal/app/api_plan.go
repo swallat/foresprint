@@ -1173,18 +1173,34 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
 	text := protocol.Render(protocol.Planning, c.data.Team.Name, sprintID, now(), c.planFacts(view, commit, in), nil, c.planNotes(in, byKey), "", false)
-	if _, err := store.MarkObsolete(sprintID, protocol.Planning); err != nil {
-		return "", err
-	}
-	path, _, err := store.WriteNew(sprintID, protocol.Planning, text, nil)
+	// The old minutes are marked obsolete and the new ones written together with the sprint: if
+	// the sprint cannot be saved, the minutes are as they were.
+	path, err := store.ReplaceWithSave(sprintID, protocol.Planning, text, func() error {
+		_, serr := c.repo.SaveSprint(team, &s)
+		return serr
+	})
 	if err != nil {
-		return "", err
-	}
-	if _, err := c.repo.SaveSprint(team, &s); err != nil {
 		return "", err
 	}
 	storage.ClearTeamCache()
 	return filepath.Base(path), nil
+}
+
+// planTicketLine is a ticket in the minutes: key, title, size, tracker status and, for a ticket that
+// is already worked on (carried over from an earlier sprint), its rest.
+func planTicketLine(t PlanTicket) string {
+	size := "–"
+	if t.Size != nil {
+		size = strconv.FormatFloat(math.Round(*t.Size*100)/100, 'f', -1, 64)
+	}
+	line := t.Key + " " + t.Title + " (" + size + ")"
+	if t.Status != "" {
+		line += " – " + i18n.T("Status: {status}", "status", t.Status)
+	}
+	if t.Remaining != nil {
+		line += ", " + i18n.T("carried over, rest {rest}", "rest", strconv.FormatFloat(math.Round(*t.Remaining*100)/100, 'f', -1, 64))
+	}
+	return line
 }
 
 func (c *planCtx) planFacts(v *PlanSprint, commit float64, in FreezeInput) []protocol.Fact {
@@ -1213,12 +1229,7 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 	if c.tickets() {
 		agreed := protocol.Note{Title: i18n.T("Agreed tickets")}
 		for _, k := range in.Tickets {
-			t := byKey[k]
-			size := "–"
-			if t.Size != nil {
-				size = strconv.FormatFloat(*t.Size, 'f', -1, 64)
-			}
-			agreed.Items = append(agreed.Items, k+" "+t.Title+" ("+size+")")
+			agreed.Items = append(agreed.Items, planTicketLine(byKey[k]))
 		}
 		notes = append(notes, agreed)
 	}
@@ -1232,21 +1243,96 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 	return notes
 }
 
-// ReopenPlan takes the frozen list back so that the team can plan again; the minutes stay and
-// are marked obsolete by the next freeze.
+// ReopenPlan takes the frozen list back so that the team can plan again; the minutes are
+// marked obsolete at once.
 func (a *API) ReopenPlan(team, sprintID string) error {
-	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
-		if st := c.stage(); st == "past" || st == "current" {
-			return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
+	c, err := a.planContext(team, sprintID)
+	if err != nil {
+		return err
+	}
+	if st := c.stage(); st == "past" || st == "current" {
+		return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
+	}
+	s := c.sprint.Clone()
+	s.CommittedTickets = nil
+	for id, v := range s.Products {
+		v.Planned, v.ProductionPlanned = nil, nil
+		setProductValue(&s, id, func(x *model.ProductValues) { *x = v })
+	}
+	s.Commitment = nil
+	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
+	if _, err := store.ObsoleteWithSave(sprintID, protocol.Planning, func() ([]string, error) {
+		path, serr := c.repo.SaveSprint(team, &s)
+		return []string{path}, serr
+	}); err != nil {
+		return err
+	}
+	storage.ClearTeamCache()
+	return nil
+}
+
+// SavePreplanMinutes writes the minutes of the PO pre-planning of a sprint that has not started:
+// the figures, the amount per product and the earmarked tickets with their status. Writing
+// again marks the earlier minutes of the sprint as obsolete. It returns the file name.
+func (a *API) SavePreplanMinutes(team, sprintID string) (string, error) {
+	c, err := a.planContext(team, sprintID)
+	if err != nil {
+		return "", err
+	}
+	if st := c.stage(); st == "past" || st == "current" {
+		return "", errors.New(i18n.T("The sprint {id} has started; its pre-planning minutes cannot be written any more.", "id", sprintID))
+	}
+	view, err := c.view(team, nil)
+	if err != nil {
+		return "", err
+	}
+	unit := string(c.data.Team.Unit)
+	f := func(x *float64) string {
+		if x == nil {
+			return "–"
 		}
-		s.CommittedTickets = nil
-		for id, v := range s.Products {
-			v.Planned, v.ProductionPlanned = nil, nil
-			setProductValue(s, id, func(x *model.ProductValues) { *x = v })
+		return strconv.FormatFloat(math.Round(*x*10)/10, 'f', -1, 64)
+	}
+	facts := []protocol.Fact{{Label: i18n.T("Forecast PLAN"), Value: f(view.Plan) + " " + unit}}
+	if view.Split != nil {
+		facts = append(facts, protocol.Fact{Label: i18n.T("Plannable"), Value: f(&view.Split.Plannable) + " " + unit})
+	}
+	if view.SprintPre != nil {
+		facts = append(facts, protocol.Fact{Label: i18n.T("Pre-planned"), Value: f(view.SprintPre) + " " + unit})
+	} else if !c.data.Team.Features.Products || view.Preplanned > 0 {
+		facts = append(facts, protocol.Fact{Label: i18n.T("Pre-planned"), Value: f(&view.Preplanned) + " " + unit})
+	}
+	var notes []protocol.Note
+	if c.tickets() {
+		facts = append(facts, protocol.Fact{Label: i18n.T("Earmarked"), Value: f(&view.Earmarked) + " " + unit})
+		earmarked := protocol.Note{Title: i18n.T("Earmarked tickets")}
+		for _, t := range view.Tickets {
+			earmarked.Items = append(earmarked.Items, planTicketLine(t))
 		}
-		s.Commitment = nil
-		return nil
-	})
+		notes = append(notes, earmarked)
+		if len(view.Removed) > 0 {
+			out := protocol.Note{Title: i18n.T("Adjust in the tracker")}
+			out.Items = append(out.Items, view.Removed...)
+			notes = append(notes, out)
+		}
+	}
+	var d *protocol.Distribution
+	if c.data.Team.Features.Products {
+		d = &protocol.Distribution{}
+		for _, p := range view.Products {
+			if !p.Active && p.Pre == nil && p.Earmark == 0 {
+				continue
+			}
+			d.Rows = append(d.Rows, protocol.Row{Name: p.Name, PO: p.POName, Active: true, Standard: p.Default, Preplanned: p.Pre})
+		}
+	}
+	text := protocol.Render(protocol.Preplanning, c.data.Team.Name, sprintID, now(), facts, d, notes, "", view.MultiPO)
+	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
+	path, err := store.ReplaceWithSave(sprintID, protocol.Preplanning, text, func() error { return nil })
+	if err != nil {
+		return "", err
+	}
+	return filepath.Base(path), nil
 }
 
 // fillMatrix lists the cells of the table product x project.

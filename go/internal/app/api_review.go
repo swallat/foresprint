@@ -664,14 +664,35 @@ func reviewMinutes(data *storage.TeamData, r SprintReview, now time.Time) string
 	}
 	var notes []protocol.Note
 	if r.Tickets {
+		targets := map[string]string{}
+		for _, tg := range r.Targets {
+			targets[tg.ID] = tg.Name
+		}
 		var done, left []string
 		for _, t := range r.List {
-			line := t.Key + " " + t.Title
+			line := t.Key + " " + t.Title + " (" + num(t.Estimate) + ")"
+			if t.Estimate == 0 {
+				line = t.Key + " " + t.Title + " (–)"
+			}
+			if t.Status != "" {
+				line += " – " + i18n.T("Status: {status}", "status", t.Status)
+			}
+			if t.Added {
+				line += ", " + i18n.T("added after the freeze")
+			}
 			if t.Done {
 				done = append(done, line)
-			} else {
-				left = append(left, fmt.Sprintf("%s (%s)", line, i18n.T("rest {rest}", "rest", num(t.Rest))))
+				continue
 			}
+			line += fmt.Sprintf(" (%s)", i18n.T("rest {rest}", "rest", num(t.Rest)))
+			name := targets[t.Target]
+			if t.Target == model.CarryBacklog {
+				name = i18n.T("Backlog")
+			}
+			if name != "" {
+				line += " → " + name
+			}
+			left = append(left, line)
 		}
 		notes = append(notes, protocol.Note{Title: i18n.T("Done tickets"), Items: done},
 			protocol.Note{Title: i18n.T("Carried over"), Items: left})
