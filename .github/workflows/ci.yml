@@ -55,6 +55,10 @@ jobs:
         run: test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
       - run: go vet ./...
       - run: go test -count=1 ./...
+      # A package whose tests are dropped or left behind fails here (floors: scripts/coverage-floor.sh).
+      - name: Coverage floors
+        if: runner.os == 'Linux'
+        run: bash ../scripts/coverage-floor.sh
       - run: go build ./...
       - name: golangci-lint
         if: runner.os == 'Linux'
@@ -93,6 +97,14 @@ jobs:
           npm run check
           npm test
           npm run build
+      # The figures only; nothing fails on them.
+      - name: Frontend coverage (Linux)
+        if: runner.os == 'Linux'
+        working-directory: go/internal/desktop/frontend
+        run: |
+          set -o pipefail
+          npm run coverage | tee coverage.txt
+          { echo '### Frontend coverage'; echo '```'; sed -n '/Coverage summary/,$p' coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # The downloaded packages are cached: the Ubuntu mirror sometimes hangs for many minutes.
       # A try is stopped after five minutes and repeated once.
       - name: Cache the web view packages (Linux)
