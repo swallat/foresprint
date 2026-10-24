@@ -77,11 +77,13 @@ func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) Fo
 		out.CapacitySource = string(*r.Input.CapacitySource)
 	}
 	if r.PlanSource != nil {
-		out.PlanSource = "projection"
-		if *r.PlanSource == engine.PlanActual {
+		switch *r.PlanSource {
+		case engine.PlanActual:
 			out.PlanSource = "actual"
-		} else if *r.PlanSource == engine.PlanStart {
+		case engine.PlanStart:
 			out.PlanSource = "start"
+		default:
+			out.PlanSource = "projection"
 		}
 	}
 	if state != "past" && r.Plan != nil {
