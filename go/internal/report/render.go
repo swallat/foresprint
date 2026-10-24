@@ -381,7 +381,7 @@ func ticketsSection(fc *forecast.Forecast, sprints int) ([]string, error) {
 		shown = shown[:sprints]
 	}
 	if len(shown) > 0 {
-		unit := string(data.Team.Unit)
+		unit := unitNow(fc)
 		lines = append(lines, "",
 			"| Sprint | "+t("Budget")+" ("+unit+") | "+t("Used")+" | "+t("Free")+" | "+t("Tickets")+" |",
 			"|---|---|---|---|---|")
@@ -415,7 +415,7 @@ func orDash(s *string) string {
 // analysisSection holds the supplementary analyses (range, focus factor, buffer) at the end of
 // the report.
 func analysisSection(fc *forecast.Forecast) []string {
-	unit := string(fc.Data.Team.Unit)
+	unit := unitNow(fc)
 	type row struct {
 		e *forecast.TimelineEntry
 		b analysis.Band
@@ -469,7 +469,7 @@ func productsSection(fc *forecast.Forecast, history int) []string {
 	if len(fc.Data.Products) == 0 {
 		return nil
 	}
-	unit := string(fc.Data.Team.Unit)
+	unit := unitNow(fc)
 	lines := []string{"", "## " + t("Products")}
 	var shown []*forecast.TimelineEntry
 	planning, _ := fc.DefaultEntry(forecast.PurposePlanning)
@@ -542,4 +542,10 @@ func productsSection(fc *forecast.Forecast, history int) []string {
 		}
 	}
 	return lines
+}
+
+// unitNow is the estimation unit valid today, not the one the team started with.
+func unitNow(fc *forecast.Forecast) string {
+	u, _ := forecast.UnitAt(fc.Data, fc.Today)
+	return string(u)
 }

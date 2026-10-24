@@ -517,3 +517,16 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	span.Low, span.High = plan(low), plan(high)
 	return span, true
 }
+
+// UnitAt is the estimation unit valid at a point in time: the unit of the team until a switch
+// takes over from its sprint on, once that sprint has begun. from is "" for the team's own unit.
+func UnitAt(data *storage.TeamData, now time.Time) (unit model.Unit, from string) {
+	unit = data.Team.Unit
+	var latest time.Time
+	for _, c := range data.Team.Estimation.Changes {
+		if s, err := FindSprint(data, c.From, 52); err == nil && s != nil && !s.Start.After(now) && !s.Start.Before(latest) {
+			unit, from, latest = c.Unit, c.From, s.Start
+		}
+	}
+	return unit, from
+}
