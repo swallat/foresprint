@@ -35,6 +35,9 @@ param(
 )
 $ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
+# Read the program output as UTF-8 and allow TLS 1.2 on Windows PowerShell 5.1.
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 if (-not $Report) { $Report = Join-Path (Get-Location) ("foresprint-smoke-{0:yyyyMMdd-HHmm}.txt" -f (Get-Date)) }
 $lines = New-Object System.Collections.Generic.List[string]
 $failed = 0
@@ -86,7 +89,7 @@ $tmp = Join-Path ([IO.Path]::GetTempPath()) ("foresprint-smoke-" + [guid]::NewGu
 New-Item -ItemType Directory -Path $tmp | Out-Null
 try {
     $zip = Join-Path $tmp "repo.zip"
-    Invoke-WebRequest "https://github.com/swallat/foresprint/archive/refs/heads/$Branch.zip" -OutFile $zip
+    Invoke-WebRequest "https://github.com/swallat/foresprint/archive/refs/heads/$Branch.zip" -OutFile $zip -UseBasicParsing
     Expand-Archive $zip -DestinationPath (Join-Path $tmp "src") -Force
     $teams = Get-ChildItem (Join-Path $tmp "src") -Directory | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName "examples\teams" }
     Add-Result "Demo-Team geladen" (Test-Path (Join-Path $teams "demo\team.yaml")) $teams
@@ -97,7 +100,7 @@ try {
     $f = Invoke-Fs @("--data", $data, "forecast", "demo")
     Add-Result "forecast (Demo)" (($f.Code -eq 0) -and ($f.Text.Length -gt 50)) "Exit $($f.Code), $($f.Text.Length) Zeichen"
     $p = Invoke-Fs @("--data", $data, "people", "demo")
-    Add-Result "people (Demo), Umlaute lesbar" (($p.Code -eq 0) -and ($p.Text -notmatch '[�]|Ã')) "Exit $($p.Code)"
+    Add-Result "people (Demo), Umlaute lesbar" (($p.Code -eq 0) -and ($p.Text -notmatch ([string][char]0xFFFD + '|' + [char]0xC3))) "Exit $($p.Code)"
 } catch {
     Add-Result "Demo-Team und Befehle" $false $_.Exception.Message
 }
@@ -106,9 +109,15 @@ try {
 if ($SkipWindow) {
     $lines.Add("UEBERSPRUNGEN Fenster-Test (-SkipWindow)")
 } else {
+    if (Get-Process -Name foresprint -ErrorAction SilentlyContinue) {
+        Add-Result "Fenster-Test" $false "foresprint laeuft schon; bitte schliessen und noch einmal starten"
+        $lines.Add("Ergebnis: $failed Fehler"); $lines | Set-Content $Report -Encoding UTF8
+        Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+    $startTime = Get-Date
     $log = Join-Path $env:LOCALAPPDATA "Foresprint\logs\start.log"
-    $logBefore = if (Test-Path $log) { (Get-Item $log).Length } else { 0 }
-    $proc = Start-Process $Exe -PassThru
+    Start-Process $Exe
     $hasWindow = $false
     for ($i = 0; $i -lt 30 -and -not $hasWindow; $i++) {
         Start-Sleep -Seconds 1
@@ -118,16 +127,16 @@ if ($SkipWindow) {
     Add-Result "Fenster erscheint (max. 30 s)" $hasWindow
     Get-Process -Name foresprint -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() }
     Start-Sleep -Seconds 10
-    $left = @(Get-Process -Name foresprint, msedgewebview2 -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*foresprint*" })
+    $left = @(Get-CimInstance Win32_Process -Filter "Name='foresprint.exe' OR Name='msedgewebview2.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -eq 'foresprint.exe' -or $_.CommandLine -like '*foresprint*' })
     if ($left.Count -gt 0) {
-        $left | Stop-Process -Force -ErrorAction SilentlyContinue
+        $left | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         Add-Result "Prozesse nach Schliessen beendet" $false "$($left.Count) uebrig (beendet)"
     } else {
         Add-Result "Prozesse nach Schliessen beendet" $true
     }
     if (Test-Path $log) {
-        $new = (Get-Item $log).Length - $logBefore
-        Add-Result "start.log geschrieben" ($new -gt 0) $log
+        Add-Result "start.log geschrieben" ((Get-Item $log).LastWriteTime -ge $startTime.AddSeconds(-2)) $log
         $lines.Add("--- start.log (letzte 8 Zeilen) ---")
         Get-Content $log -Tail 8 | ForEach-Object { $lines.Add($_) }
     } else {
