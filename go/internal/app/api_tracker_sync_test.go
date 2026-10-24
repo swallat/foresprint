@@ -24,7 +24,8 @@ func newFakeJira(t *testing.T, keys ...string) *fakeJira {
 	f := &fakeJira{}
 	f.tickets.Store(keys)
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if f.denied.Load() {
+		// Only the token of the test is let in: this proves it travels from the environment.
+		if f.denied.Load() || r.Header.Get("Authorization") != "Bearer secret-token" {
 			http.Error(w, "no", http.StatusUnauthorized)
 			return
 		}
@@ -80,13 +81,19 @@ func TestTrackerConnectionNamesTheUserAndFailsWithoutAccess(t *testing.T) {
 		t.Fatalf("connection = %+v", c)
 	}
 	f.denied.Store(true)
-	if c := api.TestTrackerConnection(team, ""); c.OK || c.Message == "" {
+	if c := api.TestTrackerConnection(team, ""); c.OK || !strings.Contains(c.Message, "401") {
 		t.Fatalf("a refused token must not be reported as connected: %+v", c)
 	}
-	t.Setenv(sources.TokenEnv, "")
 	f.denied.Store(false)
-	if c := api.TestTrackerConnection(team, ""); c.OK {
-		t.Fatalf("without a token the test must fail: %+v", c)
+	t.Setenv(sources.TokenEnv, "another-token")
+	if c := api.TestTrackerConnection(team, ""); c.OK || !strings.Contains(c.Message, "401") {
+		t.Fatalf("a wrong token must be refused by the server: %+v", c)
+	}
+	// Without the variable the lookup falls back to the keychain of the computer (for the host of
+	// the fake, practically always empty), then the missing token is named.
+	t.Setenv(sources.TokenEnv, "")
+	if c := api.TestTrackerConnection(team, ""); c.OK || !strings.Contains(c.Message, sources.TokenEnv) {
+		t.Fatalf("without a token the test must say where to set one: %+v", c)
 	}
 }
 
@@ -136,8 +143,8 @@ func TestSyncTrackerWritesTicketsAndNeverWipesWithAnEmptyAnswer(t *testing.T) {
 	}
 	// A query that matches nothing (wrong query, lost permission) must not wipe the import.
 	f.tickets.Store([]string{})
-	if _, err := api.SyncTracker(team); err == nil {
-		t.Fatal("an empty answer must be refused")
+	if _, err := api.SyncTracker(team); err == nil || !strings.Contains(err.Error(), "no tickets") {
+		t.Fatalf("an empty answer must be refused as such: %v", err)
 	}
 	if got := keys(); !got["A-1"] || !got["A-2"] {
 		t.Fatalf("the import was wiped: %v", got)
@@ -157,8 +164,8 @@ func TestSyncTrackerWritesTicketsAndNeverWipesWithAnEmptyAnswer(t *testing.T) {
 
 func TestSyncTrackerRefusesAFileTeamAndAServerError(t *testing.T) {
 	api, team := planTeam(t) // a CSV team
-	if _, err := api.SyncTracker(team); err == nil {
-		t.Fatal("a team without Jira must not sync")
+	if _, err := api.SyncTracker(team); err == nil || !strings.Contains(err.Error(), "does not read its tickets from Jira") {
+		t.Fatalf("a team without Jira must not sync: %v", err)
 	}
 	if info := api.TrackerInfo(team); info.Enabled {
 		t.Fatalf("a CSV team has nothing to sync: %+v", info)
@@ -168,5 +175,8 @@ func TestSyncTrackerRefusesAFileTeamAndAServerError(t *testing.T) {
 	f.denied.Store(true)
 	if _, err := api.SyncTracker(team); err == nil {
 		t.Fatal("a refused token must fail the sync")
+	}
+	if info := api.TrackerInfo(team); info.Failed == "" {
+		t.Fatalf("the chip must show the failure: %+v", info)
 	}
 }
