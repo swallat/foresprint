@@ -315,7 +315,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	v := &PlanSprint{
 		Team: team, Sprint: s.ID,
 		Start: s.Start.Format("2006-01-02"), End: s.End.Format("2006-01-02"),
-		Unit: string(tm.Unit), Source: string(tm.Source()),
+		Unit: settingsUnitAt(d, s.Start), Source: string(tm.Source()),
 		MultiProduct: tm.Features.Products, Production: tm.Features.Production,
 		Share: tm.Forecast.RoadmapShare, StartRate: tm.Forecast.StartRate, Products: []PlanProduct{}, Tickets: []PlanTicket{},
 		Candidates: []PlanTicket{}, Removed: []string{}, Projects: []PlanProject{}, Assumptions: []Assumption{}, Notes: []string{},
@@ -1207,7 +1207,7 @@ func planTicketLine(t PlanTicket) string {
 }
 
 func (c *planCtx) planFacts(v *PlanSprint, commit float64, in FreezeInput) []protocol.Fact {
-	unit := string(c.data.Team.Unit)
+	unit := settingsUnitAt(c.data, c.sprint.Start)
 	f := func(x *float64) string {
 		if x == nil {
 			return "–"
@@ -1289,7 +1289,7 @@ func (a *API) SavePreplanMinutes(team, sprintID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	unit := string(c.data.Team.Unit)
+	unit := settingsUnitAt(c.data, c.sprint.Start)
 	f := func(x *float64) string {
 		if x == nil {
 			return "–"

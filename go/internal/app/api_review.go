@@ -239,7 +239,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 	col := column(data, fc, s)
 	out := SprintReview{
 		Sprint:      col,
-		Unit:        string(data.Team.Unit),
+		Unit:        settingsUnitAt(data, s.Start),
 		Started:     !s.Start.After(fc.Today),
 		Reviewed:    s.Velocity != nil,
 		PlannedDays: col.Capacity,
