@@ -23,14 +23,21 @@ func (a *API) ArchiveTeam(team, confirm string) error {
 	if typed == "" || (typed != strings.ToLower(data.Team.Name) && typed != strings.ToLower(team)) {
 		return errors.New(i18n.T("Type the name of the team to archive it."))
 	}
+	// editMu keeps a parallel edit from writing into the folder while it moves; a sync marks
+	// itself in run.syncing under a.mu, which stays held until the move is done.
+	editMu.Lock()
+	defer editMu.Unlock()
 	a.mu.Lock()
-	busy := a.run.syncing[team]
-	a.mu.Unlock()
-	if busy {
+	defer a.mu.Unlock()
+	if a.run.syncing[team] {
 		return errors.New(i18n.T("A sync is running for this team. Archive it afterwards."))
 	}
+	if err := repo.ArchiveTeam(team); err != nil {
+		return err
+	}
 	a.forget(team)
-	return repo.ArchiveTeam(team)
+	delete(a.run.failed, team)
+	return nil
 }
 
 // ArchivedTeams lists the archived teams of the data folder.
