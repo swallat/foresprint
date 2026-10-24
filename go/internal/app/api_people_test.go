@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 // demoCopy copies the demo team into a temporary data folder, so tests can write.
@@ -202,5 +205,22 @@ func TestPersonOwnHolidayRegion(t *testing.T) {
 	got, err = api.SavePeople(team, list)
 	if err != nil || got.People[0].Country != "" {
 		t.Errorf("reset: %v %+v", err, got.People[0])
+	}
+}
+
+func TestNewMemberJoinsAtTheStartOfTheFirstSprint(t *testing.T) {
+	team := model.NewTeam("t", "T")
+	id, start := "2026.16", time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	team.Sprint.FirstID, team.Sprint.FirstStart = &id, &start
+	data := &storage.TeamData{Team: team}
+	at := func(y int, m time.Month, d int) *API {
+		return &API{Now: func() time.Time { return time.Date(y, m, d, 12, 0, 0, 0, time.UTC) }}
+	}
+	if got := at(2026, 10, 24).peopleNewMemberDay(data); !got.Equal(start) {
+		t.Errorf("in the first sprint: %v, want its start", got)
+	}
+	later := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	if got := at(2026, 11, 10).peopleNewMemberDay(data); !got.Equal(later) {
+		t.Errorf("after the first sprint: %v, want today", got)
 	}
 }

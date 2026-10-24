@@ -136,7 +136,7 @@
       kind: 'member',
       production: false,
       used: false,
-      memberships: [{ from: today, to: '', fte: 1 }],
+      memberships: [{ from: view?.newFrom || today, to: '', fte: 1 }],
     };
     void save([...(view?.people ?? []), person], t('Person added.')).then(() => {
       const added = view?.people.find((p) => p.name === person.name && !p.used);
