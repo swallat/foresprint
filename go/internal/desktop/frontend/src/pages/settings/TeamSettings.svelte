@@ -80,6 +80,8 @@
     { label: t('Cap of the production time (%)'), get: (s) => s.productionCap },
     { label: t('Projects and contingents'), get: (s) => s.projects },
     { label: t('Pro-forma sprints'), get: (s) => s.proForma },
+    { label: t('Deduction for Scrum events (PD per person)'), get: (s) => s.overheadDays },
+    { label: t('Deduction for Scrum events (%)'), get: (s) => s.overheadShare },
     { label: t('Country'), get: (s) => s.country, show: countryName },
     { label: t('Region'), get: (s) => s.region, show: (v) => String(v) || t('Whole country') },
   ]);
@@ -146,6 +148,7 @@
     features: t('Features products product owners production access cap projects contingents'),
     budget: t('Budget basis share'),
     unit: t('Estimation unit conversion story points person days factor'),
+    overhead: t('Capacity scrum events deduction overhead planning review retro days per person percent'),
     holidays: t('Holidays country region state federal state public holidays calendar'),
     proforma: t('Pro-forma sprints refinement'),
   });
@@ -240,6 +243,19 @@
             {t('Projects with milestones and a contingent in person days. They also work without a tracker. Only projects and their calculation change; tickets stay. Whether tickets are used is set under Settings, Tickets and tracker.')}
           </Switch>
         </div>
+      </div>
+    {/if}
+
+    {#if shows('overhead', t('Capacity'))}
+      <div class="card">
+        <h2>{t('Capacity')}</h2>
+        <div class="fields">
+          <NumInput id="t-ovdays" label={t('Deduction for Scrum events (PD per person)')} bind:value={draft.overheadDays} min={0} max={20} />
+          <NumInput id="t-ovshare" label={t('Deduction for Scrum events (%)')} bind:value={draft.overheadShare} min={0} max={90} />
+        </div>
+        <p class="small muted">
+          {t('Time for planning, review and retro that does not count for capacity. Per full-time person and sprint (part time pro rata), e.g. 1. If set, the days apply instead of the percent. 0 = none.')}
+        </p>
       </div>
     {/if}
 
@@ -378,7 +394,7 @@
       <ChangesCard {rows} {busy} onapply={apply} onreset={reset} />
     </div>
   </div>
-  {#if q && !['forecast', 'features', 'budget', 'unit', 'proforma'].some((k) => shows(k, ''))}
+  {#if q && !['forecast', 'features', 'overhead', 'budget', 'unit', 'proforma'].some((k) => shows(k, ''))}
     <p class="muted">{t('No setting found.')}</p>
   {/if}
 {:else}

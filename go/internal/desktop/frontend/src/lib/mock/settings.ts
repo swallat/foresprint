@@ -28,6 +28,8 @@ let team: TeamSettings = {
   po: true,
   production: true,
   productionCap: 60,
+  overheadDays: 1,
+  overheadShare: 0,
   projects: true,
   proForma: ['Refinement'],
   country: 'DE',
