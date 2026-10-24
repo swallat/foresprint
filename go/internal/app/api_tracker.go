@@ -684,7 +684,7 @@ func trackerProForma(data *storage.TeamData, name string) bool {
 // Two more counts belong to the refined label: "refinedLabel" (tickets with the label) and
 // "refinedLabelNoEstimate" (of those, the ones without a size, which count as not refined).
 func trackerFieldHits(tickets []model.Ticket, tracker model.TrackerSettings) map[string]int {
-	hits := map[string]int{"refinedLabel": 0, "refinedLabelNoEstimate": 0,"estimate": 0, "remaining": 0, "epic": 0, "status": 0,
+	hits := map[string]int{"refinedLabel": 0, "refinedLabelNoEstimate": 0, "estimate": 0, "remaining": 0, "epic": 0, "status": 0,
 		ticketimport.MapProject: 0, ticketimport.MapProduct: 0, ticketimport.MapRefined: 0, ticketimport.MapProduction: 0}
 	filled := func(s *string) bool { return s != nil && *s != "" }
 	extra := func(tk model.Ticket, key string) bool {
