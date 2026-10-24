@@ -48,6 +48,7 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	s.Forecast.Window = 6
 	s.Forecast.PlannableShare = 70
 	s.Forecast.Trend = "linear"
+	s.Forecast.StartRate = 0.7
 	s.Production = true
 	s.ProductionCap = 60
 	s.ProForma = []string{" Refinement ", "", "Parkplatz"}
@@ -60,6 +61,9 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	}
 	if got.Forecast.Window != 6 || got.Forecast.PlannableShare != 70 || got.Forecast.Trend != "linear" {
 		t.Errorf("forecast = %+v", got.Forecast)
+	}
+	if got.Forecast.StartRate != 0.7 {
+		t.Errorf("start rate = %v", got.Forecast.StartRate)
 	}
 	if !got.Production || got.ProductionCap != 60 {
 		t.Errorf("production = %v cap %v", got.Production, got.ProductionCap)
@@ -77,6 +81,7 @@ func TestTeamSettingsRefuseNonsense(t *testing.T) {
 		"trend":     func(s *TeamSettings) { s.Forecast.Trend = "wild" },
 		"share":     func(s *TeamSettings) { s.Forecast.PlannableShare = 120 },
 		"cap":       func(s *TeamSettings) { s.ProductionCap = -1 },
+		"start":     func(s *TeamSettings) { s.Forecast.StartRate = -0.5 },
 		"duplicate": func(s *TeamSettings) { s.ProForma = []string{"A", "a"} },
 	} {
 		s := base
@@ -392,5 +397,26 @@ func TestTeamSettingsHolidayRegion(t *testing.T) {
 	s.Country, s.Region = "XX", ""
 	if err := api.SaveTeamSettings(team, s); err == nil {
 		t.Error("an unknown country was accepted")
+	}
+}
+
+func TestSetStartRate(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	rate := 0.8
+	if err := api.SetStartRate(team, &rate); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := api.TeamSettings(team); s.Forecast.StartRate != 0.8 {
+		t.Errorf("start rate = %v", s.Forecast.StartRate)
+	}
+	bad := -1.0
+	if err := api.SetStartRate(team, &bad); err == nil {
+		t.Error("a negative start rate must be refused")
+	}
+	if err := api.SetStartRate(team, nil); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := api.TeamSettings(team); s.Forecast.StartRate != 0 {
+		t.Errorf("start rate after clearing = %v", s.Forecast.StartRate)
 	}
 }

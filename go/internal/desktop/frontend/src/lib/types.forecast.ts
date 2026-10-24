@@ -16,7 +16,7 @@ export interface ForecastRow {
   trend: number | null;
   fulfillment: number | null;
   plan: number | null;
-  planSource: '' | 'actual' | 'projection';
+  planSource: '' | 'actual' | 'start' | 'projection';
   low: number | null;
   high: number | null;
   plannable: number | null;

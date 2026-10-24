@@ -11,6 +11,8 @@ export interface ForecastSettings {
   rounding: number;
   horizon: number;
   basis: 'plan' | 'share';
+  /** Per capacity PD while there is no history, 0 = none. */
+  startRate: number;
 }
 
 export interface UnitChangeInfo {
