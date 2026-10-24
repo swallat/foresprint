@@ -42,7 +42,9 @@ mise run all     # everything plus the build of the window
 CI additionally runs `gofmt`, `golangci-lint`, a build of the window on Windows, Linux and macOS,
 and the installer scripts. Format your Go code with `gofmt` before
 pushing. Behaviour changes need tests; new methods that return lists must return empty lists, not
-`nil`, and belong in `go/internal/app/nilslice_test.go`.
+`nil`, and belong in `go/internal/app/nilslice_test.go`. On Linux, CI also holds the main Go
+packages to a coverage floor (`scripts/coverage-floor.sh`; raise a floor when a package gets better)
+and prints the frontend coverage (`npm run coverage`, figures only).
 
 ## Translations
 

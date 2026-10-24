@@ -7,5 +7,10 @@ export default defineConfig({
   plugins: [svelte()],
   build: { outDir: 'dist', emptyOutDir: false, target: 'es2022', sourcemap: false },
   resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
-  test: { environment: 'jsdom', include: ['src/**/*.test.ts'] },
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts'],
+    // `npm run coverage` shows the figures; nothing fails on them (yet).
+    coverage: { provider: 'v8', include: ['src/**/*.{ts,svelte}'], exclude: ['src/**/*.test.ts', 'src/**/*.d.ts'], reporter: ['text-summary', 'json-summary'] },
+  },
 });
