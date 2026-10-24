@@ -4,6 +4,7 @@
   import Icon from '../lib/Icon.svelte';
   import { go, link } from '../lib/router.svelte';
   import Logo from './Logo.svelte';
+  import NewMenu from './NewMenu.svelte';
   import StatusChip from './StatusChip.svelte';
   import TrackerChip from './TrackerChip.svelte';
 
@@ -29,6 +30,7 @@
   <a class="brand" href={link('/today')} title={t('Go to Today')}> <Logo /><span>Foresprint</span></a>
 
   {#if app.teams.length > 0}
+    <NewMenu />
     <label class="sel hide-narrow" title={t('Switch team')}>
       <Icon name="groups" />
       <select aria-label={t('Team')} value={app.team} onchange={(e) => {

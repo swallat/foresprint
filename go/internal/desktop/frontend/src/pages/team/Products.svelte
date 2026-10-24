@@ -2,6 +2,7 @@
   import type { PageProps } from '../../lib/routes';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
+  import { takeNew } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
@@ -38,9 +39,12 @@
   const focus = $derived(defaults.find((d) => !d.running) ?? defaults[0]);
   const focusSum = $derived(active.reduce((n, p) => n + (focus?.values[p.id] ?? 0), 0));
 
+  let loadedTeam = '';
   async function load() {
+    const team = app.team;
     try {
-      view = await api.Products(app.team);
+      view = await api.Products(team);
+      loadedTeam = team;
       failed = '';
       if (!active.some((p) => p.id === ruleFor)) selectRule(active[0]?.id ?? '');
     } catch (e) {
@@ -96,6 +100,11 @@
     }
     return save(replace({ ...p, share: value / 100 }));
   }
+
+  // "+" menu in the top bar: open with a new row
+  $effect(() => {
+    if (view && loadedTeam === app.team && takeNew()) add();
+  });
 
   function add() {
     const product: Product = {

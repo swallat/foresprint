@@ -3,7 +3,7 @@
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { link } from '../../lib/router.svelte';
+  import { link, takeNew } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { ProjectsView, ProjectView } from '../../lib/types.projects';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -47,6 +47,11 @@
   $effect(() => {
     void app.team;
     void load();
+  });
+
+  // "+" menu in the top bar: open the form for a new project
+  $effect(() => {
+    if (view && takeNew() && view.enabled) panel = { kind: 'new' };
   });
 
   function pick(r: Range): void {
