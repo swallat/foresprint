@@ -70,7 +70,7 @@
 {#if app.ready}
   {#if found?.def.bare}
     <main class="bare">
-      {#key found.def.path}
+      {#key found.def.path + (current.query.only ?? '') + (current.query.add ?? '')}
         {#await found.def.load() then mod}
           {@const Page = mod.default}
           <Page params={found.params} />

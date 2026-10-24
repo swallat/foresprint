@@ -54,7 +54,7 @@ function actionCommands(): Command[] {
       words: 'theme dark light dunkel hell farbschema',
       run: () => void setTheme(nextTheme[app.prefs?.theme ?? 'system'] ?? 'system'),
     },
-    { id: 'act:setup', label: t('Run first-start setup again'), group: 'action', hint: '/setup', words: 'einrichtung', run: () => go('/setup') },
+    { id: 'act:setup', label: t('Run first-start setup again'), group: 'action', hint: '/setup', words: 'einrichtung', run: () => go('/setup', {}, { only: 'storage' }) },
   ];
   if (app.status.tracker.enabled) {
     out.splice(2, 0, {

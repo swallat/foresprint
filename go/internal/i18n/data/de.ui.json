@@ -489,6 +489,7 @@
   "Start rate (per PD, 0 = none)": "Startwert (je PT, 0 = keiner)",
   "Status": "Status",
   "Storage": "Speicher",
+  "Storage setup": "Einrichtung des Speichers",
   "Storage problem": "Speicherproblem",
   "Storage status": "Speicherstatus",
   "Store token": "Token speichern",
