@@ -2,6 +2,7 @@
   import type { PageProps } from '../../lib/routes';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
+  import { takeNew } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
@@ -96,6 +97,11 @@
     }
     return save(replace({ ...p, share: value / 100 }));
   }
+
+  // "+" menu in the top bar: open with a new row
+  $effect(() => {
+    if (view && takeNew()) add();
+  });
 
   function add() {
     const product: Product = {

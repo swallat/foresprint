@@ -2,6 +2,7 @@
   import type { PageProps } from '../../lib/routes';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
+  import { takeNew } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import AbsenceGrid from '../../lib/absences/AbsenceGrid.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
@@ -119,6 +120,11 @@
       toast(t('{name} is external. Please enter the end of the contract as the leaving day.', { name: p.name }));
     }
   }
+
+  // "+" menu in the top bar: open with a new row
+  $effect(() => {
+    if (view && takeNew()) add();
+  });
 
   function add() {
     const person: Person = {
