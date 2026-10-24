@@ -34,9 +34,14 @@ data-repo/
    │  ├─ products.yaml            # optional
    │  ├─ FORECAST.md              # generated
    │  └─ sprints/2026.20.yaml ...
-   └─ team-b/ ...
+   ├─ team-b/ ...
+   └─ _archiv/                    # archived teams (Settings > Team > Archive team)
+      └─ team-c/ ...
 ```
 
+- Archiving a team moves its whole folder to `teams/_archiv/<team>/`. Nothing is deleted, Git
+  records a move, and "Restore" in the same settings card moves it back. Deleting a team for good
+  stays a manual step (delete the folder, commit).
 - `mise.toml` defines the task `mise run sf -- forecast team-a`, which runs the `foresprint`
   program (install it first, see [Installation](installation.md)), and points the data directory
   at `teams` for the repository.
