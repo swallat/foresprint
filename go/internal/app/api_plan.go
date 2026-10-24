@@ -317,7 +317,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 		Start: s.Start.Format("2006-01-02"), End: s.End.Format("2006-01-02"),
 		Unit: string(tm.Unit), Source: string(tm.Source()),
 		MultiProduct: tm.Features.Products, Production: tm.Features.Production,
-		Share: tm.Forecast.RoadmapShare, Products: []PlanProduct{}, Tickets: []PlanTicket{},
+		Share: tm.Forecast.RoadmapShare, StartRate: tm.Forecast.StartRate, Products: []PlanProduct{}, Tickets: []PlanTicket{},
 		Candidates: []PlanTicket{}, Removed: []string{}, Projects: []PlanProject{}, Assumptions: []Assumption{}, Notes: []string{},
 	}
 	if v.Source == "tracker" && tm.Tracker.Kind == "jira" {
@@ -345,6 +345,9 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	if c.entry != nil {
 		v.Capacity = c.entry.Result.PlanCapacity
 		v.Plan, v.PlanOriginal = c.entry.Result.Plan, c.entry.Result.Plan
+		if src := c.entry.Result.PlanSource; src != nil && *src == engine.PlanStart {
+			v.PlanSource = "start"
+		}
 		if b, ok := analysis.BandOf(c.fc, c.entry); ok {
 			v.Low, v.High = &b.Low, &b.High
 		}

@@ -11,6 +11,7 @@ type ForecastSettings struct {
 	Rounding          int     `json:"rounding"`          // decimals
 	Horizon           int     `json:"horizon"`           // sprints
 	Basis             string  `json:"basis"`             // "plan" or "share" (budget basis)
+	StartRate         float64 `json:"startRate"`         // per capacity PT while there is no history; 0 = none
 }
 
 // UnitChangeInfo is a switch of the estimation unit in a sprint (decision 19).

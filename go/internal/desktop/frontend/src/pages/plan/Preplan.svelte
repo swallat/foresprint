@@ -97,7 +97,7 @@
     {/snippet}
   </SprintHead>
 
-  <Summary {d} {used} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} />
+  <Summary {d} {used} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} {model} />
   <WhatIfCard {d} {model} />
 
   {#if over}

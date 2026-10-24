@@ -229,7 +229,7 @@
     {/snippet}
   </SprintHead>
 
-  <Summary {d} used={used} commitment={frozen ? d.committed : null} count={lane.length} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} />
+  <Summary {d} used={used} commitment={frozen ? d.committed : null} count={lane.length} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} {model} />
 
   {#if d.absences !== 'confirmed'}
     <div class="banner warn" data-tour="plan-absences">

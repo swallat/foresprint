@@ -486,6 +486,7 @@
   "Sprints in the average": "Sprints im Mittel",
   "Standard": "Standard",
   "Start a new one": "Neu anlegen",
+  "Start rate (per PD, 0 = none)": "Startwert (je PT, 0 = keiner)",
   "Status": "Status",
   "Storage": "Speicher",
   "Storage problem": "Speicherproblem",

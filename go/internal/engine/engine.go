@@ -276,6 +276,8 @@ type PlanSource string
 const (
 	PlanActual   PlanSource = "IST"
 	PlanForecast PlanSource = "Projection"
+	// PlanStart is the capacity times the team's start rate, used while there is no history.
+	PlanStart PlanSource = "Start"
 )
 
 // SprintInput is what the engine calculates a sprint from.
@@ -416,6 +418,12 @@ func Compute(inputs []SprintInput, settings model.ForecastSettings) ([]SprintRes
 			p := RoundDown(*s.Commitment, settings.Rounding)
 			plan = &p
 			src := PlanActual
+			planSource = &src
+		case settings.StartRate > 0 && planCap != nil:
+			// No history yet: the team's own start rate stands in for the trend.
+			p := maxZero(RoundDown(*planCap*settings.StartRate, settings.Rounding))
+			plan = &p
+			src := PlanStart
 			planSource = &src
 		}
 

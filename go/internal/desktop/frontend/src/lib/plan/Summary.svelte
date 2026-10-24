@@ -1,11 +1,13 @@
 <script lang="ts">
   // The figures of the sprint at the top of Pre-plan and Plan: capacity, Forecast PLAN,
   // plannable, planned (against the range), production and the contingents of projects.
+  import { api } from '../api';
+  import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import type { PlanSprint, WhatIf } from '../types.plan';
   import CapacityBar from '../ui/CapacityBar.svelte';
   import Calc from '../calc/Calc.svelte';
-  import { fmt, itemWord, other, unitName } from './model.svelte';
+  import { fmt, itemWord, other, parseAmount, unitName, type PlanModel } from './model.svelte';
 
   interface Props {
     d: PlanSprint;
@@ -18,8 +20,17 @@
     whatIf?: WhatIf | null;
     /** Number of tickets in the sprint, if the page changes the lane locally. */
     count?: number;
+    /** The model of the page; with it a team without history can enter a start rate here. */
+    model?: PlanModel;
   }
-  let { d, used, commitment = null, assumption = '', whatIf = null, count }: Props = $props();
+  let { d, used, commitment = null, assumption = '', whatIf = null, count, model }: Props = $props();
+  const fromStart = $derived(d.planSource === 'start');
+  const askStart = $derived(model != null && d.plan == null && d.capacity != null && !d.startRate);
+  async function setStart(text: string): Promise<void> {
+    const v = parseAmount(text);
+    if (v === undefined || v === null || !model) return;
+    await model.change(() => api.SetStartRate(app.team, v), t('Start rate saved.'));
+  }
   const n = $derived(count ?? d.tickets.length);
 
   const stateName = (s: string) => ({ confirmed: t('confirmed'), announced: t('announced'), unknown: t('unknown') })[s] ?? s;
@@ -61,18 +72,36 @@
     <h2>
       {t('Forecast PLAN')}
       {#if assumption}<span class="chip">{t('with assumption {label}', { label: assumption })}</span>{/if}
+      {#if fromStart}<span class="chip warn">{t('start rate')}</span>{/if}
     </h2>
     <div class="row">
       <span class="big fc">{fmt(d.plan, 0)} {unit}</span>
       <Calc label={t('Forecast PLAN')} topic="forecast">
         <div>{t('Capacity times the rate (trend of the normalized velocity).')}</div>
-        <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(ratio, 2)} = {fmt(d.plan, 0)}</div>
+        {#if fromStart}
+          <div>{t('No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.')}</div>
+        {/if}
+        <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(fromStart ? d.startRate : ratio, 2)} = {fmt(d.plan, 0)}</div>
       </Calc>
     </div>
     <div class="small muted">
       {#if d.low != null && d.high != null}
         {t('range')} <span class="data">{fmt(d.low)} – {fmt(d.high)}</span>
         {#if assumption && whatIf?.planOriginal != null}· {t('without assumption')} <span class="data">{fmt(whatIf.planOriginal)}</span>{/if}
+      {:else if fromStart}
+        {t('Estimate from the start rate {rate}, no range yet', { rate: fmt(d.startRate, 2) })}
+      {:else if askStart}
+        <label class="start">
+          {t('Start rate per PD')}
+          <input
+            class="input data num"
+            inputmode="decimal"
+            placeholder="0,7"
+            aria-label={t('Start rate per PD')}
+            onchange={(e) => setStart(e.currentTarget.value)}
+          />
+        </label>
+        <span class="muted">{t('Expected amount per capacity PD until three sprints are finished, e.g. 0,7.')}</span>
       {:else}
         {t('range follows with more finished sprints')}
       {/if}
@@ -175,6 +204,15 @@
     margin: 0 0 4px;
     font: 600 12px/16px var(--font-ui);
     color: var(--text-muted);
+  }
+  .start {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .start .input {
+    width: 80px;
   }
   .big {
     font: 600 22px/28px var(--font-data);
