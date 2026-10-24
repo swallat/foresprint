@@ -302,18 +302,21 @@
 {/if}
 
 {#if view && panel}
-  {@const person = view.people.find((p) => p.id === panel!.id)}
-  {#if person && panel.kind === 'times'}
-    {#key panel.id}
+  {@const shown = panel}
+  {@const person = view.people.find((p) => p.id === shown?.id)}
+  {#if person && shown?.kind === 'times'}
+    {#key shown.id}
     <TimesPanel
       {person}
       today={view.today}
       teamCountry={view.country}
       onclose={() => (panel = null)}
       onsave={(next, message) => {
+        // Read before the panel closes: `person` is derived from the open panel and is gone afterwards.
+        const was = person;
         panel = null;
         // Only the times and the holiday calendar come from the panel; the rest of the row may have changed meanwhile.
-        return save(replace({ ...person, memberships: next.memberships, country: next.country, region: next.region }), message);
+        return save(replace({ ...was, memberships: next.memberships, country: next.country, region: next.region }), message);
       }}
       onremove={() => {
         const gone = person;
@@ -325,7 +328,7 @@
       }}
     />
     {/key}
-  {:else if person && panel.kind === 'absences'}
+  {:else if person && shown?.kind === 'absences'}
     <AbsencePanel
       {person}
       today={view.today}
