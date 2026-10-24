@@ -210,7 +210,7 @@
   const setAmount = (id: string, el: HTMLInputElement, current: number) => {
     const v = parseAmount(el.value);
     if (v != null) amounts[id] = v;
-    else el.value = String(current);
+    el.value = String(v ?? current);
   };
   const setCommit = (el: HTMLInputElement) => {
     const v = parseAmount(el.value);
