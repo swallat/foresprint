@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
+	"time"
 
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/forecast"
@@ -89,7 +90,7 @@ func (e *Env) askProductValues(data *storage.TeamData, fc *forecast.Forecast, s 
 	if len(d.Rows) == 0 {
 		return nil
 	}
-	unit := string(data.Team.Unit)
+	unit := cliUnitAt(data, entry.Sprint.Start)
 	distributionTable(&d, unit).Render(e.Out)
 	e.explain(measure)
 	if s.Products == nil {
@@ -204,7 +205,7 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 		}
 	}
 	env.rule(i18n.P("Planning {id} – step 3: commitment", "id", s.ID))
-	unit := string(data.Team.Unit)
+	unit := cliUnitAt(data, s.Start)
 	var planValues *model.Planning
 	ok, err := env.Confirm(i18n.P("Record the cross-check (carry-over, backlog, corrections)? Optional – only "+
 		"affects the planning delta"), s.Planning != nil)
@@ -314,7 +315,7 @@ func runReview(env *Env, key, sprintID string, doCommit bool) error {
 		return asFail(err)
 	}
 	before := cloneData(data)
-	unit := string(data.Team.Unit)
+	unit := cliUnitAt(data, s.Start)
 	env.Println("Review Sprint " + s.ID + " (" + s.Start.Format("02.01.") + " – " + s.End.Format("02.01.2006") + ")")
 	if s.Capacity == nil {
 		var frozen *float64
@@ -369,4 +370,10 @@ func runReview(env *Env, key, sprintID string, doCommit bool) error {
 	env.saved(path)
 	return env.maybeCommit(key, []string{path}, i18n.T("{team} {id}: review recorded", "team", data.Team.Name, "id", s.ID),
 		key+"/"+s.ID, doCommit)
+}
+
+// cliUnitAt is the estimation unit valid in a sprint that starts at the given time.
+func cliUnitAt(data *storage.TeamData, start time.Time) string {
+	u, _ := forecast.UnitAt(data, start)
+	return string(u)
 }
