@@ -3,11 +3,13 @@ package app
 import (
 	"errors"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -78,6 +80,10 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 		Projects:      t.Features.Projects,
 		ProForma:      append([]string{}, t.Sprint.ProForma...),
 		UnitChanges:   []UnitChangeInfo{},
+		Country:       t.Capacity.Country,
+	}
+	if t.Capacity.Region != nil {
+		out.Region = *t.Capacity.Region
 	}
 	for _, c := range t.Estimation.Changes {
 		out.UnitChanges = append(out.UnitChanges, UnitChangeInfo{From: c.From, Unit: string(c.Unit)})
@@ -125,6 +131,20 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	if err != nil {
 		return err
 	}
+	// Only a changed value is checked: a code that team.yaml already carries (an alternative
+	// code of the library, a region in another spelling) must not block saving other settings.
+	storedRegion := ""
+	if t.Capacity.Region != nil {
+		storedRegion = *t.Capacity.Region
+	}
+	countryChanged := in.Country != t.Capacity.Country
+	if countryChanged && !knownCountry(in.Country) {
+		return bad("Unknown country: {country}", "country", in.Country)
+	}
+	if in.Region != "" && (in.Region != storedRegion || in.Country != t.Capacity.Country) &&
+		!slices.Contains(holidays.Subdivisions(in.Country), in.Region) {
+		return bad("Unknown region: {region}", "region", in.Region)
+	}
 
 	t.Forecast.Window = f.Window
 	t.Forecast.TrendMode = model.TrendMode(f.Trend)
@@ -142,6 +162,12 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Features.Production, t.Features.Projects = in.Production, in.Projects
 	t.Features.Explicit = true
 	t.Capacity.ProductionCap = round6(in.ProductionCap)
+	t.Capacity.Country = in.Country
+	t.Capacity.Region = nil
+	if in.Region != "" {
+		r := in.Region
+		t.Capacity.Region = &r
+	}
 	t.Estimation.Factor = in.Factor
 
 	if current, _ := effectiveUnit(data, time.Now()); string(current) != in.Unit {
@@ -165,6 +191,22 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	}
 	if _, err := repo.SaveTeam(t); err != nil {
 		return err
+	}
+	if countryChanged {
+		// A person without an own country keeps only a region the new country knows.
+		var people []model.Person
+		changed := false
+		for _, p := range data.People {
+			if p.Country == nil && p.Region != nil && !slices.Contains(holidays.Subdivisions(in.Country), *p.Region) {
+				p.Region, changed = nil, true
+			}
+			people = append(people, p)
+		}
+		if changed {
+			if _, err := repo.SavePeople(team, people); err != nil {
+				return err
+			}
+		}
 	}
 	storage.ClearTeamCache()
 	return nil
