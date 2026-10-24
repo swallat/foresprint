@@ -233,7 +233,10 @@
       {#if byProject.length === 0}
         <div class="banner">
           <Icon name="inbox" />
-          <div class="grow">{t('Nothing earmarked for {sprint} yet. In the backlog, drag {items} into the column of this sprint.', { sprint: d.sprint, items: itemWord(d) })}</div>
+          <div class="grow">
+            {t('Nothing earmarked for {sprint} yet. In the backlog, drag {items} into the column of this sprint.', { sprint: d.sprint, items: itemWord(d) })}
+            {#if d.source === 'packages'}{t('Work packages are created in the backlog with “Create work package”.')}{/if}
+          </div>
         </div>
       {:else}
         <div class="stack groups">
