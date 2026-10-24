@@ -463,6 +463,14 @@
   }
   .ticket {
     white-space: normal;
+    min-width: 280px;
+    max-width: 440px;
+  }
+  .ticket .key {
+    white-space: nowrap;
+  }
+  td select.input {
+    max-width: 200px;
   }
   tfoot th,
   tfoot td {
