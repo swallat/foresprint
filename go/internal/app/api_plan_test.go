@@ -227,6 +227,9 @@ func TestFreezeAndReopen(t *testing.T) {
 	if err != nil || name == "" {
 		t.Fatalf("freeze: %q %v", name, err)
 	}
+	if txt, err := api.MinutesText(team, "protokolle/"+name); err != nil || !strings.Contains(txt.Text, "T-1 One (5)") {
+		t.Errorf("planning minutes: %v\n%s", err, txt.Text)
+	}
 	v, _ := api.PlanSprint(team, next, nil)
 	if v.Stage != "planned" || v.Frozen == nil || v.Frozen.Tickets != 2 || v.Committed == nil || *v.Committed != 13 {
 		t.Fatalf("view after freeze = %+v %+v", v.Stage, v.Frozen)
@@ -242,6 +245,9 @@ func TestFreezeAndReopen(t *testing.T) {
 	}
 	if err := api.ReopenPlan(team, next); err != nil {
 		t.Fatal(err)
+	}
+	if m, _ := api.SprintMinutes(team, next); len(m) != 1 || !m[0].Obsolete {
+		t.Errorf("minutes after reopen = %+v", m)
 	}
 	v, _ = api.PlanSprint(team, next, nil)
 	if v.Stage != "open" || v.Frozen != nil {
@@ -702,5 +708,29 @@ func TestMoveWorkPackageShowsInThePlanLane(t *testing.T) {
 	}
 	if got := keys(); got != "T-3,T-2" {
 		t.Errorf("lane after the move = %s (before %s)", got, before)
+	}
+}
+
+func TestPreplanMinutes(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	_ = api.EarmarkTicket(team, "T-1", next, "")
+	name, err := api.SavePreplanMinutes(team, next)
+	if err != nil || !strings.Contains(name, "-vorplanung-") {
+		t.Fatalf("preplan minutes: %q %v", name, err)
+	}
+	txt, err := api.MinutesText(team, "protokolle/"+name)
+	if err != nil || !strings.Contains(txt.Text, "T-1 One") {
+		t.Fatalf("text: %v\n%s", err, txt.Text)
+	}
+	if _, err := api.SavePreplanMinutes(team, sprints[0].ID); err == nil {
+		t.Error("minutes for a past sprint")
 	}
 }

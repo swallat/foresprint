@@ -362,11 +362,18 @@ web UI of GitHub or GitLab. The report ends with a section "Supplementary: range
 
 ## Minutes
 
-Every save of a planning meeting (PO pre-planning, planning, review) in the window writes a
-Markdown file `protokolle/<sprint>-<meeting>-<date>-<time>.md` in the team's folder; older versions
-stay readable. Every save of a planning step (absences, scheduling, commitment) writes a new,
-complete planning minute with the sections "Absences", "Scheduling" and "Commitment"; each
-recorded section carries its own "As of" time (unchanged sections keep the earlier one), and steps
-not yet saved read "not yet recorded". If a meeting becomes void (for example when a frozen Forecast PLAN is released), its
-previous minutes are renamed to `..._obsolet_<date>-<time>.md`. The minutes are committed with the
+Minutes are written at three points, each as a Markdown file
+`protokolle/<sprint>-<meeting>-<date>-<time>.md` in the team's folder:
+
+- **PO pre-planning:** on "Write minutes" on the Pre-plan page (sprints that have not started).
+  Contents: Forecast PLAN, plannable, pre-planned, amount per product and, for teams with tickets,
+  the earmarked tickets with tracker status and carry-over rest.
+- **Planning:** when the plan is frozen. Contents: commitment, agreed tickets with size, status and
+  carry-over rest, and the tickets to adjust in the tracker.
+- **Review:** when the review is closed. Contents: commitment, not done, velocity, person days,
+  done tickets with status and carried-over tickets with rest and target.
+
+Writing a meeting again, or taking it back (reopening the plan or the review), renames the earlier
+minutes of that meeting to `..._obsolet_<date>-<time>.md`; they stay readable. The minutes and the
+sprint file are saved together: if one cannot be saved, the other is rolled back. The minutes are committed with the
 data like every other file.
