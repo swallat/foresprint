@@ -153,6 +153,12 @@
   "Keep sub-tasks as tickets": "Unteraufgaben als Tickets behalten",
   "Off: sub-tasks are left out at the next fetch and their parent shows how many there are. On: they count as tickets of their own, so their points may be counted twice.": "Aus: Unteraufgaben werden beim nächsten Abruf weggelassen, das übergeordnete Ticket zeigt ihre Anzahl. An: Sie zählen als eigene Tickets, ihre Punkte können dann doppelt zählen.",
   "Treat all of these as backlog": "Alle diese als Backlog behandeln",
-  "For old sprints that no longer matter. Their open tickets then count as backlog.": "Für alte Sprints, die nicht mehr zählen. Ihre offenen Tickets zählen dann als Backlog."
+  "For old sprints that no longer matter. Their open tickets then count as backlog.": "Für alte Sprints, die nicht mehr zählen. Ihre offenen Tickets zählen dann als Backlog.",
+  "Archive team": "Team archivieren",
+  "Archived teams": "Archivierte Teams",
+  "Restore": "Wiederherstellen",
+  "{name} is archived. It stays in the data folder and can be restored here.": "{name} ist archiviert. Es bleibt im Datenordner und lässt sich hier wiederherstellen.",
+  "The team disappears from the list, nothing is deleted: its whole folder (people, sprints, projects with contingents, minutes) moves to the folder “_archiv” in the data folder. Git shows it as a move, so the history stays. Other people see the team gone after the next update.": "Das Team verschwindet aus der Liste, gelöscht wird nichts: Der ganze Ordner (Personen, Sprints, Projekte mit Kontingenten, Protokolle) wandert in den Ordner „_archiv“ im Datenordner. Git zeigt das als Verschieben, der Verlauf bleibt. Andere sehen das Team nach ihrem nächsten Aktualisieren nicht mehr.",
+  "Type the name of the team to archive it.": "Gib zum Archivieren den Namen des Teams ein."
  }
 }
