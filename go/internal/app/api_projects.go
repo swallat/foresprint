@@ -144,7 +144,7 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		}
 	}
 	switch {
-	case data.Team.Unit == model.UnitPT || curPD:
+	case curPD || (curID == "" && settingsUnitAt(data, now) == string(model.UnitPT)):
 		c.rate = 1
 	case fixed > 0:
 		c.rate = fixed
@@ -444,10 +444,10 @@ func (c *projectCtx) view() ProjectsView {
 	v := ProjectsView{
 		Today: c.today.Format(dateLayout), Enabled: data.Team.Features.Tickets || data.Team.Features.Projects,
 		Source: map[model.TicketSource]string{model.SourceNone: "none", model.SourcePackages: "packages", model.SourceTracker: "tracker"}[data.Team.Source()],
-		Unit:   settingsUnitNow(data), Products: []ProductRef{}, Projects: []ProjectView{}, Closed: []ProjectView{},
+		Unit:   settingsUnitAt(data, c.today), Products: []ProductRef{}, Projects: []ProjectView{}, Closed: []ProjectView{},
 		Sprints: []SprintInfo{}, SprintDays: data.Team.Sprint.LengthDays, Conflict: []ConflictRow{}, Problem: c.problem,
 	}
-	if c.rate > 0 && settingsUnitNow(data) != string(model.UnitPT) {
+	if c.rate > 0 && settingsUnitAt(data, c.today) != string(model.UnitPT) {
 		v.Rate = model.Ptr(c.rate)
 	}
 	if data.Team.Features.Products {

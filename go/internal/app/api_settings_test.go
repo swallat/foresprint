@@ -110,10 +110,11 @@ func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
 		t.Fatalf("after change: %+v", got)
 	}
 	// the backlog labels its amounts with the unit valid now, not the one the team started with
-	if cur, _ := api.TeamSettings(team); cur.Unit == other {
-		if bl, err := api.Backlog(team); err != nil || bl.Unit != other {
-			t.Errorf("backlog unit = %q (err %v), want %q", bl.Unit, err, other)
-		}
+	if bl, err := api.Backlog(team); err != nil || bl.Unit != other {
+		t.Errorf("backlog unit = %q (err %v), want %q", bl.Unit, err, other)
+	}
+	if pv, err := api.Projects(team); err != nil || pv.Unit != other || (other == "SP" && pv.Rate != nil && *pv.Rate == 1) {
+		t.Errorf("projects unit = %q rate = %v (err %v), want %q and no fixed rate of 1", pv.Unit, pv.Rate, err, other)
 	}
 	got.Unit, got.UnitFrom = orig, ""
 	if err := api.SaveTeamSettings(team, got); err == nil {
