@@ -92,6 +92,9 @@
   // wizard starts at the team and offers nothing but a new team. It is not kept as a draft.
   const addRequested = current.query.add === 'team';
   let adding = $state(addRequested);
+  // From Settings, Storage ("Run first-start setup again"): only the storage (and the name) is asked
+  // for; the teams are not touched and the person can leave at any time. Not kept as a draft.
+  const storageOnly = !addRequested && current.query.only === 'storage';
   if (addRequested) {
     d.kind = 'keep';
     d.team = 'new';
@@ -112,7 +115,7 @@
   let applied = '';
 
   $effect(() => {
-    if (adding) return;
+    if (adding || storageOnly) return;
     // An address with credentials in it is never written down (the core rejects it anyway).
     const snapshot = JSON.stringify({ ...d, start: parseDayInput(d.start) || d.start, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
@@ -172,7 +175,7 @@
   const cloneTarget = $derived(d.parent ? joinPath(d.parent, repoName(d.address), os) : '');
   const patternHint = $derived((parseDayInput(d.start) ? derivePattern(d.sprintId, parseDayInput(d.start)) : ''));
   const country = $derived(regions.find((r) => r.country === d.country));
-  const steps = $derived<Step[]>(adding ? ['team', 'tickets', 'done'] : d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
+  const steps = $derived<Step[]>(storageOnly ? ['storage', 'signin', 'done'] : adding ? ['team', 'tickets', 'done'] : d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
   const index = $derived(Math.max(0, steps.indexOf(d.step)));
   const labels: Record<Step, () => string> = {
     storage: () => t('Storage'),
@@ -268,6 +271,9 @@
     return true;
   }
 
+  /** Where Cancel leads: back to where the wizard was opened from; '' on a first start without any team. */
+  const leaveTo = $derived(storageOnly ? '/settings/storage' : adding ? '/today' : app.teams.some((x) => !x.problem) ? '/today' : '');
+
   function missingStorage(): string {
     if (d.kind === 'clone') {
       if (!d.address.trim()) return t('Enter the address of the repository.');
@@ -301,7 +307,7 @@
         if (fail(null, missingStorage())) return;
         if (d.kind !== 'clone' && !(await applyStorage())) return;
         if (d.kind === 'clone') await guideFor();
-        d.step = d.kind === 'clone' || !d.name ? 'signin' : 'team';
+        d.step = d.kind === 'clone' || !d.name ? 'signin' : storageOnly ? 'done' : 'team';
       } else if (d.step === 'signin') {
         if (token && !(await testToken())) return;
         if (!(await saveIdentity())) return;
@@ -309,7 +315,7 @@
           if (problem?.kind === 'auth') tokenOk = false;
           return;
         }
-        d.step = 'team';
+        d.step = storageOnly ? 'done' : 'team';
       } else if (d.step === 'team') {
         if (d.team === 'existing' && !hasTeams.some((x) => x.key === d.existing)) d.existing = hasTeams[0]?.key ?? '';
         if (fail(null, missingTeam())) return;
@@ -329,7 +335,7 @@
   }
 
   function back(): void {
-    if (adding && index === 0) return go('/today');
+    if (index === 0 && leaveTo) return go(leaveTo);
     const prev = steps[index - 1];
     if (prev) goTo(prev);
   }
@@ -339,6 +345,12 @@
     fail(null);
     busy = true;
     try {
+      if (storageOnly) {
+        // The data folder may have changed: read the teams again and keep the selected one if it is still there.
+        await loadTeams();
+        go('/settings/storage');
+        return;
+      }
       if (d.team === 'demo') {
         await enterDemo();
       } else if (d.team === 'new') {
@@ -403,7 +415,7 @@
 </script>
 
 <div class="wizard">
-  <PageHead title={adding ? t('New team') : t('First start')} lead={t('A few short steps. You can go back at any time; everything stays changeable in the settings.')} />
+  <PageHead title={adding ? t('New team') : storageOnly ? t('Storage setup') : t('First start')} lead={t('A few short steps. You can go back at any time; everything stays changeable in the settings.')} />
 
   <nav class="stepper" aria-label={t('Steps')}>
     {#each steps as s, i (s)}
@@ -599,26 +611,26 @@
       <Banner tone="info">{t('Everything is set up. You can change each point later in the settings.')}</Banner>
       <dl class="kv">
         {#if d.team !== 'demo' && !adding}<dt>{t('Storage')}</dt><dd>{summary.storage}</dd>{/if}
-        <dt>{t('Team')}</dt><dd>{summary.team}</dd>
-        {#if summary.work}<dt>{t('Work')}</dt><dd>{summary.work}</dd>{/if}
+        {#if !storageOnly}<dt>{t('Team')}</dt><dd>{summary.team}</dd>{/if}
+        {#if summary.work && !storageOnly}<dt>{t('Work')}</dt><dd>{summary.work}</dd>{/if}
       </dl>
     {/if}
   </div>
 
   <div class="row nav">
-    <button class="btn" type="button" disabled={(index === 0 && !adding) || busy} onclick={back}><Icon name="arrow_back" />{adding && index === 0 ? t('Cancel') : t('Back')}</button>
+    <button class="btn" type="button" disabled={(index === 0 && !leaveTo) || busy} onclick={back}><Icon name="arrow_back" />{index === 0 && leaveTo ? t('Cancel') : t('Back')}</button>
     <span class="grow small muted">{t('Your choices are kept as a draft.')}</span>
     {#if d.step === 'signin'}
       <button class="btn ghost" type="button" disabled={busy} onclick={next}>{t('Skip')}</button>
     {/if}
     {#if d.step === 'done'}
-      <button class="btn primary" type="button" disabled={busy} onclick={finish}>{t('Go to Today')}<Icon name="arrow_forward" /></button>
+      <button class="btn primary" type="button" disabled={busy} onclick={finish}>{storageOnly ? t('Done') : t('Go to Today')}<Icon name="arrow_forward" /></button>
     {:else}
       <button class="btn primary" type="button" disabled={busy} onclick={next}>{busy ? t('Working…') : t('Next')}<Icon name="arrow_forward" /></button>
     {/if}
   </div>
 
-  {#if d.step === 'storage' && !adding}
+  {#if d.step === 'storage' && !adding && !storageOnly}
     <div class="card around stack">
       <h2>{t('Just looking around?')}</h2>
       <p class="muted">{t('Open the demo team with invented data, or follow a guided walk-through. Your own data stays untouched.')}</p>

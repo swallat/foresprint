@@ -128,3 +128,17 @@ describe('Setup wizard, new team', () => {
     expect(host.textContent).toMatch(/Read from the name: .*\{N\}/);
   });
 });
+
+describe('Setup wizard, storage only (Settings, Storage)', () => {
+  it('skips the team and leaves at any time without a restart', async () => {
+    current.query = { only: 'storage' };
+    host = document.createElement('div');
+    document.body.append(host);
+    cmp = mount(FirstRun, { target: host, props: { params: {} } });
+    await vi.waitFor(() => expect(host.querySelector('#opt-kind-clone')).not.toBeNull(), { timeout: 3000 });
+    expect(host.textContent).not.toContain('Team');
+    expect(button(/^Cancel/)).toBeDefined();
+    button(/^Cancel/).click();
+    await vi.waitFor(() => expect(location.hash).toContain('/settings/storage'), { timeout: 3000 });
+  });
+});

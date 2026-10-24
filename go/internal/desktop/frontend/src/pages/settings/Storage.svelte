@@ -413,7 +413,7 @@
     <section class="card" aria-labelledby="s-setup">
       <h2 id="s-setup">{t('Setup check')}</h2>
       <div class="row">
-        <button class="btn" type="button" onclick={() => go('/setup')}><Icon name="restart_alt" />{t('Run first-start setup again')}</button>
+        <button class="btn" type="button" onclick={() => go('/setup', {}, { only: 'storage' })}><Icon name="restart_alt" />{t('Run first-start setup again')}</button>
         <span class="muted small">{t('Walks through storage, sign-in, team and ticket source again. Your data stays.')}</span>
       </div>
       <ul class="plain">
