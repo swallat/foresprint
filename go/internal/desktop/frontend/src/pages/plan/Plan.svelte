@@ -205,13 +205,17 @@
   }
   const reopen = () =>
     model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The planning minutes are marked as obsolete.'));
-  const setAmount = (id: string, text: string) => {
-    const v = parseAmount(text);
+  // An invalid or empty entry keeps the stored value; the field shows it again, because the
+  // state did not change and the typed text would otherwise stay in the box.
+  const setAmount = (id: string, el: HTMLInputElement, current: number) => {
+    const v = parseAmount(el.value);
     if (v != null) amounts[id] = v;
+    else el.value = String(current);
   };
-  const setCommit = (text: string) => {
-    const v = parseAmount(text);
+  const setCommit = (el: HTMLInputElement) => {
+    const v = parseAmount(el.value);
     if (v !== undefined) commit = v;
+    el.value = String(commitment);
   };
 </script>
 
@@ -283,7 +287,7 @@
                 <tr>
                   <td>{r.p.name}</td>
                   <td class="num">{fmt(r.p.pre)}</td>
-                  <td class="num edit"><input inputmode="decimal" value={r.usedP} disabled={frozen} aria-label={t('Amount {product}', { product: r.p.name })} onchange={(e) => setAmount(r.p.id, e.currentTarget.value)} /></td>
+                  <td class="num edit"><input inputmode="decimal" value={r.usedP} disabled={frozen} aria-label={t('Amount {product}', { product: r.p.name })} onchange={(e) => setAmount(r.p.id, e.currentTarget, r.usedP)} /></td>
                 </tr>
               {/each}
               <tr class="sum"><td>{t('Sum')}</td><td class="num">{fmt(d.preplanned)}</td><td class="num">{fmt(amountSum)}</td></tr>
@@ -294,7 +298,7 @@
       <div class="row gap">
         <div class="field">
           <label for="commit">{t('Commitment in {unit}', { unit: unitName(d) })}</label>
-          <input id="commit" class="input data num" inputmode="decimal" value={commitment} disabled={frozen} onchange={(e) => setCommit(e.currentTarget.value)} />
+          <input id="commit" class="input data num" inputmode="decimal" value={commitment} disabled={frozen} onchange={(e) => setCommit(e.currentTarget)} />
         </div>
         <div class="bar">
           <CapacityBar used={commitment} plan={d.plan} low={d.low} high={d.high} unit={unitName(d)} />
