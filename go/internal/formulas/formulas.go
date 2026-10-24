@@ -496,6 +496,11 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 				fmt.Sprintf("%s / %s × %s = %s → %s %s", f.exact(r.NormalizedVelocity.Trend), f.nd(ref, 0),
 					f.exact(r.PlanCapacity), f.nd(*r.NormalizedVelocity.Trend/ref**r.PlanCapacity, 3),
 					textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), unit)})
+		case engine.PlanStart:
+			steps = append(steps, Step{"plan", "Forecast PLAN",
+				f.t("Forecast PLAN = rounded down(capacity × start rate) – no history yet"),
+				fmt.Sprintf("%s × %s → %s %s", f.exact(r.PlanCapacity), f.nd(fs.StartRate, 2),
+					textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), unit)})
 		case engine.PlanActual:
 			steps = append(steps, Step{"plan", "Forecast PLAN",
 				f.t("Forecast PLAN = rounded down(commitment) – past sprint"),
