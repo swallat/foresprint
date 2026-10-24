@@ -302,9 +302,10 @@
 {/if}
 
 {#if view && panel}
-  {@const person = view.people.find((p) => p.id === panel!.id)}
-  {#if person && panel.kind === 'times'}
-    {#key panel.id}
+  {@const shown = panel}
+  {@const person = view.people.find((p) => p.id === shown?.id)}
+  {#if person && shown?.kind === 'times'}
+    {#key shown.id}
     <TimesPanel
       {person}
       today={view.today}
@@ -325,7 +326,7 @@
       }}
     />
     {/key}
-  {:else if person && panel.kind === 'absences'}
+  {:else if person && shown?.kind === 'absences'}
     <AbsencePanel
       {person}
       today={view.today}
