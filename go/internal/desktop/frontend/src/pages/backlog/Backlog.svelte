@@ -402,8 +402,13 @@
           <div class="lane-body">
             {#if items.length === 0}
               <div class="empty">
-                <p class="muted">{packages ? t('No work package fits this filter.') : t('No ticket fits this filter.')}</p>
-                <button class="btn" type="button" onclick={() => { ui.filter = blank(); }}><Icon name="filter_alt_off" />{t('Reset filter')}</button>
+                {#if packages && allTickets(view).length === 0}
+                  <p class="muted">{t('No work packages yet. Create the first one, or import a table under Settings, Tickets and tracker.')}</p>
+                  <button class="btn primary" type="button" onclick={() => (app.ticket = NEW)}><Icon name="add" />{t('Create work package')}</button>
+                {:else}
+                  <p class="muted">{packages ? t('No work package fits this filter.') : t('No ticket fits this filter.')}</p>
+                  <button class="btn" type="button" onclick={() => { ui.filter = blank(); }}><Icon name="filter_alt_off" />{t('Reset filter')}</button>
+                {/if}
               </div>
             {:else if ui.group === 'none'}
               {#each visible as tk (tk.key)}
