@@ -87,17 +87,13 @@ func TestProductionPTIsSetClearedAndRefusedWhenNegative(t *testing.T) {
 }
 
 func TestProjectAmountIsSetClearedAndChecked(t *testing.T) {
-	api, team := planTeam(t)
+	api, team := projectDir(t, false) // a team without tickets, where the amounts are typed
 	next := nextSprint(t, api, team)
-	repo := storage.NewRepository(api.DataDir())
-	data, err := repo.Load(team)
+	total := 40.0
+	id, err := api.SaveProject(team, ProjectInput{Name: "Self-Service", Products: []string{"portal"}, End: "2027-01-29", Booked: &total})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data.Projects) == 0 {
-		t.Skip("the demo team has no project")
-	}
-	id := data.Projects[0].ID
 	three := 3.0
 	if err := api.SetProjectAmount(team, next, id, &three); err != nil {
 		t.Fatal(err)
