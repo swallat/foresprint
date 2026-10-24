@@ -62,7 +62,7 @@ func TestApplyALongerSprintShiftsEverythingAfterIt(t *testing.T) {
 		}
 	}
 	// The saved sprints after the window move by the same three days.
-	if len(after) != len(shown)+len(data.Sprints)-5 {
+	if len(after) != len(data.Sprints)-2 {
 		t.Fatalf("%d sprints after the change", len(after))
 	}
 	for _, moved := range after[len(shown):] {
@@ -71,7 +71,7 @@ func TestApplyALongerSprintShiftsEverythingAfterIt(t *testing.T) {
 			t.Errorf("%s did not shift", moved.ID)
 		}
 	}
-	if got := ToSave(data, shown, after, false); len(got) != len(shown)+len(data.Sprints)-5 {
+	if got := ToSave(data, shown, after, false); len(got) != len(data.Sprints)-2 {
 		t.Errorf("to save: %d", len(got))
 	}
 }
@@ -86,7 +86,8 @@ func TestApplyReportsAMissingAndAnImpossibleLastDay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(problems) != 2 || !strings.Contains(problems[0], "Row 1") {
+	if len(problems) != 2 || !strings.Contains(problems[0], "Row 1: last day missing") ||
+		!strings.Contains(problems[1], "last day is before the start") {
 		t.Fatalf("problems = %v", problems)
 	}
 }
