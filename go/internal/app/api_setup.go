@@ -108,9 +108,9 @@ type Region struct {
 
 // SetupRegions lists the countries and regions the holiday calendar knows.
 func (a *API) SetupRegions() []Region {
-	var out []Region
+	out := []Region{}
 	for _, c := range holidays.Countries() {
-		out = append(out, Region{Country: c.Code, Name: c.Name, Regions: holidays.Subdivisions(c.Code)})
+		out = append(out, Region{Country: c.Code, Name: c.Name, Regions: nonNilList(holidays.Subdivisions(c.Code))})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
