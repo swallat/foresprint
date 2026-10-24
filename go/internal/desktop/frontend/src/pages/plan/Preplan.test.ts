@@ -70,9 +70,9 @@ describe('Pre-plan page', () => {
     await show('2026.21');
     // Customer portal: 13 earmarked, Billing: 5 earmarked.
     await enter(input('Customer portal'), '10');
-    await settled(() => expect(cells(productRow('Customer portal'))[4]).toMatch(/3/));
+    await settled(() => expect(cells(productRow('Customer portal'))[4]).toBe('−3'));
     await enter(input('Billing'), '5');
-    await settled(() => expect(cells(productRow('Billing'))[4]).toMatch(/0/));
+    await settled(() => expect(cells(productRow('Billing'))[4]).toBe('0'));
   });
 
   it('an amount above the upper end of the forecast shows the warning, a lower one removes it', async () => {
@@ -126,7 +126,7 @@ describe('Pre-plan page', () => {
     expect(input('Mobile app').value).toBe('8');
     expect(input('Platform').value).toBe('8');
     expect(total()[2]).toBe('34');
-    expect(cells(productRow('Platform'))[4]).toMatch(/0/);
+    expect(cells(productRow('Platform'))[4]).toBe('0');
   });
 
   it('the earmarked tickets are listed by project with their sum', async () => {

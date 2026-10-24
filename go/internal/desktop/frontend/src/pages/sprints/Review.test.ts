@@ -121,9 +121,10 @@ describe('Minutes page', () => {
 // A team that commits to tickets: the table lists them, and "will finish" / "carry-over" per
 // ticket decides the numbers (the typed fields are replaced by figures that follow the table).
 describe('Review page with tickets', () => {
-  const tickets = createReviewMock(demoSprints, { tickets: true });
+  let tickets = createReviewMock(demoSprints, { tickets: true });
   let running: string;
   beforeEach(async () => {
+    tickets = createReviewMock(demoSprints, { tickets: true }); // a fresh, open review per test
     app.toasts = [];
     running = (await mockApi.Sprints('atlas')).find((s) => s.state === 'current')!.id;
     vi.spyOn(mockApi, 'SprintReview').mockImplementation((t, s) => tickets.SprintReview(t, s));
@@ -178,7 +179,7 @@ describe('Review page with tickets', () => {
     expect(num('rest-next')).toBe(18.5);
   });
 
-  it('a ticket that moves on to a sprint or the backlog by choice is not part of the rest, one without choice is', async () => {
+  it('a ticket that continues in the backlog by choice is not part of the rest', async () => {
     await show(Review, running);
     const select = target('ATL-102');
     select.value = 'backlog';
@@ -215,9 +216,6 @@ describe('Review page with tickets', () => {
     expect(num('not-done')).toBe(19);
     expect(expectation('ATL-101', /will finish/).disabled).toBe(true);
     expect(restField('ATL-102').disabled).toBe(true);
-    // reopen so the next test starts open
-    button(/Reopen review/).click();
-    await vi.waitFor(() => expect(expectation('ATL-101', /will finish/).disabled).toBe(false), { timeout: 3000 });
   });
 
   // Regression (Review ticket column): the ticket cell is a plain table cell with the key in
