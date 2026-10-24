@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDay, joinPath, needsToken, repoName, suggestedSprintId, suggestedStart } from './setup';
+import { derivePattern, isDay, joinPath, needsToken, repoName, suggestedSprintId, suggestedStart } from './setup';
 
 describe('setup helpers', () => {
   it('names the clone folder after the repository', () => {
@@ -25,5 +25,17 @@ describe('setup helpers', () => {
     expect(isDay('2026-02-28')).toBe(true);
     expect(isDay('2026-02-30')).toBe(false);
     expect(isDay('28.10.2026')).toBe(false);
+  });
+});
+
+describe('derivePattern', () => {
+  it('reads the pattern out of a free first sprint name', () => {
+    expect(derivePattern('Team Sprint 2026.16', '2026-10-20')).toBe('Team Sprint {JJJJ}.{N}');
+    expect(derivePattern('Sprint 2026.07', '2026-03-02')).toBe('Sprint {JJJJ}.{NN}');
+    expect(derivePattern('Lauf 7', '2026-10-20')).toBe('Lauf {LFD}');
+  });
+  it('needs no pattern for a plain ID or a name without a number', () => {
+    expect(derivePattern('2026.22', '2026-10-20')).toBe('');
+    expect(derivePattern('Refinement', '2026-10-20')).toBe('');
   });
 });

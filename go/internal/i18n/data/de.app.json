@@ -175,6 +175,8 @@
   "{name}: unknown country {country}.": "{name}: Land {country} ist unbekannt.",
   "{name}: unknown region {region}.": "{name}: Region {region} ist unbekannt.",
   "Unknown country: {country}": "Land unbekannt: {country}",
-  "Unknown region: {region}": "Region unbekannt: {region}"
+  "Unknown region: {region}": "Region unbekannt: {region}",
+  "Unknown placeholder {placeholder} in the sprint naming pattern.": "Unbekannter Platzhalter {placeholder} im Namensmuster der Sprints.",
+  "Sprint name {id} does not fit the pattern {pattern}.": "Der Sprintname {id} passt nicht zum Muster {pattern}."
  }
 }

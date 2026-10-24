@@ -29,7 +29,6 @@
   "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein.",
   "Enter the address of the repository.": "Trage die Adresse des Repositorys ein.",
   "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
-  "Enter the start of the first sprint as a date (YYYY-MM-DD).": "Trage den Beginn des ersten Sprints als Datum ein (JJJJ-MM-TT).",
   "Enter velocity, scope change and what was done per product.": "Velocity, Scope-Änderung und Erledigtes je Produkt eintragen.",
   "Entered once. It appears in the history next to your changes.": "Einmalig. Erscheint im Verlauf bei deinen Änderungen.",
   "Error": "Fehler",
@@ -120,6 +119,14 @@
   "{n} days left.": "Noch {n} Tage.",
   "{n} more findings are not listed here.": "{n} weitere Befunde stehen nicht in dieser Liste.",
   "{n} new changes are waiting on the server.": "Auf dem Server warten {n} neue Änderungen.",
-  "{n} team(s) found in {folder}.": "In {folder} wurden {n} Team(s) gefunden."
+  "{n} team(s) found in {folder}.": "In {folder} wurden {n} Team(s) gefunden.",
+  "Enter the start of the first sprint as a date ({format}).": "Trage den Beginn des ersten Sprints als Datum ein ({format}).",
+  "DD": "TT",
+  "MM": "MM",
+  "YYYY": "JJJJ",
+  "Naming pattern of the sprints (optional)": "Namensmuster der Sprints (optional)",
+  "e.g. Team {JJJJ}.{N}": "z. B. Team {JJJJ}.{N}",
+  "Read from the name: {pattern}. The next sprints are named the same way.": "Aus dem Namen gelesen: {pattern}. Die nächsten Sprints werden genauso benannt.",
+  "{JJJJ} year, {N} number in the year, {LFD} running number.": "{JJJJ} Jahr, {N} Nummer im Jahr, {LFD} laufende Nummer."
  }
 }

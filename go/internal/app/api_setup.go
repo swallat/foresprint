@@ -124,6 +124,9 @@ type NewTeam struct {
 	// FirstSprintID and FirstStart (YYYY-MM-DD) are the sprint that runs now or starts next.
 	FirstSprintID string `json:"firstSprintId"`
 	FirstStart    string `json:"firstStart"`
+	// NamingPattern is the sprint naming pattern ("Team {JJJJ}.{N}") the first sprint's name
+	// follows; empty = read it from the name of the first sprint when that is not a plain number.
+	NamingPattern string `json:"namingPattern"`
 	LengthDays    int    `json:"lengthDays"` // 0 = 14
 	// Source is one of the Source constants; with SourceTracker, TrackerURL and TrackerQuery
 	// are needed. The token and the field mapping are set under Settings > Tickets and tracker.
@@ -218,9 +221,24 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 	if id == "" {
 		return TeamSummary{}, errors.New(i18n.T("Enter the ID of the first sprint."))
 	}
+	pattern := strings.TrimSpace(req.NamingPattern)
 	next := start.AddDate(0, 0, team.Sprint.LengthDays)
-	// Yearly numbering lets any ID pass (it restarts), but a new team should start in form.
-	if !sprintIDForm.MatchString(id) || !calendar.IDFitsNumbering(id, next, team.Sprint.Numbering) {
+	if pattern == "" && !sprintIDForm.MatchString(id) {
+		// A free name ("Team Sprint 2026.16"): the pattern comes from the name itself.
+		if derived, ok := calendar.DerivePattern(id, start); ok {
+			pattern = derived
+		}
+	}
+	if pattern != "" {
+		if bad := model.NamingProblem(pattern); bad != "" {
+			return TeamSummary{}, errors.New(i18n.T("Unknown placeholder {placeholder} in the sprint naming pattern.", "placeholder", bad))
+		}
+		if !calendar.NameMatchesPattern(pattern, id) {
+			return TeamSummary{}, errors.New(i18n.T("Sprint name {id} does not fit the pattern {pattern}.", "id", id, "pattern", pattern))
+		}
+		team.Sprint.Naming = []model.NamingRule{{Pattern: pattern}}
+	} else if !sprintIDForm.MatchString(id) || !calendar.IDFitsNumbering(id, next, team.Sprint.Numbering) {
+		// Yearly numbering lets any ID pass (it restarts), but a new team should start in form.
 		return TeamSummary{}, errors.New(i18n.T("Sprint ID {id} does not match the numbering (expected {expected}).",
 			"id", id, "expected", calendar.ExpectedIDForm(i18n.Language(), team.Sprint.Numbering)))
 	}
@@ -230,14 +248,13 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 	}
 	// All sprints are made before anything is written, and a failed write leaves nothing behind.
 	var sprints []model.Sprint
-	var previous *model.Sprint
+	chain := calendar.NewChain(&team, nil)
 	for i := 0; i < 3; i++ {
-		s, err := calendar.FollowingSprint(&team, previous)
+		s, err := chain.Next()
 		if err != nil {
 			return TeamSummary{}, err
 		}
 		sprints = append(sprints, s)
-		previous = &sprints[i]
 	}
 	if err := writeNewTeam(repo, team, sprints); err != nil {
 		_ = os.RemoveAll(repo.TeamDir(team.Key))

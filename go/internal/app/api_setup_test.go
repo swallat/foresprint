@@ -120,3 +120,50 @@ func TestSetupStorageNewFolderAndRegions(t *testing.T) {
 		t.Fatalf("regions = %v", regions)
 	}
 }
+
+func TestSetupCreateTeamFreeSprintName(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	req := newTeamRequest(SourceNone)
+	req.FirstSprintID = "Team Nord Sprint 2026.16"
+	req.FirstStart = "2026-10-20"
+	got, err := api.SetupCreateTeam(req)
+	if err != nil {
+		t.Fatalf("a free name with a number must be read as a pattern: %v", err)
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(got.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, s := range data.Sprints {
+		ids = append(ids, s.ID)
+	}
+	want := []string{"Team Nord Sprint 2026.16", "Team Nord Sprint 2026.17", "Team Nord Sprint 2026.18"}
+	if strings.Join(ids, "|") != strings.Join(want, "|") {
+		t.Fatalf("sprints = %v, want %v", ids, want)
+	}
+}
+
+func TestSetupCreateTeamNamingPattern(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	req := newTeamRequest(SourceNone)
+	req.FirstSprintID, req.FirstStart, req.NamingPattern = "Sprint 7", "2026-10-20", "Sprint {LFD}"
+	if _, err := api.SetupCreateTeam(req); err != nil {
+		t.Fatal(err)
+	}
+	bad := newTeamRequest(SourceNone)
+	bad.Name = "Anderes Team"
+	bad.FirstSprintID, bad.NamingPattern = "Sprint 7", "Lauf {JJJJ}.{N}"
+	if _, err := api.SetupCreateTeam(bad); err == nil {
+		t.Fatal("a name that does not fit the pattern must be refused")
+	}
+	bad.NamingPattern = "Lauf {XX}"
+	if _, err := api.SetupCreateTeam(bad); err == nil {
+		t.Fatal("an unknown placeholder must be refused")
+	}
+	bad.NamingPattern, bad.FirstSprintID = "", "Sprint ohne Zahl"
+	if _, err := api.SetupCreateTeam(bad); err == nil {
+		t.Fatal("a name without a number and without a pattern must be refused")
+	}
+}

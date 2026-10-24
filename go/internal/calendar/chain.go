@@ -151,6 +151,37 @@ func MatchesNaming(rules []model.NamingRule, id string) bool {
 	return false
 }
 
+var (
+	yearlyNameRE = regexp.MustCompile(`^(.*?)(\d{4})\.(\d+)$`)
+	numberedRE   = regexp.MustCompile(`^(.*?)(\d+)$`)
+)
+
+// DerivePattern reads a naming pattern out of the name of a first sprint that starts on start:
+// the text before the number stays, "2026.16" becomes "{JJJJ}.{N}" ("{NN}" if the number has a
+// leading zero), and a plain trailing number becomes the running number "{LFD}". It reports
+// false if the name holds no number or the year is not the one of the start.
+func DerivePattern(id string, start time.Time) (string, bool) {
+	if strings.ContainsAny(id, "{}") {
+		return "", false
+	}
+	if m := yearlyNameRE.FindStringSubmatch(id); m != nil && m[2] == strconv.Itoa(start.Year()) {
+		if len(m[3]) == 2 && m[3][0] == '0' {
+			return m[1] + "{JJJJ}.{NN}", true
+		}
+		return m[1] + "{JJJJ}.{N}", true
+	}
+	if m := numberedRE.FindStringSubmatch(id); m != nil {
+		return m[1] + "{LFD}", true
+	}
+	return "", false
+}
+
+// NameMatchesPattern reports whether id is a name the pattern makes.
+func NameMatchesPattern(pattern, id string) bool {
+	re, _ := patternRegexp(pattern)
+	return re != nil && re.MatchString(id)
+}
+
 var tokenRE = regexp.MustCompile(`\{([^{}]*)\}`)
 
 // patternRegexp matches names made by the pattern; it returns the order of the captured
