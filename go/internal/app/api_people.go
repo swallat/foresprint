@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
@@ -63,11 +64,28 @@ func personDTO(p model.Person, used bool) PersonDTO {
 	return d
 }
 
+// peopleNewMemberDay is the day a person added now joins the team. While the team is still in its
+// first sprint, that is the start of that sprint (even if it lies in the past when the team is
+// created), so the capacity of the first sprint counts in full; later it is today.
+func (a *API) peopleNewMemberDay(data *storage.TeamData) time.Time {
+	today := a.day()
+	line, err := forecast.Timeline(data, today)
+	if err != nil || len(line) == 0 {
+		return today
+	}
+	first := line[0].Sprint
+	if !first.Start.After(today) && today.Before(first.End) {
+		return first.Start
+	}
+	return today
+}
+
 // peopleView builds the page from the data of a team.
 func (a *API) peopleView(data *storage.TeamData) PeopleView {
 	today := a.day()
 	view := PeopleView{
 		Today:      today.Format(isoDay),
+		NewFrom:    a.peopleNewMemberDay(data).Format(isoDay),
 		SprintDays: data.Team.Sprint.LengthDays,
 		Production: data.Team.Features.Production,
 		Country:    data.Team.Capacity.Country,

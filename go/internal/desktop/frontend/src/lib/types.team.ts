@@ -45,6 +45,8 @@ export interface Person {
 
 export interface PeopleView {
   today: string;
+  /** The day a new person joins: the start of the first sprint while the team is in it, else today. */
+  newFrom: string;
   /** Holiday country of the team. */
   country: string;
   sprintDays: number;
