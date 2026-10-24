@@ -22,21 +22,25 @@ type UnitChangeInfo struct {
 
 // TeamSettings is the page Settings > Team.
 type TeamSettings struct {
-	Name          string           `json:"name"`
-	Unit          string           `json:"unit"`        // "SP" or "PT", valid now
-	UnitFrom      string           `json:"unitFrom"`    // "" = from the first sprint
-	UnitChanges   []UnitChangeInfo `json:"unitChanges"` // earlier switches
-	Factor        *float64         `json:"factor"`      // points per person day; nil = measured team rate
-	Forecast      ForecastSettings `json:"forecast"`
-	LengthDays    int              `json:"lengthDays"` // default sprint length in working days
-	Products      bool             `json:"products"`
-	PO            bool             `json:"po"`
-	Production    bool             `json:"production"`
-	ProductionCap float64          `json:"productionCap"` // percent of the production time that counts, 100 = no cap
-	Projects      bool             `json:"projects"`
-	ProForma      []string         `json:"proForma"` // names of pro-forma sprints
-	Country       string           `json:"country"`  // ISO 3166-1 code of the holiday calendar, "DE"
-	Region        string           `json:"region"`   // region within the country, "" = whole country
+	Name        string           `json:"name"`
+	Unit        string           `json:"unit"`        // "SP" or "PT", valid now
+	UnitFrom    string           `json:"unitFrom"`    // "" = from the first sprint
+	UnitChanges []UnitChangeInfo `json:"unitChanges"` // earlier switches
+	Factor      *float64         `json:"factor"`      // points per person day; nil = measured team rate
+	Forecast    ForecastSettings `json:"forecast"`
+	LengthDays  int              `json:"lengthDays"` // default sprint length in working days
+	Products    bool             `json:"products"`
+	PO          bool             `json:"po"`
+	Production  bool             `json:"production"`
+	// OverheadDays is the deduction for Scrum events in PT per full-time person and sprint;
+	// OverheadShare the same as percent of the capacity. Days win if both are set.
+	OverheadDays  float64  `json:"overheadDays"`
+	OverheadShare float64  `json:"overheadShare"`
+	ProductionCap float64  `json:"productionCap"` // percent of the production time that counts, 100 = no cap
+	Projects      bool     `json:"projects"`
+	ProForma      []string `json:"proForma"` // names of pro-forma sprints
+	Country       string   `json:"country"`  // ISO 3166-1 code of the holiday calendar, "DE"
+	Region        string   `json:"region"`   // region within the country, "" = whole country
 }
 
 // TrackerFields are the fields of the tracker for the values of Foresprint ("" = not mapped).

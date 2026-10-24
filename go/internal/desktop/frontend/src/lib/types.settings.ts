@@ -34,6 +34,10 @@ export interface TeamSettings {
   production: boolean;
   /** Percent of the production time that counts, 100 = no cap. */
   productionCap: number;
+  /** Scrum events deduction in PD per full-time person and sprint, 0 = none. */
+  overheadDays: number;
+  /** The same as percent of the capacity; the days win if both are set. */
+  overheadShare: number;
   projects: boolean;
   proForma: string[];
   /** Holiday calendar: ISO country code and region within it, "" = whole country. */
