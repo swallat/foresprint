@@ -360,9 +360,17 @@ func TestTrackerFieldHitsCountFilledValues(t *testing.T) {
 	var blank model.OrderedMap[[]string]
 	blank.Set("project", []string{" "})
 	est := 3.0
-	hits := trackerFieldHits([]model.Ticket{{Key: "A-1", Estimate: &est, Extra: extra}, {Key: "A-2", Extra: blank}})
+	label := "Refined"
+	hits := trackerFieldHits([]model.Ticket{
+		{Key: "A-1", Estimate: &est, Extra: extra, Labels: []string{"Refined"}},
+		{Key: "A-2", Extra: blank, Labels: []string{"Refined"}},
+		{Key: "A-3", Labels: []string{"refined"}},
+	}, model.TrackerSettings{RefinedLabel: &label})
 	if hits["estimate"] != 1 || hits["project"] != 1 || hits["epic"] != 0 {
 		t.Errorf("hits: %v", hits)
+	}
+	if hits["refinedLabel"] != 2 || hits["refinedLabelNoEstimate"] != 1 {
+		t.Errorf("label hits: %v", hits)
 	}
 }
 

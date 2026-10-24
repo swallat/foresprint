@@ -69,7 +69,7 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		ProForma:      append([]string{}, data.Team.Sprint.ProForma...),
 		Sprints:       trackerSprintsOf(data),
 		SprintIds:     forecast.KnownSprintIDs(data, forecast.DefaultLookupAhead),
-		FieldHits:     trackerFieldHits(data.Tickets),
+		FieldHits:     trackerFieldHits(data.Tickets, t),
 	}
 	a.mu.Lock()
 	out.HitsFields = out.Fields
@@ -680,8 +680,11 @@ func trackerProForma(data *storage.TeamData, name string) bool {
 }
 
 // trackerFieldHits counts the tickets with a value per mapped value that is stored with them.
-func trackerFieldHits(tickets []model.Ticket) map[string]int {
-	hits := map[string]int{"estimate": 0, "remaining": 0, "epic": 0, "status": 0,
+//
+// Two more counts belong to the refined label: "refinedLabel" (tickets with the label) and
+// "refinedLabelNoEstimate" (of those, the ones without a size, which count as not refined).
+func trackerFieldHits(tickets []model.Ticket, tracker model.TrackerSettings) map[string]int {
+	hits := map[string]int{"refinedLabel": 0, "refinedLabelNoEstimate": 0, "estimate": 0, "remaining": 0, "epic": 0, "status": 0,
 		ticketimport.MapProject: 0, ticketimport.MapProduct: 0, ticketimport.MapRefined: 0, ticketimport.MapProduction: 0}
 	filled := func(s *string) bool { return s != nil && *s != "" }
 	extra := func(tk model.Ticket, key string) bool {
@@ -693,7 +696,14 @@ func trackerFieldHits(tickets []model.Ticket) map[string]int {
 		}
 		return false
 	}
+	label := deref(tracker.RefinedLabel)
 	for _, tk := range tickets {
+		if label != "" && slices.Contains(tk.Labels, label) {
+			hits["refinedLabel"]++
+			if tk.Size(tracker.PlanningUses) == nil {
+				hits["refinedLabelNoEstimate"]++
+			}
+		}
 		if tk.Estimate != nil {
 			hits["estimate"]++
 		}

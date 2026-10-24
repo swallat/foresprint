@@ -21,8 +21,10 @@
     /** The team uses production access: the production share is mapped as well. */
     production: boolean;
     tracker: string;
+    /** The refined label as saved; its hits are counted from the stored tickets. */
+    appliedLabel: string;
   }
-  let { draft = $bindable(), fieldNames, applied, hits, total, production, tracker }: Props = $props();
+  let { draft = $bindable(), fieldNames, applied, hits, total, production, tracker, appliedLabel }: Props = $props();
 
   /** The mapped field exists in the tracker; how many tickets of the last import have a value. */
   const known = (name: string) => isKnownField(name, fieldNames);
@@ -146,7 +148,20 @@
             {/if}
             </div>
           </td>
-          <td>{@render stand('refined', draft.fields.refined, applied.refined)}</td>
+          <td>
+            {#if draft.refinedBy === 'rule' && draft.refinedLabel && draft.refinedLabel === appliedLabel && total > 0}
+              <span class="data small">{hits.refinedLabel ?? 0} / {total}</span>
+              {#if !hits.refinedLabel}
+                <span class="chip warn"><Icon name="warning" size={14} />{t('No ticket has this label')}</span>
+              {:else if hits.refinedLabelNoEstimate}
+                <span class="chip warn"><Icon name="warning" size={14} />{t('{n} of them have no estimate and count as not refined', { n: hits.refinedLabelNoEstimate })}</span>
+              {/if}
+            {:else if draft.refinedBy === 'rule' && draft.refinedLabel}
+              <span class="small muted">{t('After applying and fetching')}</span>
+            {:else}
+              {@render stand('refined', draft.fields.refined, applied.refined)}
+            {/if}
+          </td>
         </tr>
         {#if production}
           <tr>

@@ -447,7 +447,7 @@
         </div>
       {/if}
 
-      <FieldMapping bind:draft {fieldNames} applied={applied.hitsFields} hits={applied.fieldHits} total={applied.tickets} {production} {tracker} />
+      <FieldMapping bind:draft {fieldNames} applied={applied.hitsFields} hits={applied.fieldHits} total={applied.tickets} {production} {tracker} appliedLabel={applied.refinedLabel} />
     </div>
   {/if}
 
