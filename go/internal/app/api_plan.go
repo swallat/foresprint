@@ -1243,8 +1243,8 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 	return notes
 }
 
-// ReopenPlan takes the frozen list back so that the team can plan again; the minutes stay and
-// are marked obsolete by the next freeze.
+// ReopenPlan takes the frozen list back so that the team can plan again; the minutes are
+// marked obsolete at once.
 func (a *API) ReopenPlan(team, sprintID string) error {
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
@@ -1280,7 +1280,7 @@ func (a *API) SavePreplanMinutes(team, sprintID string) (string, error) {
 		return "", err
 	}
 	if st := c.stage(); st == "past" || st == "current" {
-		return "", errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
+		return "", errors.New(i18n.T("The sprint {id} has started; its pre-planning minutes cannot be written any more.", "id", sprintID))
 	}
 	view, err := c.view(team, nil)
 	if err != nil {

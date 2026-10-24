@@ -181,6 +181,7 @@
   "added after the freeze": "nachträglich aufgenommen",
   "Earmarked tickets": "Vorgemerkte Tickets",
   "Earmarked": "Vorgemerkt",
-  "Pre-planned": "Vorgeplant"
+  "Pre-planned": "Vorgeplant",
+  "The sprint {id} has started; its pre-planning minutes cannot be written any more.": "Der Sprint {id} hat begonnen; sein Vorplanungs-Protokoll kann nicht mehr geschrieben werden."
  }
 }

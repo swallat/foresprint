@@ -671,6 +671,9 @@ func reviewMinutes(data *storage.TeamData, r SprintReview, now time.Time) string
 		var done, left []string
 		for _, t := range r.List {
 			line := t.Key + " " + t.Title + " (" + num(t.Estimate) + ")"
+			if t.Estimate == 0 {
+				line = t.Key + " " + t.Title + " (–)"
+			}
 			if t.Status != "" {
 				line += " – " + i18n.T("Status: {status}", "status", t.Status)
 			}
