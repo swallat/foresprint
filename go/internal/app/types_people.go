@@ -8,8 +8,8 @@ type MembershipDTO struct {
 	FTE  float64 `json:"fte"`
 }
 
-// PersonDTO is a person of the team. Region, Country and Workweek are not edited in the window;
-// they travel along so that saving does not lose them.
+// PersonDTO is a person of the team. Country and Region are the person's own holiday calendar (empty = the team's);
+// Workweek is not edited in the window, it travels along so that saving does not lose it.
 type PersonDTO struct {
 	ID          string          `json:"id"` // "" for a new person
 	Name        string          `json:"name"`
@@ -30,8 +30,10 @@ type PeopleView struct {
 	// SprintDays is the length of a sprint in working days as set for the team.
 	SprintDays int `json:"sprintDays"`
 	// Production is true when the team uses production access.
-	Production bool        `json:"production"`
-	People     []PersonDTO `json:"people"`
+	Production bool `json:"production"`
+	// Country is the holiday country of the team, the default of a person without an own one.
+	Country string      `json:"country"`
+	People  []PersonDTO `json:"people"`
 }
 
 // AbsencePeriodDTO is a planned absence of one person from the first to the last day. Only the

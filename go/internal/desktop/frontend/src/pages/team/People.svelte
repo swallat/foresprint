@@ -299,11 +299,12 @@
     <TimesPanel
       {person}
       today={view.today}
+      teamCountry={view.country}
       onclose={() => (panel = null)}
       onsave={(next, message) => {
         panel = null;
-        // Only the times come from the panel; the rest of the row may have changed meanwhile.
-        return save(replace({ ...person, memberships: next.memberships }), message);
+        // Only the times and the holiday calendar come from the panel; the rest of the row may have changed meanwhile.
+        return save(replace({ ...person, memberships: next.memberships, country: next.country, region: next.region }), message);
       }}
       onremove={() => {
         const gone = person;

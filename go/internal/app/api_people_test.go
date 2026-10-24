@@ -174,3 +174,33 @@ func TestRemovingAPersonDropsTheirAbsencesAndUndoStepIsForgotten(t *testing.T) {
 		t.Errorf("saving the absences fails after the removal: %v", err)
 	}
 }
+
+func TestPersonOwnHolidayRegion(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	view, err := api.People(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Country == "" {
+		t.Error("the view names no country of the team")
+	}
+	list := view.People
+	list[0].Country, list[0].Region = "AT", "9"
+	got, err := api.SavePeople(team, list)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.People[0].Country != "AT" || got.People[0].Region != "9" {
+		t.Errorf("person = %+v", got.People[0])
+	}
+	list = got.People
+	list[0].Region = "ZZ"
+	if _, err := api.SavePeople(team, list); err == nil {
+		t.Error("an unknown region was accepted")
+	}
+	list[0].Country, list[0].Region = "", ""
+	got, err = api.SavePeople(team, list)
+	if err != nil || got.People[0].Country != "" {
+		t.Errorf("reset: %v %+v", err, got.People[0])
+	}
+}
