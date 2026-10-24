@@ -131,10 +131,18 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	if err != nil {
 		return err
 	}
-	if !knownCountry(in.Country) {
+	// Only a changed value is checked: a code that team.yaml already carries (an alternative
+	// code of the library, a region in another spelling) must not block saving other settings.
+	storedRegion := ""
+	if t.Capacity.Region != nil {
+		storedRegion = *t.Capacity.Region
+	}
+	countryChanged := in.Country != t.Capacity.Country
+	if countryChanged && !knownCountry(in.Country) {
 		return bad("Unknown country: {country}", "country", in.Country)
 	}
-	if in.Region != "" && !slices.Contains(holidays.Subdivisions(in.Country), in.Region) {
+	if in.Region != "" && (in.Region != storedRegion || in.Country != t.Capacity.Country) &&
+		!slices.Contains(holidays.Subdivisions(in.Country), in.Region) {
 		return bad("Unknown region: {region}", "region", in.Region)
 	}
 
@@ -183,6 +191,22 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	}
 	if _, err := repo.SaveTeam(t); err != nil {
 		return err
+	}
+	if countryChanged {
+		// A person without an own country keeps only a region the new country knows.
+		var people []model.Person
+		changed := false
+		for _, p := range data.People {
+			if p.Country == nil && p.Region != nil && !slices.Contains(holidays.Subdivisions(in.Country), *p.Region) {
+				p.Region, changed = nil, true
+			}
+			people = append(people, p)
+		}
+		if changed {
+			if _, err := repo.SavePeople(team, people); err != nil {
+				return err
+			}
+		}
 	}
 	storage.ClearTeamCache()
 	return nil

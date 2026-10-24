@@ -129,7 +129,7 @@
   </div>
 
   <div class="row">
-    <button class="btn primary" type="button" disabled={problem !== ''} onclick={() => onsave(draft, t('Times of {name} saved.', { name: person.name }))}>
+    <button class="btn primary" type="button" disabled={problem !== ''} onclick={() => onsave(draft, t('Times and holidays of {name} saved.', { name: person.name }))}>
       <Icon name="check" />{t('Apply')}
     </button>
     <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>

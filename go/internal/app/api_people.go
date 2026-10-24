@@ -179,16 +179,17 @@ func personFrom(d PersonDTO, stored model.Person, teamCountry string) (model.Per
 		p.Workweek = optionalText(d.Workweek)
 	}
 	// Holidays: the person's own country and region, empty = the team's.
-	if d.Country != "" && !knownCountry(d.Country) {
-		return p, errors.New(i18n.T("Unknown country: {country}", "country", d.Country))
+	storedCountry, storedRegion := peopleOptionalValue(stored.Country), peopleOptionalValue(stored.Region)
+	if d.Country != "" && d.Country != storedCountry && !knownCountry(d.Country) {
+		return p, errors.New(i18n.T("{name}: unknown country {country}.", "name", p.Name, "country", d.Country))
 	}
-	if d.Region != "" {
+	if d.Region != "" && (d.Region != storedRegion || d.Country != storedCountry) {
 		country := d.Country
 		if country == "" {
 			country = teamCountry
 		}
 		if !slices.Contains(holidays.Subdivisions(country), d.Region) {
-			return p, errors.New(i18n.T("Unknown region: {region}", "region", d.Region))
+			return p, errors.New(i18n.T("{name}: unknown region {region}.", "name", p.Name, "region", d.Region))
 		}
 	}
 	p.Region, p.Country = optionalText(d.Region), optionalText(d.Country)
@@ -317,4 +318,12 @@ func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]Absenc
 		return nil, err
 	}
 	return absenceDTOs(abs), nil
+}
+
+// peopleOptionalValue is the text of an optional field, "" if unset.
+func peopleOptionalValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

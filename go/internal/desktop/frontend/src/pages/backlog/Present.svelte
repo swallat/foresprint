@@ -18,6 +18,7 @@
 
   let detail = $state<TicketDetail | undefined>();
   let tracker = $state<TrackerDetails | undefined>();
+  let trackerError = $state('');
   let error = $state('');
   let busy = $state(false);
   let closeButton: HTMLButtonElement | undefined = $state();
@@ -29,8 +30,8 @@
   const project = $derived(view?.projects.find((p) => p.id === detail?.project));
   // The tracker is the source of description, sub-tasks and comments; the list keeps its own copy.
   const description = $derived(tracker?.description || detail?.description || '');
-  const subtasks = $derived(tracker?.subtasks.length ? tracker.subtasks : (detail?.subtasks ?? []));
-  const comments = $derived(tracker?.comments.length ? tracker.comments : (detail?.comments ?? []));
+  const subtasks = $derived(tracker?.available ? tracker.subtasks : (detail?.subtasks ?? []));
+  const comments = $derived(tracker?.available ? tracker.comments : (detail?.comments ?? []));
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 
   onMount(async () => {
@@ -49,20 +50,11 @@
   $effect(() => {
     void store.view;
     const key = present.key;
-    tracker = undefined;
     if (!key) {
       detail = undefined;
+      tracker = undefined;
       return;
     }
-    // description, sub-tasks and comments of a tracker ticket live in the tracker, not in the list
-    api
-      .TicketTracker(app.team, key)
-      .then((d) => {
-        if (key === present.key) tracker = d;
-      })
-      .catch(() => {
-        /* the page shows what the list has; the ticket panel names the failure */
-      });
     api
       .Ticket(app.team, key)
       .then((d) => {
@@ -73,6 +65,24 @@
       })
       .catch((e) => {
         if (key === present.key) error = String(e);
+      });
+  });
+
+  // Description, sub-tasks and comments of a tracker ticket live in the tracker, not in the list;
+  // they are read once per ticket (not on every reload of the list) and a failure shows in place.
+  $effect(() => {
+    const key = present.key;
+    const team = app.team;
+    tracker = undefined;
+    trackerError = '';
+    if (!key) return;
+    api
+      .TicketTracker(team, key)
+      .then((d) => {
+        if (key === present.key && team === app.team) tracker = d;
+      })
+      .catch((e) => {
+        if (key === present.key && team === app.team) trackerError = String(e);
       });
   });
 
@@ -165,6 +175,9 @@
               <div class="td-comment"><div class="small"><strong>{c.author || t('Note')}</strong> <span class="muted data">{when(c.at)}</span></div><div>{c.text}</div></div>
             {/each}
           </section>
+        {/if}
+        {#if trackerError}
+          <p class="muted small">{t('Details could not be read from {tracker}: {error}', { tracker: view?.tracker ?? '', error: trackerError })}</p>
         {/if}
         {#if !description && !detail.acceptance && !subtasks.length}
           <p class="muted">{t('No description fetched yet.')}</p>

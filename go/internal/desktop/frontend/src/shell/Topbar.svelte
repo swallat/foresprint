@@ -26,7 +26,7 @@
   <button class="btn icon ghost rail-toggle" type="button" aria-label={t('Navigation')} onclick={() => (app.railOpen = !app.railOpen)}>
     <Icon name="menu" />
   </button>
-  <a class="brand" href={link('/today')} title={t('Go to Today')} aria-label={t('Go to Today')}><Logo /><span>Foresprint</span></a>
+  <a class="brand" href={link('/today')} title={t('Go to Today')}> <Logo /><span>Foresprint</span></a>
 
   {#if app.teams.length > 0}
     <label class="sel hide-narrow" title={t('Switch team')}>
@@ -91,8 +91,8 @@
 <style>
   .sel {
     position: relative;
-    /* the pickers keep their width; the search field and the buttons give way first */
-    flex: none;
+    /* the pickers give way last: the search field shrinks before them */
+    flex: 0 1 auto;
   }
   .sel select {
     appearance: none;
