@@ -38,9 +38,10 @@ describe('People times panel', () => {
     const save = [...host.querySelectorAll<HTMLButtonElement>('button.primary')].find((b) => /Apply|Save/.test(b.textContent ?? ''))!;
     save.click();
     await settle();
+    expect(host.querySelector('input[aria-label="Entry"]')).toBeNull();
+    await vi.waitFor(() => expect(host.textContent).toMatch(/2020/), { timeout: 3000 });
     window.removeEventListener('error', onerror);
     window.removeEventListener('unhandledrejection', unhandled);
     expect(errors).toEqual([]);
-    expect(host.querySelector('input[aria-label="Entry"]')).toBeNull();
   });
 });
