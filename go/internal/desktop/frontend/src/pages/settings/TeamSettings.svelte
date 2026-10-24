@@ -10,6 +10,7 @@
   import NumInput from '../../lib/settings/NumInput.svelte';
   import Switch from '../../lib/settings/Switch.svelte';
   import { changes, parseNumber, type Field } from '../../lib/settings/diff';
+  import ArchiveCard from './ArchiveCard.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
@@ -367,6 +368,8 @@
         </form>
       </div>
     {/if}
+
+    {#if !q}<ArchiveCard />{/if}
 
     <div class="full">
       <ChangesCard {rows} {busy} onapply={apply} onreset={reset} />

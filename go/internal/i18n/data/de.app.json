@@ -182,6 +182,14 @@
   "Earmarked tickets": "Vorgemerkte Tickets",
   "Earmarked": "Vorgemerkt",
   "Pre-planned": "Vorgeplant",
-  "The sprint {id} has started; its pre-planning minutes cannot be written any more.": "Der Sprint {id} hat begonnen; sein Vorplanungs-Protokoll kann nicht mehr geschrieben werden."
+  "The sprint {id} has started; its pre-planning minutes cannot be written any more.": "Der Sprint {id} hat begonnen; sein Vorplanungs-Protokoll kann nicht mehr geschrieben werden.",
+  "Type the name of the team to archive it.": "Gib zum Archivieren den Namen des Teams ein.",
+  "A sync is running for this team. Archive it afterwards.": "Für dieses Team läuft gerade ein Abruf. Archiviere es danach.",
+  "The team {team} does not exist.": "Das Team {team} gibt es nicht.",
+  "The archive already holds a team {team}. Restore or remove that one first.": "Im Archiv liegt schon ein Team {team}. Stelle es zuerst wieder her oder entferne es.",
+  "The team could not be moved to the archive ({reason}).": "Das Team konnte nicht ins Archiv verschoben werden ({reason}).",
+  "The archive holds no team {team}.": "Im Archiv liegt kein Team {team}.",
+  "A team {team} exists already; it cannot be restored under the same name.": "Ein Team {team} gibt es schon; es lässt sich nicht unter dem gleichen Namen wiederherstellen.",
+  "The team could not be restored ({reason}).": "Das Team konnte nicht wiederhergestellt werden ({reason})."
  }
 }
