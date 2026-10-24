@@ -85,7 +85,9 @@
 {:else if d}
   <SprintHead {d} stage="preplan">
     {#snippet actions()}
-      <button class="btn" type="button" id="minutes" onclick={writeMinutes}><Icon name="description" />{t('Write minutes')}</button>
+      {#if d.stage === 'open' || d.stage === 'planned'}
+        <button class="btn" type="button" id="minutes" onclick={writeMinutes}><Icon name="description" />{t('Write minutes')}</button>
+      {/if}
       {#if !noT && d.multiProduct}
         <button class="btn" type="button" id="take" onclick={takeEarmarks}><Icon name="playlist_add" />{t('Take over earmarks')}</button>
       {/if}
