@@ -27,8 +27,19 @@ func TestDiscardPreviewsAndKeepsATrashCopy(t *testing.T) {
 	if got, _ := os.ReadFile(path); !strings.Contains(string(got), "velocity: 10") {
 		t.Fatalf("file = %q", got)
 	}
-	if done.Warning == "" {
-		t.Fatal("what was thrown away must be said to be kept in the trash folder")
+	// The warning names the trash folder; the thrown-away value must be in it.
+	trash := strings.TrimSuffix(strings.TrimPrefix(done.Warning, "What was discarded is kept in "), ".")
+	found := false
+	_ = filepath.WalkDir(trash, func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			if b, _ := os.ReadFile(p); strings.Contains(string(b), "velocity: 99") {
+				found = true
+			}
+		}
+		return nil
+	})
+	if !found {
+		t.Fatalf("no copy of the discarded value in the trash folder named by %q", done.Warning)
 	}
 }
 
@@ -68,6 +79,9 @@ func TestBranchesAreSwitchedAndRefusedWithOpenChanges(t *testing.T) {
 	if got, _ := os.ReadFile(filepath.Join(w.alice.root, "teams", "a", "2026.1.yaml")); !strings.Contains(string(got), "velocity: 55") {
 		t.Fatalf("the unsaved change must stay: %q", got)
 	}
+	if st := w.alice.store.Storage(); st.Branch != "other" {
+		t.Fatalf("a refused switch must stay on %q, is on %q", "other", st.Branch)
+	}
 	if d := w.alice.store.SwitchBranch("does-not-exist"); d.Problem == nil {
 		t.Fatal("an unknown branch must be refused")
 	}
@@ -77,24 +91,38 @@ func TestReattachKeepsWorkOfADetachedState(t *testing.T) {
 	w := newWorld(t)
 	gittest.Git(t, w.alice.root, "checkout", "-q", "--detach")
 	w.alice.write("a/2026.2.yaml", "velocity: 3\n")
-	if res := w.alice.store.Save(SaveOptions{Message: "On no branch"}); res.Problem != nil && res.Outcome == "" {
-		t.Logf("save on a detached state: %+v", res)
+	res := w.alice.store.Save(SaveOptions{Message: "On no branch"})
+	if res.Problem == nil || res.Problem.Kind != "detached" {
+		t.Fatalf("saving on no branch must be refused as detached: %+v", res)
 	}
 	r := w.alice.store.Reattach()
-	if r.Problem != nil || r.Branch != "main" {
+	if r.Problem != nil || r.Branch != "main" || !r.Changes || r.Rescue == "" {
 		t.Fatalf("reattach = %+v", r)
 	}
-	if r.Commits || r.Changes {
-		if r.Rescue == "" {
-			t.Fatalf("work was found but no rescue branch named: %+v", r)
-		}
-		if out := gittest.Git(t, w.alice.root, "branch", "--list", r.Rescue); !strings.Contains(out, r.Rescue) {
-			t.Fatalf("rescue branch %q is missing: %q", r.Rescue, out)
-		}
+	if got := gittest.Git(t, w.alice.root, "show", r.Rescue+":teams/a/2026.2.yaml"); !strings.Contains(got, "velocity: 3") {
+		t.Fatalf("the rescue branch must hold the work: %q", got)
+	}
+	if st := w.alice.store.Status(); st.Unsaved != 0 {
+		t.Fatalf("main must be clean after the rescue: %+v", st)
 	}
 }
 
-func TestAbortMergeWithoutAMergeChangesNothing(t *testing.T) {
+func TestReattachKeepsCommitsOfADetachedState(t *testing.T) {
+	w := newWorld(t)
+	gittest.Git(t, w.alice.root, "checkout", "-q", "--detach")
+	w.alice.write("a/2026.3.yaml", "velocity: 8\n")
+	gittest.Git(t, w.alice.root, "add", "-A")
+	gittest.Git(t, w.alice.root, "commit", "-q", "-m", "Lonely commit")
+	r := w.alice.store.Reattach()
+	if r.Problem != nil || !r.Commits || r.Rescue == "" {
+		t.Fatalf("reattach = %+v", r)
+	}
+	if got := gittest.Git(t, w.alice.root, "show", r.Rescue+":teams/a/2026.3.yaml"); !strings.Contains(got, "velocity: 8") {
+		t.Fatalf("the rescue branch must hold the commit: %q", got)
+	}
+}
+
+func TestAbortMergeWithoutAMergeKeepsTheOwnWork(t *testing.T) {
 	w := newWorld(t)
 	w.alice.write("a/2026.2.yaml", "velocity: 4\n")
 	st := w.alice.store.AbortMerge()
@@ -130,7 +158,16 @@ func TestStorageSettingsAreWrittenAndRead(t *testing.T) {
 	if p := w.alice.store.SetIdentity("Anna Example", "anna@example.org"); p != nil {
 		t.Fatalf("identity = %+v", p)
 	}
-	// The identity goes to the settings of the user; the clone of the test has its own, which wins.
+	// The identity goes to the global settings of the user (isolated in the test).
+	if got := strings.TrimSpace(gittest.Git(t, w.tmp, "config", "--global", "user.name")); got != "Anna Example" {
+		t.Fatalf("global user.name = %q", got)
+	}
+	if got := strings.TrimSpace(gittest.Git(t, w.tmp, "config", "--global", "user.email")); got != "anna@example.org" {
+		t.Fatalf("global user.email = %q", got)
+	}
+	if w.alice.store.SetIdentity("", "anna@example.org") == nil || w.alice.store.SetIdentity("Anna", "no-address") == nil {
+		t.Fatal("an empty name or an address without @ must be refused")
+	}
 	st := w.alice.store.Storage()
 	if st.Host != "gitlab" || !st.AutoMerge {
 		t.Fatalf("storage = %+v", st)
