@@ -220,6 +220,7 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 	}
 	po := &data.Team.ProductOwners[idx]
 	today := a.day()
+	joined := a.peopleNewMemberDay(data)
 	gone := ""
 	personIdx := -1
 	if po.Person != nil {
@@ -236,10 +237,10 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 			taken[p.ID] = true
 		}
 		pid := model.NewPersonID(po.Name, taken, "person")
-		data.People = append(data.People, model.Person{ID: pid, Name: po.Name, Kind: model.KindMember, Memberships: []model.Membership{{Start: today, FTE: fte}}})
+		data.People = append(data.People, model.Person{ID: pid, Name: po.Name, Kind: model.KindMember, Memberships: []model.Membership{{Start: joined, FTE: fte}}})
 		po.Person = &pid
 	case inTeam && len(data.People[personIdx].Memberships) == 0:
-		data.People[personIdx].Memberships = []model.Membership{{Start: today, FTE: fte}}
+		data.People[personIdx].Memberships = []model.Membership{{Start: joined, FTE: fte}}
 	case inTeam:
 		p := &data.People[personIdx]
 		last := &p.Memberships[len(p.Memberships)-1]

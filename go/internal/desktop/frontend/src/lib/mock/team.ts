@@ -74,6 +74,7 @@ let absences: AbsencePeriod[] = [
 
 const peopleView = (): PeopleView => ({
   today: new Date().toISOString().slice(0, 10),
+  newFrom: new Date().toISOString().slice(0, 10),
   sprintDays: 10,
   production: true,
   country: 'DE',
