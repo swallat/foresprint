@@ -49,6 +49,7 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	s.Forecast.PlannableShare = 70
 	s.Forecast.Trend = "linear"
 	s.Forecast.StartRate = 0.7
+	s.OverheadDays, s.OverheadShare = 1.5, 10
 	s.Production = true
 	s.ProductionCap = 60
 	s.ProForma = []string{" Refinement ", "", "Parkplatz"}
@@ -61,6 +62,9 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	}
 	if got.Forecast.Window != 6 || got.Forecast.PlannableShare != 70 || got.Forecast.Trend != "linear" {
 		t.Errorf("forecast = %+v", got.Forecast)
+	}
+	if got.OverheadDays != 1.5 || got.OverheadShare != 10 {
+		t.Errorf("overhead = %v days, %v %%", got.OverheadDays, got.OverheadShare)
 	}
 	if got.Forecast.StartRate != 0.7 {
 		t.Errorf("start rate = %v", got.Forecast.StartRate)
@@ -82,6 +86,8 @@ func TestTeamSettingsRefuseNonsense(t *testing.T) {
 		"share":     func(s *TeamSettings) { s.Forecast.PlannableShare = 120 },
 		"cap":       func(s *TeamSettings) { s.ProductionCap = -1 },
 		"start":     func(s *TeamSettings) { s.Forecast.StartRate = -0.5 },
+		"overhead":  func(s *TeamSettings) { s.OverheadDays = 25 },
+		"ovshare":   func(s *TeamSettings) { s.OverheadShare = 95 },
 		"duplicate": func(s *TeamSettings) { s.ProForma = []string{"A", "a"} },
 	} {
 		s := base
