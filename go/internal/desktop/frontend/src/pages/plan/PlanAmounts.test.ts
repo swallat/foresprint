@@ -62,6 +62,17 @@ describe('Plan page without tickets', () => {
     expect(Number(commitInput().value)).toBe(7.5 + others);
   });
 
+  it('a dot is taken like a comma, and a different spelling of the stored value is tidied up', async () => {
+    await show();
+    const first = amountInputs()[0]!;
+    type(first, '4.5');
+    await tick();
+    expect(first.value).toBe('4.5');
+    type(first, ' 4,50 ');
+    await tick();
+    expect(first.value).toBe('4.5');
+  });
+
   it('an invalid amount is rejected and the field shows the stored value again', async () => {
     await show();
     const first = amountInputs()[0]!;
