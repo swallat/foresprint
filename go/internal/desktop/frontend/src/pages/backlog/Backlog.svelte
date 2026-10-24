@@ -403,7 +403,7 @@
             {#if items.length === 0}
               <div class="empty">
                 {#if packages && allTickets(view).length === 0}
-                  <p class="muted">{t('No work packages yet. Create the first one, or import a table under Settings, Tickets and tracker.')}</p>
+                  <p class="muted">{t('No open work packages. Create one, or import a table under Settings, Tickets and tracker.')}</p>
                   <button class="btn primary" type="button" onclick={() => (app.ticket = NEW)}><Icon name="add" />{t('Create work package')}</button>
                 {:else}
                   <p class="muted">{packages ? t('No work package fits this filter.') : t('No ticket fits this filter.')}</p>

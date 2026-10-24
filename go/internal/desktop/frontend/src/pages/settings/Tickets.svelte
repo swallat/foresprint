@@ -254,7 +254,7 @@
   {#if draft.source === 'packages'}
     <Banner>
       <strong>{t('Work packages in Foresprint:')}</strong>
-      {t('The backlog shows work packages you create by hand; Pre-plan and Plan work with them like with tickets. The product sits on the work package itself, and there are no assignment rules. They are saved with the team data in arbeitspakete.yaml. The list starts empty; tickets fetched earlier stay in their own file and do not appear here.')}
+      {t('The backlog shows work packages you create by hand; Pre-plan and Plan work with them like with tickets. The product sits on the work package itself, and there are no assignment rules. They are saved with the team data in arbeitspakete.yaml. At first the list is empty; tickets fetched earlier stay in their own file and do not appear here.')}
     </Banner>
     <div class="card pad">
       <div class="field" style="max-width:240px">
