@@ -7,16 +7,21 @@
   import SidePanel from '../../lib/ui/SidePanel.svelte';
   import { fmtNum, parseNum } from '../../lib/team/format';
   import { leaving, periodProblem, withLeaving, withNewShare } from '../../lib/team/people';
+  import { api } from '../../lib/api';
+  import { onMount } from 'svelte';
+  import type { Region } from '../../lib/types.setup';
   import type { Person } from '../../lib/types.team';
 
   interface Props {
     person: Person;
     today: string;
+    /** Country of the team, the default of a person without an own one. */
+    teamCountry: string;
     onclose: () => void;
     onsave: (next: Person, message: string) => void | Promise<void>;
     onremove: () => void | Promise<void>;
   }
-  let { person, today, onclose, onsave, onremove }: Props = $props();
+  let { person, today, teamCountry, onclose, onsave, onremove }: Props = $props();
 
   // svelte-ignore state_referenced_locally
   let draft = $state<Person>(structuredClone($state.snapshot(person)));
@@ -30,6 +35,15 @@
       '': '',
     }[problem],
   );
+  let regions = $state<Region[]>([]);
+  onMount(async () => {
+    try {
+      regions = await api.SetupRegions();
+    } catch {
+      /* the selects stay empty; the times can still be edited */
+    }
+  });
+  const holidayCountry = $derived(regions.find((r) => r.country === (draft.country || teamCountry)));
   const last = $derived(draft.memberships.length - 1);
   const past = $derived(draft.memberships.some((m) => m.from < today));
 
@@ -93,8 +107,29 @@
     </div>
   </div>
 
+  <h3>{t('Holidays')}</h3>
+  <p class="small muted">
+    {t('Where this person works. Empty means the country and region of the team; a different region has its own public holidays, which reduce only this person\'s days.')}
+  </p>
+  <div class="row bottom">
+    <div class="field">
+      <label for="tp-country">{t('Country')}</label>
+      <select class="input" id="tp-country" bind:value={draft.country} onchange={() => (draft.region = '')}>
+        <option value="">{t('Like the team')}</option>
+        {#each regions as r (r.country)}<option value={r.country}>{r.name}</option>{/each}
+      </select>
+    </div>
+    <div class="field">
+      <label for="tp-region">{t('Region')}</label>
+      <select class="input" id="tp-region" bind:value={draft.region}>
+        <option value="">{draft.country ? t('Whole country') : t('Like the team')}</option>
+        {#each holidayCountry?.regions ?? [] as r (r)}<option value={r}>{r}</option>{/each}
+      </select>
+    </div>
+  </div>
+
   <div class="row">
-    <button class="btn primary" type="button" disabled={problem !== ''} onclick={() => onsave(draft, t('Times of {name} saved.', { name: person.name }))}>
+    <button class="btn primary" type="button" disabled={problem !== ''} onclick={() => onsave(draft, t('Times and holidays of {name} saved.', { name: person.name }))}>
       <Icon name="check" />{t('Apply')}
     </button>
     <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>

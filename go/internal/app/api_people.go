@@ -2,9 +2,11 @@ package app
 
 import (
 	"errors"
+	"slices"
 	"sort"
 	"time"
 
+	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -68,6 +70,7 @@ func (a *API) peopleView(data *storage.TeamData) PeopleView {
 		Today:      today.Format(isoDay),
 		SprintDays: data.Team.Sprint.LengthDays,
 		Production: data.Team.Features.Production,
+		Country:    data.Team.Capacity.Country,
 		People:     []PersonDTO{},
 	}
 	for _, p := range data.People {
@@ -120,7 +123,7 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 	var out []model.Person
 	seen := map[string]bool{}
 	for _, d := range people {
-		p, err := personFrom(d, old[d.ID])
+		p, err := personFrom(d, old[d.ID], data.Team.Capacity.Country)
 		if err != nil {
 			return PeopleView{}, err
 		}
@@ -156,7 +159,7 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 
 // personFrom checks a person of the window and turns it into the model. The fields the window
 // does not edit are taken from the stored person if there is one.
-func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
+func personFrom(d PersonDTO, stored model.Person, teamCountry string) (model.Person, error) {
 	p := stored
 	p.ID = d.ID
 	p.Name = trimSpace(d.Name)
@@ -172,9 +175,24 @@ func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
 		return p, errors.New(i18n.T("Unknown kind '{kind}' for {name}.", "kind", d.Kind, "name", p.Name))
 	}
 	p.ProductionAccess = d.Production
-	if stored.ID == "" { // new person: the window sends the optional fields as they are
-		p.Region, p.Country, p.Workweek = optionalText(d.Region), optionalText(d.Country), optionalText(d.Workweek)
+	if stored.ID == "" { // new person: the window sends the workweek as it is
+		p.Workweek = optionalText(d.Workweek)
 	}
+	// Holidays: the person's own country and region, empty = the team's.
+	storedCountry, storedRegion := peopleOptionalValue(stored.Country), peopleOptionalValue(stored.Region)
+	if d.Country != "" && d.Country != storedCountry && !knownCountry(d.Country) {
+		return p, errors.New(i18n.T("{name}: unknown country {country}.", "name", p.Name, "country", d.Country))
+	}
+	if d.Region != "" && (d.Region != storedRegion || d.Country != storedCountry) {
+		country := d.Country
+		if country == "" {
+			country = teamCountry
+		}
+		if !slices.Contains(holidays.Subdivisions(country), d.Region) {
+			return p, errors.New(i18n.T("{name}: unknown region {region}.", "name", p.Name, "region", d.Region))
+		}
+	}
+	p.Region, p.Country = optionalText(d.Region), optionalText(d.Country)
 	if len(d.Memberships) == 0 {
 		return p, errors.New(i18n.T("{name} needs at least one period in the team.", "name", p.Name))
 	}
@@ -300,4 +318,12 @@ func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]Absenc
 		return nil, err
 	}
 	return absenceDTOs(abs), nil
+}
+
+// peopleOptionalValue is the text of an optional field, "" if unset.
+func peopleOptionalValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

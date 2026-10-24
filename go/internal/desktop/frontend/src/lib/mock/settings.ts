@@ -30,6 +30,8 @@ let team: TeamSettings = {
   productionCap: 60,
   projects: true,
   proForma: ['Refinement'],
+  country: 'DE',
+  region: 'NW',
 };
 
 let tracker: TrackerSettings = {

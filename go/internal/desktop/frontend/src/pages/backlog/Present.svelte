@@ -8,7 +8,7 @@
   import { app } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { TicketDetail } from '../../lib/types.backlog';
+  import type { TicketDetail, TrackerDetails } from '../../lib/types.backlog';
   import { productColor } from './backlog';
   import { loadBacklog, present, store, allTickets, t } from './store.svelte';
   import { openExternal } from './external';
@@ -17,6 +17,8 @@
   void params;
 
   let detail = $state<TicketDetail | undefined>();
+  let tracker = $state<TrackerDetails | undefined>();
+  let trackerError = $state('');
   let error = $state('');
   let busy = $state(false);
   let closeButton: HTMLButtonElement | undefined = $state();
@@ -26,6 +28,10 @@
   const packages = $derived(view?.source === 'packages');
   const product = $derived(view?.products.find((p) => p.id === detail?.product));
   const project = $derived(view?.projects.find((p) => p.id === detail?.project));
+  // The tracker is the source of description, sub-tasks and comments; the list keeps its own copy.
+  const description = $derived(tracker?.description || detail?.description || '');
+  const subtasks = $derived(tracker?.available ? tracker.subtasks : (detail?.subtasks ?? []));
+  const comments = $derived(tracker?.available ? tracker.comments : (detail?.comments ?? []));
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 
   onMount(async () => {
@@ -46,6 +52,7 @@
     const key = present.key;
     if (!key) {
       detail = undefined;
+      tracker = undefined;
       return;
     }
     api
@@ -58,6 +65,24 @@
       })
       .catch((e) => {
         if (key === present.key) error = String(e);
+      });
+  });
+
+  // Description, sub-tasks and comments of a tracker ticket live in the tracker, not in the list;
+  // they are read once per ticket (not on every reload of the list) and a failure shows in place.
+  $effect(() => {
+    const key = present.key;
+    const team = app.team;
+    tracker = undefined;
+    trackerError = '';
+    if (!key) return;
+    api
+      .TicketTracker(team, key)
+      .then((d) => {
+        if (key === present.key && team === app.team) tracker = d;
+      })
+      .catch((e) => {
+        if (key === present.key && team === app.team) trackerError = String(e);
       });
   });
 
@@ -119,17 +144,17 @@
     <div class="present-body">
       <div class="present-main">
         <h1>{detail.title}</h1>
-        {#if detail.description}<section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{detail.description}</p></section>{/if}
+        {#if description}<section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{description}</p></section>{/if}
         {#if detail.acceptance}
           <section class="td-sec">
             <h3>{t('Acceptance criteria')}</h3>
             <ul class="td-list">{#each detail.acceptance.split('\n').filter((l) => l.trim()) as line, i (i)}<li>{line}</li>{/each}</ul>
           </section>
         {/if}
-        {#if detail.subtasks.length}
+        {#if subtasks.length}
           <section class="td-sec">
             <h3>{t('Subtasks')}</h3>
-            <ul class="td-list">{#each detail.subtasks as s, i (i)}<li class:done={s.done}>{s.title}</li>{/each}</ul>
+            <ul class="td-list">{#each subtasks as s, i (i)}<li class:done={s.done}>{s.title}</li>{/each}</ul>
           </section>
         {/if}
         {#if detail.dependencies.length}
@@ -143,15 +168,18 @@
             </ul>
           </section>
         {/if}
-        {#if detail.comments.length}
+        {#if comments.length}
           <section class="td-sec">
             <h3>{t('Comments')}</h3>
-            {#each detail.comments as c, i (i)}
+            {#each comments as c, i (i)}
               <div class="td-comment"><div class="small"><strong>{c.author || t('Note')}</strong> <span class="muted data">{when(c.at)}</span></div><div>{c.text}</div></div>
             {/each}
           </section>
         {/if}
-        {#if !detail.description && !detail.acceptance && !detail.subtasks.length}
+        {#if trackerError}
+          <p class="muted small">{t('Details could not be read from {tracker}: {error}', { tracker: view?.tracker ?? '', error: trackerError })}</p>
+        {/if}
+        {#if !description && !detail.acceptance && !subtasks.length}
           <p class="muted">{t('No description fetched yet.')}</p>
         {/if}
       </div>

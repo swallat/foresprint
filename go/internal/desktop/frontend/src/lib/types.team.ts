@@ -45,6 +45,8 @@ export interface Person {
 
 export interface PeopleView {
   today: string;
+  /** Holiday country of the team. */
+  country: string;
   sprintDays: number;
   production: boolean;
   people: Person[];

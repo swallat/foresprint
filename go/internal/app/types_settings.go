@@ -34,6 +34,8 @@ type TeamSettings struct {
 	ProductionCap float64          `json:"productionCap"` // percent of the production time that counts, 100 = no cap
 	Projects      bool             `json:"projects"`
 	ProForma      []string         `json:"proForma"` // names of pro-forma sprints
+	Country       string           `json:"country"`  // ISO 3166-1 code of the holiday calendar, "DE"
+	Region        string           `json:"region"`   // region within the country, "" = whole country
 }
 
 // TrackerFields are the fields of the tracker for the values of Foresprint ("" = not mapped).

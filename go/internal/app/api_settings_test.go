@@ -370,3 +370,27 @@ func TestTrackerSprintNamesAreSaved(t *testing.T) {
 		t.Errorf("mapping lost: %+v", out.Sprints)
 	}
 }
+
+func TestTeamSettingsHolidayRegion(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	s, err := api.TeamSettings(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Country, s.Region = "DE", "BY"
+	if err := api.SaveTeamSettings(team, s); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := api.TeamSettings(team)
+	if got.Country != "DE" || got.Region != "BY" {
+		t.Errorf("country %q region %q", got.Country, got.Region)
+	}
+	s.Region = "ZZ"
+	if err := api.SaveTeamSettings(team, s); err == nil {
+		t.Error("an unknown region was accepted")
+	}
+	s.Country, s.Region = "XX", ""
+	if err := api.SaveTeamSettings(team, s); err == nil {
+		t.Error("an unknown country was accepted")
+	}
+}

@@ -171,6 +171,10 @@
   "the contingent is nearly used up ({remaining} of {booked} PD left)": "das Kontingent ist fast aufgebraucht (noch {remaining} von {booked} PT)",
   "Project {name} is at risk: {why}.": "Projekt {name} ist gefährdet: {why}.",
   "1 open ticket has no estimate.": "1 offenes Ticket hat keine Schätzung.",
-  "{count} open tickets have no estimate.": "{count} offene Tickets haben keine Schätzung."
+  "{count} open tickets have no estimate.": "{count} offene Tickets haben keine Schätzung.",
+  "{name}: unknown country {country}.": "{name}: Land {country} ist unbekannt.",
+  "{name}: unknown region {region}.": "{name}: Region {region} ist unbekannt.",
+  "Unknown country: {country}": "Land unbekannt: {country}",
+  "Unknown region: {region}": "Region unbekannt: {region}"
  }
 }
