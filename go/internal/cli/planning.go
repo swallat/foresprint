@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/forecast"
