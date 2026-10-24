@@ -39,9 +39,12 @@
   const focus = $derived(defaults.find((d) => !d.running) ?? defaults[0]);
   const focusSum = $derived(active.reduce((n, p) => n + (focus?.values[p.id] ?? 0), 0));
 
+  let loadedTeam = '';
   async function load() {
+    const team = app.team;
     try {
-      view = await api.Products(app.team);
+      view = await api.Products(team);
+      loadedTeam = team;
       failed = '';
       if (!active.some((p) => p.id === ruleFor)) selectRule(active[0]?.id ?? '');
     } catch (e) {
@@ -100,7 +103,7 @@
 
   // "+" menu in the top bar: open with a new row
   $effect(() => {
-    if (view && takeNew()) add();
+    if (view && loadedTeam === app.team && takeNew()) add();
   });
 
   function add() {

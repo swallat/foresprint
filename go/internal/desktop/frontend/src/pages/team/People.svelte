@@ -36,10 +36,13 @@
   const kinds: PersonKind[] = ['member', 'guest', 'external'];
   const kindLabel = (k: PersonKind) => (k === 'guest' ? t('Guest') : k === 'external' ? t('External') : t('Member'));
 
+  let loadedTeam = '';
   async function load() {
+    const team = app.team;
     try {
-      const [v, a] = await Promise.all([api.People(app.team), api.AbsencePeriods(app.team)]);
+      const [v, a] = await Promise.all([api.People(team), api.AbsencePeriods(team)]);
       view = v;
+      loadedTeam = team;
       absences = a;
       gridKey++;
       failed = '';
@@ -123,7 +126,7 @@
 
   // "+" menu in the top bar: open with a new row
   $effect(() => {
-    if (view && takeNew()) add();
+    if (view && loadedTeam === app.team && takeNew()) add();
   });
 
   function add() {

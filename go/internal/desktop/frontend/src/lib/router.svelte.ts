@@ -56,7 +56,8 @@ export function go(pattern: string, params?: Record<string, string>, query?: Rec
 /** True once when the page was opened with "?new=1" (the plus menu); the flag is removed from the address. */
 export function takeNew(): boolean {
   if (current.query.new !== '1') return false;
-  current.query = {};
-  location.replace(link(current.path));
+  const { new: _flag, ...rest } = current.query;
+  current.query = rest;
+  location.replace(link(current.path, {}, rest));
   return true;
 }

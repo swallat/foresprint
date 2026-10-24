@@ -51,7 +51,7 @@
 
   // "+" menu in the top bar: open the form for a new project
   $effect(() => {
-    if (view?.enabled && takeNew()) panel = { kind: 'new' };
+    if (view && takeNew() && view.enabled) panel = { kind: 'new' };
   });
 
   function pick(r: Range): void {
