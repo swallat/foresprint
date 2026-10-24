@@ -71,6 +71,7 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 			Rounding:          t.Forecast.Rounding,
 			Horizon:           t.Forecast.Horizon,
 			Basis:             basis,
+			StartRate:         t.Forecast.StartRate,
 		},
 		LengthDays:    t.Sprint.LengthDays,
 		Products:      t.Features.Products,
@@ -93,6 +94,29 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 
 func bad(text string, kv ...any) error { return errors.New(i18n.T(text, kv...)) }
 
+// SetStartRate sets the start rate of the team (per capacity unit, used for the Forecast PLAN
+// while there is no history); 0 or nil removes it.
+func (a *API) SetStartRate(team string, rate *float64) error {
+	repo, data, err := a.loadRepoTeam(team)
+	if err != nil {
+		return err
+	}
+	r := 0.0
+	if rate != nil {
+		r = *rate
+	}
+	if !(r >= 0 && r <= 100) {
+		return bad("The start rate must be between 0 and 100.")
+	}
+	t := data.Team
+	t.Forecast.StartRate = r
+	if _, err := repo.SaveTeam(t); err != nil {
+		return err
+	}
+	storage.ClearTeamCache()
+	return nil
+}
+
 // SaveTeamSettings checks and writes the settings to team.yaml. Whether the data is shared is
 // the business of Save in the top bar. The unit applies from UnitFrom on if it differs from the
 // unit valid now; the first sprint needs no sprint.
@@ -112,6 +136,8 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 		return bad("The reference capacity must be greater than 0.")
 	case !(f.PlannableShare >= 0 && f.PlannableShare <= 100):
 		return bad("The plannable share must be between 0 and 100 percent.")
+	case !(f.StartRate >= 0 && f.StartRate <= 100):
+		return bad("The start rate must be between 0 and 100.")
 	case f.Rounding < 0 || f.Rounding > 3:
 		return bad("Rounding means 0 to 3 decimals.")
 	case f.Horizon < 1 || f.Horizon > 26:
@@ -151,6 +177,7 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Forecast.ReferenceCapacity = f.ReferenceCapacity
 	t.Forecast.RoadmapShare = round6(f.PlannableShare / 100)
 	t.Forecast.Rounding = f.Rounding
+	t.Forecast.StartRate = f.StartRate
 	t.Forecast.Horizon = f.Horizon
 	t.Forecast.ProductBasis = model.BasisPlan
 	if f.Basis == "share" {

@@ -77,9 +77,13 @@ func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) Fo
 		out.CapacitySource = string(*r.Input.CapacitySource)
 	}
 	if r.PlanSource != nil {
-		out.PlanSource = "projection"
-		if *r.PlanSource == engine.PlanActual {
+		switch *r.PlanSource {
+		case engine.PlanActual:
 			out.PlanSource = "actual"
+		case engine.PlanStart:
+			out.PlanSource = "start"
+		default:
+			out.PlanSource = "projection"
 		}
 	}
 	if state != "past" && r.Plan != nil {
@@ -195,11 +199,18 @@ func forecastRows(data *storage.TeamData, fc, fc2 *forecast.Forecast, as Forecas
 		if e2 := fc2.Entry(e.Sprint.ID); e2 != nil && e2.Result.NormalizedVelocity.Trend != nil {
 			trend = e2.Result.NormalizedVelocity.Trend
 		}
-		if r.Plan == nil || r.PlanCapacity == nil || trend == nil {
+		fromStart := r.PlanSource != nil && *r.PlanSource == engine.PlanStart
+		if r.Plan == nil || r.PlanCapacity == nil || (trend == nil && !fromStart) {
 			continue
 		}
 		capacity := max(0, *r.PlanCapacity-as.ExtraAbsenceDays)
-		value := engine.RoundDown(*trend/ref*capacity*as.FocusPercent/100, data.Team.Forecast.Rounding)
+		rate := 0.0
+		if fromStart {
+			rate = data.Team.Forecast.StartRate // no history yet: the start rate is the rate
+		} else {
+			rate = *trend / ref
+		}
+		value := engine.RoundDown(rate*capacity*as.FocusPercent/100, data.Team.Forecast.Rounding)
 		out = append(out, WhatIfRow{ID: e.Sprint.ID, Capacity: capacity, Forecast: value, Base: *r.Plan, Delta: value - *r.Plan})
 	}
 	return out

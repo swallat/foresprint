@@ -22,7 +22,7 @@ type ForecastRow struct {
 	Average            *float64 `json:"average"`
 	Trend              *float64 `json:"trend"`
 	Fulfillment        *float64 `json:"fulfillment"`
-	// Plan is the Forecast PLAN; PlanSource is "actual" (recorded commitment) or "projection".
+	// Plan is the Forecast PLAN; PlanSource is "actual" (recorded commitment), "start" (capacity times the start rate) or "projection".
 	Plan       *float64 `json:"plan"`
 	PlanSource string   `json:"planSource"`
 	Low        *float64 `json:"low"`

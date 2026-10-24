@@ -225,6 +225,12 @@
   "on plan, rest {n} PD": "im Plan, Rest {n} PT",
   "Plan opened again. The planning minutes are marked as obsolete.": "Plan wieder geöffnet. Das Planning-Protokoll ist als überholt markiert.",
   "Pre-planning minutes written: {file}": "Vorplanungs-Protokoll geschrieben: {file}",
-  "Write minutes": "Protokoll schreiben"
+  "Write minutes": "Protokoll schreiben",
+  "Start rate saved.": "Startwert gespeichert.",
+  "start rate": "Startwert",
+  "No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.": "Noch kein abgeschlossener Sprint: Kapazität mal Startwert des Teams. Sobald drei Sprints eine Velocity haben, übernimmt die Historie.",
+  "Estimate from the start rate {rate}, no range yet": "Schätzung aus dem Startwert {rate}, noch keine Spanne",
+  "Start rate per PD": "Startwert je PT",
+  "Expected amount per capacity PD until three sprints are finished, e.g. 0,7.": "Erwartete Menge je Kapazitäts-PT bis drei Sprints abgeschlossen sind, z. B. 0,7."
  }
 }

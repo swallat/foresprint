@@ -24,5 +24,5 @@
 
 <!-- Only the figures of the selected sprint: after a switch or a failed load the old ones are not shown. -->
 {#if d && d.sprint === app.sprint && !model.error}
-  <Summary {d} {used} commitment={d.frozen ? d.committed : null} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} />
+  <Summary {d} {used} commitment={d.frozen ? d.committed : null} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} {model} />
 {/if}

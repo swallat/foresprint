@@ -191,7 +191,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
     absences: absencesFrozen.has(sid) || idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
-    plan, planOriginal: f.plan, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
+    plan, planOriginal: f.plan, planSource: '', startRate: 0, low: use?.low ?? f.low, high: use?.high ?? f.high, rate, otherUnit: 'PT', share: SHARE,
     split: { plan, carryIn: rest, plannable: free, smallStuff: Math.max(plan - rest, 0) - free, overbooked: rest > plan },
     carryLater: use?.later ?? sw?.later ?? 0, preplanned: multi ? preSum : (sprintPre[sid] ?? 0), removed: removedMock[sid] ?? [], sprintPre: multi ? null : (sprintPre[sid] ?? null), earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
     committed: frozen[sid]?.commitment ?? null, products, tickets: lane, candidates: cand, projects,
@@ -282,6 +282,7 @@ export const planMock: PlanApi = {
     x.prod = percent ?? 0;
     x.prodSet = percent != null;
   },
+  async SetStartRate() {},
   async FreezePlan(_t, sprint, input: FreezeInput) {
     const noT = mode() === 'none';
     const lane = tickets.filter((x) => input.tickets.includes(x.key));

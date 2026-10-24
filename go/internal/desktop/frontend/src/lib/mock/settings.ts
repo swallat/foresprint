@@ -22,7 +22,7 @@ let team: TeamSettings = {
   unitFrom: '',
   unitChanges: [],
   factor: null,
-  forecast: { window: 5, trend: 'flat', referenceCapacity: 67, plannableShare: 80, rounding: 1, horizon: 3, basis: 'plan' },
+  forecast: { window: 5, trend: 'flat', referenceCapacity: 67, plannableShare: 80, rounding: 1, horizon: 3, basis: 'plan', startRate: 0 },
   lengthDays: 10,
   products: true,
   po: true,

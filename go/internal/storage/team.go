@@ -249,6 +249,9 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 	if f.Horizon, msg = pyIntConv(getOr(fc, "horizon", int64(3))); msg != "" {
 		return fail(pyError(msg))
 	}
+	if f.StartRate, msg = finiteOf(getOr(fc, "start_rate", 0.0)); msg != "" {
+		return fail(pyError(msg))
+	}
 	if f.ProductBasis, perr = enumValue(getOr(fc, "product_basis", "plan"), productBases, "ProductBasis"); perr != nil {
 		return fail(*perr)
 	}
@@ -298,6 +301,9 @@ func TeamToDict(team model.Team) *yamlx.Map {
 		"trend_mode", string(team.Forecast.TrendMode),
 		"horizon", int64(team.Forecast.Horizon),
 	)
+	if team.Forecast.StartRate != 0 {
+		put(fc, "start_rate", clean(team.Forecast.StartRate))
+	}
 	if team.Forecast.ProductBasis != model.BasisPlan {
 		put(fc, "product_basis", string(team.Forecast.ProductBasis))
 	}

@@ -20,7 +20,7 @@ var (
 	}
 	settingFloats = []string{
 		"forecast.reference_capacity", "forecast.roadmap_share", "capacity.overhead_share",
-		"capacity.overhead_days", "capacity.production_cap", "features.production_max",
+		"capacity.overhead_days", "capacity.production_cap", "features.production_max", "forecast.start_rate",
 	}
 	// settingsKept are written to the Settings sheet for information but are lists the cells
 	// cannot edit: reading skips them and the import keeps the existing values (carryOver).

@@ -84,6 +84,9 @@ type ForecastSettings struct {
 	TrendMode         TrendMode
 	Horizon           int
 	ProductBasis      ProductBasis
+	// StartRate is the expected amount per capacity unit for a team with fewer than three sprints with a velocity
+	// (Forecast PLAN = capacity × StartRate until the history takes over). 0 = none.
+	StartRate float64
 }
 
 // CapacitySettings is the section capacity of team.yaml.
