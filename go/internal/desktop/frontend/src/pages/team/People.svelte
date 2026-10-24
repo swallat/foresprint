@@ -312,9 +312,11 @@
       teamCountry={view.country}
       onclose={() => (panel = null)}
       onsave={(next, message) => {
+        // Read before the panel closes: `person` is derived from the open panel and is gone afterwards.
+        const was = person;
         panel = null;
         // Only the times and the holiday calendar come from the panel; the rest of the row may have changed meanwhile.
-        return save(replace({ ...person, memberships: next.memberships, country: next.country, region: next.region }), message);
+        return save(replace({ ...was, memberships: next.memberships, country: next.country, region: next.region }), message);
       }}
       onremove={() => {
         const gone = person;
