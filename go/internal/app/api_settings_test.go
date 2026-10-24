@@ -109,6 +109,12 @@ func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
 	if got.Unit != other || got.UnitFrom != first || len(got.UnitChanges) != 1 {
 		t.Fatalf("after change: %+v", got)
 	}
+	// the backlog labels its amounts with the unit valid now, not the one the team started with
+	if cur, _ := api.TeamSettings(team); cur.Unit == other {
+		if bl, err := api.Backlog(team); err != nil || bl.Unit != other {
+			t.Errorf("backlog unit = %q (err %v), want %q", bl.Unit, err, other)
+		}
+	}
 	got.Unit, got.UnitFrom = orig, ""
 	if err := api.SaveTeamSettings(team, got); err == nil {
 		t.Error("a switch without a sprint must be refused")

@@ -46,6 +46,16 @@ func effectiveUnit(data *storage.TeamData, now time.Time) (model.Unit, string) {
 	return unit, from
 }
 
+// settingsUnitAt is the estimation unit valid in a sprint that starts at the given time: the unit of
+// the team until a switch takes over from its sprint on.
+func settingsUnitAt(data *storage.TeamData, start time.Time) string {
+	unit, _ := effectiveUnit(data, start)
+	return string(unit)
+}
+
+// settingsUnitNow is the estimation unit valid today; every view that shows an amount labels it so.
+func settingsUnitNow(data *storage.TeamData) string { return settingsUnitAt(data, time.Now()) }
+
 // TeamSettings returns the settings of Settings > Team.
 func (a *API) TeamSettings(team string) (TeamSettings, error) {
 	_, data, err := a.loadRepoTeam(team)

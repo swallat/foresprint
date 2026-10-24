@@ -297,7 +297,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	view := &BacklogView{
 		Source:     string(data.Team.Source()),
 		Tracker:    backlogTrackerName(data.Team),
-		Unit:       string(data.Team.Unit),
+		Unit:       settingsUnitNow(data),
 		Products:   namedProducts(data),
 		Projects:   namedProjects(data),
 		Tickets:    []BacklogTicket{},

@@ -444,10 +444,10 @@ func (c *projectCtx) view() ProjectsView {
 	v := ProjectsView{
 		Today: c.today.Format(dateLayout), Enabled: data.Team.Features.Tickets || data.Team.Features.Projects,
 		Source: map[model.TicketSource]string{model.SourceNone: "none", model.SourcePackages: "packages", model.SourceTracker: "tracker"}[data.Team.Source()],
-		Unit:   string(data.Team.Unit), Products: []ProductRef{}, Projects: []ProjectView{}, Closed: []ProjectView{},
+		Unit:   settingsUnitNow(data), Products: []ProductRef{}, Projects: []ProjectView{}, Closed: []ProjectView{},
 		Sprints: []SprintInfo{}, SprintDays: data.Team.Sprint.LengthDays, Conflict: []ConflictRow{}, Problem: c.problem,
 	}
-	if c.rate > 0 && data.Team.Unit != model.UnitPT {
+	if c.rate > 0 && settingsUnitNow(data) != string(model.UnitPT) {
 		v.Rate = model.Ptr(c.rate)
 	}
 	if data.Team.Features.Products {
