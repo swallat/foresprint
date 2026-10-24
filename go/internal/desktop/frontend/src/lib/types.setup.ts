@@ -50,6 +50,8 @@ export interface NewTeam {
   region: string;
   firstSprintId: string;
   firstStart: string;
+  /** Naming pattern of the sprints ("Team {JJJJ}.{N}"); empty = read from the name of the first sprint. */
+  namingPattern: string;
   lengthDays: number;
   source: TicketSource;
   trackerUrl: string;

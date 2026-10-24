@@ -51,3 +51,17 @@ export function safeToStore(address: string): boolean {
   const rest = a.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
   return !rest.split('/')[0]?.includes('@') || !/^[a-z][a-z0-9+.-]*:\/\//i.test(a);
 }
+
+/**
+ * The naming pattern a first sprint's free name gives: "Team Sprint 2026.16" is "Team Sprint {JJJJ}.{N}".
+ * '' if the name is a plain ID ("2026.16", which needs no pattern) or holds no number. Same as DerivePattern in the core.
+ */
+export function derivePattern(id: string, start: string): string {
+  const name = id.trim();
+  if (!name || /[{}]/.test(name) || /^\d{4}\.\d{1,3}$/.test(name)) return '';
+  const year = start.slice(0, 4);
+  const yearly = /^(.*?)(\d{4})\.(\d+)$/.exec(name);
+  if (yearly && yearly[2] === year) return `${yearly[1]}{JJJJ}.{${yearly[3]!.length === 2 && yearly[3]!.startsWith('0') ? 'NN' : 'N'}}`;
+  const numbered = /^(.*?)(\d+)$/.exec(name);
+  return numbered ? `${numbered[1]}{LFD}` : '';
+}

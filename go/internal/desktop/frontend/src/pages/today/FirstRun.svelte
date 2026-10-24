@@ -8,7 +8,8 @@
   import { followWizard, tour, wizard } from '../../lib/tour/tour.svelte';
   import { current, go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import { isDay, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
+  import { derivePattern, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
+  import { dayPlaceholder, formatDayInput, parseDayInput } from '../../lib/format';
   import type { Problem, Region, SetupKind, SetupState } from '../../lib/types.setup';
   import type { TicketSource } from '../../lib/types.today';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -39,6 +40,8 @@
     country: string;
     region: string;
     sprintId: string;
+    pattern: string;
+    // As typed, in the form of the language (20.10.2026).
     start: string;
     source: TicketSource;
     trackerUrl: string;
@@ -60,7 +63,8 @@
     country: 'DE',
     region: '',
     sprintId: suggestedSprintId(monday),
-    start: monday,
+    pattern: '',
+    start: formatDayInput(monday),
     source: 'packages',
     trackerUrl: '',
     trackerQuery: '',
@@ -71,7 +75,11 @@
     try {
       const raw = localStorage.getItem(KEY);
       // The data folder is not made yet after a restart, so the draft begins at the first step.
-      if (raw) return { ...empty, ...(JSON.parse(raw) as Partial<Draft>), step: 'storage' };
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<Draft>;
+        // The date is kept as YYYY-MM-DD, so that a change of language cannot read it differently.
+        return { ...empty, ...saved, start: saved.start ? formatDayInput(parseDayInput(saved.start)) || saved.start : empty.start, step: 'storage' };
+      }
     } catch {
       /* no stored draft, or storage blocked: start fresh */
     }
@@ -79,6 +87,7 @@
   }
 
   const d = $state<Draft>(restore());
+  const dayFormat = () => dayPlaceholder({ day: t('DD'), month: t('MM'), year: t('YYYY') });
   // From the team selection ("Create a new team"): storage and sign-in are done already, so the
   // wizard starts at the team and offers nothing but a new team. It is not kept as a draft.
   const addRequested = current.query.add === 'team';
@@ -105,7 +114,7 @@
   $effect(() => {
     if (adding) return;
     // An address with credentials in it is never written down (the core rejects it anyway).
-    const snapshot = JSON.stringify({ ...d, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
+    const snapshot = JSON.stringify({ ...d, start: parseDayInput(d.start) || d.start, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
       localStorage.setItem(KEY, snapshot);
     } catch {
@@ -161,6 +170,7 @@
 
   const hasTeams = $derived((info?.teams ?? []).filter((x) => !x.problem));
   const cloneTarget = $derived(d.parent ? joinPath(d.parent, repoName(d.address), os) : '');
+  const patternHint = $derived((parseDayInput(d.start) ? derivePattern(d.sprintId, parseDayInput(d.start)) : ''));
   const country = $derived(regions.find((r) => r.country === d.country));
   const steps = $derived<Step[]>(adding ? ['team', 'tickets', 'done'] : d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
   const index = $derived(Math.max(0, steps.indexOf(d.step)));
@@ -271,7 +281,7 @@
     if (d.team !== 'new') return '';
     if (!d.teamName.trim()) return t('Enter a name for the team.');
     if (!d.sprintId.trim()) return t('Enter the ID of the first sprint.');
-    if (!isDay(d.start)) return t('Enter the start of the first sprint as a date (YYYY-MM-DD).');
+    if (!parseDayInput(d.start)) return t('Enter the start of the first sprint as a date ({format}).', { format: dayFormat() });
     return '';
   }
 
@@ -337,7 +347,8 @@
           country: d.country,
           region: d.region,
           firstSprintId: d.sprintId,
-          firstStart: d.start,
+          firstStart: parseDayInput(d.start),
+          namingPattern: d.pattern.trim(),
           lengthDays: 14,
           source: d.source,
           trackerUrl: d.trackerUrl,
@@ -543,7 +554,12 @@
                   </select>
                 </span>
                 <span class="field"><label for="su-sid">{t('First sprint (running now or next)')}</label><input id="su-sid" class="input data" bind:value={d.sprintId} /></span>
-                <span class="field"><label for="su-sd">{t('First sprint starts on')}</label><input id="su-sd" class="input data" bind:value={d.start} placeholder="2026-10-19" /></span>
+                <span class="field">
+                  <label for="su-pat">{t('Naming pattern of the sprints (optional)')}</label>
+                  <input id="su-pat" class="input data" bind:value={d.pattern} placeholder={patternHint || t('e.g. Team {JJJJ}.{N}')} />
+                  <span class="small muted">{patternHint && !d.pattern.trim() ? t('Read from the name: {pattern}. The next sprints are named the same way.', { pattern: patternHint }) : t('{JJJJ} year, {N} number in the year, {LFD} running number.')}</span>
+                </span>
+                <span class="field"><label for="su-sd">{t('First sprint starts on')}</label><input id="su-sd" class="input data" bind:value={d.start} placeholder={dayFormat()} /></span>
               </span>
             {/if}
           </span>
