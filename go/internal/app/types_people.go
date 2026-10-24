@@ -27,6 +27,9 @@ type PersonDTO struct {
 // PeopleView is the people page: everybody ever in the team, current and former.
 type PeopleView struct {
 	Today string `json:"today"`
+	// NewFrom is the day a person added now joins: the start of the first sprint while the
+	// team is still in it, else today.
+	NewFrom string `json:"newFrom"`
 	// SprintDays is the length of a sprint in working days as set for the team.
 	SprintDays int `json:"sprintDays"`
 	// Production is true when the team uses production access.
