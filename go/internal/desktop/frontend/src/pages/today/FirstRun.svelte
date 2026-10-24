@@ -86,7 +86,7 @@
     return { ...empty };
   }
 
-  const d = $state<Draft>(restore());
+  const d = $state<Draft>(current.query.only === 'storage' && current.query.add !== 'team' ? { ...empty } : restore());
   const dayFormat = () => dayPlaceholder({ day: t('DD'), month: t('MM'), year: t('YYYY') });
   // From the team selection ("Create a new team"): storage and sign-in are done already, so the
   // wizard starts at the team and offers nothing but a new team. It is not kept as a draft.
@@ -94,7 +94,7 @@
   let adding = $state(addRequested);
   // From Settings, Storage ("Run first-start setup again"): only the storage (and the name) is asked
   // for; the teams are not touched and the person can leave at any time. Not kept as a draft.
-  const storageOnly = !addRequested && current.query.only === 'storage';
+  let storageOnly = $state(!addRequested && current.query.only === 'storage');
   if (addRequested) {
     d.kind = 'keep';
     d.team = 'new';
@@ -272,7 +272,16 @@
   }
 
   /** Where Cancel leads: back to where the wizard was opened from; '' on a first start without any team. */
-  const leaveTo = $derived(storageOnly ? '/settings/storage' : adding ? '/today' : app.teams.some((x) => !x.problem) ? '/today' : '');
+  const leaveTo = $derived(storageOnly ? '/settings/storage' : adding ? '/today' : hasTeams.length > 0 && !tour.flow ? '/today' : '');
+
+  /** Storage is set: on to the end, or, if the data has no team at all, on to the team step. */
+  function afterStorage(): void {
+    if (storageOnly && info && !info.teams.some((x) => !x.problem)) {
+      storageOnly = false;
+      d.team = 'new';
+      d.step = 'team';
+    } else d.step = storageOnly ? 'done' : 'team';
+  }
 
   function missingStorage(): string {
     if (d.kind === 'clone') {
@@ -307,7 +316,8 @@
         if (fail(null, missingStorage())) return;
         if (d.kind !== 'clone' && !(await applyStorage())) return;
         if (d.kind === 'clone') await guideFor();
-        d.step = d.kind === 'clone' || !d.name ? 'signin' : storageOnly ? 'done' : 'team';
+        if (d.kind === 'clone' || !d.name) d.step = 'signin';
+        else afterStorage();
       } else if (d.step === 'signin') {
         if (token && !(await testToken())) return;
         if (!(await saveIdentity())) return;
@@ -315,7 +325,7 @@
           if (problem?.kind === 'auth') tokenOk = false;
           return;
         }
-        d.step = storageOnly ? 'done' : 'team';
+        afterStorage();
       } else if (d.step === 'team') {
         if (d.team === 'existing' && !hasTeams.some((x) => x.key === d.existing)) d.existing = hasTeams[0]?.key ?? '';
         if (fail(null, missingTeam())) return;
@@ -334,8 +344,12 @@
     d.step = step;
   }
 
-  function back(): void {
-    if (index === 0 && leaveTo) return go(leaveTo);
+  async function back(): Promise<void> {
+    if (index === 0 && leaveTo) {
+      // The data folder may have been changed by a step already taken: read the teams again.
+      if (applied) await loadTeams();
+      return go(leaveTo);
+    }
     const prev = steps[index - 1];
     if (prev) goTo(prev);
   }
@@ -619,7 +633,7 @@
 
   <div class="row nav">
     <button class="btn" type="button" disabled={(index === 0 && !leaveTo) || busy} onclick={back}><Icon name="arrow_back" />{index === 0 && leaveTo ? t('Cancel') : t('Back')}</button>
-    <span class="grow small muted">{t('Your choices are kept as a draft.')}</span>
+    <span class="grow small muted">{adding || storageOnly ? '' : t('Your choices are kept as a draft.')}</span>
     {#if d.step === 'signin'}
       <button class="btn ghost" type="button" disabled={busy} onclick={next}>{t('Skip')}</button>
     {/if}

@@ -414,7 +414,7 @@
       <h2 id="s-setup">{t('Setup check')}</h2>
       <div class="row">
         <button class="btn" type="button" onclick={() => go('/setup', {}, { only: 'storage' })}><Icon name="restart_alt" />{t('Run first-start setup again')}</button>
-        <span class="muted small">{t('Walks through storage, sign-in, team and ticket source again. Your data stays.')}</span>
+        <span class="muted small">{t('Walks through storage and sign-in again. You can cancel at any time. Your data stays.')}</span>
       </div>
       <ul class="plain">
         {#each st.setup as item (item.key)}
