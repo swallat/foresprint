@@ -419,7 +419,7 @@ func Compute(inputs []SprintInput, settings model.ForecastSettings) ([]SprintRes
 			plan = &p
 			src := PlanActual
 			planSource = &src
-		case settings.StartRate > 0 && planCap != nil:
+		case settings.StartRate > 0 && planCap != nil && count(normalized[:i+1]) < MinThinHistory:
 			// No history yet: the team's own start rate stands in for the trend.
 			p := maxZero(RoundDown(*planCap*settings.StartRate, settings.Rounding))
 			plan = &p

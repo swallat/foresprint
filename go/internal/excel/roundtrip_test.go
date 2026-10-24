@@ -114,6 +114,7 @@ func TestRoundTripWithAllOutsideFields(t *testing.T) {
 	factor := 1.5
 	data.Team.Sprint.Naming = []model.NamingRule{{Pattern: "Sprint {N}"}}
 	data.Team.Sprint.ProForma = []string{"2099.1"}
+	data.Team.Forecast.StartRate = 0.7
 	data.Team.Estimation = model.EstimationSettings{Factor: &factor}
 	name := "Hand"
 	data.Sprints[0].Name = &name
