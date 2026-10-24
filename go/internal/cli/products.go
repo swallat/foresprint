@@ -74,7 +74,7 @@ func runProducts(env *Env, key, sprintID string, preplanning bool, history int, 
 	if err != nil {
 		return asFail(err)
 	}
-	unit := string(data.Team.Unit)
+	unit := cliUnitAt(data, s.Start)
 	if preplanning {
 		prior := s.Clone()
 		if err := env.askProductValues(data, fc, &s, "preplanned"); err != nil {

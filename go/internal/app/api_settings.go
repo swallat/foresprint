@@ -36,14 +36,7 @@ func sprintStart(data *storage.TeamData, id string) (time.Time, bool) {
 // effectiveUnit is the unit valid today and the sprint it applies from ("" = from the start):
 // the latest switch whose sprint has begun.
 func effectiveUnit(data *storage.TeamData, now time.Time) (model.Unit, string) {
-	unit, from := data.Team.Unit, ""
-	var latest time.Time
-	for _, c := range data.Team.Estimation.Changes {
-		if start, ok := sprintStart(data, c.From); ok && !start.After(now) && !start.Before(latest) {
-			unit, from, latest = c.Unit, c.From, start
-		}
-	}
-	return unit, from
+	return forecast.UnitAt(data, now)
 }
 
 // settingsUnitAt is the estimation unit valid in a sprint that starts at the given time: the unit of
