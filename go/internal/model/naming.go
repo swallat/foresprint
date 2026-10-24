@@ -107,9 +107,32 @@ func SprintDisplayName(team *Team, sprints []Sprint, id string) string {
 			number++
 		}
 	}
-	name, err := FormatSprintName(pattern, SprintNameInput{Start: s.Start, Number: number, Sequence: index + 1})
+	// A team that starts mid-year keeps counting from the number of its first sprint
+	// (first ID "2026.16": the first sprint is number 16, not 1).
+	seq := index + 1
+	if first := sprints[0]; first.Start.Year() == s.Start.Year() {
+		if k, ok := leadingCounter(first); ok && team.Sprint.Numbering != NumberingSequential {
+			number += k - 1
+		}
+	}
+	if team.Sprint.Numbering == NumberingSequential {
+		if k, err := strconv.Atoi(sprints[0].ID); err == nil && k > 0 {
+			seq += k - 1
+		}
+	}
+	name, err := FormatSprintName(pattern, SprintNameInput{Start: s.Start, Number: number, Sequence: seq})
 	if err != nil {
 		return id
 	}
 	return name
+}
+
+// leadingCounter is k of a yearly ID "YYYY.k" of the sprint's start year.
+func leadingCounter(s Sprint) (int, bool) {
+	year, counter, ok := strings.Cut(s.ID, ".")
+	if !ok || year != strconv.Itoa(s.Start.Year()) {
+		return 0, false
+	}
+	k, err := strconv.Atoi(counter)
+	return k, err == nil && k > 0
 }
