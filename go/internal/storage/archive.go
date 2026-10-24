@@ -6,11 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // ArchiveDir is the folder inside the data folder that holds archived teams. Its name starts with
 // an underscore, so that it can never be the key of a team (TeamKeyProblem).
 const ArchiveDir = "_archiv"
+
+// plainKey reports whether key is a single folder name (no separator, no "..", not the archive).
+func plainKey(key string) bool {
+	return key != "" && key != "." && key != ".." && key != ArchiveDir &&
+		!strings.ContainsAny(key, `/\`) && filepath.Base(key) == key
+}
 
 // ArchivedTeams are the keys of the archived teams, sorted.
 func (r *Repository) ArchivedTeams() []string {
@@ -31,7 +38,7 @@ func (r *Repository) ArchivedTeams() []string {
 // ArchiveTeam moves the whole folder of a team into the archive folder. Nothing is deleted: Git
 // sees a move, and RestoreTeam puts the folder back.
 func (r *Repository) ArchiveTeam(key string) error {
-	if !r.Exists(key) {
+	if !plainKey(key) || !r.Exists(key) {
 		return errors.New(tr("The team {team} does not exist.", "team", key))
 	}
 	to := filepath.Join(r.Root, ArchiveDir, key)
@@ -51,7 +58,7 @@ func (r *Repository) ArchiveTeam(key string) error {
 // RestoreTeam moves an archived team back to the data folder.
 func (r *Repository) RestoreTeam(key string) error {
 	from := filepath.Join(r.Root, ArchiveDir, key)
-	if !fileExists(filepath.Join(from, "team.yaml")) {
+	if !plainKey(key) || !fileExists(filepath.Join(from, "team.yaml")) {
 		return errors.New(tr("The archive holds no team {team}.", "team", key))
 	}
 	if _, clash := r.ClashingTeam(key); clash {

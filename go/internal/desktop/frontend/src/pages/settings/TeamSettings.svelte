@@ -156,6 +156,7 @@
 
 {#if !app.team}
   <p class="muted">{t('Choose a team first.')}</p>
+  <ArchiveCard />
 {:else if draft}
   <div class="field find">
     <label for="s-q">{t('Find a setting')}</label>
