@@ -36,3 +36,39 @@ func TestSprintDisplayName(t *testing.T) {
 		t.Errorf("no pattern: %q", got)
 	}
 }
+
+func TestSprintDisplayNameContinuesTheFirstIDNumber(t *testing.T) {
+	d := func(y int, m time.Month, day int) time.Time { return time.Date(y, m, day, 0, 0, 0, 0, time.UTC) }
+	team := model.NewTeam("t", "t")
+	team.Sprint.Naming = []model.NamingRule{{Pattern: "Sprint {JJJJ}.{N}"}}
+	sprints := []model.Sprint{
+		{ID: "2026.16", Start: d(2026, 10, 20)},
+		{ID: "2026.17", Start: d(2026, 11, 3)},
+		{ID: "2026.18", Start: d(2026, 11, 17)},
+		{ID: "2027.1", Start: d(2027, 1, 5)},
+	}
+	for i, want := range []string{"Sprint 2026.16", "Sprint 2026.17", "Sprint 2026.18", "Sprint 2027.1"} {
+		if got := model.SprintDisplayName(&team, sprints, sprints[i].ID); got != want {
+			t.Errorf("%s: %q, want %q", sprints[i].ID, got, want)
+		}
+	}
+}
+
+func TestSprintDisplayNameContinuesAFreeFirstName(t *testing.T) {
+	d := func(y int, m time.Month, day int) time.Time { return time.Date(y, m, day, 0, 0, 0, 0, time.UTC) }
+	team := model.NewTeam("t", "t")
+	team.Sprint.Naming = []model.NamingRule{{Pattern: "Team Sprint {JJJJ}.{N}"}}
+	sprints := []model.Sprint{
+		{ID: "Team Sprint 2026.16", Start: d(2026, 10, 20)},
+		{ID: "Team Sprint 2026.17", Start: d(2026, 11, 3)},
+	}
+	if got := model.SprintDisplayName(&team, sprints, sprints[1].ID); got != "Team Sprint 2026.17" {
+		t.Errorf("got %q", got)
+	}
+	team.Sprint.Numbering = model.NumberingSequential
+	team.Sprint.Naming = []model.NamingRule{{Pattern: "Sprint {LFD}"}}
+	seq := []model.Sprint{{ID: "Sprint 16", Start: d(2026, 10, 20)}, {ID: "Sprint 17", Start: d(2026, 11, 3)}}
+	if got := model.SprintDisplayName(&team, seq, "Sprint 17"); got != "Sprint 17" {
+		t.Errorf("sequential: %q", got)
+	}
+}

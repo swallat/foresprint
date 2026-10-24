@@ -107,9 +107,40 @@ func SprintDisplayName(team *Team, sprints []Sprint, id string) string {
 			number++
 		}
 	}
-	name, err := FormatSprintName(pattern, SprintNameInput{Start: s.Start, Number: number, Sequence: index + 1})
+	// A team that starts mid-year keeps counting from the number of its first sprint
+	// (first ID "2026.16": the first sprint is number 16, not 1).
+	seq := index + 1
+	if first := sprints[0]; first.Start.Year() == s.Start.Year() {
+		if k, ok := leadingCounter(first); ok && team.Sprint.Numbering != NumberingSequential {
+			number += k - 1
+		}
+	}
+	if team.Sprint.Numbering == NumberingSequential {
+		if m := trailingNumber.FindStringSubmatch(sprints[0].ID); m != nil {
+			if k, err := strconv.Atoi(m[1]); err == nil && k > 0 {
+				seq += k - 1
+			}
+		}
+	}
+	name, err := FormatSprintName(pattern, SprintNameInput{Start: s.Start, Number: number, Sequence: seq})
 	if err != nil {
 		return id
 	}
 	return name
 }
+
+// trailingNumbers matches the ID of a first sprint like "2026.16" or "Team Sprint 2026.16": the
+// year and the counter at its end.
+var trailingNumbers = regexp.MustCompile(`(\d{4})\.(\d+)$`)
+
+// leadingCounter is k of a yearly first sprint ID ending in "YYYY.k" of the sprint's start year.
+func leadingCounter(s Sprint) (int, bool) {
+	m := trailingNumbers.FindStringSubmatch(s.ID)
+	if m == nil || m[1] != strconv.Itoa(s.Start.Year()) {
+		return 0, false
+	}
+	k, err := strconv.Atoi(m[2])
+	return k, err == nil && k > 0
+}
+
+var trailingNumber = regexp.MustCompile(`(\d+)$`)
