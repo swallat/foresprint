@@ -47,6 +47,11 @@ const setupMock: Partial<Api> = {
     demo.team = { key: req.name.toLowerCase().replace(/\W+/g, '-'), name: req.name, people: 0, sprints: 3, tickets: req.source !== 'none', products: 0 };
     return demo.team;
   },
+  async ArchiveTeam() {},
+  async ArchivedTeams() {
+    return [];
+  },
+  async RestoreTeam() {},
 };
 
 export default setupMock;
