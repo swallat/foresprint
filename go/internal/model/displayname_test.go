@@ -53,3 +53,22 @@ func TestSprintDisplayNameContinuesTheFirstIDNumber(t *testing.T) {
 		}
 	}
 }
+
+func TestSprintDisplayNameContinuesAFreeFirstName(t *testing.T) {
+	d := func(y int, m time.Month, day int) time.Time { return time.Date(y, m, day, 0, 0, 0, 0, time.UTC) }
+	team := model.NewTeam("t", "t")
+	team.Sprint.Naming = []model.NamingRule{{Pattern: "Team Sprint {JJJJ}.{N}"}}
+	sprints := []model.Sprint{
+		{ID: "Team Sprint 2026.16", Start: d(2026, 10, 20)},
+		{ID: "Team Sprint 2026.17", Start: d(2026, 11, 3)},
+	}
+	if got := model.SprintDisplayName(&team, sprints, sprints[1].ID); got != "Team Sprint 2026.17" {
+		t.Errorf("got %q", got)
+	}
+	team.Sprint.Numbering = model.NumberingSequential
+	team.Sprint.Naming = []model.NamingRule{{Pattern: "Sprint {LFD}"}}
+	seq := []model.Sprint{{ID: "Sprint 16", Start: d(2026, 10, 20)}, {ID: "Sprint 17", Start: d(2026, 11, 3)}}
+	if got := model.SprintDisplayName(&team, seq, "Sprint 17"); got != "Sprint 17" {
+		t.Errorf("sequential: %q", got)
+	}
+}
