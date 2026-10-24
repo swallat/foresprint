@@ -46,19 +46,22 @@
   const all = $derived(groups.flatMap((g) => g.rows));
   const anyPre = $derived(all.some((p) => p.pre != null));
 
-  async function setPre(p: PlanProduct, text: string): Promise<void> {
-    const v = parseAmount(text);
-    if (v === undefined) return void model.reload();
+  /** Puts the stored text back into a field whose input was refused: the data did not change, so the field would keep the bad text. */
+  const restore = (el: HTMLInputElement, shown: number | string) => void (el.value = String(shown));
+
+  async function setPre(p: PlanProduct, el: HTMLInputElement): Promise<void> {
+    const v = parseAmount(el.value);
+    if (v === undefined) return restore(el, p.pre ?? '');
     await model.change(() => api.SetPreplanned(app.team, d!.sprint, p.id, v));
   }
-  async function setProject(id: string, text: string): Promise<void> {
-    const v = parseAmount(text);
-    if (v === undefined) return void model.reload();
+  async function setProject(id: string, el: HTMLInputElement): Promise<void> {
+    const v = parseAmount(el.value);
+    if (v === undefined) return restore(el, d?.projects.find((q) => q.id === id)?.amount || '');
     await model.change(() => api.SetProjectAmount(app.team, d!.sprint, id, v));
   }
-  async function setSprintPre(text: string): Promise<void> {
-    const v = parseAmount(text);
-    if (v === undefined) return void model.reload();
+  async function setSprintPre(el: HTMLInputElement): Promise<void> {
+    const v = parseAmount(el.value);
+    if (v === undefined) return restore(el, d?.sprintPre ?? '');
     await model.change(() => api.SetSprintPreplanned(app.team, d!.sprint, v));
   }
   const takeEarmarks = () => model.change(() => api.TakeEarmarks(app.team, d!.sprint), t('Amounts taken from the earmarks.'));
@@ -133,7 +136,7 @@
                 <td>{p.name}</td>
                 <td class="num">{fmt(p.default)}</td>
                 <td class="num edit">
-                  <input aria-label={t('Pre-planned {product}', { product: p.name })} inputmode="decimal" value={p.pre ?? ''} placeholder="–" onchange={(e) => setPre(p, e.currentTarget.value)} />
+                  <input aria-label={t('Pre-planned {product}', { product: p.name })} inputmode="decimal" value={p.pre ?? ''} placeholder="–" onchange={(e) => setPre(p, e.currentTarget)} />
                 </td>
                 {#if !noT}
                   <td class="num">{fmt(p.earmark, 1)}</td>
@@ -187,7 +190,7 @@
     </div>
     <div class="row gap">
       <label for="sprint-pre">{t('Pre-planned amount of the sprint ({unit})', { unit: unitName(d) })}</label>
-      <input id="sprint-pre" class="num" inputmode="decimal" value={d.sprintPre ?? ''} placeholder="–" onchange={(e) => setSprintPre(e.currentTarget.value)} />
+      <input id="sprint-pre" class="num" inputmode="decimal" value={d.sprintPre ?? ''} placeholder="–" onchange={(e) => setSprintPre(e.currentTarget)} />
     </div>
   {/if}
 
@@ -208,7 +211,7 @@
               <tr>
                 <td>{p.name}</td>
                 <td class="num edit">
-                  <input inputmode="decimal" value={p.amount || ''} placeholder="–" aria-label={t('{project} in {unit}', { project: p.name, unit: unitName(d) })} onchange={(e) => setProject(p.id, e.currentTarget.value)} />
+                  <input inputmode="decimal" value={p.amount || ''} placeholder="–" aria-label={t('{project} in {unit}', { project: p.name, unit: unitName(d) })} onchange={(e) => setProject(p.id, e.currentTarget)} />
                 </td>
                 <td class="num">{p.needPD == null ? '–' : fmt(p.needPD, 1)}</td>
                 <td class="num">{p.bookedPD == null ? '–' : `${fmt(p.bookedPD)} ${t('PD')}`}</td>
