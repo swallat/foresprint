@@ -331,7 +331,7 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	if s == nil {
 		return SprintPrepare{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
 	}
-	out := SprintPrepare{Sprint: column(data, fc, *s), Unit: string(data.Team.Unit), Ready: []ReadyItem{}}
+	out := SprintPrepare{Sprint: column(data, fc, *s), Unit: settingsUnitAt(data, s.Start), Ready: []ReadyItem{}}
 	// The preview compares with the sprint without any absence.
 	bare := s.Clone()
 	bare.Absences, bare.ExpectedAbsences = nil, nil
@@ -396,7 +396,7 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 	if err != nil {
 		return SprintOverview{}, err
 	}
-	out := SprintOverview{Rows: []SprintRow{}, Reference: data.Team.Forecast.ReferenceCapacity, Unit: string(data.Team.Unit), CurrentIndex: -1}
+	out := SprintOverview{Rows: []SprintRow{}, Reference: data.Team.Forecast.ReferenceCapacity, Unit: settingsUnitNow(data), CurrentIndex: -1}
 	firstPast := 0
 	if n := len(fc.History()); past >= 0 && n > past {
 		firstPast = n - past

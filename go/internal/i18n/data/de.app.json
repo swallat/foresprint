@@ -197,6 +197,8 @@
   "The start rate must be between 0 and 100.": "Der Startwert muss zwischen 0 und 100 liegen.",
   "forecast.start_rate must be ≥ 0": "forecast.start_rate muss ≥ 0 sein",
   "No history yet: capacity {capacity} × start rate {rate} = {plan} {unit}, rounded down.": "Noch keine Historie: Kapazität {capacity} × Startwert {rate} = {plan} {unit}, abgerundet.",
-  "Forecast PLAN = rounded down(capacity × start rate) – no history yet": "Forecast PLAN = abgerundet(Kapazität × Startwert) – noch keine Historie"
+  "Forecast PLAN = rounded down(capacity × start rate) – no history yet": "Forecast PLAN = abgerundet(Kapazität × Startwert) – noch keine Historie",
+  "The deduction for Scrum events must be between 0 and 20 PT per person.": "Der Abzug für Scrum-Events muss zwischen 0 und 20 PT je Person liegen.",
+  "The deduction for Scrum events must be between 0 and 90 percent.": "Der Abzug für Scrum-Events muss zwischen 0 und 90 Prozent liegen."
  }
 }

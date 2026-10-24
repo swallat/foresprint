@@ -161,6 +161,10 @@
   "Restore": "Wiederherstellen",
   "{name} is archived. It stays in the data folder and can be restored here.": "{name} ist archiviert. Es bleibt im Datenordner und lässt sich hier wiederherstellen.",
   "The team disappears from the list, nothing is deleted: its whole folder (people, sprints, projects with contingents, minutes) moves to the folder “_archiv” in the data folder. Git shows it as a move, so the history stays. Other people see the team gone after the next update.": "Das Team verschwindet aus der Liste, gelöscht wird nichts: Der ganze Ordner (Personen, Sprints, Projekte mit Kontingenten, Protokolle) wandert in den Ordner „_archiv“ im Datenordner. Git zeigt das als Verschieben, der Verlauf bleibt. Andere sehen das Team nach ihrem nächsten Aktualisieren nicht mehr.",
-  "Type the name of the team to archive it.": "Gib zum Archivieren den Namen des Teams ein."
+  "Type the name of the team to archive it.": "Gib zum Archivieren den Namen des Teams ein.",
+  "Capacity scrum events deduction overhead planning review retro days per person percent": "Kapazität Scrum-Events Abzug Overhead Planung Review Retro Tage je Person Prozent",
+  "Time for planning, review and retro that does not count for capacity. Per full-time person and sprint (part time pro rata), e.g. 1. If set, the days apply instead of the percent. 0 = none.": "Zeit für Planung, Review und Retro, die nicht zur Kapazität zählt. Je Vollzeitperson und Sprint (Teilzeit anteilig), z. B. 1. Sind Tage gesetzt, gelten sie statt der Prozent. 0 = keiner.",
+  "Deduction for Scrum events (PD per person)": "Abzug für Scrum-Events (PT je Person)",
+  "Deduction for Scrum events (%)": "Abzug für Scrum-Events (%)"
  }
 }

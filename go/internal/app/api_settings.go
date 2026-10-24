@@ -46,6 +46,16 @@ func effectiveUnit(data *storage.TeamData, now time.Time) (model.Unit, string) {
 	return unit, from
 }
 
+// settingsUnitAt is the estimation unit valid in a sprint that starts at the given time: the unit of
+// the team until a switch takes over from its sprint on.
+func settingsUnitAt(data *storage.TeamData, start time.Time) string {
+	unit, _ := effectiveUnit(data, start)
+	return string(unit)
+}
+
+// settingsUnitNow is the estimation unit valid today; every view that shows an amount labels it so.
+func settingsUnitNow(data *storage.TeamData) string { return settingsUnitAt(data, time.Now()) }
+
 // TeamSettings returns the settings of Settings > Team.
 func (a *API) TeamSettings(team string) (TeamSettings, error) {
 	_, data, err := a.loadRepoTeam(team)
@@ -77,6 +87,8 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 		Products:      t.Features.Products,
 		PO:            t.Features.PO,
 		Production:    t.Features.Production,
+		OverheadDays:  t.Capacity.OverheadDays,
+		OverheadShare: round6(t.Capacity.OverheadShare * 100),
 		ProductionCap: t.Capacity.ProductionCap,
 		Projects:      t.Features.Projects,
 		ProForma:      append([]string{}, t.Sprint.ProForma...),
@@ -146,6 +158,10 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 		return bad("Unknown budget basis: {value}", "value", f.Basis)
 	case in.LengthDays < 1 || in.LengthDays > 60:
 		return bad("The sprint length must be between 1 and 60 working days.")
+	case in.OverheadDays != t.Capacity.OverheadDays && !(in.OverheadDays >= 0 && in.OverheadDays <= 20):
+		return bad("The deduction for Scrum events must be between 0 and 20 PT per person.")
+	case in.OverheadShare != round6(t.Capacity.OverheadShare*100) && !(in.OverheadShare >= 0 && in.OverheadShare <= 90):
+		return bad("The deduction for Scrum events must be between 0 and 90 percent.")
 	case !(in.ProductionCap >= 0 && in.ProductionCap <= 100):
 		return bad("The cap of the production time must be between 0 and 100 percent.")
 	case in.Factor != nil && !(*in.Factor > 0):
@@ -189,6 +205,13 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Features.Production, t.Features.Projects = in.Production, in.Projects
 	t.Features.Explicit = true
 	t.Capacity.ProductionCap = round6(in.ProductionCap)
+	// an unchanged value stays as stored (a hand-edited one, or one with more decimals)
+	if in.OverheadDays != t.Capacity.OverheadDays {
+		t.Capacity.OverheadDays = round6(in.OverheadDays)
+	}
+	if in.OverheadShare != round6(t.Capacity.OverheadShare*100) {
+		t.Capacity.OverheadShare = round6(in.OverheadShare / 100)
+	}
 	t.Capacity.Country = in.Country
 	t.Capacity.Region = nil
 	if in.Region != "" {

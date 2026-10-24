@@ -49,6 +49,7 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	s.Forecast.PlannableShare = 70
 	s.Forecast.Trend = "linear"
 	s.Forecast.StartRate = 0.7
+	s.OverheadDays, s.OverheadShare = 1.5, 10
 	s.Production = true
 	s.ProductionCap = 60
 	s.ProForma = []string{" Refinement ", "", "Parkplatz"}
@@ -61,6 +62,9 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 	}
 	if got.Forecast.Window != 6 || got.Forecast.PlannableShare != 70 || got.Forecast.Trend != "linear" {
 		t.Errorf("forecast = %+v", got.Forecast)
+	}
+	if got.OverheadDays != 1.5 || got.OverheadShare != 10 {
+		t.Errorf("overhead = %v days, %v %%", got.OverheadDays, got.OverheadShare)
 	}
 	if got.Forecast.StartRate != 0.7 {
 		t.Errorf("start rate = %v", got.Forecast.StartRate)
@@ -82,6 +86,8 @@ func TestTeamSettingsRefuseNonsense(t *testing.T) {
 		"share":     func(s *TeamSettings) { s.Forecast.PlannableShare = 120 },
 		"cap":       func(s *TeamSettings) { s.ProductionCap = -1 },
 		"start":     func(s *TeamSettings) { s.Forecast.StartRate = -0.5 },
+		"overhead":  func(s *TeamSettings) { s.OverheadDays = 25 },
+		"ovshare":   func(s *TeamSettings) { s.OverheadShare = 95 },
 		"duplicate": func(s *TeamSettings) { s.ProForma = []string{"A", "a"} },
 	} {
 		s := base
@@ -108,6 +114,13 @@ func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
 	got, _ := api.TeamSettings(team)
 	if got.Unit != other || got.UnitFrom != first || len(got.UnitChanges) != 1 {
 		t.Fatalf("after change: %+v", got)
+	}
+	// the backlog labels its amounts with the unit valid now, not the one the team started with
+	if bl, err := api.Backlog(team); err != nil || bl.Unit != other {
+		t.Errorf("backlog unit = %q (err %v), want %q", bl.Unit, err, other)
+	}
+	if pv, err := api.Projects(team); err != nil || pv.Unit != other || (other == "SP" && pv.Rate != nil && *pv.Rate == 1) {
+		t.Errorf("projects unit = %q rate = %v (err %v), want %q and no fixed rate of 1", pv.Unit, pv.Rate, err, other)
 	}
 	got.Unit, got.UnitFrom = orig, ""
 	if err := api.SaveTeamSettings(team, got); err == nil {
