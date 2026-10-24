@@ -175,6 +175,13 @@
   "{name}: unknown country {country}.": "{name}: Land {country} ist unbekannt.",
   "{name}: unknown region {region}.": "{name}: Region {region} ist unbekannt.",
   "Unknown country: {country}": "Land unbekannt: {country}",
-  "Unknown region: {region}": "Region unbekannt: {region}"
+  "Unknown region: {region}": "Region unbekannt: {region}",
+  "Status: {status}": "Status: {status}",
+  "carried over, rest {rest}": "Übertrag, Rest {rest}",
+  "added after the freeze": "nachträglich aufgenommen",
+  "Earmarked tickets": "Vorgemerkte Tickets",
+  "Earmarked": "Vorgemerkt",
+  "Pre-planned": "Vorgeplant",
+  "The sprint {id} has started; its pre-planning minutes cannot be written any more.": "Der Sprint {id} hat begonnen; sein Vorplanungs-Protokoll kann nicht mehr geschrieben werden."
  }
 }

@@ -3,7 +3,7 @@
   // per product, the production against its time, earmarked tickets by project and the what-if
   // for the running sprint. Works for any sprint at any time; nothing here is a gate.
   import { api } from '../../lib/api';
-  import { app, openTicket } from '../../lib/app.svelte';
+  import { app, openTicket, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
@@ -62,6 +62,11 @@
     await model.change(() => api.SetSprintPreplanned(app.team, d!.sprint, v));
   }
   const takeEarmarks = () => model.change(() => api.TakeEarmarks(app.team, d!.sprint), t('Amounts taken from the earmarks.'));
+  const writeMinutes = () =>
+    model.change(async () => {
+      const file = await api.SavePreplanMinutes(app.team, d!.sprint);
+      toast(t('Pre-planning minutes written: {file}', { file }), 'ok');
+    });
   const useDefaults = () => model.change(() => api.UseDefaults(app.team, d!.sprint), t('Standard amounts taken over.'));
 
   /** Earmarked tickets by project; daily business (no project) last. */
@@ -80,6 +85,9 @@
 {:else if d}
   <SprintHead {d} stage="preplan">
     {#snippet actions()}
+      {#if d.stage === 'open' || d.stage === 'planned'}
+        <button class="btn" type="button" id="minutes" onclick={writeMinutes}><Icon name="description" />{t('Write minutes')}</button>
+      {/if}
       {#if !noT && d.multiProduct}
         <button class="btn" type="button" id="take" onclick={takeEarmarks}><Icon name="playlist_add" />{t('Take over earmarks')}</button>
       {/if}

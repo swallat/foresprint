@@ -204,6 +204,7 @@ export interface PlanApi {
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
+  SavePreplanMinutes(team: string, sprint: string): Promise<string>;
   SetMatrixCell(team: string, sprint: string, product: string, project: string, value: number | null): Promise<void>;
   UseMatrix(team: string, sprint: string): Promise<void>;
   PlanWritePreview(team: string, sprint: string): Promise<WritePreview>;

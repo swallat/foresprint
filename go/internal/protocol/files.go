@@ -317,6 +317,37 @@ func (s *Store) SaveWithProtocol(sprintID, kind, text string, documents []string
 	return saved, err
 }
 
+// ReplaceWithSave marks the valid minutes of the meeting obsolete, writes the new ones and then
+// calls save; if save fails, the new minutes are removed and the old ones renamed back. save
+// runs under the lock and must not take it itself.
+func (s *Store) ReplaceWithSave(sprintID, kind, text string, save func() error) (path string, err error) {
+	folder, err := s.makeFolder()
+	if err != nil {
+		return "", err
+	}
+	err = s.locked(folder, sprintID, kind, func() error {
+		renamed, merr := s.markObsolete(sprintID, kind)
+		if merr != nil {
+			return merr
+		}
+		p, created, werr := s.writeLocked(sprintID, kind, text, nil)
+		if werr != nil {
+			return errors.Join(werr, s.undo(renamed))
+		}
+		if serr := save(); serr != nil {
+			if created {
+				if rerr := os.Remove(p); rerr != nil && !errors.Is(rerr, fs.ErrNotExist) {
+					serr = errors.Join(serr, rollbackNote(p, rerr))
+				}
+			}
+			return errors.Join(serr, s.undo(renamed))
+		}
+		path = p
+		return nil
+	})
+	return path, err
+}
+
 func rollbackNote(path string, err error) error {
 	return errors.New(msg("{path}: not rolled back ({reason})", "path", path, "reason", reason(err)))
 }

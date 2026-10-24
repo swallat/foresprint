@@ -204,7 +204,7 @@
     });
   }
   const reopen = () =>
-    model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The next freeze marks the old minutes as obsolete.'));
+    model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The planning minutes are marked as obsolete.'));
   const setAmount = (id: string, text: string) => {
     const v = parseAmount(text);
     if (v != null) amounts[id] = v;
