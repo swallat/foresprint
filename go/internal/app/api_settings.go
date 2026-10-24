@@ -158,9 +158,9 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 		return bad("Unknown budget basis: {value}", "value", f.Basis)
 	case in.LengthDays < 1 || in.LengthDays > 60:
 		return bad("The sprint length must be between 1 and 60 working days.")
-	case !(in.OverheadDays >= 0 && in.OverheadDays <= 20):
+	case in.OverheadDays != t.Capacity.OverheadDays && !(in.OverheadDays >= 0 && in.OverheadDays <= 20):
 		return bad("The deduction for Scrum events must be between 0 and 20 PT per person.")
-	case !(in.OverheadShare >= 0 && in.OverheadShare <= 90):
+	case in.OverheadShare != round6(t.Capacity.OverheadShare*100) && !(in.OverheadShare >= 0 && in.OverheadShare <= 90):
 		return bad("The deduction for Scrum events must be between 0 and 90 percent.")
 	case !(in.ProductionCap >= 0 && in.ProductionCap <= 100):
 		return bad("The cap of the production time must be between 0 and 100 percent.")
@@ -205,8 +205,13 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Features.Production, t.Features.Projects = in.Production, in.Projects
 	t.Features.Explicit = true
 	t.Capacity.ProductionCap = round6(in.ProductionCap)
-	t.Capacity.OverheadDays = round6(in.OverheadDays)
-	t.Capacity.OverheadShare = round6(in.OverheadShare / 100)
+	// an unchanged value stays as stored (a hand-edited one, or one with more decimals)
+	if in.OverheadDays != t.Capacity.OverheadDays {
+		t.Capacity.OverheadDays = round6(in.OverheadDays)
+	}
+	if in.OverheadShare != round6(t.Capacity.OverheadShare*100) {
+		t.Capacity.OverheadShare = round6(in.OverheadShare / 100)
+	}
 	t.Capacity.Country = in.Country
 	t.Capacity.Region = nil
 	if in.Region != "" {
