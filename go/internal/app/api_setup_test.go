@@ -167,3 +167,12 @@ func TestSetupCreateTeamNamingPattern(t *testing.T) {
 		t.Fatal("a name without a number and without a pattern must be refused")
 	}
 }
+
+func TestSetupCreateTeamPatternWithoutNumberRefused(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	req := newTeamRequest(SourceNone)
+	req.FirstSprintID, req.NamingPattern = "Sprint", "Sprint"
+	if _, err := api.SetupCreateTeam(req); err == nil {
+		t.Fatal("a pattern that names all sprints alike must be refused")
+	}
+}

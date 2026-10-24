@@ -254,6 +254,11 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 		if err != nil {
 			return TeamSummary{}, err
 		}
+		for _, earlier := range sprints {
+			if earlier.ID == s.ID {
+				return TeamSummary{}, errors.New(i18n.T("The pattern {pattern} gives several sprints the same name; add {N} or {LFD}.", "pattern", pattern))
+			}
+		}
 		sprints = append(sprints, s)
 	}
 	if err := writeNewTeam(repo, team, sprints); err != nil {

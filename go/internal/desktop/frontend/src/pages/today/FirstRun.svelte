@@ -75,7 +75,11 @@
     try {
       const raw = localStorage.getItem(KEY);
       // The data folder is not made yet after a restart, so the draft begins at the first step.
-      if (raw) return { ...empty, ...(JSON.parse(raw) as Partial<Draft>), step: 'storage' };
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<Draft>;
+        // The date is kept as YYYY-MM-DD, so that a change of language cannot read it differently.
+        return { ...empty, ...saved, start: saved.start ? formatDayInput(parseDayInput(saved.start)) || saved.start : empty.start, step: 'storage' };
+      }
     } catch {
       /* no stored draft, or storage blocked: start fresh */
     }
@@ -110,7 +114,7 @@
   $effect(() => {
     if (adding) return;
     // An address with credentials in it is never written down (the core rejects it anyway).
-    const snapshot = JSON.stringify({ ...d, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
+    const snapshot = JSON.stringify({ ...d, start: parseDayInput(d.start) || d.start, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
       localStorage.setItem(KEY, snapshot);
     } catch {
@@ -166,7 +170,7 @@
 
   const hasTeams = $derived((info?.teams ?? []).filter((x) => !x.problem));
   const cloneTarget = $derived(d.parent ? joinPath(d.parent, repoName(d.address), os) : '');
-  const patternHint = $derived(derivePattern(d.sprintId, parseDayInput(d.start)));
+  const patternHint = $derived((parseDayInput(d.start) ? derivePattern(d.sprintId, parseDayInput(d.start)) : ''));
   const country = $derived(regions.find((r) => r.country === d.country));
   const steps = $derived<Step[]>(adding ? ['team', 'tickets', 'done'] : d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
   const index = $derived(Math.max(0, steps.indexOf(d.step)));
