@@ -81,7 +81,6 @@
   "Open {key} in the tracker": "{key} im Tracker öffnen",
   "PO": "PO",
   "Person days after calendar, FTE and overhead, minus absences.": "Personentage nach Kalender, FTE und Overhead, minus Abwesenheiten.",
-  "Plan opened again. The next freeze marks the old minutes as obsolete.": "Plan wieder geöffnet. Beim nächsten Einfrieren wird das alte Protokoll als überholt markiert.",
   "Plan {sprint} frozen. Planning minutes written: {file}": "Plan {sprint} eingefroren. Planungsprotokoll geschrieben: {file}",
   "Plannable in {sprint}": "Verplanbar in {sprint}",
   "Planned and done are filled by the planning and the review and are read-only here.": "Geplant und Erledigt füllen Planning und Review, hier nur lesbar.",
@@ -223,6 +222,9 @@
   "Freeze allocation": "Belegung festschreiben",
   "{n} PD over contingent": "{n} PT über dem Kontingent",
   "tight, rest {n} PD": "knapp, Rest {n} PT",
-  "on plan, rest {n} PD": "im Plan, Rest {n} PT"
+  "on plan, rest {n} PD": "im Plan, Rest {n} PT",
+  "Plan opened again. The planning minutes are marked as obsolete.": "Plan wieder geöffnet. Das Planning-Protokoll ist als überholt markiert.",
+  "Pre-planning minutes written: {file}": "Vorplanungs-Protokoll geschrieben: {file}",
+  "Write minutes": "Protokoll schreiben"
  }
 }

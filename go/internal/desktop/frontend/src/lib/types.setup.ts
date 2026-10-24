@@ -70,4 +70,8 @@ export interface SetupApi {
   SetupIdentity(name: string, email: string): Promise<Problem | null>;
   SetupRegions(): Promise<Region[]>;
   SetupCreateTeam(req: NewTeam): Promise<TeamSummary>;
+  /** Moves the folder of the team to the archive; confirm is the name of the team. Nothing is deleted. */
+  ArchiveTeam(team: string, confirm: string): Promise<void>;
+  ArchivedTeams(): Promise<TeamSummary[]>;
+  RestoreTeam(team: string): Promise<void>;
 }
