@@ -122,7 +122,7 @@ jobs:
           if [ "${{ matrix.goos }}" = darwin ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
           mkdir -p ../stage
           CGO_ENABLED=1 go build -trimpath -tags "$tags" -ldflags "$ldflags" -o "../stage/$exe" ./cmd/foresprint
-          cp ../LICENSE ../stage/
+          cp ../LICENSE ../THIRD_PARTY_NOTICES.md ../stage/
       - name: Console subsystem (Windows)
         if: matrix.goos == 'windows'
         shell: pwsh
@@ -144,9 +144,9 @@ jobs:
           mkdir -p dist
           cd stage
           if [ "${{ matrix.goos }}" = windows ]; then
-            7z a -tzip "../dist/$name.zip" foresprint.exe LICENSE
+            7z a -tzip "../dist/$name.zip" foresprint.exe LICENSE THIRD_PARTY_NOTICES.md
           else
-            tar -czf "../dist/$name.tar.gz" foresprint LICENSE
+            tar -czf "../dist/$name.tar.gz" foresprint LICENSE THIRD_PARTY_NOTICES.md
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -179,7 +179,7 @@ jobs:
           mkdir -p ../stage
           CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath \
             -ldflags "-s -w -X main.version=$version" -o ../stage/foresprint ./cmd/foresprint
-          cp ../LICENSE ../stage/
+          cp ../LICENSE ../THIRD_PARTY_NOTICES.md ../stage/
       - name: Smoke test
         if: matrix.goarch == 'amd64'
         run: ./stage/foresprint version
@@ -187,7 +187,7 @@ jobs:
         run: |
           version="${TAG#v}"
           mkdir -p dist
-          tar -czf "dist/foresprint-cli_${version}_linux_${{ matrix.goarch }}.tar.gz" -C stage foresprint LICENSE
+          tar -czf "dist/foresprint-cli_${version}_linux_${{ matrix.goarch }}.tar.gz" -C stage foresprint LICENSE THIRD_PARTY_NOTICES.md
       - uses: actions/upload-artifact@v4
         with:
           name: archive-cli-linux-${{ matrix.goarch }}

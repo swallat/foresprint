@@ -62,6 +62,7 @@ export const pages: PageDef[] = [
 
   { path: '/help/calculations', title: 'Calculations', load: () => import('../pages/help/Calculations.svelte') },
   { path: '/help/guided', title: 'Guided flows', load: () => import('../pages/help/Guided.svelte') },
+  { path: '/help/about', title: 'About Foresprint', load: () => import('../pages/help/About.svelte') },
 ];
 
 export interface NavItem {
@@ -138,6 +139,7 @@ export const nav: NavGroup[] = [
     items: [
       { path: '/help/calculations', icon: 'calculate', label: 'Calculations' },
       { path: '/help/guided', icon: 'route', label: 'Guided flows' },
+      { path: '/help/about', icon: 'info', label: 'About' },
     ],
   },
 ];
