@@ -18,9 +18,22 @@ let known: string | undefined;
 let pending = false;
 let started = false;
 
+/** What the view saw last, for the page Settings > Browser (when something seems not to arrive). */
+export const live = $state({ at: 0, what: '' as '' | 'applied' | 'own' | 'typing' });
+
+/** Someone is typing: a field has the focus, this window has the focus and a key was pressed
+ * lately. A field that was left focused in a tab nobody looks at must not hold changes back. */
+const TYPING_MS = 8000;
+let lastKey = 0;
 const typing = (): boolean => {
   const el = document.activeElement;
-  return !!el && !!el.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  return (
+    !!el &&
+    !!el.closest('#main') &&
+    /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) &&
+    document.hasFocus() &&
+    Date.now() - lastKey < TYPING_MS
+  );
 };
 
 let lastFocusChange = 0;
@@ -28,6 +41,7 @@ let waiting: ReturnType<typeof setInterval> | undefined;
 
 async function apply(): Promise<void> {
   pending = false;
+  live.what = 'applied';
   app.changed++;
   void refreshStatus();
   // The team list and the sprints of the other view's work (a team added, a sprint renamed).
@@ -65,11 +79,17 @@ function onData(fp: string): void {
     return;
   }
   known = fp;
+  live.at = Date.now();
   // Own work (a call a moment ago, a save, a sync) is not news.
-  if (ownCallRecent(GRACE_MS) || app.busy || app.status.tracker.syncing) return;
+  if (ownCallRecent(GRACE_MS) || app.busy || app.status.tracker.syncing) {
+    live.what = 'own';
+    return;
+  }
   // Do not pull the page away from under someone who is typing.
-  if (typing() || pending) applyWhenQuiet();
-  else void apply();
+  if (typing() || pending) {
+    live.what = 'typing';
+    applyWhenQuiet();
+  } else void apply();
 }
 
 /** Starts listening; safe to call twice. Does nothing in a plain browser without the program. */
@@ -82,6 +102,9 @@ export function watchData(): void {
   runtime?.EventsOn?.(EVENT, (fp) => {
     known ??= ''; // no baseline in the window: whatever arrives is news
     onData(String(fp));
+  });
+  window.addEventListener('keydown', () => {
+    lastKey = Date.now();
   });
   window.addEventListener('focusout', () => {
     lastFocusChange = Date.now();

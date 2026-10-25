@@ -181,6 +181,11 @@
   "The link only works on this computer and contains a secret key. It is new on every start and void once you switch the access off or close the program. When you share your screen, share the tab, not the link.": "Der Link funktioniert nur auf diesem Rechner und enthält einen geheimen Schlüssel. Er ist bei jedem Start neu und ungültig, sobald du den Zugriff ausschaltest oder das Programm schließt. Teile beim Bildschirmteilen den Tab, nicht den Link.",
   "Changes show up in the other view within a second or two; the page is shown anew unless you are typing in a field. Updates of the program are made in the window.": "Änderungen erscheinen in der jeweils anderen Ansicht nach ein bis zwei Sekunden; die Seite wird neu aufgebaut, außer du tippst gerade in ein Feld. Programm-Updates machst du im Fenster.",
   "Show in the browser": "Im Browser anzeigen",
-  "Browser settings": "Browser-Einstellungen"
+  "Browser settings": "Browser-Einstellungen",
+  "Last change of the other view: {time}, {what}.": "Letzte Änderung der anderen Ansicht: {time}, {what}.",
+  "page updated": "Seite aktualisiert",
+  "waiting, you are typing": "wartet, du tippst gerade",
+  "taken as your own work": "als eigene Arbeit gewertet",
+  "This view has not seen a change of the other view yet.": "Diese Ansicht hat noch keine Änderung der anderen Ansicht gesehen."
  }
 }

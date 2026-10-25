@@ -110,15 +110,20 @@ export const api: Api = new Proxy({} as Api, {
   get:
     (_, method: string) =>
     async (...args: unknown[]) => {
-      callsOpen++;
+      // Only writes count as own work; a read that hangs (a slow check) must not hide the other
+      // view's changes.
+      const write = writes.test(method);
+      if (write) callsOpen++;
       try {
         const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
         const fn = target[method];
         if (!fn) throw new Error(`api: unknown method ${method}`);
         return await fn.apply(target, args);
       } finally {
-        callsOpen--;
-        if (writes.test(method)) lastWriteEnd = Date.now();
+        if (write) {
+          callsOpen--;
+          lastWriteEnd = Date.now();
+        }
       }
     },
 });

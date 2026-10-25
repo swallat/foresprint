@@ -28,4 +28,18 @@ describe('liveData', () => {
     send('d');
     expect(app.changed).toBe(before + 2);
   });
+
+  it('does not wait for a field that was only left focused (no key pressed lately)', async () => {
+    const { app } = await import('./app.svelte');
+    const main = document.createElement('main');
+    main.id = 'main';
+    const input = document.createElement('input');
+    main.appendChild(input);
+    document.body.appendChild(main);
+    input.focus();
+    const before = app.changed;
+    window.dispatchEvent(new CustomEvent('foresprint:data', { detail: 'e1' }));
+    expect(app.changed).toBe(before + 1);
+    main.remove();
+  });
 });
