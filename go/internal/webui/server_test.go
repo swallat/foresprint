@@ -19,7 +19,7 @@ func (*fakeAPI) Fail() (string, error)             { return "", errors.New("nope
 func (*fakeAPI) BrowserStop() string               { return "x" }
 func (*fakeAPI) Hello(name string) (string, error) { return "hi " + name, nil }
 
-func start(t *testing.T) (*Server, string) {
+func start(t *testing.T) *Server {
 	t.Helper()
 	dir := t.TempDir()
 	assets := fstest.MapFS{"index.html": {Data: []byte("<html><head></head><body>app</body></html>")}}
@@ -28,7 +28,7 @@ func start(t *testing.T) (*Server, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
-	return s, dir
+	return s
 }
 
 func client() *http.Client {
@@ -42,7 +42,7 @@ func get(t *testing.T, c *http.Client, u string) (int, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	b, _ := io.ReadAll(res.Body)
 	return res.StatusCode, string(b)
 }
@@ -53,13 +53,13 @@ func post(t *testing.T, c *http.Client, u, body string) (int, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	b, _ := io.ReadAll(res.Body)
 	return res.StatusCode, string(b)
 }
 
 func TestKeyIsRequiredAndSwappedForCookie(t *testing.T) {
-	s, _ := start(t)
+	s := start(t)
 	base := strings.SplitN(s.URL(), "/?k=", 2)[0]
 	c := client()
 	if code, _ := get(t, c, base+"/"); code != http.StatusUnauthorized {
@@ -82,7 +82,7 @@ func TestKeyIsRequiredAndSwappedForCookie(t *testing.T) {
 }
 
 func TestCalls(t *testing.T) {
-	s, _ := start(t)
+	s := start(t)
 	base := strings.SplitN(s.URL(), "/?k=", 2)[0]
 	c := client()
 	get(t, c, s.URL())
@@ -106,7 +106,7 @@ func TestCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("foreign origin: %d", res.StatusCode)
 	}
@@ -115,32 +115,32 @@ func TestCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("text/plain: %d", res.StatusCode)
 	}
 }
 
 func TestWrongHostIsRefused(t *testing.T) {
-	s, _ := start(t)
+	s := start(t)
 	req, _ := http.NewRequest("GET", strings.SplitN(s.URL(), "/?k=", 2)[0]+"/", nil)
 	req.Host = "evil.example"
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("rebinding: %d", res.StatusCode)
 	}
 }
 
 func TestCloseVoidsTheLink(t *testing.T) {
-	s, _ := start(t)
+	s := start(t)
 	u := s.URL()
 	s.Close()
 	if res, err := http.Get(u); err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("server still answers")
 	}
 }

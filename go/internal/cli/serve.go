@@ -25,8 +25,8 @@ func serveCommand(env *Env) *cobra.Command {
 				return &Fail{Msg: i18n.T("This build has no window.")}
 			}
 			return Serve(env.DataDir(), func(link string) {
-				fmt.Fprintln(cmd.OutOrStdout(), i18n.T("Open this link in your browser (stop with Ctrl+C):"))
-				fmt.Fprintln(cmd.OutOrStdout(), link)
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), i18n.T("Open this link in your browser (stop with Ctrl+C):"))
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), link)
 			})
 		},
 	}
