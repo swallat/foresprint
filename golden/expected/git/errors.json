@@ -1,0 +1,76 @@
+[
+ {
+  "what": "new_branch",
+  "message": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "kind": "new_branch",
+  "hint": "",
+  "hint_md": "",
+  "raw": false,
+  "render_md": "The server has no branch “`main`” (available: `dev`). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "The server has no branch “main” (available: dev). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
+ },
+ {
+  "what": "new_branch",
+  "message": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "kind": "new_branch",
+  "hint": "",
+  "hint_md": "",
+  "raw": false,
+  "render_md": "This data folder has no saved data yet, but the server does (available: `main`, `dev`, `a`, `b`, `c`, …). The first share would create a new branch “`main`” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "This data folder has no saved data yet, but the server does (available: main, dev, a, b, c, …). The first share would create a new branch “main” there without the data of the team arriving. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
+ },
+ {
+  "what": "new_branch",
+  "message": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "kind": "new_branch",
+  "hint": "",
+  "hint_md": "",
+  "raw": false,
+  "render_md": "The server has no branch “`x`” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead.",
+  "full": "The server has no branch “x” (available: ). The first share would create it there. That is only right if this really is the data repository. Anyone joining an existing team should choose “Or copy the data of a team from a server” in Settings > Storage instead."
+ },
+ {
+  "what": "unrelated",
+  "message": "The server (https://h/x.git branch main) contains a different history than this data folder.",
+  "kind": "unrelated_histories",
+  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
+  "hint_md": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly.",
+  "raw": false,
+  "render_md": "The server (`https://u:p@h/x.git?x=1`, branch `main`) contains a different history than this data folder.",
+  "full": "The server (https://u:p@h/x.git?x=1, branch main) contains a different history than this data folder. The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed in Settings > Storage under “Server”. If the data repository on the server is the right one, merging must be confirmed explicitly."
+ },
+ {
+  "what": "secret",
+  "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+  "kind": "secret_in_url",
+  "hint": "",
+  "hint_md": "",
+  "raw": false,
+  "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+  "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+ },
+ {
+  "what": "special",
+  "message": "Several addresses or a separate upload address are set for this server. This cannot be changed here – please clean it up with a Git program.",
+  "kind": "remote_special",
+  "hint": "",
+  "hint_md": "",
+  "raw": false,
+  "render_md": "Several addresses or a separate upload address are set for this server. This cannot be changed here – please clean it up with a Git program.",
+  "full": "Several addresses or a separate upload address are set for this server. This cannot be changed here – please clean it up with a Git program."
+ },
+ {
+  "what": "nothing",
+  "message": "The data folder holds no saved data yet, so there is nothing to share.",
+  "kind": "nothing_to_share",
+  "hint": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage.",
+  "hint_md": "Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage.",
+  "raw": false,
+  "render_md": "The data folder holds no saved data yet, so there is nothing to share.",
+  "full": "The data folder holds no saved data yet, so there is nothing to share. Create data first (e.g. a team) and save it. Anyone joining an existing team chooses “Or copy the data of a team from a server” in Settings > Storage."
+ },
+ {
+  "what": "unwritable",
+  "text": "The file could not be written. Either another program is using it right now (editor, spreadsheet program, virus scanner, sync service; on Windows usually the reason), or it is write-protected or your user account may not change it. Close other programs, check the write protection and permissions, and choose “Save” again: the interrupted merge is then continued and nothing is lost. If that does not help, ask whoever looks after the computer."
+ }
+]

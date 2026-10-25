@@ -1,0 +1,88 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": "Remaining",
+  "epic": "Epic Link"
+ },
+ "rule_fields": {},
+ "ok": [
+  {
+   "key": "ABC-1",
+   "title": "Checkout: new payment provider",
+   "status": "To Do",
+   "issue_type": "Story",
+   "priority": null,
+   "extra": {},
+   "estimate": 5.0,
+   "remaining": 3.5,
+   "sprint_name": "Sprint 22",
+   "rank": "0|i0001:",
+   "epic": "ABC-100",
+   "labels": [
+    "payment",
+    "Refined"
+   ],
+   "components": [
+    "Checkout"
+   ],
+   "blocked_by": [
+    "ABC-2",
+    "ABC-3"
+   ],
+   "resolved": false
+  },
+  {
+   "key": "ABC-2",
+   "title": "Schema change, part 1",
+   "status": "Ready",
+   "issue_type": "Task",
+   "priority": null,
+   "extra": {},
+   "estimate": 8.0,
+   "remaining": null,
+   "sprint_name": null,
+   "rank": "0|i0002:",
+   "epic": "ABC-200",
+   "labels": [],
+   "components": [
+    "Database"
+   ],
+   "blocked_by": [],
+   "resolved": false
+  },
+  {
+   "key": "ABC-3",
+   "title": "Done already",
+   "status": "Done",
+   "issue_type": "Bug",
+   "priority": null,
+   "extra": {},
+   "estimate": 2.0,
+   "remaining": 0.0,
+   "sprint_name": "Sprint 20",
+   "rank": "0|i0003:",
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": true
+  },
+  {
+   "key": "ABC-4",
+   "title": "Line one line two",
+   "status": "To Do",
+   "issue_type": "Story",
+   "priority": null,
+   "extra": {},
+   "estimate": null,
+   "remaining": null,
+   "sprint_name": null,
+   "rank": "0|i0004:",
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  }
+ ]
+}

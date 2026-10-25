@@ -1,0 +1,29 @@
+{
+ "case": "thin",
+ "files": [
+  {
+   "file": "sprints/2026.1.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.2.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.3.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.4.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.5.yaml",
+   "identical": true
+  },
+  {
+   "file": "team.yaml",
+   "identical": true
+  }
+ ]
+}

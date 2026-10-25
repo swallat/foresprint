@@ -1,0 +1,46 @@
+[
+ {
+  "case": "demo",
+  "warnings": []
+ },
+ {
+  "case": "trend-flat",
+  "warnings": []
+ },
+ {
+  "case": "trend-linear",
+  "warnings": []
+ },
+ {
+  "case": "trend-classic",
+  "warnings": []
+ },
+ {
+  "case": "thin",
+  "warnings": []
+ },
+ {
+  "case": "people-days",
+  "warnings": []
+ },
+ {
+  "case": "people-share",
+  "warnings": []
+ },
+ {
+  "case": "tickets-simple",
+  "warnings": []
+ },
+ {
+  "case": "tickets-products",
+  "warnings": []
+ },
+ {
+  "case": "products-edge",
+  "warnings": []
+ },
+ {
+  "case": "yaml-messy",
+  "warnings": []
+ }
+]

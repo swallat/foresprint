@@ -1,9 +1,0 @@
-{
-  "self": "https://jira.example.org/rest/api/2/user?username=anna",
-  "key": "JIRAUSER10100",
-  "name": "anna",
-  "displayName": "Anna Beispiel",
-  "active": true,
-  "timeZone": "Europe/Berlin",
-  "locale": "de_DE"
-}

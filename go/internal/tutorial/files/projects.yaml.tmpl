@@ -1,0 +1,49 @@
+schema: 1
+projects:
+- id: self-service
+  name: {{tr "Self-service 2.0"}}
+  products: [portal, mobile]
+  target: {{day 70}}
+  priority: 0
+  start: {{day -60}}
+  contact: Dana Example
+  milestones:
+  - {id: concept, name: {{tr "Concept approved"}}, date: {{day -20}}{{if .Tickets}}, tickets: [AP-1]{{end}}, light: green}
+  - {id: beta, name: {{tr "Beta for customers"}}, date: {{day 35}}{{if .Tickets}}, tickets: [AP-2, AP-3, AP-4]{{end}}, light: yellow}
+  - {id: launch, name: {{tr "Launch"}}, date: {{day 70}}{{if .Tickets}}, tickets: [AP-5, AP-6]{{end}}}
+  contingent:
+    total: 60
+    per_month: {{perMonth 15 -1 0 1 2}}
+    used: 18
+    used_per_month: {{perMonth 9 -1 0}}
+- id: e-invoice
+  name: {{tr "E-invoice"}}
+  products: [billing]
+  target: {{day 120}}
+  priority: 1
+  start: {{day -10}}
+  contact: Erika Example
+  milestones:
+  - {id: format, name: {{tr "Invoice format"}}, date: {{day 45}}{{if .Tickets}}, tickets: [AP-7, AP-8]{{end}}, light: green}
+  - {id: send, name: {{tr "Sending"}}, date: {{day 110}}{{if .Tickets}}, tickets: [AP-9]{{end}}}
+  contingent:
+    total: 40
+    per_month: {{perMonth 10 0 1 2 3}}
+    used: 4
+    used_per_month: {{perMonth 4 0}}
+- id: login
+  name: {{tr "Single sign-on"}}
+  products: [platform]
+  target: {{day 30}}
+  priority: 2
+  start: {{day -45}}
+  milestones:
+  - {id: sso, name: {{tr "SSO live"}}, date: {{day 30}}{{if .Tickets}}, tickets: [AP-10, AP-11]{{end}}, light: red}
+- id: dark-mode
+  name: {{tr "Dark mode"}}
+  products: [portal]
+  target: {{day -25}}
+  priority: 3
+  start: {{day -120}}
+  state: finished
+  end: {{day -20}}

@@ -1,0 +1,4274 @@
+{
+ "samples": 5,
+ "available": true,
+ "variants": {
+  "optimistic": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": null,
+     "base": 27.200000000000003,
+     "plan": 34.0,
+     "roadmap": 27.200000000000003,
+     "fixed": 0.0,
+     "placed": 31.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 5.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 13.0,
+     "placed": 16.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 32.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 26.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": null,
+     "base": 26.480000000000004,
+     "plan": 33.1,
+     "roadmap": 26.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "T-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-3",
+     "sprint": "2026.10",
+     "reason": "earmark",
+     "size": 13.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-4",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-5",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 40.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 6.0,
+     "source": "manual",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-7",
+     "sprint": "2026.9",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-8",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "rough",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-10",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-11",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-12",
+     "sprint": null,
+     "reason": "blocked",
+     "size": 4.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "manual",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-14",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "F-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-3",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-4",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-5",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-6",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-7",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-8",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-9",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-10",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-11",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-12",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-13",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-14",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-15",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-16",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-17",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-18",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-19",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-20",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-21",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-22",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-23",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-24",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-25",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-26",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-27",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-28",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-29",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-30",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-31",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-32",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-33",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-34",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-35",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-36",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-37",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-38",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-39",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-40",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-41",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-42",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-43",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-44",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-45",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-46",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-47",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-48",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-49",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-50",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-51",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-52",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-53",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-54",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-55",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-56",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-57",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-58",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-59",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-60",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    }
+   ],
+   "projects": [
+    {
+     "project": "beta",
+     "light": "missed",
+     "target_sprint": "2026.6",
+     "last_sprint": "2026.6",
+     "open_tickets": 4,
+     "not_distributable": 1
+    },
+    {
+     "project": "alpha",
+     "light": "missed",
+     "target_sprint": "2026.10",
+     "last_sprint": "2026.10",
+     "open_tickets": 7,
+     "not_distributable": 3
+    },
+    {
+     "project": "gamma",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2027.4",
+     "open_tickets": 62,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "manual",
+     "unclear": false
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "rough",
+     "unclear": false
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "manual",
+     "unclear": false
+    }
+   ],
+   "unclear": [],
+   "cycles": [
+    [
+     "T-10",
+     "T-11"
+    ]
+   ],
+   "later": {},
+   "no_forecast": false,
+   "variant": "optimistic"
+  },
+  "median": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": null,
+     "base": 25.12,
+     "plan": 31.4,
+     "roadmap": 25.12,
+     "fixed": 0.0,
+     "placed": 31.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 5.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 13.0,
+     "placed": 16.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 10.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": null,
+     "base": 24.480000000000004,
+     "plan": 30.6,
+     "roadmap": 24.480000000000004,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "T-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-3",
+     "sprint": "2026.10",
+     "reason": "earmark",
+     "size": 13.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-4",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-5",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 40.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 6.0,
+     "source": "manual",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-7",
+     "sprint": "2026.9",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-8",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "rough",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-10",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-11",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-12",
+     "sprint": null,
+     "reason": "blocked",
+     "size": 4.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "manual",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-14",
+     "sprint": "2027.9",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "F-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-3",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-4",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-5",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-6",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-7",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-8",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-9",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-10",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-11",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-12",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-13",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-14",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-15",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-16",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-17",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-18",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-19",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-20",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-21",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-22",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-23",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-24",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-25",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-26",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-27",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-28",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-29",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-30",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-31",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-32",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-33",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-34",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-35",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-36",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-37",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-38",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-39",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-40",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-41",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-42",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-43",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-44",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-45",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-46",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-47",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-48",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-49",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-50",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-51",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-52",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-53",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-54",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-55",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-56",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-57",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-58",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-59",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-60",
+     "sprint": "2027.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    }
+   ],
+   "projects": [
+    {
+     "project": "beta",
+     "light": "missed",
+     "target_sprint": "2026.6",
+     "last_sprint": "2026.6",
+     "open_tickets": 4,
+     "not_distributable": 1
+    },
+    {
+     "project": "alpha",
+     "light": "missed",
+     "target_sprint": "2026.10",
+     "last_sprint": "2026.10",
+     "open_tickets": 7,
+     "not_distributable": 3
+    },
+    {
+     "project": "gamma",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2027.9",
+     "open_tickets": 62,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "manual",
+     "unclear": false
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "rough",
+     "unclear": false
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "manual",
+     "unclear": false
+    }
+   ],
+   "unclear": [],
+   "cycles": [
+    [
+     "T-10",
+     "T-11"
+    ]
+   ],
+   "later": {},
+   "no_forecast": false,
+   "variant": "median"
+  },
+  "conservative": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": null,
+     "base": 24.0,
+     "plan": 30.0,
+     "roadmap": 24.0,
+     "fixed": 0.0,
+     "placed": 22.5,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 27.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 5.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 13.0,
+     "placed": 16.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 24.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 18.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": null,
+     "base": 23.36,
+     "plan": 29.2,
+     "roadmap": 23.36,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "T-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-3",
+     "sprint": "2026.10",
+     "reason": "earmark",
+     "size": 13.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-4",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-5",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 40.0,
+     "source": "refined",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 6.0,
+     "source": "manual",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-7",
+     "sprint": "2026.9",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-8",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 7.5,
+     "source": "rough",
+     "project": "beta",
+     "product": null
+    },
+    {
+     "ticket": "T-10",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-11",
+     "sprint": null,
+     "reason": "cycle",
+     "size": 5.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-12",
+     "sprint": null,
+     "reason": "blocked",
+     "size": 4.0,
+     "source": "refined",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "manual",
+     "project": "alpha",
+     "product": null
+    },
+    {
+     "ticket": "T-14",
+     "sprint": "2027.9",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "F-1",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-3",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-4",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-5",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-6",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-7",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-8",
+     "sprint": "2026.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-9",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-10",
+     "sprint": "2026.10",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-11",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-12",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-13",
+     "sprint": "2026.11",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-14",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-15",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-16",
+     "sprint": "2026.12",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-17",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-18",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-19",
+     "sprint": "2026.13",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-20",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-21",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-22",
+     "sprint": "2026.14",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-23",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-24",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-25",
+     "sprint": "2026.15",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-26",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-27",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-28",
+     "sprint": "2026.16",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-29",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-30",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-31",
+     "sprint": "2026.17",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-32",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-33",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-34",
+     "sprint": "2026.18",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-35",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-36",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-37",
+     "sprint": "2027.1",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-38",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-39",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-40",
+     "sprint": "2027.2",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-41",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-42",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-43",
+     "sprint": "2027.3",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-44",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-45",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-46",
+     "sprint": "2027.4",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-47",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-48",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-49",
+     "sprint": "2027.5",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-50",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-51",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-52",
+     "sprint": "2027.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-53",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-54",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-55",
+     "sprint": "2027.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-56",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-57",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-58",
+     "sprint": "2027.8",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-59",
+     "sprint": "2027.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    },
+    {
+     "ticket": "F-60",
+     "sprint": "2027.9",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "gamma",
+     "product": null
+    }
+   ],
+   "projects": [
+    {
+     "project": "beta",
+     "light": "missed",
+     "target_sprint": "2026.6",
+     "last_sprint": "2026.6",
+     "open_tickets": 4,
+     "not_distributable": 1
+    },
+    {
+     "project": "alpha",
+     "light": "missed",
+     "target_sprint": "2026.10",
+     "last_sprint": "2026.10",
+     "open_tickets": 7,
+     "not_distributable": 3
+    },
+    {
+     "project": "gamma",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2027.9",
+     "open_tickets": 62,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [
+    {
+     "ticket": "T-6",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "manual",
+     "unclear": false
+    },
+    {
+     "ticket": "T-9",
+     "sprint": "2026.6",
+     "deadline": "2026-07-15",
+     "source": "rough",
+     "unclear": false
+    },
+    {
+     "ticket": "T-13",
+     "sprint": "2026.7",
+     "deadline": "2026-07-29",
+     "source": "manual",
+     "unclear": false
+    }
+   ],
+   "unclear": [],
+   "cycles": [
+    [
+     "T-10",
+     "T-11"
+    ]
+   ],
+   "later": {},
+   "no_forecast": false,
+   "variant": "conservative"
+  }
+ },
+ "project_ranges": {
+  "alpha": {
+   "project": "alpha",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.10",
+    "median": "2026.10",
+    "conservative": "2026.10"
+   },
+   "light": {
+    "optimistic": "missed",
+    "median": "missed",
+    "conservative": "missed"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.10",
+   "best_light": "missed",
+   "worst_light": "missed",
+   "complete": false,
+   "light_range": [
+    "missed",
+    "missed"
+   ],
+   "uniform": true,
+   "on_track": false
+  },
+  "beta": {
+   "project": "beta",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "light": {
+    "optimistic": "missed",
+    "median": "missed",
+    "conservative": "missed"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "best_light": "missed",
+   "worst_light": "missed",
+   "complete": false,
+   "light_range": [
+    "missed",
+    "missed"
+   ],
+   "uniform": true,
+   "on_track": false
+  },
+  "gamma": {
+   "project": "gamma",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2027.4",
+    "median": "2027.9",
+    "conservative": "2027.9"
+   },
+   "light": {
+    "optimistic": "on_track",
+    "median": "on_track",
+    "conservative": "on_track"
+   },
+   "earliest": "2027.4",
+   "latest": "2027.9",
+   "best_light": "on_track",
+   "worst_light": "on_track",
+   "complete": true,
+   "light_range": [
+    "on_track",
+    "on_track"
+   ],
+   "uniform": true,
+   "on_track": true
+  }
+ },
+ "ticket_ranges": {
+  "T-1": {
+   "ticket": "T-1",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "T-2": {
+   "ticket": "T-2",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": true
+  },
+  "T-3": {
+   "ticket": "T-3",
+   "sprints": {
+    "optimistic": "2026.10",
+    "median": "2026.10",
+    "conservative": "2026.10"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.10",
+   "complete": true,
+   "fixed": true
+  },
+  "T-4": {
+   "ticket": "T-4",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "T-5": {
+   "ticket": "T-5",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "T-6": {
+   "ticket": "T-6",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "T-7": {
+   "ticket": "T-7",
+   "sprints": {
+    "optimistic": "2026.9",
+    "median": "2026.9",
+    "conservative": "2026.9"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.9",
+   "complete": true,
+   "fixed": true
+  },
+  "T-8": {
+   "ticket": "T-8",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "T-9": {
+   "ticket": "T-9",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "T-10": {
+   "ticket": "T-10",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "T-11": {
+   "ticket": "T-11",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "T-12": {
+   "ticket": "T-12",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "T-13": {
+   "ticket": "T-13",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": false
+  },
+  "T-14": {
+   "ticket": "T-14",
+   "sprints": {
+    "optimistic": "2027.4",
+    "median": "2027.9",
+    "conservative": "2027.9"
+   },
+   "earliest": "2027.4",
+   "latest": "2027.9",
+   "complete": true,
+   "fixed": false
+  },
+  "T-15": null,
+  "F-1": {
+   "ticket": "F-1",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": false
+  },
+  "F-2": {
+   "ticket": "F-2",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": true
+  },
+  "F-3": {
+   "ticket": "F-3",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": false
+  },
+  "F-4": {
+   "ticket": "F-4",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": false
+  },
+  "F-5": {
+   "ticket": "F-5",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": true
+  },
+  "F-6": {
+   "ticket": "F-6",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.9"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.9",
+   "complete": true,
+   "fixed": false
+  },
+  "F-7": {
+   "ticket": "F-7",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.9",
+    "conservative": "2026.9"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.9",
+   "complete": true,
+   "fixed": false
+  },
+  "F-8": {
+   "ticket": "F-8",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.9",
+    "conservative": "2026.9"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.9",
+   "complete": true,
+   "fixed": false
+  },
+  "F-9": {
+   "ticket": "F-9",
+   "sprints": {
+    "optimistic": "2026.9",
+    "median": "2026.9",
+    "conservative": "2026.10"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.10",
+   "complete": true,
+   "fixed": false
+  },
+  "F-10": {
+   "ticket": "F-10",
+   "sprints": {
+    "optimistic": "2026.9",
+    "median": "2026.10",
+    "conservative": "2026.10"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.10",
+   "complete": true,
+   "fixed": false
+  },
+  "F-11": {
+   "ticket": "F-11",
+   "sprints": {
+    "optimistic": "2026.9",
+    "median": "2026.10",
+    "conservative": "2026.11"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.11",
+   "complete": true,
+   "fixed": false
+  },
+  "F-12": {
+   "ticket": "F-12",
+   "sprints": {
+    "optimistic": "2026.10",
+    "median": "2026.11",
+    "conservative": "2026.11"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.11",
+   "complete": true,
+   "fixed": false
+  },
+  "F-13": {
+   "ticket": "F-13",
+   "sprints": {
+    "optimistic": "2026.10",
+    "median": "2026.11",
+    "conservative": "2026.11"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.11",
+   "complete": true,
+   "fixed": false
+  },
+  "F-14": {
+   "ticket": "F-14",
+   "sprints": {
+    "optimistic": "2026.11",
+    "median": "2026.11",
+    "conservative": "2026.12"
+   },
+   "earliest": "2026.11",
+   "latest": "2026.12",
+   "complete": true,
+   "fixed": false
+  },
+  "F-15": {
+   "ticket": "F-15",
+   "sprints": {
+    "optimistic": "2026.11",
+    "median": "2026.12",
+    "conservative": "2026.12"
+   },
+   "earliest": "2026.11",
+   "latest": "2026.12",
+   "complete": true,
+   "fixed": false
+  },
+  "F-16": {
+   "ticket": "F-16",
+   "sprints": {
+    "optimistic": "2026.11",
+    "median": "2026.12",
+    "conservative": "2026.12"
+   },
+   "earliest": "2026.11",
+   "latest": "2026.12",
+   "complete": true,
+   "fixed": false
+  },
+  "F-17": {
+   "ticket": "F-17",
+   "sprints": {
+    "optimistic": "2026.11",
+    "median": "2026.12",
+    "conservative": "2026.13"
+   },
+   "earliest": "2026.11",
+   "latest": "2026.13",
+   "complete": true,
+   "fixed": false
+  },
+  "F-18": {
+   "ticket": "F-18",
+   "sprints": {
+    "optimistic": "2026.12",
+    "median": "2026.13",
+    "conservative": "2026.13"
+   },
+   "earliest": "2026.12",
+   "latest": "2026.13",
+   "complete": true,
+   "fixed": false
+  },
+  "F-19": {
+   "ticket": "F-19",
+   "sprints": {
+    "optimistic": "2026.12",
+    "median": "2026.13",
+    "conservative": "2026.13"
+   },
+   "earliest": "2026.12",
+   "latest": "2026.13",
+   "complete": true,
+   "fixed": false
+  },
+  "F-20": {
+   "ticket": "F-20",
+   "sprints": {
+    "optimistic": "2026.12",
+    "median": "2026.13",
+    "conservative": "2026.14"
+   },
+   "earliest": "2026.12",
+   "latest": "2026.14",
+   "complete": true,
+   "fixed": false
+  },
+  "F-21": {
+   "ticket": "F-21",
+   "sprints": {
+    "optimistic": "2026.12",
+    "median": "2026.14",
+    "conservative": "2026.14"
+   },
+   "earliest": "2026.12",
+   "latest": "2026.14",
+   "complete": true,
+   "fixed": false
+  },
+  "F-22": {
+   "ticket": "F-22",
+   "sprints": {
+    "optimistic": "2026.13",
+    "median": "2026.14",
+    "conservative": "2026.14"
+   },
+   "earliest": "2026.13",
+   "latest": "2026.14",
+   "complete": true,
+   "fixed": false
+  },
+  "F-23": {
+   "ticket": "F-23",
+   "sprints": {
+    "optimistic": "2026.13",
+    "median": "2026.14",
+    "conservative": "2026.15"
+   },
+   "earliest": "2026.13",
+   "latest": "2026.15",
+   "complete": true,
+   "fixed": false
+  },
+  "F-24": {
+   "ticket": "F-24",
+   "sprints": {
+    "optimistic": "2026.13",
+    "median": "2026.15",
+    "conservative": "2026.15"
+   },
+   "earliest": "2026.13",
+   "latest": "2026.15",
+   "complete": true,
+   "fixed": false
+  },
+  "F-25": {
+   "ticket": "F-25",
+   "sprints": {
+    "optimistic": "2026.13",
+    "median": "2026.15",
+    "conservative": "2026.15"
+   },
+   "earliest": "2026.13",
+   "latest": "2026.15",
+   "complete": true,
+   "fixed": false
+  },
+  "F-26": {
+   "ticket": "F-26",
+   "sprints": {
+    "optimistic": "2026.14",
+    "median": "2026.15",
+    "conservative": "2026.16"
+   },
+   "earliest": "2026.14",
+   "latest": "2026.16",
+   "complete": true,
+   "fixed": false
+  },
+  "F-27": {
+   "ticket": "F-27",
+   "sprints": {
+    "optimistic": "2026.14",
+    "median": "2026.16",
+    "conservative": "2026.16"
+   },
+   "earliest": "2026.14",
+   "latest": "2026.16",
+   "complete": true,
+   "fixed": false
+  },
+  "F-28": {
+   "ticket": "F-28",
+   "sprints": {
+    "optimistic": "2026.14",
+    "median": "2026.16",
+    "conservative": "2026.16"
+   },
+   "earliest": "2026.14",
+   "latest": "2026.16",
+   "complete": true,
+   "fixed": false
+  },
+  "F-29": {
+   "ticket": "F-29",
+   "sprints": {
+    "optimistic": "2026.14",
+    "median": "2026.16",
+    "conservative": "2026.17"
+   },
+   "earliest": "2026.14",
+   "latest": "2026.17",
+   "complete": true,
+   "fixed": false
+  },
+  "F-30": {
+   "ticket": "F-30",
+   "sprints": {
+    "optimistic": "2026.15",
+    "median": "2026.17",
+    "conservative": "2026.17"
+   },
+   "earliest": "2026.15",
+   "latest": "2026.17",
+   "complete": true,
+   "fixed": false
+  },
+  "F-31": {
+   "ticket": "F-31",
+   "sprints": {
+    "optimistic": "2026.15",
+    "median": "2026.17",
+    "conservative": "2026.17"
+   },
+   "earliest": "2026.15",
+   "latest": "2026.17",
+   "complete": true,
+   "fixed": false
+  },
+  "F-32": {
+   "ticket": "F-32",
+   "sprints": {
+    "optimistic": "2026.15",
+    "median": "2026.17",
+    "conservative": "2026.18"
+   },
+   "earliest": "2026.15",
+   "latest": "2026.18",
+   "complete": true,
+   "fixed": false
+  },
+  "F-33": {
+   "ticket": "F-33",
+   "sprints": {
+    "optimistic": "2026.15",
+    "median": "2026.18",
+    "conservative": "2026.18"
+   },
+   "earliest": "2026.15",
+   "latest": "2026.18",
+   "complete": true,
+   "fixed": false
+  },
+  "F-34": {
+   "ticket": "F-34",
+   "sprints": {
+    "optimistic": "2026.16",
+    "median": "2026.18",
+    "conservative": "2026.18"
+   },
+   "earliest": "2026.16",
+   "latest": "2026.18",
+   "complete": true,
+   "fixed": false
+  },
+  "F-35": {
+   "ticket": "F-35",
+   "sprints": {
+    "optimistic": "2026.16",
+    "median": "2026.18",
+    "conservative": "2027.1"
+   },
+   "earliest": "2026.16",
+   "latest": "2027.1",
+   "complete": true,
+   "fixed": false
+  },
+  "F-36": {
+   "ticket": "F-36",
+   "sprints": {
+    "optimistic": "2026.16",
+    "median": "2027.1",
+    "conservative": "2027.1"
+   },
+   "earliest": "2026.16",
+   "latest": "2027.1",
+   "complete": true,
+   "fixed": false
+  },
+  "F-37": {
+   "ticket": "F-37",
+   "sprints": {
+    "optimistic": "2026.16",
+    "median": "2027.1",
+    "conservative": "2027.1"
+   },
+   "earliest": "2026.16",
+   "latest": "2027.1",
+   "complete": true,
+   "fixed": false
+  },
+  "F-38": {
+   "ticket": "F-38",
+   "sprints": {
+    "optimistic": "2026.17",
+    "median": "2027.1",
+    "conservative": "2027.2"
+   },
+   "earliest": "2026.17",
+   "latest": "2027.2",
+   "complete": true,
+   "fixed": false
+  },
+  "F-39": {
+   "ticket": "F-39",
+   "sprints": {
+    "optimistic": "2026.17",
+    "median": "2027.2",
+    "conservative": "2027.2"
+   },
+   "earliest": "2026.17",
+   "latest": "2027.2",
+   "complete": true,
+   "fixed": false
+  },
+  "F-40": {
+   "ticket": "F-40",
+   "sprints": {
+    "optimistic": "2026.17",
+    "median": "2027.2",
+    "conservative": "2027.2"
+   },
+   "earliest": "2026.17",
+   "latest": "2027.2",
+   "complete": true,
+   "fixed": false
+  },
+  "F-41": {
+   "ticket": "F-41",
+   "sprints": {
+    "optimistic": "2026.17",
+    "median": "2027.2",
+    "conservative": "2027.3"
+   },
+   "earliest": "2026.17",
+   "latest": "2027.3",
+   "complete": true,
+   "fixed": false
+  },
+  "F-42": {
+   "ticket": "F-42",
+   "sprints": {
+    "optimistic": "2026.18",
+    "median": "2027.3",
+    "conservative": "2027.3"
+   },
+   "earliest": "2026.18",
+   "latest": "2027.3",
+   "complete": true,
+   "fixed": false
+  },
+  "F-43": {
+   "ticket": "F-43",
+   "sprints": {
+    "optimistic": "2026.18",
+    "median": "2027.3",
+    "conservative": "2027.3"
+   },
+   "earliest": "2026.18",
+   "latest": "2027.3",
+   "complete": true,
+   "fixed": false
+  },
+  "F-44": {
+   "ticket": "F-44",
+   "sprints": {
+    "optimistic": "2026.18",
+    "median": "2027.3",
+    "conservative": "2027.4"
+   },
+   "earliest": "2026.18",
+   "latest": "2027.4",
+   "complete": true,
+   "fixed": false
+  },
+  "F-45": {
+   "ticket": "F-45",
+   "sprints": {
+    "optimistic": "2026.18",
+    "median": "2027.4",
+    "conservative": "2027.4"
+   },
+   "earliest": "2026.18",
+   "latest": "2027.4",
+   "complete": true,
+   "fixed": false
+  },
+  "F-46": {
+   "ticket": "F-46",
+   "sprints": {
+    "optimistic": "2027.1",
+    "median": "2027.4",
+    "conservative": "2027.4"
+   },
+   "earliest": "2027.1",
+   "latest": "2027.4",
+   "complete": true,
+   "fixed": false
+  },
+  "F-47": {
+   "ticket": "F-47",
+   "sprints": {
+    "optimistic": "2027.1",
+    "median": "2027.4",
+    "conservative": "2027.5"
+   },
+   "earliest": "2027.1",
+   "latest": "2027.5",
+   "complete": true,
+   "fixed": false
+  },
+  "F-48": {
+   "ticket": "F-48",
+   "sprints": {
+    "optimistic": "2027.1",
+    "median": "2027.5",
+    "conservative": "2027.5"
+   },
+   "earliest": "2027.1",
+   "latest": "2027.5",
+   "complete": true,
+   "fixed": false
+  },
+  "F-49": {
+   "ticket": "F-49",
+   "sprints": {
+    "optimistic": "2027.1",
+    "median": "2027.5",
+    "conservative": "2027.5"
+   },
+   "earliest": "2027.1",
+   "latest": "2027.5",
+   "complete": true,
+   "fixed": false
+  },
+  "F-50": {
+   "ticket": "F-50",
+   "sprints": {
+    "optimistic": "2027.2",
+    "median": "2027.5",
+    "conservative": "2027.6"
+   },
+   "earliest": "2027.2",
+   "latest": "2027.6",
+   "complete": true,
+   "fixed": false
+  },
+  "F-51": {
+   "ticket": "F-51",
+   "sprints": {
+    "optimistic": "2027.2",
+    "median": "2027.6",
+    "conservative": "2027.6"
+   },
+   "earliest": "2027.2",
+   "latest": "2027.6",
+   "complete": true,
+   "fixed": false
+  },
+  "F-52": {
+   "ticket": "F-52",
+   "sprints": {
+    "optimistic": "2027.2",
+    "median": "2027.6",
+    "conservative": "2027.6"
+   },
+   "earliest": "2027.2",
+   "latest": "2027.6",
+   "complete": true,
+   "fixed": false
+  },
+  "F-53": {
+   "ticket": "F-53",
+   "sprints": {
+    "optimistic": "2027.2",
+    "median": "2027.6",
+    "conservative": "2027.7"
+   },
+   "earliest": "2027.2",
+   "latest": "2027.7",
+   "complete": true,
+   "fixed": false
+  },
+  "F-54": {
+   "ticket": "F-54",
+   "sprints": {
+    "optimistic": "2027.3",
+    "median": "2027.7",
+    "conservative": "2027.7"
+   },
+   "earliest": "2027.3",
+   "latest": "2027.7",
+   "complete": true,
+   "fixed": false
+  },
+  "F-55": {
+   "ticket": "F-55",
+   "sprints": {
+    "optimistic": "2027.3",
+    "median": "2027.7",
+    "conservative": "2027.7"
+   },
+   "earliest": "2027.3",
+   "latest": "2027.7",
+   "complete": true,
+   "fixed": false
+  },
+  "F-56": {
+   "ticket": "F-56",
+   "sprints": {
+    "optimistic": "2027.3",
+    "median": "2027.7",
+    "conservative": "2027.8"
+   },
+   "earliest": "2027.3",
+   "latest": "2027.8",
+   "complete": true,
+   "fixed": false
+  },
+  "F-57": {
+   "ticket": "F-57",
+   "sprints": {
+    "optimistic": "2027.3",
+    "median": "2027.8",
+    "conservative": "2027.8"
+   },
+   "earliest": "2027.3",
+   "latest": "2027.8",
+   "complete": true,
+   "fixed": false
+  },
+  "F-58": {
+   "ticket": "F-58",
+   "sprints": {
+    "optimistic": "2027.4",
+    "median": "2027.8",
+    "conservative": "2027.8"
+   },
+   "earliest": "2027.4",
+   "latest": "2027.8",
+   "complete": true,
+   "fixed": false
+  },
+  "F-59": {
+   "ticket": "F-59",
+   "sprints": {
+    "optimistic": "2027.4",
+    "median": "2027.8",
+    "conservative": "2027.9"
+   },
+   "earliest": "2027.4",
+   "latest": "2027.9",
+   "complete": true,
+   "fixed": false
+  },
+  "F-60": {
+   "ticket": "F-60",
+   "sprints": {
+    "optimistic": "2027.4",
+    "median": "2027.9",
+    "conservative": "2027.9"
+   },
+   "earliest": "2027.4",
+   "latest": "2027.9",
+   "complete": true,
+   "fixed": false
+  }
+ },
+ "handover": [],
+ "sprint_sums": {
+  "optimistic": {
+   "2026.6": {
+    "(none)": 31.0
+   },
+   "2026.7": {
+    "(none)": 32.0
+   },
+   "2026.8": {
+    "(none)": 32.0
+   },
+   "2026.9": {
+    "(none)": 29.0
+   },
+   "2026.10": {
+    "(none)": 29.0
+   },
+   "2026.11": {
+    "(none)": 32.0
+   },
+   "2026.12": {
+    "(none)": 32.0
+   },
+   "2026.13": {
+    "(none)": 32.0
+   },
+   "2026.14": {
+    "(none)": 32.0
+   },
+   "2026.15": {
+    "(none)": 32.0
+   },
+   "2026.16": {
+    "(none)": 32.0
+   },
+   "2026.17": {
+    "(none)": 32.0
+   },
+   "2026.18": {
+    "(none)": 32.0
+   },
+   "2027.1": {
+    "(none)": 32.0
+   },
+   "2027.2": {
+    "(none)": 32.0
+   },
+   "2027.3": {
+    "(none)": 32.0
+   },
+   "2027.4": {
+    "(none)": 26.0
+   },
+   "2027.5": {
+    "(none)": 0.0
+   },
+   "2027.6": {
+    "(none)": 0.0
+   },
+   "2027.7": {
+    "(none)": 0.0
+   },
+   "2027.8": {
+    "(none)": 0.0
+   },
+   "2027.9": {
+    "(none)": 0.0
+   },
+   "2027.10": {
+    "(none)": 0.0
+   },
+   "2027.11": {
+    "(none)": 0.0
+   },
+   "2027.12": {
+    "(none)": 0.0
+   },
+   "2027.13": {
+    "(none)": 0.0
+   }
+  },
+  "median": {
+   "2026.6": {
+    "(none)": 31.0
+   },
+   "2026.7": {
+    "(none)": 24.0
+   },
+   "2026.8": {
+    "(none)": 24.0
+   },
+   "2026.9": {
+    "(none)": 29.0
+   },
+   "2026.10": {
+    "(none)": 29.0
+   },
+   "2026.11": {
+    "(none)": 24.0
+   },
+   "2026.12": {
+    "(none)": 24.0
+   },
+   "2026.13": {
+    "(none)": 24.0
+   },
+   "2026.14": {
+    "(none)": 24.0
+   },
+   "2026.15": {
+    "(none)": 24.0
+   },
+   "2026.16": {
+    "(none)": 24.0
+   },
+   "2026.17": {
+    "(none)": 24.0
+   },
+   "2026.18": {
+    "(none)": 24.0
+   },
+   "2027.1": {
+    "(none)": 24.0
+   },
+   "2027.2": {
+    "(none)": 24.0
+   },
+   "2027.3": {
+    "(none)": 24.0
+   },
+   "2027.4": {
+    "(none)": 24.0
+   },
+   "2027.5": {
+    "(none)": 24.0
+   },
+   "2027.6": {
+    "(none)": 24.0
+   },
+   "2027.7": {
+    "(none)": 24.0
+   },
+   "2027.8": {
+    "(none)": 24.0
+   },
+   "2027.9": {
+    "(none)": 10.0
+   },
+   "2027.10": {
+    "(none)": 0.0
+   },
+   "2027.11": {
+    "(none)": 0.0
+   },
+   "2027.12": {
+    "(none)": 0.0
+   },
+   "2027.13": {
+    "(none)": 0.0
+   }
+  },
+  "conservative": {
+   "2026.6": {
+    "(none)": 22.5
+   },
+   "2026.7": {
+    "(none)": 27.0
+   },
+   "2026.8": {
+    "(none)": 24.0
+   },
+   "2026.9": {
+    "(none)": 29.0
+   },
+   "2026.10": {
+    "(none)": 29.0
+   },
+   "2026.11": {
+    "(none)": 24.0
+   },
+   "2026.12": {
+    "(none)": 24.0
+   },
+   "2026.13": {
+    "(none)": 24.0
+   },
+   "2026.14": {
+    "(none)": 24.0
+   },
+   "2026.15": {
+    "(none)": 24.0
+   },
+   "2026.16": {
+    "(none)": 24.0
+   },
+   "2026.17": {
+    "(none)": 24.0
+   },
+   "2026.18": {
+    "(none)": 24.0
+   },
+   "2027.1": {
+    "(none)": 24.0
+   },
+   "2027.2": {
+    "(none)": 24.0
+   },
+   "2027.3": {
+    "(none)": 24.0
+   },
+   "2027.4": {
+    "(none)": 24.0
+   },
+   "2027.5": {
+    "(none)": 24.0
+   },
+   "2027.6": {
+    "(none)": 24.0
+   },
+   "2027.7": {
+    "(none)": 24.0
+   },
+   "2027.8": {
+    "(none)": 24.0
+   },
+   "2027.9": {
+    "(none)": 18.0
+   },
+   "2027.10": {
+    "(none)": 0.0
+   },
+   "2027.11": {
+    "(none)": 0.0
+   },
+   "2027.12": {
+    "(none)": 0.0
+   },
+   "2027.13": {
+    "(none)": 0.0
+   }
+  }
+ }
+}

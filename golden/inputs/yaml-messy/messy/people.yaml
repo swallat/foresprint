@@ -1,0 +1,8 @@
+people:
+  - {id: zoe, name: "Zoë Äpfel", memberships: [{from: 2025-01-01, fte: 1.0}]}
+  - id: li
+    name: 'O''Neil: the "second"'
+    memberships:
+      - from: 2025-03-01
+        to: 2026-06-30
+        fte: .5

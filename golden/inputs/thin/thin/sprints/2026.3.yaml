@@ -1,0 +1,10 @@
+# Sprint 2026.3. Explanations of all fields: `foresprint help fields`
+id: '2026.3'
+start: 2026-02-04
+end: 2026-02-18
+absences: {}
+absence_state: unknown
+capacity: 36
+forecast_ist: 24
+velocity: 22
+scope_creep: null

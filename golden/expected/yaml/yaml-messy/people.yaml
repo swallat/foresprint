@@ -1,0 +1,15 @@
+# People. Memberships with period and FTE share (1.0 = full time in the team).
+# Never delete people; end the membership with `to:` instead – otherwise history changes.
+people:
+- id: zoe
+  name: Zoë Äpfel
+  memberships:
+  - from: 2025-01-01
+    to: null
+    fte: 1
+- id: li
+  name: 'O''Neil: the "second"'
+  memberships:
+  - from: 2025-03-01
+    to: 2026-06-30
+    fte: 0.5

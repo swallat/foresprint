@@ -1,0 +1,371 @@
+{
+ "entries": [
+  {
+   "sprint": "2026.1",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 41.5 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 41.5 × 50 = 33.73"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 41.5 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 41.5 × 50 = 33.73"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.2",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "10.00 / 40 × 50 = 12.50"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "10.00 / 40 × 50 = 12.50"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.3",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints 2026.1, 2026.2. Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints `2026.1`, `2026.2`",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.4",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints 2026.1, 2026.2. Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints `2026.1`, `2026.2`",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.5",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints 2026.1, 2026.2. Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints `2026.1`, `2026.2`",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.6",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints 2026.1, 2026.2. Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints `2026.1`, `2026.2`",
+     "calculation": "= 12.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.7",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints 2026.1, 2026.2. Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+     "calculation": "= 10.1 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown → capacity from the people list and calendar, reduced by the average absences (7 %) of sprints `2026.1`, `2026.2`",
+     "calculation": "= 10.1 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    }
+   ],
+   "plain": "No forecast can be calculated for this sprint yet (too little history).",
+   "plain_no_note": "No forecast can be calculated for this sprint yet (too little history).",
+   "structured": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "No forecast can be calculated for this sprint yet (too little history).",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  }
+ ]
+}

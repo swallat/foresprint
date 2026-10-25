@@ -1,0 +1,15 @@
+{
+ "capacity": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+ "normalized_velocity": "norm. velocity = velocity / capacity × reference capacity",
+ "average": "Ø norm. velocity = mean(norm. velocity of the last sprints in the window)",
+ "trend": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+ "plan": "Forecast PLAN = rounded down(norm. velocity trend / reference capacity × capacity)",
+ "roadmap": "Plannable = Forecast PLAN × plannable share",
+ "small_stuff": "Small stuff = Forecast PLAN − plannable",
+ "fulfillment": "Fulfillment = velocity / commitment",
+ "scope_creep": "Scope creep = added later / commitment",
+ "focus_factor": "Focus factor = velocity / capacity",
+ "delta": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+ "standard": "Standard = available × share of the product (without fixed share: rest / number of these products)",
+ "balance": "Balance = Σ done − Σ standard"
+}

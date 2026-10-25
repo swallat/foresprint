@@ -1,0 +1,14 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "sprints",
+  "demo",
+  "--end",
+  "2026.22=2026-10-01"
+ ],
+ "input": "",
+ "exit_code": 1,
+ "files": {},
+ "deleted": [],
+ "seed": {}
+}

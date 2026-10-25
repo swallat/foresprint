@@ -5,87 +5,218 @@ on:
   push:
     branches: [main]
   pull_request:
+  # For branches whose pull request was opened by a workflow (GITHUB_TOKEN pushes start nothing).
+  workflow_dispatch:
 
 # A new push to the same branch or PR cancels the superseded run; on main every run finishes.
+# Runs started by hand on v1 (the check after a merge) get a group of their own, so that the
+# next merge does not cancel them.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/v1' && github.run_id) || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Optionally on the self-hosted runner: repository variable SELF_HOSTED=true. Fork PRs always
 # run in the cloud (public repository); SELF_HOSTED=false switches back immediately.
 jobs:
-  test:
+  # Repository hygiene: no spreadsheets (real team data).
+  hygiene:
+    timeout-minutes: 5
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
       - name: No spreadsheets in the repository
         run: |
-          if git ls-files | grep -iE '\.(xlsx|xlsm|xls)$'; then
+          # Except the synthetic workbooks of the Excel import references (demo team only).
+          if git ls-files | grep -v '^golden/expected/excel_import/workbooks/' | grep -iE '\.(xlsx|xlsm|xls)$'; then
             echo "::error::Spreadsheets must not be committed (real team data)."
             exit 1
           fi
-      - uses: jdx/mise-action@v3
-      - run: uv sync --locked --all-extras
-      - run: uv run ruff check
-      - run: uv run ruff format --check
-      - run: uv run pytest
-      - run: uv run foresprint --data examples/teams check
 
-  build:
-    runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
+  # The Go core (go/): format, vet, lint and tests, including the comparison with the frozen
+  # golden files, on all three desktop platforms.
+  go:
+    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: go
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
-      - run: uv build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-go@v6
         with:
-          name: dist
-          path: |
-            dist/*.whl
-            dist/*.tar.gz
-          retention-days: 14
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
+      - run: go vet ./...
+      - run: go test -count=1 ./...
+      # A package whose tests are dropped or left behind fails here (floors: scripts/coverage-floor.sh).
+      - name: Coverage floors
+        if: runner.os == 'Linux'
+        run: bash ../scripts/coverage-floor.sh
+      - run: go build ./...
+      - name: golangci-lint
+        if: runner.os == 'Linux'
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+          working-directory: go
 
-  # Browser tests (Playwright, Chromium) against the running web UI; separate from the fast
-  # tests so that a missing browser or a slow run does not hold them up.
-  e2e:
-    runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
+  # The window (go/internal/desktop): the frontend is checked, tested and built, then the program
+  # with the window is built on all three platforms (one program: command line and window).
+  desktop:
+    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: go
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
-          fetch-depth: 0
-      # A PR that only changes documentation (docs/ and *.md) needs no browser run. The job
-      # still runs and reports success so that the required check "e2e" is satisfied; on main
-      # and for every other change the tests run as before.
-      - name: Check affected files
-        id: scope
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: go/internal/desktop/frontend/package-lock.json
+      - name: Frontend (check, test, build)
+        working-directory: go/internal/desktop/frontend
         run: |
-          run=true
-          if [ "$EVENT" = "pull_request" ]; then
-            other=$(git diff --name-only "$BASE" HEAD | grep -vE '^(docs/|[^/]+\.md$)' || true)
-            if [ -z "$other" ]; then run=false; fi
-          fi
-          echo "run=$run" >> "$GITHUB_OUTPUT"
-          echo "E2E tests: $run"
-      - if: steps.scope.outputs.run == 'true'
-        uses: jdx/mise-action@v3
-      - if: steps.scope.outputs.run == 'true'
-        run: uv sync --locked --all-extras
-      # The self-hosted runner has no sudo; the system packages for Chromium are already
-      # installed there, so only the browser itself.
-      - name: Install Chromium (GitHub-hosted, with system packages)
-        if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
-        run: uv run playwright install --with-deps chromium
-      - name: Install Chromium (self-hosted, without system packages)
-        if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
-        run: uv run playwright install chromium
-      - if: steps.scope.outputs.run == 'true'
-        run: uv run pytest -m e2e -v
-      - uses: actions/upload-artifact@v4
-        if: failure()
+          npm ci
+          npm run check
+          npm test
+          npm run build
+      # The figures only; nothing fails on them.
+      - name: Frontend coverage (Linux)
+        if: runner.os == 'Linux'
+        working-directory: go/internal/desktop/frontend
+        run: |
+          set -o pipefail
+          npm run coverage | tee coverage.txt
+          { echo '### Frontend coverage'; echo '```'; sed -n '/Coverage summary/,$p' coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # The downloaded packages are cached: the Ubuntu mirror sometimes hangs for many minutes.
+      # A try is stopped after five minutes and repeated once.
+      - name: Cache the web view packages (Linux)
+        if: runner.os == 'Linux'
+        id: apt-cache
+        uses: actions/cache@v4
         with:
-          name: e2e-screenshots
-          path: test-results/e2e/
+          path: ~/apt-archives
+          key: apt-webkit-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+      - name: Web view libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # The cache only saves download time; the package lists are always refreshed. Each try
+          # is stopped after five minutes (a dpkg left half-configured is repaired first).
+          mkdir -p ~/apt-archives/partial
+          for attempt in 1 2; do
+            timeout -k 10 300 sh -c 'sudo apt-get update && sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" libgtk-3-dev libwebkit2gtk-4.1-dev xvfb' && break
+            test "$attempt" = 2 && exit 1
+            # The stopped try can leave apt running and holding the dpkg lock: end it first.
+            sudo pkill -KILL -x apt-get || true
+            sudo pkill -KILL -x dpkg || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+            sudo dpkg --configure -a || true
+          done
+          sudo chown -R "$USER" ~/apt-archives
+      - name: Build the program with the window
+        shell: bash
+        run: |
+          tags=desktop,production
+          if [ "$RUNNER_OS" = "Linux" ]; then tags=$tags,webkit2_41; fi
+          # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
+          if [ "$RUNNER_OS" = "macOS" ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
+          exe=foresprint; if [ "$RUNNER_OS" = "Windows" ]; then exe=foresprint.exe; fi
+          go build -tags "$tags" -o "../dist/$exe" ./cmd/foresprint
+          "../dist/$exe" version
+      - name: The command line prints on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path ../dist/foresprint.exe
+          # A console program: PowerShell waits for it, and the output arrives.
+          $version = & $exe --version
+          if (-not $version) { throw "--version printed nothing" }
+          $help = (& $exe --help | Out-String)
+          if ($help.Length -lt 100) { throw "--help printed nothing" }
+      - name: The window opens (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # The program runs until it is stopped: exit code 124 of timeout means that it did (137:
+          # it had to be killed after ten more seconds, which must not hold up the job).
+          code=0
+          xvfb-run -a timeout -k 10 10 ../dist/foresprint --data ../examples/teams || code=$?
+          test "$code" = 124 || test "$code" = 137
+      - uses: actions/upload-artifact@v4
+        with:
+          name: foresprint-${{ runner.os }}
+          path: dist/foresprint*
           retention-days: 7
+
+  # The install scripts against a release page on a local web server (no network, no real release):
+  # download, checksum, install, and refusal of a wrong checksum.
+  installers:
+    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: Install script (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sh -n install.sh uninstall.sh
+          mkdir -p site/v9.9.9 stage
+          (cd go && go build -o ../stage/foresprint ./cmd/foresprint)
+          tar -czf site/v9.9.9/foresprint_9.9.9_linux_amd64.tar.gz -C stage foresprint
+          (cd site/v9.9.9 && sha256sum foresprint_* > checksums.txt)
+          (cd site && python3 -m http.server 8765 > /dev/null 2>&1 &)
+          sleep 2
+          export FORESPRINT_VERSION=9.9.9 FORESPRINT_DOWNLOAD_BASE=http://localhost:8765 FORESPRINT_NO_SHORTCUT=1 FORESPRINT_BIN="$RUNNER_TEMP/bin"
+          sh install.sh
+          "$FORESPRINT_BIN/foresprint" version
+          # The variant without the window
+          tar -czf site/v9.9.9/foresprint-cli_9.9.9_linux_amd64.tar.gz -C stage foresprint
+          (cd site/v9.9.9 && sha256sum foresprint* > checksums.txt)
+          FORESPRINT_VARIANT=cli FORESPRINT_BIN="$RUNNER_TEMP/bin-cli" sh install.sh
+          "$RUNNER_TEMP/bin-cli/foresprint" version
+          if FORESPRINT_VARIANT=nope sh install.sh; then echo "an unknown variant was accepted"; exit 1; fi
+          echo "bad  foresprint_9.9.9_linux_amd64.tar.gz" > site/v9.9.9/checksums.txt
+          if sh install.sh; then echo "a wrong checksum was accepted"; exit 1; fi
+      - name: Install script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force site/v9.9.9, stage | Out-Null
+          Push-Location go; go build -o ../stage/foresprint.exe ./cmd/foresprint; Pop-Location
+          Compress-Archive stage/foresprint.exe site/v9.9.9/foresprint_9.9.9_windows_amd64.zip
+          $hash = (Get-FileHash site/v9.9.9/foresprint_9.9.9_windows_amd64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  foresprint_9.9.9_windows_amd64.zip" | Set-Content site/v9.9.9/checksums.txt
+          $server = Start-Process python -ArgumentList "-m","http.server","8765","--directory","site" -PassThru -WindowStyle Hidden
+          Start-Sleep 3
+          $env:FORESPRINT_VERSION = "9.9.9"; $env:FORESPRINT_DOWNLOAD_BASE = "http://localhost:8765"
+          $env:FORESPRINT_NO_SHORTCUT = "1"; $env:FORESPRINT_BIN = Join-Path $env:RUNNER_TEMP "bin"
+          ./install.ps1
+          & (Join-Path $env:FORESPRINT_BIN "foresprint.exe") version
+          "0000  foresprint_9.9.9_windows_amd64.zip" | Set-Content site/v9.9.9/checksums.txt
+          $accepted = $true
+          try { ./install.ps1 } catch { $accepted = $false }
+          Stop-Process $server
+          if ($accepted) { throw "a wrong checksum was accepted" }

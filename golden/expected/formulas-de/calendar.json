@@ -1,0 +1,9 @@
+{
+ "no_first": "Team t: Es ist noch kein Sprint erfasst. Bitte unter Einstellungen Start und ID des ersten Sprints eintragen (in team.yaml: sprint.first.id und sprint.first.start).",
+ "sequential": "Sprint-ID '22b' passt nicht zur Nummerierung (erwartet eine Zahl, z. B. 22); die ID des Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: mit foresprint rename-sprint bzw. unter Einstellungen (ohne Sprintdateien: dort die ID des ersten Sprints).",
+ "yearly": "Sprint-ID 'x' passt nicht zur Nummerierung (erwartet eine Zahl, z. B. 22); die ID des Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: mit foresprint rename-sprint bzw. unter Einstellungen (ohne Sprintdateien: dort die ID des ersten Sprints).",
+ "trend_mode": "Unbekannter Trend-Modus 'quadratic' (erlaubt: classic, linear, flat)",
+ "yearly_form": "JJJJ.N, z. B. 2026.22",
+ "sequential_form": "eine Zahl, z. B. 22",
+ "day_label": "Mi 28.10.2026"
+}

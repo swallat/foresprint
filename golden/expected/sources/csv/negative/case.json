@@ -1,0 +1,9 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": "Remaining",
+  "epic": "Epic Link"
+ },
+ "rule_fields": {},
+ "error": "input.csv, line 2: '-3' in column “Custom field (Story Points)” is negative"
+}

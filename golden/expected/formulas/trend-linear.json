@@ -1,0 +1,1953 @@
+{
+ "entries": [
+  {
+   "sprint": "2026.1",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 40 × 40 = 30.00"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "32.00 → 32.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.0 × 80 % = 25.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.0 − 25.60 = 6.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 32.00 = 94 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 40 × 40 = 30.00"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "32.00 → 32.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.0 × 80 % = 25.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.0 − 25.60 = 6.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 32.00 = 94 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+   "plain_no_note": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.2",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 44.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "34.00 / 44 × 40 = 30.91"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "35.00 → 35.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.0 × 80 % = 28.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.0 − 28.00 = 7.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "34.00 / 35.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 44.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "34.00 / 44 × 40 = 30.91"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "35.00 → 35.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.0 × 80 % = 28.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.0 − 28.00 = 7.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "34.00 / 35.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (35.00 PT) counts, rounded down to 35.0.",
+   "plain_no_note": "Past sprint: the commitment (35.00 PT) counts, rounded down to 35.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (35.00 PT) counts, rounded down to 35.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (35.00 PT) counts, rounded down to 35.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.3",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 38.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 38 × 40 = 29.47"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "33.00 → 33.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "33.0 × 80 % = 26.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "33.0 − 26.40 = 6.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 33.00 = 85 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 38.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 38 × 40 = 29.47"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "33.00 → 33.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "33.0 × 80 % = 26.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "33.0 − 26.40 = 6.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 33.00 = 85 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+   "plain_no_note": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.4",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 42.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "36.00 / 42 × 40 = 34.29"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "36.00 / 36.00 = 100 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 42.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "36.00 / 42 × 40 = 34.29"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "36.00 / 36.00 = 100 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "plain_no_note": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.5",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    }
+   ],
+   "plain": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "plain_no_note": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.6",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 36.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "33.00 / 36 × 40 = 36.67"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(30.00 + 30.91 + 29.47 + 34.29 + 36.67) / 5 = 32.27"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 32.27"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "34.00 → 34.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "34.0 × 80 % = 27.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "34.0 − 27.20 = 6.80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "33.00 / 34.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 36.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "33.00 / 36 × 40 = 36.67"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(30.00 + 30.91 + 29.47 + 34.29 + 36.67) / 5 = 32.27"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 32.27"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "34.00 → 34.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "34.0 × 80 % = 27.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "34.0 − 27.20 = 6.80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "33.00 / 34.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+   "plain_no_note": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.7",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 44.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "38.00 / 44 × 40 = 34.55"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(30.91 + 29.47 + 34.29 + 36.67 + 34.55) / 5 = 33.18"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 33.18"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "38.00 → 38.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "38.0 × 80 % = 30.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "38.0 − 30.40 = 7.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "38.00 / 38.00 = 100 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 44.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "38.00 / 44 × 40 = 34.55"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(30.91 + 29.47 + 34.29 + 36.67 + 34.55) / 5 = 33.18"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 33.18"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "38.00 → 38.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "38.0 × 80 % = 30.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "38.0 − 30.40 = 7.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "38.00 / 38.00 = 100 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (38.00 PT) counts, rounded down to 38.0.",
+   "plain_no_note": "Past sprint: the commitment (38.00 PT) counts, rounded down to 38.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (38.00 PT) counts, rounded down to 38.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (38.00 PT) counts, rounded down to 38.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.8",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 42.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "33.18 + (33.18 − 32.27) = 34.09"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "34.0852 / 40 × 42 = 35.789 → 35.7 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.7 × 80 % = 28.56"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.7 − 28.56 = 7.14"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 42.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "33.18 + (33.18 − 32.27) = 34.09"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "34.0852 / 40 × 42 = 35.789 → 35.7 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.7 × 80 % = 28.56"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.7 − 28.56 = 7.14"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.2, 2026.3, 2026.4, 2026.6, 2026.7) achieved an average of 34.09 PT, converted to a reference capacity of 40 PT (normalized velocity). 42.0 PT are available for 2026.8 (recorded). That gives 34.0852 / 40 × 42 = 35.789 PT, rounded down **35.7 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.2, 2026.3, 2026.4, 2026.6, 2026.7) achieved an average of 34.09 PT, converted to a reference capacity of 40 PT (normalized velocity). 42.0 PT are available for 2026.8 (recorded). That gives 34.0852 / 40 × 42 = 35.789 PT, rounded down **35.7 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.2`, `2026.3`, `2026.4`, `2026.6`, `2026.7`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "34.09 PT"
+     ],
+     [
+      "Available in `2026.8`",
+      "42.0 PT (recorded)"
+     ]
+    ],
+    "calculation": "34.0852 / 40 × 42 = 35.789 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "35.7 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.2`, `2026.3`, `2026.4`, `2026.6`, `2026.7`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "34.09 PT"
+     ],
+     [
+      "Available in `2026.8`",
+      "42.0 PT (recorded)"
+     ]
+    ],
+    "calculation": "34.0852 / 40 × 42 = 35.789 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "35.7 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.9",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 41.6 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "31.00 / – × 40 = –"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "34.09 + (34.09 − 33.18) = 34.99"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "34.9943 / 40 × 41.6 = 36.394 → 36.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.3 × 80 % = 29.04"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.3 − 29.04 = 7.26"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "31.00 / 32.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 41.6 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "31.00 / – × 40 = –"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "34.09 + (34.09 − 33.18) = 34.99"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "34.9943 / 40 × 41.6 = 36.394 → 36.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.3 × 80 % = 29.04"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.3 − 29.04 = 7.26"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "31.00 / 32.00 = 97 %"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.2, 2026.3, 2026.4, 2026.6, 2026.7) achieved an average of 34.99 PT, converted to a reference capacity of 40 PT (normalized velocity). 41.6 PT are available for 2026.9 (Trend). That gives 34.9943 / 40 × 41.6 = 36.394 PT, rounded down **36.3 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.2, 2026.3, 2026.4, 2026.6, 2026.7) achieved an average of 34.99 PT, converted to a reference capacity of 40 PT (normalized velocity). 41.6 PT are available for 2026.9 (Trend). That gives 34.9943 / 40 × 41.6 = 36.394 PT, rounded down **36.3 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.2`, `2026.3`, `2026.4`, `2026.6`, `2026.7`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "34.99 PT"
+     ],
+     [
+      "Available in `2026.9`",
+      "41.6 PT (Trend)"
+     ]
+    ],
+    "calculation": "34.9943 / 40 × 41.6 = 36.394 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "36.3 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.2`, `2026.3`, `2026.4`, `2026.6`, `2026.7`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "34.99 PT"
+     ],
+     [
+      "Available in `2026.9`",
+      "41.6 PT (Trend)"
+     ]
+    ],
+    "calculation": "34.9943 / 40 × 41.6 = 36.394 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "36.3 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.10",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 41.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "35.00 / 41 × 40 = 34.15"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(29.47 + 34.29 + 36.67 + 34.55 + 34.15) / 5 = 33.82"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 33.82"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "35.00 / 36.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 41.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "35.00 / 41 × 40 = 34.15"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(29.47 + 34.29 + 36.67 + 34.55 + 34.15) / 5 = 33.82"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 33.82"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "35.00 / 36.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "plain_no_note": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.11",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "37.00 / 40 × 40 = 37.00"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(34.29 + 36.67 + 34.55 + 34.15 + 37.00) / 5 = 35.33"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 35.33"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "37.00 → 37.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "37.0 × 80 % = 29.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "37.0 − 29.60 = 7.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "37.00 / 37.00 = 100 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 40.0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "37.00 / 40 × 40 = 37.00"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(34.29 + 36.67 + 34.55 + 34.15 + 37.00) / 5 = 35.33"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 35.33"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "37.00 → 37.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "37.0 × 80 % = 29.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "37.0 − 29.60 = 7.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "37.00 / 37.00 = 100 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (37.00 PT) counts, rounded down to 37.0.",
+   "plain_no_note": "Past sprint: the commitment (37.00 PT) counts, rounded down to 37.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (37.00 PT) counts, rounded down to 37.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (37.00 PT) counts, rounded down to 37.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.12",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 39.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "35.33 + (35.33 − 33.82) = 36.83"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "36.8341 / 40 × 39 = 35.913 → 35.9 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.9 × 80 % = 28.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.9 − 28.72 = 7.18"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Recorded in the sprint file (frozen at the review)",
+     "calculation": "= 39.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "35.33 + (35.33 − 33.82) = 36.83"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "36.8341 / 40 × 39 = 35.913 → 35.9 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "35.9 × 80 % = 28.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "35.9 − 28.72 = 7.18"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 36.83 PT, converted to a reference capacity of 40 PT (normalized velocity). 39.0 PT are available for 2026.12 (recorded). That gives 36.8341 / 40 × 39 = 35.913 PT, rounded down **35.9 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 36.83 PT, converted to a reference capacity of 40 PT (normalized velocity). 39.0 PT are available for 2026.12 (recorded). That gives 36.8341 / 40 × 39 = 35.913 PT, rounded down **35.9 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "36.83 PT"
+     ],
+     [
+      "Available in `2026.12`",
+      "39.0 PT (recorded)"
+     ]
+    ],
+    "calculation": "36.8341 / 40 × 39 = 35.913 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "35.9 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "36.83 PT"
+     ],
+     [
+      "Available in `2026.12`",
+      "39.0 PT (recorded)"
+     ]
+    ],
+    "calculation": "36.8341 / 40 × 39 = 35.913 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "35.9 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.13",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 41.8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "36.83 + (36.83 − 35.33) = 38.34"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "38.3394 / 40 × 41.8 = 40.065 → 40.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "40.0 × 80 % = 32.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "40.0 − 32.00 = 8.00"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 41.8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "36.83 + (36.83 − 35.33) = 38.34"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "38.3394 / 40 × 41.8 = 40.065 → 40.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "40.0 × 80 % = 32.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "40.0 − 32.00 = 8.00"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 38.34 PT, converted to a reference capacity of 40 PT (normalized velocity). 41.8 PT are available for 2026.13 (Trend). That gives 38.3394 / 40 × 41.8 = 40.065 PT, rounded down **40.0 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 38.34 PT, converted to a reference capacity of 40 PT (normalized velocity). 41.8 PT are available for 2026.13 (Trend). That gives 38.3394 / 40 × 41.8 = 40.065 PT, rounded down **40.0 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "38.34 PT"
+     ],
+     [
+      "Available in `2026.13`",
+      "41.8 PT (Trend)"
+     ]
+    ],
+    "calculation": "38.3394 / 40 × 41.8 = 40.065 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "40.0 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "38.34 PT"
+     ],
+     [
+      "Available in `2026.13`",
+      "41.8 PT (Trend)"
+     ]
+    ],
+    "calculation": "38.3394 / 40 × 41.8 = 40.065 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "40.0 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.14",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 42.4 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "38.34 + (38.34 − 36.83) = 39.84"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "39.8446 / 40 × 42.4 = 42.235 → 42.2 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "42.2 × 80 % = 33.76"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "42.2 − 33.76 = 8.44"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 42.4 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "38.34 + (38.34 − 36.83) = 39.84"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "39.8446 / 40 × 42.4 = 42.235 → 42.2 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "42.2 × 80 % = 33.76"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "42.2 − 33.76 = 8.44"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 39.84 PT, converted to a reference capacity of 40 PT (normalized velocity). 42.4 PT are available for 2026.14 (Trend). That gives 39.8446 / 40 × 42.4 = 42.235 PT, rounded down **42.2 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 39.84 PT, converted to a reference capacity of 40 PT (normalized velocity). 42.4 PT are available for 2026.14 (Trend). That gives 39.8446 / 40 × 42.4 = 42.235 PT, rounded down **42.2 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "39.84 PT"
+     ],
+     [
+      "Available in `2026.14`",
+      "42.4 PT (Trend)"
+     ]
+    ],
+    "calculation": "39.8446 / 40 × 42.4 = 42.235 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "42.2 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "39.84 PT"
+     ],
+     [
+      "Available in `2026.14`",
+      "42.4 PT (Trend)"
+     ]
+    ],
+    "calculation": "39.8446 / 40 × 42.4 = 42.235 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "42.2 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.15",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 43.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "39.84 + (39.84 − 38.34) = 41.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "41.3499 / 40 × 43 = 44.451 → 44.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "44.4 × 80 % = 35.52"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "44.4 − 35.52 = 8.88"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 43.0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "39.84 + (39.84 − 38.34) = 41.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "41.3499 / 40 × 43 = 44.451 → 44.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "44.4 × 80 % = 35.52"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "44.4 − 35.52 = 8.88"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 41.35 PT, converted to a reference capacity of 40 PT (normalized velocity). 43.0 PT are available for 2026.15 (Trend). That gives 41.3499 / 40 × 43 = 44.451 PT, rounded down **44.4 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 41.35 PT, converted to a reference capacity of 40 PT (normalized velocity). 43.0 PT are available for 2026.15 (Trend). That gives 41.3499 / 40 × 43 = 44.451 PT, rounded down **44.4 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "41.35 PT"
+     ],
+     [
+      "Available in `2026.15`",
+      "43.0 PT (Trend)"
+     ]
+    ],
+    "calculation": "41.3499 / 40 × 43 = 44.451 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "44.4 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "41.35 PT"
+     ],
+     [
+      "Available in `2026.15`",
+      "43.0 PT (Trend)"
+     ]
+    ],
+    "calculation": "41.3499 / 40 × 43 = 44.451 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "44.4 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.16",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 43.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "41.35 + (41.35 − 39.84) = 42.86"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "42.8552 / 40 × 43.6 = 46.712 → 46.7 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "46.7 × 80 % = 37.36"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "46.7 − 37.36 = 9.34"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 43.6 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "41.35 + (41.35 − 39.84) = 42.86"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "42.8552 / 40 × 43.6 = 46.712 → 46.7 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "46.7 × 80 % = 37.36"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "46.7 − 37.36 = 9.34"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 42.86 PT, converted to a reference capacity of 40 PT (normalized velocity). 43.6 PT are available for 2026.16 (Trend). That gives 42.8552 / 40 × 43.6 = 46.712 PT, rounded down **46.7 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 42.86 PT, converted to a reference capacity of 40 PT (normalized velocity). 43.6 PT are available for 2026.16 (Trend). That gives 42.8552 / 40 × 43.6 = 46.712 PT, rounded down **46.7 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "42.86 PT"
+     ],
+     [
+      "Available in `2026.16`",
+      "43.6 PT (Trend)"
+     ]
+    ],
+    "calculation": "42.8552 / 40 × 43.6 = 46.712 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "46.7 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "42.86 PT"
+     ],
+     [
+      "Available in `2026.16`",
+      "43.6 PT (Trend)"
+     ]
+    ],
+    "calculation": "42.8552 / 40 × 43.6 = 46.712 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "46.7 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.17",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 44.2 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "42.86 + (42.86 − 41.35) = 44.36"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "44.3604 / 40 × 44.2 = 49.018 → 49.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "49.0 × 80 % = 39.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "49.0 − 39.20 = 9.80"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No people list → capacity trend (extrapolated like the norm. velocity)",
+     "calculation": "= 44.2 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)",
+     "calculation": "42.86 + (42.86 − 41.35) = 44.36"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "44.3604 / 40 × 44.2 = 49.018 → 49.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "49.0 × 80 % = 39.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "49.0 − 39.20 = 9.80"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 44.36 PT, converted to a reference capacity of 40 PT (normalized velocity). 44.2 PT are available for 2026.17 (Trend). That gives 44.3604 / 40 × 44.2 = 49.018 PT, rounded down **49.0 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "plain_no_note": "The team recently (sprints 2026.4, 2026.6, 2026.7, 2026.10, 2026.11) achieved an average of 44.36 PT, converted to a reference capacity of 40 PT (normalized velocity). 44.2 PT are available for 2026.17 (Trend). That gives 44.3604 / 40 × 44.2 = 49.018 PT, rounded down **49.0 PT**. Trend mode linear extrapolates fluctuations of the last sprints – read with caution.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "44.36 PT"
+     ],
+     [
+      "Available in `2026.17`",
+      "44.2 PT (Trend)"
+     ]
+    ],
+    "calculation": "44.3604 / 40 × 44.2 = 49.018 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "49.0 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.4`, `2026.6`, `2026.7`, `2026.10`, `2026.11`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "44.36 PT"
+     ],
+     [
+      "Available in `2026.17`",
+      "44.2 PT (Trend)"
+     ]
+    ],
+    "calculation": "44.3604 / 40 × 44.2 = 49.018 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "49.0 PT",
+    "notes": [
+     "Trend mode linear extrapolates fluctuations of the last sprints – read with caution."
+    ]
+   }
+  }
+ ]
+}

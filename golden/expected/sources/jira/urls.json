@@ -1,0 +1,145 @@
+{
+ "urls": [
+  {
+   "url": "https://jira.example.org",
+   "problem": null,
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org/jira/",
+   "problem": null,
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "http://jira.example.org:8080/x",
+   "problem": null,
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "HTTPS://Jira.Example.ORG",
+   "problem": null,
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "ftp://jira.example.org",
+   "problem": "invalid",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "jira.example.org",
+   "problem": "invalid",
+   "keychain_error": "tracker.base_url is missing or not an http or https address (team.yaml)"
+  },
+  {
+   "url": "",
+   "problem": "invalid",
+   "keychain_error": "tracker.base_url is missing or not an http or https address (team.yaml)"
+  },
+  {
+   "url": "   ",
+   "problem": "invalid",
+   "keychain_error": "tracker.base_url is missing or not an http or https address (team.yaml)"
+  },
+  {
+   "url": "https://",
+   "problem": "invalid",
+   "keychain_error": "tracker.base_url is missing or not an http or https address (team.yaml)"
+  },
+  {
+   "url": "https://user:pw@jira.example.org",
+   "problem": "credentials",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://user@jira.example.org",
+   "problem": "credentials",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org?x=1",
+   "problem": "extra",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org#frag",
+   "problem": "extra",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org/?",
+   "problem": "extra",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org/#",
+   "problem": "extra",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org:notaport",
+   "problem": "invalid",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://jira.example.org:99999",
+   "problem": "invalid",
+   "keychain_user": "jira.example.org"
+  },
+  {
+   "url": "https://[::1]:8443/jira",
+   "problem": null,
+   "keychain_user": "::1"
+  },
+  {
+   "url": " https://jira.example.org/jira ",
+   "problem": null,
+   "keychain_user": "jira.example.org"
+  }
+ ],
+ "tokens": [
+  {
+   "token": "abc",
+   "ok": true
+  },
+  {
+   "token": "tok-1.2_3~x",
+   "ok": true
+  },
+  {
+   "token": "",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": " ",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "a b",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "a\nb",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "ä",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "a\tb",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": true
+  },
+  {
+   "token": "ab",
+   "error": "The Jira token is empty or contains spaces, line breaks or special characters – please paste it again."
+  },
+  {
+   "token": "!~",
+   "ok": true
+  }
+ ]
+}
