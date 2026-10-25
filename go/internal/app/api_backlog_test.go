@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -544,5 +545,45 @@ func TestRankPositionAndMoveByRankIgnorePriority(t *testing.T) {
 	}
 	if got := pos(); got != "123" {
 		t.Errorf("rank positions %s, want X-3 last again", got)
+	}
+}
+
+func TestBacklogShowsEmptyBoardSprints(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	board := 7
+	data.Team.Tracker.BoardID = &board
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "Free", EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	api.run.board = map[string][]sources.SprintValue{"t": {
+		{ID: "11", Name: "Team Sprint 2027.4", State: "FUTURE"},
+		{ID: "12", Name: "Some Release Train", State: "FUTURE"},
+		{ID: "13", Name: "Team Sprint 2026.1", State: "CLOSED"},
+	}}
+	view, err := api.Backlog("t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, l := range view.Lanes {
+		found = found || l.Sprint == "2027.4"
+	}
+	if !found {
+		t.Errorf("the empty board sprint 2027.4 must be a lane, lanes: %+v", view.Lanes)
+	}
+	if len(view.UnmatchedSprints) != 1 || view.UnmatchedSprints[0] != "Some Release Train" {
+		t.Errorf("unmatched %v: only the open sprint without a match counts", view.UnmatchedSprints)
+	}
+	if err := api.EarmarkTicket("t", "X-1", "2027.4", ""); err != nil {
+		t.Errorf("a ticket can be earmarked into the empty board sprint: %v", err)
 	}
 }

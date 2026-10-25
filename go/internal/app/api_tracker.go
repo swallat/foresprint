@@ -481,7 +481,8 @@ func (a *API) TrackerFieldNames(team, baseURL string) []string {
 type trackerRun struct {
 	syncing map[string]bool
 	failed  map[string]string
-	mapped  map[string]TrackerFields // per team: the mapping the last fetch of this run used
+	mapped  map[string]TrackerFields         // per team: the mapping the last fetch of this run used
+	board   map[string][]sources.SprintValue // per team: the open and future sprints of the Jira board, as the last read found them
 }
 
 // TrackerInfo is the state of the tracker sync of a team for the chip in the top bar.
@@ -556,6 +557,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	a.trackerReadBoardSprints(team, jira, data.Team.Tracker) // best effort: the backlog also shows empty sprints
 	// Edits of the PO during the fetch (pro-forma, earmarks, order) must not be written over:
 	// work from the files as they are now.
 	backlogMu.Lock()
@@ -732,4 +734,68 @@ func trackerFieldsOf(t model.TrackerSettings) TrackerFields {
 		Product: deref(t.Fields.Product), Project: deref(t.Fields.Project),
 		Refined: deref(t.Fields.Refined), Production: deref(t.Fields.Production),
 	}
+}
+
+// trackerReadBoardSprints reads the open and future sprints of the board named in the tracker settings
+// and keeps them for this run. It does nothing without a board number and never fails the sync.
+func (a *API) trackerReadBoardSprints(team string, jira *sources.JiraSource, tracker model.TrackerSettings) int {
+	if tracker.BoardID == nil {
+		return 0
+	}
+	list, err := jira.ListBoardSprints(*tracker.BoardID)
+	if err != nil {
+		return 0
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.run.board == nil {
+		a.run.board = map[string][]sources.SprintValue{}
+	}
+	a.run.board[team] = list
+	return len(list)
+}
+
+// trackerBoardSprintsFor is the kept list of board sprints, but only while the team still reads
+// from a Jira board: a removed or changed board number must not leave old sprints behind.
+func (a *API) trackerBoardSprintsFor(team string, t model.Team) []sources.SprintValue {
+	if t.Source() != model.SourceTracker || t.Tracker.Kind != "jira" || t.Tracker.BoardID == nil {
+		return nil
+	}
+	return a.trackerBoardSprints(team)
+}
+
+func (a *API) trackerBoardSprints(team string) []sources.SprintValue {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.run.board[team]
+}
+
+// RefreshBoardSprints reads the sprints of the Jira board now (GET only), so that the backlog
+// shows sprints that hold no ticket yet. It returns how many it found; 0 without Jira or a board
+// number. The window calls it when the backlog opens.
+func (a *API) RefreshBoardSprints(team string) (int, error) {
+	_, data, err := a.loadRepoTeam(team)
+	if err != nil {
+		return 0, err
+	}
+	t := data.Team.Tracker
+	if data.Team.Source() != model.SourceTracker || t.Kind != "jira" || t.BoardID == nil {
+		return 0, nil
+	}
+	jira, err := openJira(t)
+	if err != nil {
+		return 0, err
+	}
+	defer jira.Close()
+	list, err := jira.ListBoardSprints(*t.BoardID)
+	if err != nil {
+		return 0, err
+	}
+	a.mu.Lock()
+	if a.run.board == nil {
+		a.run.board = map[string][]sources.SprintValue{}
+	}
+	a.run.board[team] = list
+	a.mu.Unlock()
+	return len(list), nil
 }

@@ -84,6 +84,8 @@ export interface BacklogView {
   adjust: BacklogAdjust[];
   /** The own order among tracker tickets is in use. */
   ownOrder: boolean;
+  /** Open sprints of the Jira board that match no sprint of the calendar. */
+  unmatchedSprints: string[];
 }
 
 export interface BacklogDrift {
@@ -190,6 +192,7 @@ export interface BacklogApi {
   EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
   MoveToProForma(team: string, key: string, name: string): Promise<void>;
   ResetOrder(team: string): Promise<void>;
+  RefreshBoardSprints(team: string): Promise<number>;
   MoveTicketByRank(team: string, key: string, anchor: string, after: boolean): Promise<void>;
   SetEarmarkNote(team: string, key: string, note: string): Promise<void>;
   SetEstimate(team: string, key: string, value: number | null): Promise<void>;
