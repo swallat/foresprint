@@ -253,6 +253,13 @@ func TestSetupItemsWithoutRepository(t *testing.T) {
 	}
 }
 
+func TestGuideForGenericNamesBothUserNames(t *testing.T) {
+	g := GuideFor(gitsync.HostGeneric)
+	if g.Username != "" || !strings.Contains(g.Steps, "oauth2") || !strings.Contains(g.Steps, "Gitea") {
+		t.Errorf("generic guide = %+v", g)
+	}
+}
+
 func TestGuideFor(t *testing.T) {
 	if g := GuideFor(gitsync.HostGitLab); g.Username != "oauth2" {
 		t.Fatalf("gitlab = %+v", g)
