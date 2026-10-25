@@ -10,6 +10,9 @@ import (
 // A build with the tag "desktop" has the window: the program started without arguments (a
 // double click) and "foresprint gui" open it.
 func init() {
+	cli.Serve = func(dataDir string, out func(string)) error {
+		return desktop.Serve(version, dataDir, out)
+	}
 	cli.GUI = func(dataDir string) error {
 		desktop.Trace = reportTrace
 		reportTrace("opening the window")

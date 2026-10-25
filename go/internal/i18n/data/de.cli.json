@@ -2,6 +2,8 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "Open this link in your browser (stop with Ctrl+C):": "Öffne diesen Link im Browser (beenden mit Strg+C):",
+  "Show the program in the browser (this computer only).": "Zeigt das Programm im Browser (nur auf diesem Rechner).",
   "Usage:": "Aufruf:",
   "Commands:": "Befehle:",
   "Options:": "Optionen:",

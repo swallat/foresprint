@@ -165,6 +165,20 @@
   "Capacity scrum events deduction overhead planning review retro days per person percent": "Kapazität Scrum-Events Abzug Overhead Planung Review Retro Tage je Person Prozent",
   "Time for planning, review and retro that does not count for capacity. Per full-time person and sprint (part time pro rata), e.g. 1. If set, the days apply instead of the percent. 0 = none.": "Zeit für Planung, Review und Retro, die nicht zur Kapazität zählt. Je Vollzeitperson und Sprint (Teilzeit anteilig), z. B. 1. Sind Tage gesetzt, gelten sie statt der Prozent. 0 = keiner.",
   "Deduction for Scrum events (PD per person)": "Abzug für Scrum-Events (PT je Person)",
-  "Deduction for Scrum events (%)": "Abzug für Scrum-Events (%)"
+  "Deduction for Scrum events (%)": "Abzug für Scrum-Events (%)",
+  "Link copied. It only works on this computer.": "Link kopiert. Er funktioniert nur auf diesem Rechner.",
+  "Browser": "Browser",
+  "Show Foresprint as a page of your browser, for example next to Jira while sharing your screen.": "Zeigt Foresprint als Seite in deinem Browser, zum Beispiel neben Jira beim Teilen des Bildschirms.",
+  "This page is already shown in the browser. Switch the access on or off in the window of the program.": "Diese Seite läuft schon im Browser. Den Zugriff schaltest du im Fenster des Programms an oder aus.",
+  "This build has no browser access.": "Diese Version hat keinen Browser-Zugriff.",
+  "The browser access is on": "Der Browser-Zugriff ist an",
+  "The browser access is off": "Der Browser-Zugriff ist aus",
+  "Open in browser": "Im Browser öffnen",
+  "Copy browser link": "Browser-Link kopieren",
+  "Switch off": "Ausschalten",
+  "The link only works on this computer and contains a secret key. It is new on every start and void once you switch the access off or close the program. When you share your screen, share the tab, not the link.": "Der Link funktioniert nur auf diesem Rechner und enthält einen geheimen Schlüssel. Er ist bei jedem Start neu und ungültig, sobald du den Zugriff ausschaltest oder das Programm schließt. Teile beim Bildschirmteilen den Tab, nicht den Link.",
+  "Changes made in the window show up in the browser after a few seconds, and the page offers to reload. Updates of the program are made in the window.": "Änderungen aus dem Fenster erscheinen nach einigen Sekunden im Browser, die Seite bietet dann Neuladen an. Programm-Updates machst du im Fenster.",
+  "Show in the browser": "Im Browser anzeigen",
+  "Browser settings": "Browser-Einstellungen"
  }
 }
