@@ -354,7 +354,8 @@ func (s *Store) CreateFolder(folder string) Opened {
 	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}
-	data, err := git.InitDataRepository(s.ctx(), abs, true)
+	// Teams already in the folder: no "teams" folder next to them.
+	data, err := git.InitDataRepository(s.ctx(), abs, !holdsTeams(abs))
 	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}

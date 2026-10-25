@@ -42,3 +42,24 @@ func TestDataFolderPrefersTheFolderThatHoldsTeams(t *testing.T) {
 		t.Errorf("new repository: got %q, want %q", got, want)
 	}
 }
+
+// "Start a new one" in a folder that already holds teams adds no "teams" folder and uses the folder.
+func TestCreateFolderInAFolderWithTeamsKeepsIt(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "alpha"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "alpha", "team.yaml"), []byte("name: A\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := New(root).CreateFolder(root)
+	if got.Problem != nil {
+		t.Fatalf("problem: %+v", got.Problem)
+	}
+	if abs, _ := filepath.Abs(root); got.Folder != abs {
+		t.Errorf("got %q, want %q", got.Folder, abs)
+	}
+	if _, err := os.Stat(filepath.Join(root, "teams")); err == nil {
+		t.Error("a teams folder was added")
+	}
+}

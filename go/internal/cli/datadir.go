@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,7 @@ func teamsDir(dir string) string {
 		return sub
 	}
 	// A folder remembered as "<repository>/teams" while the teams sit in the repository itself.
-	if filepath.Base(dir) == "teams" && len(teamFolders(filepath.Dir(dir))) > 0 {
+	if strings.EqualFold(filepath.Base(dir), "teams") && len(teamFolders(filepath.Dir(dir))) > 0 {
 		return filepath.Dir(dir)
 	}
 	return ""
