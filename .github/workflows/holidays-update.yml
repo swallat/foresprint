@@ -2,14 +2,10 @@ name: Holiday data
 
 # Once a month: is there a newer release of the Python "holidays" library? If so, the embedded
 # holiday data of the Go core (go/internal/holidays/data/holidays.zip) and the golden files that
-# depend on it (golden/expected/calendar) are regenerated and a pull request against v1 shows
+# depend on it (golden/expected/calendar) are regenerated and a pull request against main shows
 # the difference. The release workflow regenerates the data again at every release; this run
 # only keeps the repository current in between. scripts/gen_holidays.py is the only Python left
 # in the repository; it declares its dependency itself and runs with uv.
-#
-# A scheduled workflow runs from the default branch only. This file therefore takes effect when
-# v1 is merged into main (version 1.0); until then start it by hand from the Actions page after
-# copying it to main, or run the commands of the "Update" step locally.
 
 on:
   schedule:
@@ -26,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      BASE: v1
+      BASE: main
     steps:
       - uses: actions/checkout@v5
         with:
