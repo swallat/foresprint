@@ -12,6 +12,10 @@ on:
 
 jobs:
   claude-review:
+    # Bots (z. B. Dependabot) werden uebersprungen: die Action verweigert
+    # Bot-Ausloeser ohne allowed_bots und der Lauf waere sonst rot.
+    if: github.event.pull_request.user.type != 'Bot'
+
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
