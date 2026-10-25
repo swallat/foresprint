@@ -314,9 +314,19 @@ type Opened struct {
 	Problem *Problem `json:"problem,omitempty"`
 }
 
-// dataFolder is the folder with the team folders inside a data repository: its subfolder "teams"
-// when there is one, else the folder itself.
+// holdsTeams tells whether dir has team folders (<dir>/<team>/team.yaml) directly inside.
+func holdsTeams(dir string) bool {
+	files, _ := filepath.Glob(filepath.Join(dir, "*", "team.yaml"))
+	return len(files) > 0
+}
+
+// dataFolder is the folder with the team folders inside a data repository: the folder itself when
+// the teams are in it, else its subfolder "teams" when there is one, else the folder itself. A
+// leftover empty "teams" folder must not hide teams that sit in the folder.
 func dataFolder(folder string) string {
+	if holdsTeams(folder) {
+		return folder
+	}
 	if info, err := os.Stat(filepath.Join(folder, "teams")); err == nil && info.IsDir() {
 		return filepath.Join(folder, "teams")
 	}

@@ -45,3 +45,20 @@ func TestDataDirCommand(t *testing.T) {
 		t.Errorf("show: %q", out)
 	}
 }
+
+// A folder remembered as "<repository>/teams" while the teams sit in the repository is found.
+func TestTeamsDirFindsTeamsAboveARememberedTeamsFolder(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "teams"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "alpha"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "alpha", "team.yaml"), []byte("name: A\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := teamsDir(filepath.Join(root, "teams")); got != root {
+		t.Errorf("got %q, want %q", got, root)
+	}
+}

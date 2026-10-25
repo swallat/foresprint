@@ -10,13 +10,18 @@ import (
 )
 
 // teamsDir is dir itself if it holds teams, else its subfolder "teams" if that holds teams
-// (the layout of a data repository), else "".
+// (the layout of a data repository), else the folder above a folder "teams" if that holds teams
+// (a wrongly remembered folder), else "".
 func teamsDir(dir string) string {
 	if len(teamFolders(dir)) > 0 {
 		return dir
 	}
 	if sub := filepath.Join(dir, "teams"); len(teamFolders(sub)) > 0 {
 		return sub
+	}
+	// A folder remembered as "<repository>/teams" while the teams sit in the repository itself.
+	if filepath.Base(dir) == "teams" && len(teamFolders(filepath.Dir(dir))) > 0 {
+		return filepath.Dir(dir)
 	}
 	return ""
 }
