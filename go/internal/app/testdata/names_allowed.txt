@@ -2,7 +2,6 @@ api_backlog.go change
 api_backlog.go cycles
 api_backlog.go estimateSource
 api_backlog.go lanes
-api_backlog.go lanesShown
 api_backlog.go loadTickets
 api_backlog.go namedProducts
 api_backlog.go namedProjects
