@@ -326,7 +326,7 @@ Apache License
 
 ---
 
-## svelte 5.41.0 (user interface runtime)
+## svelte 5.57.2 (user interface runtime)
 
 Copyright (c) 2016-2025 [Svelte Contributors](https://github.com/sveltejs/svelte/graphs/contributors)
 
