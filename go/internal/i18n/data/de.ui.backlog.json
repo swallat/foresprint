@@ -2,6 +2,7 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "Jira sprints without a match in the sprint calendar: {names}. Add them under Team, Sprint calendar or map them in the tracker settings.": "Jira-Sprints ohne Entsprechung im Sprintkalender: {names}. Lege sie unter Team, Sprintkalender an oder ordne sie in den Tracker-Einstellungen zu.",
   "Layout": "Anordnung",
   "Side by side": "Nebeneinander",
   "Stacked": "Untereinander",

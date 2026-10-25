@@ -106,6 +106,10 @@ type BacklogView struct {
 	Adjust []BacklogAdjust `json:"adjust"`
 	// OwnOrder: the PO's own order among tracker tickets is in use (ResetOrder takes it away).
 	OwnOrder bool `json:"ownOrder"`
+	// UnmatchedSprints names the open or future sprints of the Jira board that match no sprint
+	// of the sprint calendar, so that they cannot be a lane (add them under Team, Sprint calendar
+	// or map them in the tracker settings).
+	UnmatchedSprints []string `json:"unmatchedSprints"`
 }
 
 // BacklogAdjust is one ticket whose pro-forma sprint differs between the tool and the tracker.

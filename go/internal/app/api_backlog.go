@@ -18,6 +18,7 @@ import (
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/preplan"
+	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/ticketimport"
 	"github.com/swallat/foresprint/internal/workpackages"
@@ -346,6 +347,8 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 		Cycles:     [][]string{},
 		Adjust:     []BacklogAdjust{},
 		OwnOrder:   data.Team.Source() == model.SourceTracker && len(data.Preplan.Order) > 0,
+
+		UnmatchedSprints: []string{},
 	}
 	if data.TicketsImported != nil {
 		view.Imported = data.TicketsImported.Format(time.RFC3339)
@@ -359,7 +362,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	view.Cycles = append(view.Cycles, cycles(leftover)...)
 
 	lanes, upcoming := a.lanes(data)
-	lanes, upcoming = a.backlogTrackerLanes(data, all, lanes, upcoming)
+	lanes, upcoming, view.UnmatchedSprints = a.backlogTrackerLanes(data, a.trackerBoardSprints(team), all, lanes, upcoming)
 	c.learn(upcoming)
 	laneAt := map[string]int{}
 	for i, l := range lanes {
@@ -489,19 +492,39 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 	return out, upcoming
 }
 
-// backlogTrackerLanes adds a lane for every coming sprint a ticket is in according to the tracker that
-// the timeline does not reach (further ahead than the forecast horizon), so that no sprint of the
-// tracker is missing from the backlog.
-func (a *API) backlogTrackerLanes(data *storage.TeamData, all []model.Ticket, lanes []BacklogLane, upcoming []model.Sprint) ([]BacklogLane, []model.Sprint) {
+// backlogTrackerLanes adds a lane for every coming sprint the timeline does not reach (further
+// ahead than the forecast horizon) that a ticket is in according to the tracker or that the Jira
+// board lists, also when it is empty, so that no sprint of the tracker is missing from the
+// backlog. Board sprints that match no sprint of the calendar come back by name.
+func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.SprintValue, all []model.Ticket, lanes []BacklogLane, upcoming []model.Sprint) ([]BacklogLane, []model.Sprint, []string) {
 	now := today()
 	have := map[string]bool{}
 	for _, l := range lanes {
 		have[l.Sprint] = true
 	}
-	var extra []model.Sprint
+	var ids []string
 	for _, tk := range all {
-		id := backlogStr(tk.InSprint)
-		if id == "" || have[id] {
+		if id := backlogStr(tk.InSprint); id != "" {
+			ids = append(ids, id)
+		}
+	}
+	// Sprints of the board, also those without a ticket: through the same name matching as the import.
+	unmatched := []string{}
+	for _, s := range board {
+		if strings.EqualFold(s.State, "closed") {
+			continue
+		}
+		id := ticketimport.ResolveSprint(s.Name, data.Team.Tracker, knownSprints{data})
+		switch {
+		case id == nil:
+			unmatched = append(unmatched, s.Name)
+		case *id != model.CarryBacklog:
+			ids = append(ids, *id)
+		}
+	}
+	var extra []model.Sprint
+	for _, id := range ids {
+		if have[id] {
 			continue
 		}
 		have[id] = true // also a miss: look each sprint up once
@@ -519,7 +542,7 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, all []model.Ticket, la
 		})
 		upcoming = append(upcoming, s)
 	}
-	return lanes, upcoming
+	return lanes, upcoming, unmatched
 }
 
 // Ticket returns one ticket with all details.

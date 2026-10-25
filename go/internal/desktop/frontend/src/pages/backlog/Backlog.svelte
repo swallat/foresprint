@@ -599,6 +599,9 @@
             {/if}
           </div>
         {/each}
+        {#if view.unmatchedSprints.length}
+          <p class="small muted">{t('Jira sprints without a match in the sprint calendar: {names}. Add them under Team, Sprint calendar or map them in the tracker settings.', { names: view.unmatchedSprints.join(', ') })}</p>
+        {/if}
         <p class="small muted">{t('The sprints always show everything earmarked, whatever the filter says.')}</p>
       </div>
     </div>
