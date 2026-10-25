@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./api', () => ({ ownCallRecent: vi.fn(() => false) }));
+vi.mock('./api', () => ({
+  ownCallRecent: vi.fn(() => false),
+  api: { Teams: vi.fn(async () => []), Status: vi.fn(async () => ({})), PendingTags: vi.fn(async () => []), Sprints: vi.fn(async () => []), TrackerInfo: vi.fn(async () => ({})) },
+}));
 
 describe('liveData', () => {
   it('shows the page anew when the data changed behind its back, but not for its own work', async () => {

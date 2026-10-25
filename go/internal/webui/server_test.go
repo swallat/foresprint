@@ -24,12 +24,19 @@ func start(t *testing.T) *Server {
 	t.Helper()
 	dir := t.TempDir()
 	assets := fstest.MapFS{"index.html": {Data: []byte("<html><head></head><body>app</body></html>")}}
-	s, err := Start(&fakeAPI{}, assets, NewHub(func() string { return dir }, time.Hour))
+	s, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
 	return s
+}
+
+func testHub(t *testing.T, dir string) *Hub {
+	t.Helper()
+	h := NewHub(func() string { return dir }, time.Hour)
+	t.Cleanup(h.Close)
+	return h
 }
 
 func client() *http.Client {
@@ -168,12 +175,12 @@ func TestFingerprintChanges(t *testing.T) {
 func TestDeniedMethodsAndCookiePerPort(t *testing.T) {
 	dir := t.TempDir()
 	assets := fstest.MapFS{"index.html": {Data: []byte("<head></head>")}}
-	a, err := Start(&fakeAPI{}, assets, NewHub(func() string { return dir }, time.Hour), "Add")
+	a, err := Start(&fakeAPI{}, assets, testHub(t, dir), "Add")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer a.Close()
-	b, err := Start(&fakeAPI{}, assets, NewHub(func() string { return dir }, time.Hour))
+	b, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +224,7 @@ func TestAssetsAreServedWithTheirType(t *testing.T) {
 		"assets/index.js": {Data: []byte("1")},
 		"assets/x.css":    {Data: []byte("a{}")},
 	}
-	s, err := Start(&fakeAPI{}, assets, NewHub(func() string { return dir }, time.Hour))
+	s, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
