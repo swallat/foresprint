@@ -13,6 +13,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import ExpectSeg from '../../lib/plan/ExpectSeg.svelte';
   import SprintFigures from '../../lib/plan/SprintFigures.svelte';
+  import SprintMeta from '../../lib/sprints/SprintMeta.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
 
@@ -183,6 +184,7 @@
     {/if}
   {/snippet}
 </PageHead>
+<SprintMeta />
 <StageNav stage="review" />
 
 {#if app.team && app.sprint}<SprintFigures reload={info?.reviewed} />{/if}
