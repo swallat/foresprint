@@ -33,6 +33,8 @@ func calendarState(data *storage.TeamData, s model.Sprint, today time.Time) stri
 	return CalOpen
 }
 
+// calendarHolidaysIn are the holidays that fall on a workday of the team in the sprint; holidays
+// on a weekend take nothing away and are left out.
 func calendarHolidaysIn(data *storage.TeamData, s model.Sprint) []HolidayDTO {
 	out := []HolidayDTO{}
 	c := data.Team.Capacity
@@ -40,7 +42,7 @@ func calendarHolidaysIn(data *storage.TeamData, s model.Sprint) []HolidayDTO {
 	if c.Region != nil {
 		region = *c.Region
 	}
-	for d := s.Start; d.Before(s.End); d = d.Add(24 * time.Hour) {
+	for _, d := range calendar.TeamWorkdays(&data.Team, s.Start, s.End) {
 		if calendar.IsHoliday(d, region, c.Country) {
 			out = append(out, HolidayDTO{Date: d.Format(isoDay), Name: calendar.HolidayName(i18n.Language(), d, region, c.Country)})
 		}
@@ -89,10 +91,11 @@ func (a *API) calendarView(data *storage.TeamData, sprints []model.Sprint) Calen
 	}
 	for _, s := range sprints {
 		state := calendarState(data, s, today)
+		holidays := calendarHolidaysIn(data, s)
 		view.Rows = append(view.Rows, CalendarRow{
 			ID: s.ID, Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
-			Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
-			Holidays: calendarHolidaysIn(data, s),
+			Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)) - len(holidays),
+			Holidays: holidays,
 			State:    state, Locked: state == CalFinished, Saved: data.SprintByID(s.ID) != nil,
 		})
 	}

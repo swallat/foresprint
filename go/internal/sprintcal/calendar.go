@@ -108,6 +108,21 @@ type Row struct {
 	Status string
 }
 
+// workingDays are the team's workdays of the sprint without the holidays on them.
+func workingDays(team *model.Team, s model.Sprint) int {
+	region := ""
+	if team.Capacity.Region != nil {
+		region = *team.Capacity.Region
+	}
+	n := 0
+	for _, d := range calendar.TeamWorkdays(team, s.Start, s.End) {
+		if !calendar.IsHoliday(d, region, team.Capacity.Country) {
+			n++
+		}
+	}
+	return n
+}
+
 // Table makes one row per sprint.
 func Table(data *storage.TeamData, sprints []model.Sprint, today time.Time) []Row {
 	rows := make([]Row, 0, len(sprints))
@@ -123,7 +138,7 @@ func Table(data *storage.TeamData, sprints []model.Sprint, today time.Time) []Ro
 		}
 		rows = append(rows, Row{
 			Sprint: s.ID, Start: s.Start, Last: s.End.Add(-day),
-			WorkingDays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)), Status: state,
+			WorkingDays: workingDays(&data.Team, s), Status: state,
 		})
 	}
 	return rows
