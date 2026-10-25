@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/swallat/foresprint/internal/calendar"
 )
@@ -301,20 +300,25 @@ func TestCalendarWorkdaysExcludeHolidaysOnWorkdays(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	region := ""
+	if data.Team.Capacity.Region != nil {
+		region = *data.Team.Capacity.Region
+	}
 	withHoliday := 0
 	for i, r := range view.Rows {
-		s := sprints[i]
-		want := len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)) - len(r.Holidays)
-		if r.Workdays != want {
-			t.Errorf("%s: workdays = %d, want %d", r.ID, r.Workdays, want)
-		}
-		for _, h := range r.Holidays {
-			withHoliday++
-			day, _ := time.Parse(isoDay, h.Date)
-			if day.Weekday() == time.Saturday || day.Weekday() == time.Sunday {
-				t.Errorf("%s: holiday %s on a weekend is listed", r.ID, h.Date)
+		// expected values from the workdays of the team, independent of the listed holidays
+		want, listed := 0, 0
+		for _, d := range calendar.TeamWorkdays(&data.Team, sprints[i].Start, sprints[i].End) {
+			if calendar.IsHoliday(d, region, data.Team.Capacity.Country) {
+				listed++
+			} else {
+				want++
 			}
 		}
+		if r.Workdays != want || len(r.Holidays) != listed {
+			t.Errorf("%s: workdays %d holidays %d, want %d and %d", r.ID, r.Workdays, len(r.Holidays), want, listed)
+		}
+		withHoliday += listed
 	}
 	if withHoliday == 0 {
 		t.Error("no sprint with a holiday in 40 sprints")
