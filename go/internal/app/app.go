@@ -43,6 +43,13 @@ type API struct {
 	ChooseTable func(title string) (string, error)
 	// OpenPath opens a file with the program of the system; nil = the default of the platform.
 	OpenPath func(path string) error
+	// StartBrowser starts the local server of the browser access and returns its link; BrowserURL
+	// returns the link while it runs ("" otherwise); StopBrowser stops it; OpenURL opens an address
+	// in the browser of the system. Set by the window shell; nil in tests and in the browser itself.
+	StartBrowser func() (string, error)
+	StopBrowser  func()
+	BrowserURL   func() string
+	OpenURL      func(url string)
 
 	// Now is the clock; nil = the system clock (set in tests).
 	Now func() time.Time

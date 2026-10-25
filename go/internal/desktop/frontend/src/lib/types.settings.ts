@@ -182,7 +182,21 @@ export interface UpdateInfo {
   restart: boolean;
 }
 
+/** The browser access: the same program as a page of the browser, on this computer only. */
+export interface BrowserInfo {
+  /** False in a build without the window. */
+  available: boolean;
+  running: boolean;
+  /** The link with the secret key; "" while off. */
+  url: string;
+}
+
 export interface SettingsApi {
+  BrowserState(): Promise<BrowserInfo>;
+  BrowserStart(): Promise<BrowserInfo>;
+  /** Starts if needed and opens the link in the browser of the system. */
+  BrowserOpen(): Promise<BrowserInfo>;
+  BrowserStop(): Promise<BrowserInfo>;
   UpdateStatus(): Promise<UpdateInfo>;
   /** auto: only when the daily check is due (start of the window); false = asked for by a click. */
   CheckUpdate(auto: boolean): Promise<UpdateInfo>;

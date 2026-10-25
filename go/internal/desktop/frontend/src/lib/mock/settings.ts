@@ -4,6 +4,7 @@
 import type { Prefs, Result } from '../types';
 import { demo } from './shared';
 import type {
+  BrowserInfo,
   PackageImportPreview,
   Connection,
   UpdateInfo,
@@ -116,7 +117,25 @@ const updateInfo = (): UpdateInfo => ({
   restart: updateInstalled,
 });
 
+let browserOn = false;
+const browserInfo = (): BrowserInfo => ({ available: true, running: browserOn, url: browserOn ? 'http://127.0.0.1:47213/?k=Zx3demo9Qa' : '' });
+
 const settingsMock: SettingsApi = {
+  async BrowserState() {
+    return browserInfo();
+  },
+  async BrowserStart() {
+    browserOn = true;
+    return browserInfo();
+  },
+  async BrowserOpen() {
+    browserOn = true;
+    return browserInfo();
+  },
+  async BrowserStop() {
+    browserOn = false;
+    return browserInfo();
+  },
   async UpdateStatus() {
     return updateInfo();
   },
