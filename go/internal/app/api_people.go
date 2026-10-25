@@ -115,7 +115,13 @@ func personUsed(data *storage.TeamData, p model.Person, today time.Time) bool {
 	for _, s := range data.Sprints {
 		switch {
 		case peopleSprintIsHistory(s, today):
-			if p.ActiveBetween(s.Start, s.End.AddDate(0, 0, 1)) {
+			// Whoever joined today cannot be part of results recorded before today, even if the
+			// sprint was closed early and its end lies ahead.
+			end := s.End.AddDate(0, 0, 1)
+			if end.After(today) {
+				end = today
+			}
+			if p.ActiveBetween(s.Start, end) {
 				return true
 			}
 			if _, ok := s.Absences[p.ID]; ok {
