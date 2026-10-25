@@ -318,3 +318,33 @@ func TestSavePeopleRemovalCleansOpenSprintsAndKeepsPlannedOnes(t *testing.T) {
 		}
 	}
 }
+
+func TestSavePeopleNewPersonRemovableInSprintClosedEarly(t *testing.T) {
+	api, team := demoCopy(t)
+	repo := storage.NewRepository(api.DataDir())
+	today := api.day()
+	v := 40.0
+	early := &model.Sprint{ID: "zz-early", Start: today.AddDate(0, 0, -3), End: today.AddDate(0, 0, 10), Capacity: &v, Velocity: &v}
+	early.Absences = map[string]float64{"neue-person": 1}
+	if _, err := repo.SaveSprint(team, early); err != nil {
+		t.Fatal(err)
+	}
+	view, _ := api.People(team)
+	view, err := api.SavePeople(team, append(append([]PersonDTO{}, view.People...), PersonDTO{Name: "Neue Person", Kind: "member", Memberships: []MembershipDTO{{From: today.Format(isoDay), FTE: 1}}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rest []PersonDTO
+	for _, p := range view.People {
+		if p.Name == "Neue Person" {
+			if p.Used {
+				t.Fatal("a person added today must not count as used")
+			}
+			continue
+		}
+		rest = append(rest, p)
+	}
+	if _, err := api.SavePeople(team, rest); err != nil {
+		t.Fatal(err)
+	}
+}
