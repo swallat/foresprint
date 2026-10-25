@@ -163,7 +163,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const rest = use ? use.rest : sw ? sw.rest : 0;
   const free = Math.floor(Math.max(plan - rest, 0) * SHARE);
   const lane = noT ? [] : tickets.filter((x) => resolve(x.sprint) === sid || (frozen[sid]?.keys.includes(x.key) ?? false)).filter((x) => frozen[sid] ? frozen[sid]!.keys.includes(x.key) : true).map(ticketOf);
-  const cand = noT ? [] : tickets.filter((x) => !x.done && x.sprint !== '$cur' && !lane.some((l) => l.key === x.key) && (resolve(x.sprint) === '' || idx(resolve(x.sprint)) > idx(sid))).map(ticketOf);
+  const cand = noT ? [] : tickets.filter((x) => !x.done && !lane.some((l) => l.key === x.key) && (resolve(x.sprint) === '' || x.sprint === '$cur' || idx(resolve(x.sprint)) > idx(sid))).map(ticketOf);
   const multi = !simple();
   const earmark: Record<string, number> = {};
   for (const x of lane) earmark[x.product] = (earmark[x.product] ?? 0) + (x.size ?? 0);

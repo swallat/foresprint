@@ -71,7 +71,24 @@
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
   const lane = $derived<PlanTicket[]>(d?.tickets ?? []);
-  const candidates = $derived<PlanTicket[]>(d?.candidates ?? []);
+  const allCandidates = $derived<PlanTicket[]>(d?.candidates ?? []);
+  /** Filters of the candidate lane (view only, nothing is saved): the running sprint is hidden by default. */
+  let showRunning = $state(false);
+  let onlyRefined = $state(false);
+  let fProduct = $state('');
+  let fProject = $state('');
+  const candidates = $derived(
+    allCandidates.filter(
+      (x) =>
+        (showRunning || !d?.running || x.sprint !== d.running) &&
+        (!onlyRefined || x.refined) &&
+        (!fProduct || x.product === fProduct) &&
+        (!fProject || x.project === fProject),
+    ),
+  );
+  const hidden = $derived(allCandidates.length - candidates.length);
+  const productNames = $derived([...new Set(allCandidates.map((x) => x.product).filter(Boolean))].sort());
+  const projectNames = $derived([...new Set(allCandidates.map((x) => x.project).filter(Boolean))].sort());
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -84,7 +101,7 @@
 
   const adjust = $derived(
     d && d.source === 'tracker'
-      ? d.candidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
+      ? allCandidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
       : [],
   );
 
@@ -322,6 +339,27 @@
         <div class="lane-head">
           <div class="row"><strong class="grow">{t('Candidates')}</strong><span class="small muted data">{candidates.length} {itemWord(d)} · {fmt(sizeSum(candidates), 1)} {unitName(d)}</span></div>
           <span class="small muted">{t('Backlog and earmarked for later sprints')}</span>
+          <div class="row cand-filter" role="group" aria-label={t('Filter candidates')}>
+            {#if d.running}
+              <label class="small"><input type="checkbox" bind:checked={showRunning} /> {t('Running sprint too')}</label>
+            {/if}
+            <label class="small"><input type="checkbox" bind:checked={onlyRefined} /> {t('Refined only')}</label>
+            {#if productNames.length}
+              <select class="input small" aria-label={t('Product')} bind:value={fProduct}>
+                <option value="">{t('All products')}</option>
+                {#each productNames as n (n)}<option value={n}>{n}</option>{/each}
+              </select>
+            {/if}
+            {#if projectNames.length}
+              <select class="input small" aria-label={t('Project')} bind:value={fProject}>
+                <option value="">{t('All projects')}</option>
+                {#each projectNames as n (n)}<option value={n}>{n}</option>{/each}
+              </select>
+            {/if}
+          </div>
+          {#if hidden > 0}
+            <span class="small muted">{t('{n} hidden by the filters', { n: hidden })}</span>
+          {/if}
         </div>
         <div class="lane-body body" role="list">
           {#each candidates as x (x.key)}
@@ -467,6 +505,7 @@
 {/snippet}
 
 <style>
+  .cand-filter { flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
   .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
   .slot.after { box-shadow: 0 2px 0 0 var(--primary); }
   .gapb {
