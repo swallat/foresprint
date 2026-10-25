@@ -15,6 +15,9 @@
   }
   let { past, upcoming, whatIf = [], shown = 10, digits = 0 }: Props = $props();
 
+  // Normalized velocity (history and trend) can be switched off.
+  let showNv = $state(true);
+
   const W = 760;
   const H = 300;
   const M0 = { l: 44, r: 52, t: 24, b: 44 };
@@ -38,8 +41,8 @@
 
   const top = $derived.by(() => {
     let max = 0;
-    for (const r of history) max = Math.max(max, r.velocity ?? 0, r.normalizedVelocity ?? 0);
-    for (const r of upcoming) max = Math.max(max, r.plan ?? 0, r.high ?? 0, wi.get(r.id)?.forecast ?? 0);
+    for (const r of history) max = Math.max(max, r.velocity ?? 0, showNv ? (r.normalizedVelocity ?? 0) : 0);
+    for (const r of upcoming) max = Math.max(max, r.plan ?? 0, r.high ?? 0, wi.get(r.id)?.forecast ?? 0, showNv ? (r.trend ?? 0) : 0);
     const step = max > 60 ? 20 : max > 30 ? 10 : 5;
     return Math.max(step, Math.ceil(max / step) * step);
   });
@@ -57,6 +60,14 @@
   const nvPts = $derived(
     history.flatMap((r, i) => (r.normalizedVelocity !== null ? [{ x: x(i), y: y(r.normalizedVelocity), r }] : [])),
   );
+  // The trend of the normalized velocity carried on into the coming sprints (what the plan is calculated from).
+  const trendPts = $derived(
+    upcoming.flatMap((r, i) => (r.trend !== null ? [{ x: x(history.length + i), y: y(r.trend), r }] : [])),
+  );
+  const trendLine = $derived.by(() => {
+    const last = nvPts.at(-1);
+    return last ? [{ x: last.x, y: last.y }, ...trendPts] : trendPts;
+  });
   const planPts = $derived(
     upcoming.flatMap((r, i) => (r.plan !== null ? [{ x: x(history.length + i), y: y(r.plan), r }] : [])),
   );
@@ -77,9 +88,14 @@
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
 </script>
 
+<label class="nv-switch small"><input type="checkbox" bind:checked={showNv} />{t('Show normalized velocity and its trend')}</label>
+
 <div class="legend small" aria-hidden="true">
   <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s vel" /><circle cx="9" cy="6" r="4" class="f vel" /></svg>{t('Velocity')}</span>
-  <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s nv" /><rect x="5" y="2" width="8" height="8" class="f nv" /></svg>{t('Normalized velocity')}</span>
+  {#if showNv}
+    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s nv" /><rect x="5" y="2" width="8" height="8" class="f nv" /></svg>{t('Normalized velocity')}</span>
+    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s nv dash" /></svg>{t('Trend of the normalized velocity')}</span>
+  {/if}
   <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s fc dash" /><polygon points={diamond(9, 6, 5)} class="o fc" /></svg>{t('Forecast PLAN')}</span>
   <span><svg width="18" height="12"><line x1="9" x2="9" y1="0" y2="12" class="s fc" /><line x1="4" x2="14" y1="1" y2="1" class="s fc" /><line x1="4" x2="14" y1="11" y2="11" class="s fc" /></svg>{t('Range')}</span>
   {#if whatIf.length > 0}
@@ -103,11 +119,17 @@
     {/if}
   {/each}
 
-  {#if nvPts.length > 1}<polyline points={line(nvPts)} class="s nv" fill="none" />{/if}
+  {#if showNv && trendLine.length > 1}<polyline points={line(trendLine)} class="s nv dash" fill="none" />{/if}
+  {#if showNv && nvPts.length > 1}<polyline points={line(nvPts)} class="s nv" fill="none" />{/if}
   {#if velocityPts.length > 1}<polyline points={line(velocityPts)} class="s vel" fill="none" />{/if}
   {#if planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
 
-  {#each nvPts as p (p.r.id)}
+  {#if showNv}
+    {#each trendPts as p (p.r.id)}
+      <circle cx={p.x} cy={p.y} r="3.5" class="o nv"><title>{t('{id}: trend of the normalized velocity {n}', { id: p.r.id, n: fmt(p.r.trend) })}</title></circle>
+    {/each}
+  {/if}
+  {#each showNv ? nvPts : [] as p (p.r.id)}
     <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmt(p.r.normalizedVelocity) })}</title></rect>
   {/each}
   {#each velocityPts as p (p.r.id)}
@@ -146,6 +168,12 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+  }
+  .nv-switch {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
   }
   .chart {
     width: 100%;
