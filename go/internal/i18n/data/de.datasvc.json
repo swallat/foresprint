@@ -2,6 +2,8 @@
   "code": "de",
   "name": "Deutsch",
   "texts": {
+    "If the server still rejects a valid token, check the user name: GitLab expects “oauth2”, Forgejo and Gitea your own account name, GitHub “x-access-token”.": "Wenn der Server einen gültigen Token trotzdem ablehnt, prüfe den Benutzernamen: GitLab erwartet „oauth2“, Forgejo und Gitea den eigenen Kontonamen, GitHub „x-access-token“.",
+    "Create an access token with read and write permission on the repository at the server. The user name it expects depends on the server: GitLab takes “oauth2”, Forgejo and Gitea take your own account name. Pick the server type to see the matching steps.": "Beim Server einen Zugangstoken mit Lese- und Schreibrecht auf das Repository anlegen. Welchen Benutzernamen er erwartet, hängt vom Server ab: GitLab nimmt „oauth2“, Forgejo und Gitea den eigenen Kontonamen. Wähle den Servertyp, dann siehst du die passenden Schritte.",
     "No data folder chosen.": "Es ist kein Datenordner gewählt.",
     "others": "andere",
     "{first} and {second}": "{first} und {second}",

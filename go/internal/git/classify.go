@@ -410,7 +410,9 @@ func AuthHelp(url, message, cwd string) string {
 		"token with the “write_repository” scope). If you use the GitHub CLI, set up the " +
 		"login with `gh auth setup-git`; otherwise store the token in the computer's " +
 		"credential service or enter it as the password in the next login window.")
-	return steps + " " + CredentialAdvice(cwd) + " " + i18n.T("Then try again.")
+	name := i18n.T("If the server still rejects a valid token, check the user name: GitLab expects " +
+		"“oauth2”, Forgejo and Gitea your own account name, GitHub “x-access-token”.")
+	return steps + " " + name + " " + CredentialAdvice(cwd) + " " + i18n.T("Then try again.")
 }
 
 // Credential services that Git ships or that are widespread; everything else is "custom". Only
