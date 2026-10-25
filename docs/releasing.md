@@ -11,6 +11,13 @@ Steps per release:
 3. The workflow builds the archives and writes the release page. A tag with a suffix
    (`v1.0.0-beta.1`) becomes a pre-release.
 
+## Third-party licenses
+
+`THIRD_PARTY_NOTICES.md` and the text shown on the About page
+(`go/internal/desktop/frontend/src/assets/third-party-notices.txt`) are generated from the Go
+modules and frontend packages that go into the program. Regenerate them whenever `go.mod` or the
+frontend dependencies change: `cd go/internal/desktop/frontend && npm ci && cd ../../../.. && node scripts/gen_notices.mjs`.
+
 ## The program (GitHub release files)
 
 The workflow builds the
@@ -19,7 +26,7 @@ with `-tags desktop,production` (Linux also `webkit2_41`), puts the newest holid
 attaches to the release page:
 
 - `foresprint_<version>_<os>_<arch>.tar.gz` (`.zip` on Windows) with the program at the top level
-  (the names are what the self-update looks for),
+  (the names are what the self-update looks for), next to `LICENSE` and `THIRD_PARTY_NOTICES.md`,
 - `foresprint-cli_<version>_linux_<arch>.tar.gz`: the same program without the window (built
   without the tag `desktop`, `CGO_ENABLED=0`), which needs no GTK or WebKit; the self-update of that
   variant looks for these names,

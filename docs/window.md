@@ -49,7 +49,7 @@ The navigation on the left has these groups. The Backlog appears only for teams 
 | | Personal | settings that only apply to you on this computer: language, theme (system, light, dark), density, how calculations are shown |
 | | Browser | show Foresprint as a page of your browser, on this computer only |
 | | Updates | the update mode (`on`, `notice`, `off`) and the check for a new version |
-| Help | Calculations, Guided flows | the formulas with your numbers, and the guided flows as a tutorial with the demo team |
+| Help | Calculations, Guided flows, About | the formulas with your numbers, the guided flows as a tutorial with the demo team, and the version, copyright, license and the licenses of third-party components |
 
 Every figure opens its calculation. The sprint chosen in the header applies across pages, and every
 sprint page shows the sprint id and its period in its head.
