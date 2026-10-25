@@ -49,7 +49,7 @@
     </label>
   {/if}
   {#if app.sprints.length > 0}
-    <label class="sel" title={t('Choose sprint')}>
+    <label class="sel sprint" title={t('Choose sprint')}>
       <Icon name="date_range" />
       <select class="data" aria-label={t('Sprint')} title={`${t('Choose sprint')}: ${app.sprint}`} value={app.sprint} onchange={(e) => selectSprint(e.currentTarget.value)}>
         {#each app.sprints as s (s.id)}
@@ -77,11 +77,11 @@
   </button>
   {#if readyTags.length > 0}
     <a class="chip fc" href={link('/data/history')} title={t('The next Save sets these tags.')} aria-label={t('The next Save sets these tags: {names}', { names: readyTags.join(', ') })}>
-      <Icon name="sell" /><span class="data">{readyTags.join(', ')}</span>
+      <Icon name="sell" /><span class="data tags hide-compact">{readyTags.join(', ')}</span>
     </a>
   {/if}
   <button class="btn primary" type="button" data-tour="topbar-save" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
-    <Icon name="save" /><span class="hide-narrow">{t('Save')}</span>
+    <Icon name="save" /><span class="hide-narrow hide-compact">{t('Save')}</span>
   </button>
   <BrowserMenu />
   <a class="btn icon ghost" href={link('/help/guided')} aria-label={t('Help')} title={t('Help: guided flows and calculations')}>
@@ -97,6 +97,7 @@
     position: relative;
     /* the pickers give way last: the search field shrinks before them */
     flex: 0 1 auto;
+    min-width: 0;
   }
   .sel select {
     appearance: none;
@@ -106,10 +107,24 @@
     padding: 0 20px 0 2px;
     height: 24px;
     cursor: pointer;
-    min-width: 8ch;
+    min-width: 4ch;
+    width: 100%;
     max-width: min(40ch, 30vw);
     text-overflow: ellipsis;
     color: inherit;
+  }
+  .tags {
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* the sprint name is short and must stay readable: the team picker shrinks first */
+  .sprint {
+    flex: 0 0 auto;
+  }
+  .sprint select {
+    width: auto;
+    min-width: 9ch;
   }
   .sel select option {
     background-color: var(--surface);
