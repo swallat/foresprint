@@ -392,7 +392,7 @@
                 <td class="num"><Amount value={r.done} est={estimated} /></td>
                 <td>
                   {#if r.booked + used === 0}<span class="muted">{t('nothing')}</span>
-                  {:else if used > r.booked + 0.05}<span class="over"><Icon name="warning" size={14} />{t('{n} PD over booked', { n: num(used - r.booked, 1) })}</span>
+                  {:else if used > r.booked + 0.05}<span class="over"><Icon name="warning" size={14} />{t('{n} PD overbooked', { n: num(used - r.booked, 1) })}</span>
                   {:else}<span class="muted">{t('{n} PD free', { n: num(r.booked - used, 1) })}</span>{/if}
                 </td>
               </tr>
