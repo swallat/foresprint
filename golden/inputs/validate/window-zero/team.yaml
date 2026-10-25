@@ -1,0 +1,24 @@
+name: Golden people-days
+unit: PT
+features:
+  products: false
+  po: false
+  production: false
+sprint:
+  length_days: 14
+  numbering: yearly
+  first:
+    id: '2026.14'
+    start: 2026-07-01
+forecast:
+  reference_capacity: 40
+  window: 0
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: flat
+  horizon: 4
+capacity:
+  overhead_share: 0.0
+  overhead_days: 1
+  region: NW
+  rounding: 1

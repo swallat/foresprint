@@ -1,0 +1,17 @@
+[
+ "fresh-mixed",
+ "closed-sprint-carry-over",
+ "planning-uses-estimate",
+ "without-refined-label-or-rule",
+ "match-order",
+ "rules-with-extra-fields",
+ "reconcile",
+ "reconcile-unchanged",
+ "reconcile-source-changes",
+ "earmark-and-estimate-of-missing-tickets",
+ "labels-adopted",
+ "labels-earmark-wins",
+ "labels-ignored-without-setting",
+ "labels-not-adopted-when-asked",
+ "empty-import"
+]

@@ -1,0 +1,4130 @@
+{
+ "samples": 5,
+ "available": true,
+ "variants": {
+  "optimistic": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 13.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 1.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "old",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 6.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 12.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "app",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "old",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "new",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 3.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 13.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "app",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "old",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 2.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "new",
+     "base": 4.666666666666667,
+     "plan": 5.833333333333333,
+     "roadmap": 4.666666666666667,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 3.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "web",
+     "base": 14.0,
+     "plan": 17.5,
+     "roadmap": 14.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "app",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "new",
+     "base": 7.0,
+     "plan": 8.75,
+     "roadmap": 7.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "W-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-2",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-3",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 13.0,
+     "source": "rough",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-4",
+     "sprint": "2026.9",
+     "reason": "earmark",
+     "size": 3.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-5",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-6",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": "web"
+    },
+    {
+     "ticket": "W-7",
+     "sprint": "2027.9",
+     "reason": "earmark",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": "app"
+    },
+    {
+     "ticket": "W-8",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 21.0,
+     "source": "rough",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-9",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-10",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 4.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-11",
+     "sprint": null,
+     "reason": "no_product",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "W-12",
+     "sprint": "2026.10",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-13",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 8.0,
+     "source": "manual",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-14",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-15",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "L-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-2",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-3",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-4",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-5",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-6",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    }
+   ],
+   "projects": [
+    {
+     "project": "pay",
+     "light": "missed",
+     "target_sprint": "2026.7",
+     "last_sprint": "2026.9",
+     "open_tickets": 2,
+     "not_distributable": 0
+    },
+    {
+     "project": "shop",
+     "light": "on_track",
+     "target_sprint": "2026.12",
+     "last_sprint": "2026.10",
+     "open_tickets": 5,
+     "not_distributable": 0
+    },
+    {
+     "project": "legacy",
+     "light": "on_track",
+     "target_sprint": "2026.15",
+     "last_sprint": "2026.8",
+     "open_tickets": 6,
+     "not_distributable": 0
+    },
+    {
+     "project": "ios",
+     "light": "missed",
+     "target_sprint": "2026.16",
+     "last_sprint": "2026.6",
+     "open_tickets": 3,
+     "not_distributable": 2
+    },
+    {
+     "project": "migr",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2026.8",
+     "open_tickets": 2,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [
+    {
+     "ticket": "W-3",
+     "sprint": "2026.8",
+     "deadline": "2026-08-12",
+     "source": "rough",
+     "unclear": false
+    }
+   ],
+   "unclear": [
+    "W-8"
+   ],
+   "cycles": [],
+   "later": {},
+   "no_forecast": false,
+   "variant": "optimistic"
+  },
+  "median": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 12.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 1.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "old",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 6.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 8.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "app",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "old",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "new",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 3.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 5.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "app",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "old",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 2.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "new",
+     "base": 4.2,
+     "plan": 5.25,
+     "roadmap": 4.2,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 3.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "web",
+     "base": 12.600000000000001,
+     "plan": 15.75,
+     "roadmap": 12.600000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "app",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "new",
+     "base": 6.300000000000001,
+     "plan": 7.875,
+     "roadmap": 6.300000000000001,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "W-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-3",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 13.0,
+     "source": "rough",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-4",
+     "sprint": "2026.9",
+     "reason": "earmark",
+     "size": 3.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-5",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-6",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": "web"
+    },
+    {
+     "ticket": "W-7",
+     "sprint": "2027.9",
+     "reason": "earmark",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": "app"
+    },
+    {
+     "ticket": "W-8",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 21.0,
+     "source": "rough",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-9",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-10",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 4.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-11",
+     "sprint": null,
+     "reason": "no_product",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "W-12",
+     "sprint": "2026.10",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-13",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 8.0,
+     "source": "manual",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-14",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-15",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "L-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-2",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-3",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-4",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-5",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-6",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    }
+   ],
+   "projects": [
+    {
+     "project": "pay",
+     "light": "missed",
+     "target_sprint": "2026.7",
+     "last_sprint": "2026.9",
+     "open_tickets": 2,
+     "not_distributable": 0
+    },
+    {
+     "project": "shop",
+     "light": "missed",
+     "target_sprint": "2026.12",
+     "last_sprint": "2026.10",
+     "open_tickets": 5,
+     "not_distributable": 1
+    },
+    {
+     "project": "legacy",
+     "light": "on_track",
+     "target_sprint": "2026.15",
+     "last_sprint": "2026.8",
+     "open_tickets": 6,
+     "not_distributable": 0
+    },
+    {
+     "project": "ios",
+     "light": "missed",
+     "target_sprint": "2026.16",
+     "last_sprint": "2026.6",
+     "open_tickets": 3,
+     "not_distributable": 2
+    },
+    {
+     "project": "migr",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2026.8",
+     "open_tickets": 2,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [],
+   "unclear": [
+    "W-8"
+   ],
+   "cycles": [],
+   "later": {},
+   "no_forecast": false,
+   "variant": "median"
+  },
+  "conservative": {
+   "sprints": [
+    "2026.6",
+    "2026.7",
+    "2026.8",
+    "2026.9",
+    "2026.10",
+    "2026.11",
+    "2026.12",
+    "2026.13",
+    "2026.14",
+    "2026.15",
+    "2026.16",
+    "2026.17",
+    "2026.18",
+    "2027.1",
+    "2027.2",
+    "2027.3",
+    "2027.4",
+    "2027.5",
+    "2027.6",
+    "2027.7",
+    "2027.8",
+    "2027.9",
+    "2027.10",
+    "2027.11",
+    "2027.12",
+    "2027.13"
+   ],
+   "budgets": [
+    {
+     "sprint": "2026.6",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 12.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 1.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.6",
+     "product": "old",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 6.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 8.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "app",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "old",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.7",
+     "product": "new",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 3.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 5.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "app",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "old",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 2.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.8",
+     "product": "new",
+     "base": 4.0,
+     "plan": 5.0,
+     "roadmap": 4.0,
+     "fixed": 0.0,
+     "placed": 4.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 3.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.9",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.10",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.11",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.12",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.13",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.14",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.15",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.16",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.17",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2026.18",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.1",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.2",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.3",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.4",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.5",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.6",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.7",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.8",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 5.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.9",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.10",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.11",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.12",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "web",
+     "base": 12.0,
+     "plan": 15.0,
+     "roadmap": 12.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "app",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    },
+    {
+     "sprint": "2027.13",
+     "product": "new",
+     "base": 6.0,
+     "plan": 7.5,
+     "roadmap": 6.0,
+     "fixed": 0.0,
+     "placed": 0.0,
+     "production_available": null
+    }
+   ],
+   "placements": [
+    {
+     "ticket": "W-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-2",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 8.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-3",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 19.5,
+     "source": "rough",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-4",
+     "sprint": "2026.9",
+     "reason": "earmark",
+     "size": 3.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-5",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "pay",
+     "product": "web"
+    },
+    {
+     "ticket": "W-6",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": null,
+     "product": "web"
+    },
+    {
+     "ticket": "W-7",
+     "sprint": "2027.9",
+     "reason": "earmark",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": "app"
+    },
+    {
+     "ticket": "W-8",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 31.5,
+     "source": "rough",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-9",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 3.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-10",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 4.0,
+     "source": "refined",
+     "project": "migr",
+     "product": "new"
+    },
+    {
+     "ticket": "W-11",
+     "sprint": null,
+     "reason": "no_product",
+     "size": 5.0,
+     "source": "refined",
+     "project": null,
+     "product": null
+    },
+    {
+     "ticket": "W-12",
+     "sprint": "2026.10",
+     "reason": "fixed_sprint",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-13",
+     "sprint": null,
+     "reason": "too_large",
+     "size": 8.0,
+     "source": "manual",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "W-14",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 5.0,
+     "source": "refined",
+     "project": "shop",
+     "product": "web"
+    },
+    {
+     "ticket": "W-15",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 1.0,
+     "source": "refined",
+     "project": "ios",
+     "product": "app"
+    },
+    {
+     "ticket": "L-1",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-2",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-3",
+     "sprint": "2026.6",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-4",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-5",
+     "sprint": "2026.7",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    },
+    {
+     "ticket": "L-6",
+     "sprint": "2026.8",
+     "reason": "placed",
+     "size": 2.0,
+     "source": "refined",
+     "project": "legacy",
+     "product": "old"
+    }
+   ],
+   "projects": [
+    {
+     "project": "pay",
+     "light": "missed",
+     "target_sprint": "2026.7",
+     "last_sprint": "2026.9",
+     "open_tickets": 2,
+     "not_distributable": 0
+    },
+    {
+     "project": "shop",
+     "light": "missed",
+     "target_sprint": "2026.12",
+     "last_sprint": "2026.10",
+     "open_tickets": 5,
+     "not_distributable": 1
+    },
+    {
+     "project": "legacy",
+     "light": "on_track",
+     "target_sprint": "2026.15",
+     "last_sprint": "2026.8",
+     "open_tickets": 6,
+     "not_distributable": 0
+    },
+    {
+     "project": "ios",
+     "light": "missed",
+     "target_sprint": "2026.16",
+     "last_sprint": "2026.6",
+     "open_tickets": 3,
+     "not_distributable": 2
+    },
+    {
+     "project": "migr",
+     "light": "on_track",
+     "target_sprint": null,
+     "last_sprint": "2026.8",
+     "open_tickets": 2,
+     "not_distributable": 0
+    }
+   ],
+   "refinement": [],
+   "unclear": [
+    "W-8"
+   ],
+   "cycles": [],
+   "later": {},
+   "no_forecast": false,
+   "variant": "conservative"
+  }
+ },
+ "project_ranges": {
+  "shop": {
+   "project": "shop",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.10",
+    "median": "2026.10",
+    "conservative": "2026.10"
+   },
+   "light": {
+    "optimistic": "on_track",
+    "median": "missed",
+    "conservative": "missed"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.10",
+   "best_light": "on_track",
+   "worst_light": "missed",
+   "complete": false,
+   "light_range": [
+    "on_track",
+    "missed"
+   ],
+   "uniform": false,
+   "on_track": false
+  },
+  "pay": {
+   "project": "pay",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.9",
+    "median": "2026.9",
+    "conservative": "2026.9"
+   },
+   "light": {
+    "optimistic": "missed",
+    "median": "missed",
+    "conservative": "missed"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.9",
+   "best_light": "missed",
+   "worst_light": "missed",
+   "complete": true,
+   "light_range": [
+    "missed",
+    "missed"
+   ],
+   "uniform": true,
+   "on_track": false
+  },
+  "ios": {
+   "project": "ios",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "light": {
+    "optimistic": "missed",
+    "median": "missed",
+    "conservative": "missed"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "best_light": "missed",
+   "worst_light": "missed",
+   "complete": false,
+   "light_range": [
+    "missed",
+    "missed"
+   ],
+   "uniform": true,
+   "on_track": false
+  },
+  "legacy": {
+   "project": "legacy",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "light": {
+    "optimistic": "on_track",
+    "median": "on_track",
+    "conservative": "on_track"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "best_light": "on_track",
+   "worst_light": "on_track",
+   "complete": true,
+   "light_range": [
+    "on_track",
+    "on_track"
+   ],
+   "uniform": true,
+   "on_track": true
+  },
+  "migr": {
+   "project": "migr",
+   "available": true,
+   "last_sprint": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "light": {
+    "optimistic": "on_track",
+    "median": "on_track",
+    "conservative": "on_track"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "best_light": "on_track",
+   "worst_light": "on_track",
+   "complete": true,
+   "light_range": [
+    "on_track",
+    "on_track"
+   ],
+   "uniform": true,
+   "on_track": true
+  }
+ },
+ "ticket_ranges": {
+  "W-1": {
+   "ticket": "W-1",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "W-2": {
+   "ticket": "W-2",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": false
+  },
+  "W-3": {
+   "ticket": "W-3",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": null,
+    "conservative": null
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "complete": false,
+   "fixed": false
+  },
+  "W-4": {
+   "ticket": "W-4",
+   "sprints": {
+    "optimistic": "2026.9",
+    "median": "2026.9",
+    "conservative": "2026.9"
+   },
+   "earliest": "2026.9",
+   "latest": "2026.9",
+   "complete": true,
+   "fixed": true
+  },
+  "W-5": {
+   "ticket": "W-5",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": false
+  },
+  "W-6": {
+   "ticket": "W-6",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": false
+  },
+  "W-7": {
+   "ticket": "W-7",
+   "sprints": {
+    "optimistic": "2027.9",
+    "median": "2027.9",
+    "conservative": "2027.9"
+   },
+   "earliest": "2027.9",
+   "latest": "2027.9",
+   "complete": true,
+   "fixed": true
+  },
+  "W-8": {
+   "ticket": "W-8",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "W-9": {
+   "ticket": "W-9",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": true
+  },
+  "W-10": {
+   "ticket": "W-10",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": true
+  },
+  "W-11": {
+   "ticket": "W-11",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "W-12": {
+   "ticket": "W-12",
+   "sprints": {
+    "optimistic": "2026.10",
+    "median": "2026.10",
+    "conservative": "2026.10"
+   },
+   "earliest": "2026.10",
+   "latest": "2026.10",
+   "complete": true,
+   "fixed": true
+  },
+  "W-13": {
+   "ticket": "W-13",
+   "sprints": {
+    "optimistic": null,
+    "median": null,
+    "conservative": null
+   },
+   "earliest": null,
+   "latest": null,
+   "complete": false,
+   "fixed": false
+  },
+  "W-14": {
+   "ticket": "W-14",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": false
+  },
+  "W-15": {
+   "ticket": "W-15",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "L-1": {
+   "ticket": "L-1",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "L-2": {
+   "ticket": "L-2",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "L-3": {
+   "ticket": "L-3",
+   "sprints": {
+    "optimistic": "2026.6",
+    "median": "2026.6",
+    "conservative": "2026.6"
+   },
+   "earliest": "2026.6",
+   "latest": "2026.6",
+   "complete": true,
+   "fixed": true
+  },
+  "L-4": {
+   "ticket": "L-4",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": true
+  },
+  "L-5": {
+   "ticket": "L-5",
+   "sprints": {
+    "optimistic": "2026.7",
+    "median": "2026.7",
+    "conservative": "2026.7"
+   },
+   "earliest": "2026.7",
+   "latest": "2026.7",
+   "complete": true,
+   "fixed": true
+  },
+  "L-6": {
+   "ticket": "L-6",
+   "sprints": {
+    "optimistic": "2026.8",
+    "median": "2026.8",
+    "conservative": "2026.8"
+   },
+   "earliest": "2026.8",
+   "latest": "2026.8",
+   "complete": true,
+   "fixed": true
+  }
+ },
+ "handover": [
+  {
+   "sprint": "2026.6",
+   "product": "web",
+   "proposed": 12.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.6",
+   "product": "app",
+   "proposed": 1.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.6",
+   "product": "old",
+   "proposed": 6.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.7",
+   "product": "web",
+   "proposed": 8.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.7",
+   "product": "old",
+   "proposed": 4.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.7",
+   "product": "new",
+   "proposed": 3.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.8",
+   "product": "web",
+   "proposed": 5.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.8",
+   "product": "old",
+   "proposed": 2.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.8",
+   "product": "new",
+   "proposed": 4.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.9",
+   "product": "web",
+   "proposed": 3.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  },
+  {
+   "sprint": "2026.10",
+   "product": "web",
+   "proposed": 5.0,
+   "current": null,
+   "action": "write",
+   "action_overwrite": "write",
+   "writes": true,
+   "writes_overwrite": true
+  }
+ ],
+ "sprint_sums": {
+  "optimistic": {
+   "2026.6": {
+    "web": 13.0,
+    "app": 1.0,
+    "old": 6.0
+   },
+   "2026.7": {
+    "web": 12.0,
+    "app": 0.0,
+    "old": 4.0,
+    "new": 3.0
+   },
+   "2026.8": {
+    "web": 13.0,
+    "app": 0.0,
+    "old": 2.0,
+    "new": 4.0
+   },
+   "2026.9": {
+    "web": 3.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.10": {
+    "web": 5.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.14": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.15": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.16": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.17": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.18": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.1": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.2": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.3": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.4": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.5": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.6": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.7": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.8": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.9": {
+    "web": 0.0,
+    "app": 5.0,
+    "new": 0.0
+   },
+   "2027.10": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   }
+  },
+  "median": {
+   "2026.6": {
+    "web": 12.0,
+    "app": 1.0,
+    "old": 6.0
+   },
+   "2026.7": {
+    "web": 8.0,
+    "app": 0.0,
+    "old": 4.0,
+    "new": 3.0
+   },
+   "2026.8": {
+    "web": 5.0,
+    "app": 0.0,
+    "old": 2.0,
+    "new": 4.0
+   },
+   "2026.9": {
+    "web": 3.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.10": {
+    "web": 5.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.14": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.15": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.16": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.17": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.18": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.1": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.2": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.3": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.4": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.5": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.6": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.7": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.8": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.9": {
+    "web": 0.0,
+    "app": 5.0,
+    "new": 0.0
+   },
+   "2027.10": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   }
+  },
+  "conservative": {
+   "2026.6": {
+    "web": 12.0,
+    "app": 1.0,
+    "old": 6.0
+   },
+   "2026.7": {
+    "web": 8.0,
+    "app": 0.0,
+    "old": 4.0,
+    "new": 3.0
+   },
+   "2026.8": {
+    "web": 5.0,
+    "app": 0.0,
+    "old": 2.0,
+    "new": 4.0
+   },
+   "2026.9": {
+    "web": 3.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.10": {
+    "web": 5.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.14": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.15": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.16": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.17": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2026.18": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.1": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.2": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.3": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.4": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.5": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.6": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.7": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.8": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.9": {
+    "web": 0.0,
+    "app": 5.0,
+    "new": 0.0
+   },
+   "2027.10": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.11": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.12": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   },
+   "2027.13": {
+    "web": 0.0,
+    "app": 0.0,
+    "new": 0.0
+   }
+  }
+ }
+}

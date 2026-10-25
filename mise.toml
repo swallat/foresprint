@@ -1,3 +1,38 @@
+# Toolchain for developing Foresprint: `mise install` fetches everything below.
+# Go is pinned to what go/go.mod needs (Wails v2.12 does not build with Go 1.25 or newer).
+# Tasks: `mise tasks`; the program version comes from $FORESPRINT_VERSION (default "dev").
+# The Wails CLI is not needed: the window is built with plain `go build` (see scripts/build.mjs).
 [tools]
-python = "3.14"
+go = "1.24.7"
+node = "22"
+# uv runs scripts/gen_holidays.py (public holiday data), which fetches its own Python.
 uv = "0.13.1"
+
+[tasks.frontend]
+description = "Build the Svelte frontend (npm ci, vite build)"
+run = "node scripts/build.mjs frontend"
+
+[tasks.app]
+description = "Build the program with the window into dist/ (needs cgo; Linux: libgtk-3-dev libwebkit2gtk-4.1-dev)"
+run = "node scripts/build.mjs app"
+
+[tasks.cli]
+description = "Build the command line program without the window into dist/ (no cgo, no Node)"
+run = "node scripts/build.mjs cli"
+
+[tasks.test]
+description = "go vet and go test (no cgo, no Node, no web view)"
+run = "node scripts/build.mjs test"
+
+[tasks.check]
+description = "Frontend: type check, translations, unit tests"
+run = "node scripts/build.mjs check"
+
+[tasks.all]
+description = "test + check + app"
+run = "node scripts/build.mjs all"
+
+[tasks.dev]
+description = "Frontend in the browser with demo data (no Go needed)"
+dir = "go/internal/desktop/frontend"
+run = "npm run dev"

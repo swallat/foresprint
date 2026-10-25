@@ -1,0 +1,6927 @@
+{
+ "kind_titles": {
+  "vorplanung": "PO pre-planning",
+  "planning": "Sprint Planning",
+  "review": "Sprint Review"
+ },
+ "cell": [
+  {
+   "text": null,
+   "cell": ""
+  },
+  {
+   "text": "",
+   "cell": ""
+  },
+  {
+   "text": "a | b",
+   "cell": "a \\| b"
+  },
+  {
+   "text": "line\none",
+   "cell": "line one"
+  },
+  {
+   "text": "  many   spaces ",
+   "cell": "many spaces"
+  },
+  {
+   "text": "tab\there",
+   "cell": "tab here"
+  }
+ ],
+ "md_item": [
+  {
+   "text": "a|b",
+   "item": "- a\\|b"
+  },
+  {
+   "text": "x\ny",
+   "item": "- x y"
+  }
+ ],
+ "rendering": [
+  {
+   "kind": "vorplanung",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "",
+   "show_po": true,
+   "text": "# PO pre-planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "vorplanung",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "  ",
+   "show_po": true,
+   "text": "# PO pre-planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "vorplanung",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "A comment | with\\nbreaks\\n and   spaces",
+   "show_po": true,
+   "text": "# PO pre-planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n**Comment:** A comment \\| with\\nbreaks\\n and spaces\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "planning",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "",
+   "show_po": true,
+   "text": "# Sprint Planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "planning",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "  ",
+   "show_po": true,
+   "text": "# Sprint Planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "planning",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "A comment | with\\nbreaks\\n and   spaces",
+   "show_po": true,
+   "text": "# Sprint Planning Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n**Comment:** A comment \\| with\\nbreaks\\n and spaces\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "review",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "",
+   "show_po": true,
+   "text": "# Sprint Review Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "review",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "  ",
+   "show_po": true,
+   "text": "# Sprint Review Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "kind": "review",
+   "team": "Team | A",
+   "sprint": "2026.7",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": [
+    [
+     "Decisions",
+     [
+      "first | pipe",
+      "second\nline"
+     ]
+    ],
+    [
+     "Empty",
+     []
+    ],
+    [
+     "Risks",
+     [
+      "x"
+     ]
+    ]
+   ],
+   "comment": "A comment | with\\nbreaks\\n and   spaces",
+   "show_po": true,
+   "text": "# Sprint Review Team \\| A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n**Comment:** A comment \\| with\\nbreaks\\n and spaces\n\n## Decisions\n\n- first \\| pipe\n- second line\n\n## Risks\n\n- x\n"
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Webshop | Alex | 4.23 | 5.00 |\n| Mobile App | Alex | 4.23 | 4.00 |\n| Altsystem | Bea | 4.23 | 3.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 8.47 | 9.00 |\n| Bea | 4.23 | 3.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | Alex | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | Bea | 4.23 | 3.00 | 3.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 8.47 | 9.00 | 9.75 |",
+    "| Bea | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Webshop | 4.23 | 5.00 |\n| Mobile App | 4.23 | 4.00 |\n| Altsystem | 4.23 | 3.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Webshop | Alex | 4.23 | 5.00 | 5.00 |\n| Mobile App | Alex | 4.23 | 4.00 | 4.75 |\n| Altsystem | Bea | 4.23 | 3.00 | 3.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 8.47 | 9.00 | 9.75 |\n| Bea | 4.23 | 3.00 | 3.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | Alex | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | Bea | 4.23 | 3.00 | 3.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 8.47 | 9.00 | 9.75 |",
+    "| Bea | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Webshop | 4.23 | 5.00 | 5.00 |\n| Mobile App | 4.23 | 4.00 | 4.75 |\n| Altsystem | 4.23 | 3.00 | 3.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Webshop | Alex | 5.00 | 4.50 |\n| Mobile App | Alex | 4.75 | 4.50 |\n| Altsystem | Bea | 3.00 | 2.50 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 9.75 | 9.00 |\n| Bea | 3.00 | 2.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | Alex | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | Bea | 4.23 | 3.00 | 3.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 8.47 | 9.00 | 9.75 |",
+    "| Bea | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.17",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 5.0,
+      "planned": 5.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 4.0,
+      "planned": 4.75,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 8.466666666666667,
+       "preplanned": 9.0,
+       "planned": 9.75,
+       "done": 9.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.233333333333333,
+       "preplanned": 3.0,
+       "planned": 3.0,
+       "done": 2.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.17\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Webshop | 5.00 | 4.50 |\n| Mobile App | 4.75 | 4.50 |\n| Altsystem | 3.00 | 2.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 4.23 | 5.00 | 5.00 |",
+    "| Mobile App | 4.23 | 4.00 | 4.75 |",
+    "| Altsystem | 4.23 | 3.00 | 3.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Webshop | Alex | 2.50 | 3.00 |\n| Mobile App | Alex | 2.50 | 3.00 |\n| Kundenportal | Bea | 2.50 | 2.00 |\n| Altsystem | Bea | 2.50 | 2.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 5.00 | 6.00 |\n| Bea | 5.00 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | Alex | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | Bea | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | Bea | 2.50 | 2.00 | 2.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 5.00 | 6.00 | 5.50 |",
+    "| Bea | 5.00 | 4.00 | 4.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Webshop | 2.50 | 3.00 |\n| Mobile App | 2.50 | 3.00 |\n| Kundenportal | 2.50 | 2.00 |\n| Altsystem | 2.50 | 2.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | 2.50 | 2.00 | 2.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Webshop | Alex | 2.50 | 3.00 | 3.00 |\n| Mobile App | Alex | 2.50 | 3.00 | 2.50 |\n| Kundenportal | Bea | 2.50 | 2.00 | 2.50 |\n| Altsystem | Bea | 2.50 | 2.00 | 2.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 5.00 | 6.00 | 5.50 |\n| Bea | 5.00 | 4.00 | 4.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | Alex | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | Bea | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | Bea | 2.50 | 2.00 | 2.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 5.00 | 6.00 | 5.50 |",
+    "| Bea | 5.00 | 4.00 | 4.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Webshop | 2.50 | 3.00 | 3.00 |\n| Mobile App | 2.50 | 3.00 | 2.50 |\n| Kundenportal | 2.50 | 2.00 | 2.50 |\n| Altsystem | 2.50 | 2.00 | 2.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | 2.50 | 2.00 | 2.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Webshop | Alex | 3.00 | 3.50 |\n| Mobile App | Alex | 2.50 | 3.00 |\n| Kundenportal | Bea | 2.50 | 2.00 |\n| Altsystem | Bea | 2.00 | 2.00 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 5.50 | 6.50 |\n| Bea | 4.50 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | Alex | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | Bea | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | Bea | 2.50 | 2.00 | 2.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 5.00 | 6.00 | 5.50 |",
+    "| Bea | 5.00 | 4.00 | 4.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.18",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 3.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 3.0,
+      "planned": 2.5,
+      "done": 3.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.5,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Altsystem",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.5,
+      "preplanned": 2.0,
+      "planned": 2.0,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0,
+       "preplanned": 4.0,
+       "planned": 4.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.18\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Webshop | 3.00 | 3.50 |\n| Mobile App | 2.50 | 3.00 |\n| Kundenportal | 2.50 | 2.00 |\n| Altsystem | 2.00 | 2.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 2.50 | 3.00 | 3.00 |",
+    "| Mobile App | 2.50 | 3.00 | 2.50 |",
+    "| Kundenportal | 2.50 | 2.00 | 2.50 |",
+    "| Altsystem | 2.50 | 2.00 | 2.00 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Webshop | Alex | 3.83 | 4.00 |\n| Mobile App | Alex | 3.83 | 4.00 |\n| Kundenportal | Bea | 3.83 | 4.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 7.67 | 8.00 |\n| Bea | 3.83 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | Bea | 3.83 | 4.00 | 3.50 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 7.67 | 8.00 | 8.00 |",
+    "| Bea | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "vorplanung",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Webshop | 3.83 | 4.00 |\n| Mobile App | 3.83 | 4.00 |\n| Kundenportal | 3.83 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Webshop | Alex | 3.83 | 4.00 | 4.00 |\n| Mobile App | Alex | 3.83 | 4.00 | 4.00 |\n| Kundenportal | Bea | 3.83 | 4.00 | 3.50 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 7.67 | 8.00 | 8.00 |\n| Bea | 3.83 | 4.00 | 3.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | Bea | 3.83 | 4.00 | 3.50 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 7.67 | 8.00 | 8.00 |",
+    "| Bea | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "planning",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Webshop | 3.83 | 4.00 | 4.00 |\n| Mobile App | 3.83 | 4.00 | 4.00 |\n| Kundenportal | 3.83 | 4.00 | 3.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Webshop | Alex | 4.00 | 4.50 |\n| Mobile App | Alex | 4.00 | 4.25 |\n| Kundenportal | Bea | 3.50 | 4.00 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 8.00 | 8.75 |\n| Bea | 3.50 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Webshop | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | Alex | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | Bea | 3.83 | 4.00 | 3.50 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 7.67 | 8.00 | 8.00 |",
+    "| Bea | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "demo",
+   "sprint": "2026.19",
+   "kind": "review",
+   "team": "Demo-Team",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Webshop",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Mobile App",
+      "po": "Alex",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 4.0,
+      "done": 4.25,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Kundenportal",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 7.666666666666667,
+       "preplanned": 8.0,
+       "planned": 8.0,
+       "done": 8.75
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 3.8333333333333335,
+       "preplanned": 4.0,
+       "planned": 3.5,
+       "done": 4.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Demo-Team – Sprint 2026.19\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Webshop | 4.00 | 4.50 |\n| Mobile App | 4.00 | 4.25 |\n| Kundenportal | 3.50 | 4.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Webshop | 3.83 | 4.00 | 4.00 |",
+    "| Mobile App | 3.83 | 4.00 | 4.00 |",
+    "| Kundenportal | 3.83 | 4.00 | 3.50 |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 15.50 | – |\n| App | Alex | 7.75 | – |\n| Old | Bea | 7.75 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 23.25 | – |\n| Bea | 7.75 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.50 | – | – |",
+    "| App | Alex | 7.75 | – | – |",
+    "| Old | Bea | 7.75 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.25 | – | – |",
+    "| Bea | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 15.50 | – |\n| App | 7.75 | – |\n| Old | 7.75 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.50 | – | – |",
+    "| App | 7.75 | – | – |",
+    "| Old | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 15.50 | – | – |\n| App | Alex | 7.75 | – | – |\n| Old | Bea | 7.75 | – | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 23.25 | – | – |\n| Bea | 7.75 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.50 | – | – |",
+    "| App | Alex | 7.75 | – | – |",
+    "| Old | Bea | 7.75 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.25 | – | – |",
+    "| Bea | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 15.50 | – | – |\n| App | 7.75 | – | – |\n| Old | 7.75 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.50 | – | – |",
+    "| App | 7.75 | – | – |",
+    "| Old | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | – | – |\n| App | Alex | – | – |\n| Old | Bea | – | – |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | – | – |\n| Bea | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.50 | – | – |",
+    "| App | Alex | 7.75 | – | – |",
+    "| Old | Bea | 7.75 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.25 | – | – |",
+    "| Bea | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.5",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.25,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.75,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.5\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | – | – |\n| App | – | – |\n| Old | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.50 | – | – |",
+    "| App | 7.75 | – | – |",
+    "| Old | 7.75 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 15.75 | – |\n| App | Alex | 7.88 | – |\n| Old | Bea | 7.88 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 23.62 | – |\n| Bea | 7.88 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 7.88 | – | – |",
+    "| Old | Bea | 7.88 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.62 | – | – |",
+    "| Bea | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 15.75 | – |\n| App | 7.88 | – |\n| Old | 7.88 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 7.88 | – | – |",
+    "| Old | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 15.75 | – | – |\n| App | Alex | 7.88 | – | – |\n| Old | Bea | 7.88 | – | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 23.62 | – | – |\n| Bea | 7.88 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 7.88 | – | – |",
+    "| Old | Bea | 7.88 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.62 | – | – |",
+    "| Bea | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 15.75 | – | – |\n| App | 7.88 | – | – |\n| Old | 7.88 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 7.88 | – | – |",
+    "| Old | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | – | – |\n| App | Alex | – | – |\n| Old | Bea | – | – |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | – | – |\n| Bea | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 7.88 | – | – |",
+    "| Old | Bea | 7.88 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 23.62 | – | – |",
+    "| Bea | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.6",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 23.625,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 7.875,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.6\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | – | – |\n| App | – | – |\n| Old | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 7.88 | – | – |",
+    "| Old | 7.88 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 15.75 | – |\n| App | Alex | 5.25 | – |\n| Old | Bea | 5.25 | – |\n| New | Bea | 5.25 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 21.00 | – |\n| Bea | 10.50 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 5.25 | – | – |",
+    "| Old | Bea | 5.25 | – | – |",
+    "| New | Bea | 5.25 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 21.00 | – | – |",
+    "| Bea | 10.50 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "vorplanung",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 15.75 | – |\n| App | 5.25 | – |\n| Old | 5.25 | – |\n| New | 5.25 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 5.25 | – | – |",
+    "| Old | 5.25 | – | – |",
+    "| New | 5.25 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 15.75 | – | – |\n| App | Alex | 5.25 | – | – |\n| Old | Bea | 5.25 | – | – |\n| New | Bea | 5.25 | – | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 21.00 | – | – |\n| Bea | 10.50 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 5.25 | – | – |",
+    "| Old | Bea | 5.25 | – | – |",
+    "| New | Bea | 5.25 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 21.00 | – | – |",
+    "| Bea | 10.50 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "planning",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 15.75 | – | – |\n| App | 5.25 | – | – |\n| Old | 5.25 | – | – |\n| New | 5.25 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 5.25 | – | – |",
+    "| Old | 5.25 | – | – |",
+    "| New | 5.25 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | – | – |\n| App | Alex | – | – |\n| Old | Bea | – | – |\n| New | Bea | – | – |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | – | – |\n| Bea | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 15.75 | – | – |",
+    "| App | Alex | 5.25 | – | – |",
+    "| Old | Bea | 5.25 | – | – |",
+    "| New | Bea | 5.25 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 21.00 | – | – |",
+    "| Bea | 10.50 | – | – |"
+   ]
+  },
+  {
+   "case": "tickets-products",
+   "sprint": "2026.7",
+   "kind": "review",
+   "team": "Golden tickets-products",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 15.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": "Bea",
+      "active": true,
+      "standard": 5.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 21.0,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 10.5,
+       "preplanned": null,
+       "planned": null,
+       "done": null
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden tickets-products – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | – | – |\n| App | – | – |\n| Old | – | – |\n| New | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 15.75 | – | – |",
+    "| App | 5.25 | – | – |",
+    "| Old | 5.25 | – | – |",
+    "| New | 5.25 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 7.65 | 10.00 |\n| App | Alex | 6.69 | 9.00 |\n| API | Bea | 2.39 | 6.00 |\n| Old | Bea | 2.39 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 14.34 | 19.00 |\n| Bea | 4.78 | 6.00 |\n| (no PO) | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 7.65 | 10.00 | 11.00 |",
+    "| App | Alex | 6.69 | 9.00 | 9.00 |",
+    "| API | Bea | 2.39 | 6.00 | 5.50 |",
+    "| Old | Bea | 2.39 | – | – |",
+    "| aa |  | – | – | 1.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 14.34 | 19.00 | 20.00 |",
+    "| Bea | 4.78 | 6.00 | 5.50 |",
+    "| (no PO) | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 7.65 | 10.00 |\n| App | 6.69 | 9.00 |\n| API | 2.39 | 6.00 |\n| Old | 2.39 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 7.65 | 10.00 | 11.00 |",
+    "| App | 6.69 | 9.00 | 9.00 |",
+    "| API | 2.39 | 6.00 | 5.50 |",
+    "| Old | 2.39 | – | – |",
+    "| aa | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 7.65 | 10.00 | 11.00 |\n| App | Alex | 6.69 | 9.00 | 9.00 |\n| API | Bea | 2.39 | 6.00 | 5.50 |\n| Old | Bea | 2.39 | – | – |\n| aa |  | – | – | 1.00 |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 14.34 | 19.00 | 20.00 |\n| Bea | 4.78 | 6.00 | 5.50 |\n| (no PO) | – | – | 1.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 7.65 | 10.00 | 11.00 |",
+    "| App | Alex | 6.69 | 9.00 | 9.00 |",
+    "| API | Bea | 2.39 | 6.00 | 5.50 |",
+    "| Old | Bea | 2.39 | – | – |",
+    "| aa |  | – | – | 1.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 14.34 | 19.00 | 20.00 |",
+    "| Bea | 4.78 | 6.00 | 5.50 |",
+    "| (no PO) | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 7.65 | 10.00 | 11.00 |\n| App | 6.69 | 9.00 | 9.00 |\n| API | 2.39 | 6.00 | 5.50 |\n| Old | 2.39 | – | – |\n| aa | – | – | 1.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 7.65 | 10.00 | 11.00 |",
+    "| App | 6.69 | 9.00 | 9.00 |",
+    "| API | 2.39 | 6.00 | 5.50 |",
+    "| Old | 2.39 | – | – |",
+    "| aa | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | 11.00 | 10.50 |\n| App | Alex | 9.00 | 9.00 |\n| API | Bea | 5.50 | 5.00 |\n| Old | Bea | – | 1.00 |\n| aa |  | 1.00 | – |\n| zz |  | – | 0.50 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 20.00 | 19.50 |\n| Bea | 5.50 | 6.00 |\n| (no PO) | 1.00 | 0.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 7.65 | 10.00 | 11.00 |",
+    "| App | Alex | 6.69 | 9.00 | 9.00 |",
+    "| API | Bea | 2.39 | 6.00 | 5.50 |",
+    "| Old | Bea | 2.39 | – | – |",
+    "| aa |  | – | – | 1.00 |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 14.34 | 19.00 | 20.00 |",
+    "| Bea | 4.78 | 6.00 | 5.50 |",
+    "| (no PO) | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.1",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.65,
+      "preplanned": 10.0,
+      "planned": 11.0,
+      "done": 10.5,
+      "production_planned": 2.0,
+      "production_done": 1.5
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 6.69375,
+      "preplanned": 9.0,
+      "planned": 9.0,
+      "done": 9.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 5.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.390625,
+      "preplanned": null,
+      "planned": null,
+      "done": 1.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "aa",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": 1.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "zz",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.5,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 14.34375,
+       "preplanned": 19.0,
+       "planned": 20.0,
+       "done": 19.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 4.78125,
+       "preplanned": 6.0,
+       "planned": 5.5,
+       "done": 6.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": 1.0,
+       "done": 0.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.1\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | 11.00 | 10.50 |\n| App | 9.00 | 9.00 |\n| API | 5.50 | 5.00 |\n| Old | – | 1.00 |\n| aa | 1.00 | – |\n| zz | – | 0.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 7.65 | 10.00 | 11.00 |",
+    "| App | 6.69 | 9.00 | 9.00 |",
+    "| API | 2.39 | 6.00 | 5.50 |",
+    "| Old | 2.39 | – | – |",
+    "| aa | – | – | 1.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 8.10 | – |\n| App | Alex | 7.09 | – |\n| API | Bea | 2.53 | – |\n| Old | Bea | 2.53 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 15.19 | – |\n| Bea | 5.06 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 8.10 | – | 12.00 |",
+    "| App | Alex | 7.09 | – | 9.00 |",
+    "| API | Bea | 2.53 | – | 6.00 |",
+    "| Old | Bea | 2.53 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 15.19 | – | 21.00 |",
+    "| Bea | 5.06 | – | 6.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 8.10 | – |\n| App | 7.09 | – |\n| API | 2.53 | – |\n| Old | 2.53 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 8.10 | – | 12.00 |",
+    "| App | 7.09 | – | 9.00 |",
+    "| API | 2.53 | – | 6.00 |",
+    "| Old | 2.53 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 8.10 | – | 12.00 |\n| App | Alex | 7.09 | – | 9.00 |\n| API | Bea | 2.53 | – | 6.00 |\n| Old | Bea | 2.53 | – | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 15.19 | – | 21.00 |\n| Bea | 5.06 | – | 6.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 8.10 | – | 12.00 |",
+    "| App | Alex | 7.09 | – | 9.00 |",
+    "| API | Bea | 2.53 | – | 6.00 |",
+    "| Old | Bea | 2.53 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 15.19 | – | 21.00 |",
+    "| Bea | 5.06 | – | 6.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 8.10 | – | 12.00 |\n| App | 7.09 | – | 9.00 |\n| API | 2.53 | – | 6.00 |\n| Old | 2.53 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 8.10 | – | 12.00 |",
+    "| App | 7.09 | – | 9.00 |",
+    "| API | 2.53 | – | 6.00 |",
+    "| Old | 2.53 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | 12.00 | 12.50 |\n| App | Alex | 9.00 | – |\n| API | Bea | 6.00 | 6.50 |\n| Old | Bea | – | 0.00 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 21.00 | 12.50 |\n| Bea | 6.00 | 6.50 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 8.10 | – | 12.00 |",
+    "| App | Alex | 7.09 | – | 9.00 |",
+    "| API | Bea | 2.53 | – | 6.00 |",
+    "| Old | Bea | 2.53 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 15.19 | – | 21.00 |",
+    "| Bea | 5.06 | – | 6.00 |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.2",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.1,
+      "preplanned": null,
+      "planned": 12.0,
+      "done": 12.5,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 7.0874999999999995,
+      "preplanned": null,
+      "planned": 9.0,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": 6.0,
+      "done": 6.5,
+      "production_planned": 1.0,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 2.53125,
+      "preplanned": null,
+      "planned": null,
+      "done": 0.0,
+      "production_planned": null,
+      "production_done": null
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 15.1875,
+       "preplanned": null,
+       "planned": 21.0,
+       "done": 12.5
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 5.0625,
+       "preplanned": null,
+       "planned": 6.0,
+       "done": 6.5
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.2\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | 12.00 | 12.50 |\n| App | 9.00 | – |\n| API | 6.00 | 6.50 |\n| Old | – | 0.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 8.10 | – | 12.00 |",
+    "| App | 7.09 | – | 9.00 |",
+    "| API | 2.53 | – | 6.00 |",
+    "| Old | 2.53 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning |\n|---|---|---|---|\n| Web | Alex | 9.90 | – |\n| App | Alex | 8.66 | – |\n| API | Bea | 3.09 | – |\n| Old | Bea | 3.09 | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning |\n|---|---|---|\n| Alex | 18.56 | – |\n| Bea | 6.19 | – |\n| (no PO) | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 9.90 | – | 11.00 |",
+    "| App | Alex | 8.66 | – | – |",
+    "| API | Bea | 3.09 | – | 7.00 |",
+    "| Old | Bea | 3.09 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 18.56 | – | 11.00 |",
+    "| Bea | 6.19 | – | 7.00 |",
+    "| (no PO) | – | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "vorplanung",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# PO pre-planning Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning |\n|---|---|---|\n| Web | 9.90 | – |\n| App | 8.66 | – |\n| API | 3.09 | – |\n| Old | 3.09 | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 9.90 | – | 11.00 |",
+    "| App | 8.66 | – | – |",
+    "| API | 3.09 | – | 7.00 |",
+    "| Old | 3.09 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|---|\n| Web | Alex | 9.90 | – | 11.00 |\n| App | Alex | 8.66 | – | – |\n| API | Bea | 3.09 | – | 7.00 |\n| Old | Bea | 3.09 | – | – |\n\n## Per PO\n\n| PO | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Alex | 18.56 | – | 11.00 |\n| Bea | 6.19 | – | 7.00 |\n| (no PO) | – | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 9.90 | – | 11.00 |",
+    "| App | Alex | 8.66 | – | – |",
+    "| API | Bea | 3.09 | – | 7.00 |",
+    "| Old | Bea | 3.09 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 18.56 | – | 11.00 |",
+    "| Bea | 6.19 | – | 7.00 |",
+    "| (no PO) | – | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "planning",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Planning Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Standard | PO pre-planning | Planning |\n|---|---|---|---|\n| Web | 9.90 | – | 11.00 |\n| App | 8.66 | – | – |\n| API | 3.09 | – | 7.00 |\n| Old | 3.09 | – | – |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 9.90 | – | 11.00 |",
+    "| App | 8.66 | – | – |",
+    "| API | 3.09 | – | 7.00 |",
+    "| Old | 3.09 | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": true,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | PO | Planning | Done |\n|---|---|---|---|\n| Web | Alex | 11.00 | 10.00 |\n| App | Alex | – | – |\n| API | Bea | 7.00 | 7.00 |\n| Old | Bea | – | – |\n| New |  | – | 2.00 |\n\n## Per PO\n\n| PO | Planning | Done |\n|---|---|---|\n| Alex | 11.00 | 10.00 |\n| Bea | 7.00 | 7.00 |\n| (no PO) | – | 2.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|---|",
+    "| Web | Alex | 9.90 | – | 11.00 |",
+    "| App | Alex | 8.66 | – | – |",
+    "| API | Bea | 3.09 | – | 7.00 |",
+    "| Old | Bea | 3.09 | – | – |",
+    "",
+    "### Per PO",
+    "",
+    "| PO | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Alex | 18.56 | – | 11.00 |",
+    "| Bea | 6.19 | – | 7.00 |",
+    "| (no PO) | – | – | – |"
+   ]
+  },
+  {
+   "case": "products-edge",
+   "sprint": "2026.3",
+   "kind": "review",
+   "team": "Golden products-edge",
+   "facts": [
+    [
+     "Capacity",
+     "40 PT"
+    ],
+    [
+     "Commitment",
+     "34 | 35"
+    ],
+    [
+     "Note",
+     "two\nlines  here"
+    ]
+   ],
+   "notes": null,
+   "comment": "",
+   "show_po": false,
+   "distribution": {
+    "rows": [
+     {
+      "name": "Web",
+      "po": "Alex",
+      "active": true,
+      "standard": 9.9,
+      "preplanned": null,
+      "planned": 11.0,
+      "done": 10.0,
+      "production_planned": 30.0,
+      "production_done": null
+     },
+     {
+      "name": "App",
+      "po": "Alex",
+      "active": true,
+      "standard": 8.6625,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "API",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": 7.0,
+      "done": 7.0,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "Old",
+      "po": "Bea",
+      "active": true,
+      "standard": 3.09375,
+      "preplanned": null,
+      "planned": null,
+      "done": null,
+      "production_planned": null,
+      "production_done": null
+     },
+     {
+      "name": "New",
+      "po": null,
+      "active": false,
+      "standard": null,
+      "preplanned": null,
+      "planned": null,
+      "done": 2.0,
+      "production_planned": null,
+      "production_done": 1.0
+     }
+    ],
+    "by_po": [
+     {
+      "po": "Alex",
+      "totals": {
+       "standard": 18.5625,
+       "preplanned": null,
+       "planned": 11.0,
+       "done": 10.0
+      }
+     },
+     {
+      "po": "Bea",
+      "totals": {
+       "standard": 6.1875,
+       "preplanned": null,
+       "planned": 7.0,
+       "done": 7.0
+      }
+     },
+     {
+      "po": "(no PO)",
+      "totals": {
+       "standard": null,
+       "preplanned": null,
+       "planned": null,
+       "done": 2.0
+      }
+     }
+    ]
+   },
+   "text": "# Sprint Review Golden products-edge – Sprint 2026.3\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Per product\n\n| Product | Planning | Done |\n|---|---|---|\n| Web | 11.00 | 10.00 |\n| App | – | – |\n| API | 7.00 | 7.00 |\n| Old | – | – |\n| New | – | 2.00 |\n",
+   "planning_lines": [
+    "",
+    "### Per product",
+    "",
+    "| Product | Standard | PO pre-planning | Planning |",
+    "|---|---|---|---|",
+    "| Web | 9.90 | – | 11.00 |",
+    "| App | 8.66 | – | – |",
+    "| API | 3.09 | – | 7.00 |",
+    "| Old | 3.09 | – | – |"
+   ]
+  }
+ ],
+ "planning": [
+  {
+   "text": "# Sprint Planning Team A – Sprint 2026.7\n\nAs of: 08.07.2026 09:05\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Absences\n<!-- sprintforecast-section: absences -->\n\n_As of: 08.07.2026 09:05_\n\n- anna: 2\n\n- ben: 1\n\n## Scheduling\n<!-- sprintforecast-section: scheduling -->\n\n_not yet recorded_\n\n## Commitment\n<!-- sprintforecast-section: commitment -->\n\n_As of: 08.07.2026 09:05_\n\n34\n",
+   "parts": {
+    "absences": [
+     "As of: 08.07.2026 09:05",
+     [
+      "- anna: 2",
+      "- ben: 1"
+     ]
+    ],
+    "scheduling": [
+     "not yet recorded",
+     []
+    ],
+    "commitment": [
+     "As of: 08.07.2026 09:05",
+     [
+      "34"
+     ]
+    ]
+   }
+  },
+  {
+   "text": "# Sprint Planning Team A – Sprint 2026.7\n\nAs of: 09.07.2026 10:30\n\n- Capacity: 40 PT\n- Commitment: 34 \\| 35\n- Note: two lines here\n\n## Absences\n<!-- sprintforecast-section: absences -->\n\n_As of: 08.07.2026 09:05_\n\n- anna: 2\n\n- ben: 1\n\n## Scheduling\n<!-- sprintforecast-section: scheduling -->\n\n_not yet recorded_\n\n## Commitment\n<!-- sprintforecast-section: commitment -->\n\n_As of: 09.07.2026 10:30_\n\n35\n",
+   "parts": {
+    "absences": [
+     "As of: 08.07.2026 09:05",
+     [
+      "- anna: 2",
+      "- ben: 1"
+     ]
+    ],
+    "scheduling": [
+     "not yet recorded",
+     []
+    ],
+    "commitment": [
+     "As of: 09.07.2026 10:30",
+     [
+      "35"
+     ]
+    ]
+   },
+   "previous": {
+    "absences": [
+     "As of: 08.07.2026 09:05",
+     [
+      "- anna: 2",
+      "- ben: 1"
+     ]
+    ],
+    "scheduling": [
+     "not yet recorded",
+     []
+    ],
+    "commitment": [
+     "As of: 08.07.2026 09:05",
+     [
+      "34"
+     ]
+    ]
+   }
+  },
+  {
+   "text": "x\r\n## S\r\n<!-- sprintforecast-section: a -->\r\n_As of_\r\n\r\nl1\r\n\r\n<!-- sprintforecast-state: abc -->\r\n<!-- sprintforecast-section: b -->\r\nl2\r\n",
+   "parts": {
+    "a": [
+     "As of",
+     [
+      "l1"
+     ]
+    ],
+    "b": [
+     "",
+     [
+      "l2"
+     ]
+    ]
+   }
+  }
+ ],
+ "fingerprints": [
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 1\n",
+   "documents": [],
+   "documents_yaml": [],
+   "fingerprint": "a6fdf37a2d64cea7"
+  },
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 1\n",
+   "documents": [
+    {
+     "id": "2026.7",
+     "velocity": 3.5,
+     "absences": {}
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\nvelocity: 3.5\nabsences: {}\n"
+   ],
+   "fingerprint": "0257c346b4133bac"
+  },
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 1\n",
+   "documents": [
+    {
+     "id": "2026.7"
+    },
+    {
+     "id": "2026.8",
+     "note": "grün ä"
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\n",
+    "id: '2026.8'\nnote: grün ä\n"
+   ],
+   "fingerprint": "ded4ae50f4bd6158"
+  },
+  {
+   "text": "# T\r\n\r\nAs of: 09.07.2026 10:00\r\n\r\n- a: 1\r\n",
+   "documents": [],
+   "documents_yaml": [],
+   "fingerprint": "a6fdf37a2d64cea7"
+  },
+  {
+   "text": "# T\r\n\r\nAs of: 09.07.2026 10:00\r\n\r\n- a: 1\r\n",
+   "documents": [
+    {
+     "id": "2026.7",
+     "velocity": 3.5,
+     "absences": {}
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\nvelocity: 3.5\nabsences: {}\n"
+   ],
+   "fingerprint": "0257c346b4133bac"
+  },
+  {
+   "text": "# T\r\n\r\nAs of: 09.07.2026 10:00\r\n\r\n- a: 1\r\n",
+   "documents": [
+    {
+     "id": "2026.7"
+    },
+    {
+     "id": "2026.8",
+     "note": "grün ä"
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\n",
+    "id: '2026.8'\nnote: grün ä\n"
+   ],
+   "fingerprint": "ded4ae50f4bd6158"
+  },
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 2\n",
+   "documents": [],
+   "documents_yaml": [],
+   "fingerprint": "1baaf13f59bd64b0"
+  },
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 2\n",
+   "documents": [
+    {
+     "id": "2026.7",
+     "velocity": 3.5,
+     "absences": {}
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\nvelocity: 3.5\nabsences: {}\n"
+   ],
+   "fingerprint": "ff0aa91b8f2f19d0"
+  },
+  {
+   "text": "# T\n\nAs of: 08.07.2026 09:05\n\n- a: 2\n",
+   "documents": [
+    {
+     "id": "2026.7"
+    },
+    {
+     "id": "2026.8",
+     "note": "grün ä"
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\n",
+    "id: '2026.8'\nnote: grün ä\n"
+   ],
+   "fingerprint": "c48df44e74563bd6"
+  },
+  {
+   "text": "",
+   "documents": [],
+   "documents_yaml": [],
+   "fingerprint": "e3b0c44298fc1c14"
+  },
+  {
+   "text": "",
+   "documents": [
+    {
+     "id": "2026.7",
+     "velocity": 3.5,
+     "absences": {}
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\nvelocity: 3.5\nabsences: {}\n"
+   ],
+   "fingerprint": "b3b2b3acef3d02a1"
+  },
+  {
+   "text": "",
+   "documents": [
+    {
+     "id": "2026.7"
+    },
+    {
+     "id": "2026.8",
+     "note": "grün ä"
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\n",
+    "id: '2026.8'\nnote: grün ä\n"
+   ],
+   "fingerprint": "e9af04adece86809"
+  },
+  {
+   "text": "one",
+   "documents": [],
+   "documents_yaml": [],
+   "fingerprint": "7692c3ad3540bb80"
+  },
+  {
+   "text": "one",
+   "documents": [
+    {
+     "id": "2026.7",
+     "velocity": 3.5,
+     "absences": {}
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\nvelocity: 3.5\nabsences: {}\n"
+   ],
+   "fingerprint": "27a8dedc61a22a8a"
+  },
+  {
+   "text": "one",
+   "documents": [
+    {
+     "id": "2026.7"
+    },
+    {
+     "id": "2026.8",
+     "note": "grün ä"
+    }
+   ],
+   "documents_yaml": [
+    "id: '2026.7'\n",
+    "id: '2026.8'\nnote: grün ä\n"
+   ],
+   "fingerprint": "0c2d994c547a7585"
+  }
+ ],
+ "scenario": {
+  "operations": [
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: x\n\n- a: 1\n",
+    "now": "2026-07-08T09:00:00",
+    "state": null,
+    "path": "2026.7-planning-20260708-090000-a6d6.md",
+    "created": true,
+    "content": "# P\n\nAs of: x\n\n- a: 1\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-a6d6.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: y\n\n- a: 1\n",
+    "now": "2026-07-08T09:01:00",
+    "state": null,
+    "path": "2026.7-planning-20260708-090000-a6d6.md",
+    "created": false,
+    "content": "# P\n\nAs of: x\n\n- a: 1\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-a6d6.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: y\n\n- a: 2\n",
+    "now": "2026-07-08T09:00:00",
+    "state": null,
+    "path": "2026.7-planning-20260708-090000-56db.md",
+    "created": true,
+    "content": "# P\n\nAs of: y\n\n- a: 2\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: y\n\n- a: 3\n",
+    "now": "2026-07-08T09:00:00",
+    "state": "abcd1234",
+    "path": "2026.7-planning-20260708-090000-abcd.md",
+    "created": true,
+    "content": "# P\n\nAs of: y\n\n- a: 3\n\n<!-- sprintforecast-state: abcd1234 -->\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: z\n\n- a: 3\n",
+    "now": "2026-07-08T09:05:00",
+    "state": "abcd1234",
+    "path": "2026.7-planning-20260708-090000-abcd.md",
+    "created": false,
+    "content": "# P\n\nAs of: y\n\n- a: 3\n\n<!-- sprintforecast-state: abcd1234 -->\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: z\n\n- a: 4\n",
+    "now": "2026-07-08T09:06:00",
+    "state": "ffff0000",
+    "path": "2026.7-planning-20260708-090600-ffff.md",
+    "created": true,
+    "content": "# P\n\nAs of: z\n\n- a: 4\n\n<!-- sprintforecast-state: ffff0000 -->\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "review",
+    "text": "# R\r\n\r\nAs of: z\r\n\r\n- r: 1\r\n",
+    "now": "2026-07-20T16:00:00",
+    "state": null,
+    "path": "2026.7-review-20260720-160000-1bf6.md",
+    "created": true,
+    "content": "# R\n\nAs of: z\n\n- r: 1\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.8",
+    "kind": "vorplanung",
+    "text": "# V\n\nAs of: z\n\n- v: 1\n",
+    "now": "2026-07-08T09:00:00",
+    "state": null,
+    "path": "2026.8-vorplanung-20260708-090000-97ba.md",
+    "created": true,
+    "content": "# V\n\nAs of: z\n\n- v: 1\n",
+    "folder": [
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.10",
+    "kind": "planning",
+    "text": "# P10\n\nAs of: q\n\n",
+    "now": "2026-08-01T00:00:00",
+    "state": null,
+    "path": "2026.10-planning-20260801-000000-ba69.md",
+    "created": true,
+    "content": "# P10\n\nAs of: q\n\n",
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "list",
+    "sprint": "2026.7",
+    "found": [
+     [
+      "2026-07-20T16:00:00",
+      "review",
+      false,
+      "2026.7-review-20260720-160000-1bf6.md"
+     ],
+     [
+      "2026-07-08T09:06:00",
+      "planning",
+      false,
+      "2026.7-planning-20260708-090600-ffff.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      false,
+      "2026.7-planning-20260708-090000-abcd.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      false,
+      "2026.7-planning-20260708-090000-a6d6.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      false,
+      "2026.7-planning-20260708-090000-56db.md"
+     ]
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "list",
+    "sprint": "2026.8",
+    "found": [
+     [
+      "2026-07-08T09:00:00",
+      "vorplanung",
+      false,
+      "2026.8-vorplanung-20260708-090000-97ba.md"
+     ]
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "list",
+    "sprint": "2026.1",
+    "found": [],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db.md",
+     "2026.7-planning-20260708-090000-a6d6.md",
+     "2026.7-planning-20260708-090000-abcd.md",
+     "2026.7-planning-20260708-090600-ffff.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "obsolete",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "now": "2026-07-09T12:00:00",
+    "renamed": [
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md"
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "list",
+    "sprint": "2026.7",
+    "found": [
+     [
+      "2026-07-20T16:00:00",
+      "review",
+      false,
+      "2026.7-review-20260720-160000-1bf6.md"
+     ],
+     [
+      "2026-07-08T09:06:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md"
+     ]
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "obsolete",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "now": "2026-07-09T12:00:00",
+    "renamed": [],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "write",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "text": "# P\n\nAs of: n\n\n- a: 9\n",
+    "now": "2026-07-10T08:00:00",
+    "state": null,
+    "path": "2026.7-planning-20260710-080000-90e0.md",
+    "created": true,
+    "content": "# P\n\nAs of: n\n\n- a: 9\n",
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-planning-20260710-080000-90e0.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "obsolete",
+    "sprint": "2026.7",
+    "kind": "planning",
+    "now": "2026-07-09T12:00:00",
+    "renamed": [
+     "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md"
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "renames",
+    "renames": [
+     [
+      "2026.7-review-20260720-160000-1bf6.md",
+      "2026.07-review-20260720-160000-1bf6.md"
+     ],
+     [
+      "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md",
+      "2026.07-planning-20260710-080000-90e0_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+      "2026.07-planning-20260708-090600-ffff_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+      "2026.07-planning-20260708-090000-abcd_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+      "2026.07-planning-20260708-090000-a6d6_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+      "2026.07-planning-20260708-090000-56db_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026.8-vorplanung-20260708-090000-97ba.md",
+      "A-vorplanung-20260708-090000-97ba.md"
+     ]
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   },
+   {
+    "op": "list",
+    "sprint": "2026.7",
+    "found": [
+     [
+      "2026-07-20T16:00:00",
+      "review",
+      false,
+      "2026.7-review-20260720-160000-1bf6.md"
+     ],
+     [
+      "2026-07-10T08:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:06:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-07-08T09:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md"
+     ],
+     [
+      "2026-01-01T00:00:00",
+      "planning",
+      true,
+      "2026.7-planning-20260101-000000-abcd_obsolet_20260102-000000.md"
+     ]
+    ],
+    "folder": [
+     "2026.10-planning-20260801-000000-ba69.md",
+     "2026.7-other-20260101-000000.md",
+     "2026.7-planning-20260101-000000-ZZZZ.md",
+     "2026.7-planning-20260101-000000-abcd_obsolet_20260102-000000.md",
+     "2026.7-planning-20260101-000000-abcd_obsolet_20260102-000000.md.bak",
+     "2026.7-planning-20260101-000000.txt",
+     "2026.7-planning-20260708-090000-56db_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-a6d6_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090000-abcd_obsolet_20260709-120000.md",
+     "2026.7-planning-20260708-090600-ffff_obsolet_20260709-120000.md",
+     "2026.7-planning-20260710-080000-90e0_obsolet_20260709-120000.md",
+     "2026.7-planning-20261340-250000.md",
+     "2026.7-review-20260102-000000",
+     "2026.7-review-20260720-160000-1bf6.md",
+     "2026.8-vorplanung-20260708-090000-97ba.md"
+    ]
+   }
+  ]
+ }
+}

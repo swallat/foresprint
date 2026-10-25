@@ -8,23 +8,23 @@ are excluded from the code repository through `.gitignore`).
 
 - YAML files, one sprint per file, easy to diff and merge.
 - Parallel maintenance by POs and Scrum Masters works because every sprint is its own file;
-  different values in the same file are merged automatically (see [Web UI](web-ui.md) for the
+  different values in the same file are merged automatically (see [The window](window.md) for the
   details and the conflict resolution).
 - Every change has an author, a time and a history; an earlier state can be restored.
 - Closed sprints are marked with the tag `TEAM/SPRINT`.
-- No server component: the web UI runs locally on the clone, and the hosted Git service
+- No server component: the window runs locally on the clone, and the hosted Git service
   (GitHub, GitLab, ...) handles sharing and access control.
 
 ## Template
 
 The template [`templates/daten-repo/`](../templates/daten-repo) is the starting point for a new
-data repository (the web UI's **Data folder** page creates a repository with `.gitignore` and a
+data repository (the first-start guide of the window creates a repository with `.gitignore` and a
 `teams` folder with `.gitattributes` through "Create new data repository"; the task file and the
 workflow come from the template):
 
 ```
 data-repo/
-├─ mise.toml                      # tool versions + task `mise run sf -- ...`
+├─ mise.toml                      # data directory + task `mise run sf -- ...`
 ├─ .gitignore, .gitattributes     # no spreadsheets and *.tmp; YAML and reports always with LF
 ├─ .github/workflows/forecast.yml # checks changes, updates FORECAST.md (GitLab: analogous)
 └─ teams/
@@ -34,17 +34,21 @@ data-repo/
    │  ├─ products.yaml            # optional
    │  ├─ FORECAST.md              # generated
    │  └─ sprints/2026.20.yaml ...
-   └─ team-b/ ...
+   ├─ team-b/ ...
+   └─ _archiv/                    # archived teams (Settings > Team > Archive team)
+      └─ team-c/ ...
 ```
 
-- `mise.toml` pins Python and uv and defines the task `mise run sf -- forecast team-a`, which
-  runs foresprint through `uvx` from the Git ref pinned there (`@main` in the template; pin
-  a tag and raise it when you update).
-  It also points the data directory at `teams` for the repository.
+- Archiving a team moves its whole folder to `teams/_archiv/<team>/`. Nothing is deleted, Git
+  records a move, and "Restore" in the same settings card moves it back. Deleting a team for good
+  stays a manual step (delete the folder, commit).
+- `mise.toml` defines the task `mise run sf -- forecast team-a`, which runs the `foresprint`
+  program (install it first, see [Installation](installation.md)), and points the data directory
+  at `teams` for the repository.
 - `.gitattributes` forces LF line endings for `*.yaml`, `*.yml` and `*.md` even with
   `core.autocrlf` on Windows; otherwise the first save would rewrite every line ending and add
   noise to the history.
-  An existing repository without it gets an offer: on the "Data folder" page (Settings), the
+  An existing repository without it gets an offer: in **Settings > Storage**, the
   section "Set line endings" shows the lines to be added (an existing `.gitattributes` is
   extended, never rewritten) and the tracked files that are stored with CRLF and would be
   converted to LF. Nothing is written before you click "Create `.gitattributes`", and the
@@ -53,7 +57,8 @@ data-repo/
   once Git applies `eol=lf` to those files, also through a `.gitattributes` elsewhere.
 - `.gitignore` keeps spreadsheets out of the repository: they can contain real team data, and
   the app refuses to commit them anyway.
-- `forecast.yml` runs `check` on every change under `teams/`, and on pushes to `main` and on a
+- `forecast.yml` installs the command line variant of a pinned release (raise the version in
+  the workflow when you update) and runs `check` on every change under `teams/`, and on pushes to `main` and on a
   weekday schedule regenerates `FORECAST.md` and commits it.
 
 The file formats are described in [Data format](data-format.md).

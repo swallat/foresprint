@@ -1,0 +1,190 @@
+{
+ "numbers": [
+  {
+   "text": "",
+   "ok": null
+  },
+  {
+   "text": " ",
+   "ok": null
+  },
+  {
+   "text": "3",
+   "ok": 3.0
+  },
+  {
+   "text": "3.5",
+   "ok": 3.5
+  },
+  {
+   "text": "3,5",
+   "ok": 3.5
+  },
+  {
+   "text": "1.234,5",
+   "ok": 1234.5
+  },
+  {
+   "text": "1,234.5",
+   "ok": 1234.5
+  },
+  {
+   "text": "1.234",
+   "ok": 1.234
+  },
+  {
+   "text": "1,234",
+   "ok": 1.234
+  },
+  {
+   "text": "-2",
+   "ok": -2.0
+  },
+  {
+   "text": "-0",
+   "ok": -0.0
+  },
+  {
+   "text": "+4",
+   "ok": 4.0
+  },
+  {
+   "text": "1e3",
+   "ok": 1000.0
+  },
+  {
+   "text": " 7 ",
+   "ok": 7.0
+  },
+  {
+   "text": "inf",
+   "error": true
+  },
+  {
+   "text": "nan",
+   "error": true
+  },
+  {
+   "text": "abc",
+   "error": true
+  },
+  {
+   "text": "1,2,3",
+   "error": true
+  },
+  {
+   "text": "0,5.5",
+   "ok": 5.5
+  },
+  {
+   "text": "٣",
+   "ok": 3.0
+  },
+  {
+   "text": "١٢٣",
+   "ok": 123.0
+  },
+  {
+   "text": "1_000",
+   "ok": 1000.0
+  },
+  {
+   "text": "1__0",
+   "error": true
+  },
+  {
+   "text": "_1",
+   "error": true
+  },
+  {
+   "text": "1_",
+   "error": true
+  },
+  {
+   "text": ".5",
+   "ok": 0.5
+  },
+  {
+   "text": "5.",
+   "ok": 5.0
+  },
+  {
+   "text": "1e",
+   "error": true
+  },
+  {
+   "text": "1e+2",
+   "ok": 100.0
+  },
+  {
+   "text": "-.5e-1",
+   "ok": -0.05
+  },
+  {
+   "text": "infinity",
+   "error": true
+  },
+  {
+   "text": "-Infinity",
+   "error": true
+  },
+  {
+   "text": "+nan",
+   "error": true
+  },
+  {
+   "text": "0x10",
+   "error": true
+  },
+  {
+   "text": "1 2",
+   "error": true
+  },
+  {
+   "text": " 5 ",
+   "ok": 5.0
+  },
+  {
+   "text": "1,000,000",
+   "error": true
+  },
+  {
+   "text": "1.000.000",
+   "error": true
+  },
+  {
+   "text": "1.000.000,5",
+   "ok": 1000000.5
+  }
+ ],
+ "delimiters": [
+  {
+   "line": "a,b,c",
+   "delimiter": ","
+  },
+  {
+   "line": "a;b;c",
+   "delimiter": ";"
+  },
+  {
+   "line": "a;b,c",
+   "delimiter": ","
+  },
+  {
+   "line": "a;b;c,d",
+   "delimiter": ";"
+  },
+  {
+   "line": "",
+   "delimiter": ","
+  },
+  {
+   "line": "abc",
+   "delimiter": ","
+  },
+  {
+   "line": ";;,",
+   "delimiter": ";"
+  }
+ ]
+}

@@ -1,0 +1,1172 @@
+[
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": true
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": true
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1",
+  "body": null,
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": true
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": true
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/A_b1-22",
+  "body": null,
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/1-2",
+  "body": null,
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/",
+  "body": null,
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/issue/ABC-1/comment",
+  "body": null,
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     },
+     {
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "set": "planned_for_x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x",
+      "remove": "planned_for_y"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "other"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_a b"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": 3
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": "x"
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "summary": [
+     {
+      "set": "x"
+     }
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ],
+    "summary": []
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "fields": {
+    "labels": [
+     "planned_for_x"
+    ]
+   }
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": {
+    "labels": [
+     {
+      "add": "planned_for_x"
+     }
+    ]
+   },
+   "fields": {}
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": {
+   "update": "x"
+  },
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": [],
+  "ok": false
+ },
+ {
+  "path": "/rest/api/2/search",
+  "body": null,
+  "ok": false
+ }
+]

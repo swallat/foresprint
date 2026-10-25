@@ -1,0 +1,235 @@
+name: Release app
+
+# Builds the program with the window (command line and window in one file) for every platform
+# when a version tag (v1.0.0 …) is pushed and attaches the archives to the release page:
+#
+#   foresprint_<version>_<os>_<arch>.tar.gz   (zip on Windows), the program at the top level
+#   checksums.txt                              SHA-256 sums; the self-update checks them
+#   checksums.txt.bundle                       cosign signature (keyless, GitHub identity)
+#
+# The files are not signed with a code signing certificate (decision of 22.10.): Windows shows
+# SmartScreen and macOS Gatekeeper on the first start, see docs/installation.md. Integrity: checksums.txt,
+# the cosign bundle and the GitHub build attestation of every archive.
+# "Run workflow" builds the commit it is started on ("Use workflow from": a branch or a tag) and
+# gives the release the name in "tag"; if that tag does not exist yet, the release page creates it
+# at that commit. For an existing tag it repeats the build and replaces the files.
+
+on:
+  push:
+    tags: ["v*", "!v0.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Name of the release, e.g. v1.0.0 or v1.0.0-beta.1 (tag created if missing)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-app-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  # The holiday data of the newest "holidays" release goes into every build (the committed file is
+  # the state of the last monthly update).
+  holidays:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check the name and the commit
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::The name $TAG is not a version like v1.0.0 or v1.0.0-beta.1"; exit 1; }
+          # A run started by hand must not replace the files of an existing tag with another commit.
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            tagged=$(git rev-parse "$TAG^{commit}")
+            [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::The tag $TAG is at $tagged, but this run is on $GITHUB_SHA. Start the run from the tag under 'Use workflow from'."; exit 1; }
+          fi
+      - uses: jdx/mise-action@v3
+      # The script declares its own dependency and takes the newest "holidays" release.
+      - run: |
+          mkdir -p out
+          uv run scripts/gen_holidays.py --output out/holidays.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holidays-data
+          path: out/holidays.zip
+
+  build:
+    needs: holidays
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { runner: ubuntu-latest, goos: linux, goarch: amd64 }
+          - { runner: ubuntu-24.04-arm, goos: linux, goarch: arm64 }
+          - { runner: windows-latest, goos: windows, goarch: amd64 }
+          - { runner: macos-latest, goos: darwin, goarch: arm64 }
+          - { runner: macos-15-intel, goos: darwin, goarch: amd64 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: go/internal/desktop/frontend/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: holidays-data
+          path: go/internal/holidays/data
+      - name: Web view libraries (Linux)
+        if: matrix.goos == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Frontend
+        working-directory: go/internal/desktop/frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Program icon (Windows)
+        if: matrix.goos == 'windows'
+        working-directory: go
+        shell: bash
+        run: |
+          # The icon of the exe (launchers, Explorer, taskbar): a resource file next to main.go that
+          # go build links in. Generated here, not committed.
+          cd cmd/foresprint
+          go run github.com/tc-hib/go-winres@v0.3.3 make --in winres/winres.json --arch amd64
+      - name: Build
+        working-directory: go
+        run: |
+          version="${TAG#v}"
+          tags=desktop,production
+          ldflags="-s -w -X main.version=$version"
+          exe=foresprint
+          if [ "${{ matrix.goos }}" = linux ]; then tags=$tags,webkit2_41; fi
+          # Windows: a console program (a terminal waits for it and shows its output); the window
+          # start releases the console again (cmd/foresprint/console_windows.go).
+          if [ "${{ matrix.goos }}" = windows ]; then exe=foresprint.exe; fi
+          # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
+          if [ "${{ matrix.goos }}" = darwin ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
+          mkdir -p ../stage
+          CGO_ENABLED=1 go build -trimpath -tags "$tags" -ldflags "$ldflags" -o "../stage/$exe" ./cmd/foresprint
+          cp ../LICENSE ../stage/
+      - name: Console subsystem (Windows)
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        run: |
+          # PE header: subsystem 3 = console (2 would be a program without a console).
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path stage/foresprint.exe))
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 24 + 68)
+          if ($subsystem -ne 3) { throw "subsystem is $subsystem, expected 3 (console)" }
+      - name: Smoke test
+        run: |
+          exe=./stage/foresprint; if [ "${{ matrix.goos }}" = windows ]; then exe=./stage/foresprint.exe; fi
+          out=$($exe --version); echo "$out"; test -n "$out"
+          $exe version
+      - name: Archive
+        run: |
+          version="${TAG#v}"
+          name="foresprint_${version}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p dist
+          cd stage
+          if [ "${{ matrix.goos }}" = windows ]; then
+            7z a -tzip "../dist/$name.zip" foresprint.exe LICENSE
+          else
+            tar -czf "../dist/$name.tar.gz" foresprint LICENSE
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  # Linux without the window: no WebKit needed, so it also runs on servers and in CI. Same
+  # program, built without the tag "desktop"; the self-update of this variant looks for these
+  # archives (internal/selfupdate).
+  build-cli:
+    needs: holidays
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: holidays-data
+          path: go/internal/holidays/data
+      - name: Build
+        working-directory: go
+        run: |
+          version="${TAG#v}"
+          mkdir -p ../stage
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath \
+            -ldflags "-s -w -X main.version=$version" -o ../stage/foresprint ./cmd/foresprint
+          cp ../LICENSE ../stage/
+      - name: Smoke test
+        if: matrix.goarch == 'amd64'
+        run: ./stage/foresprint version
+      - name: Archive
+        run: |
+          version="${TAG#v}"
+          mkdir -p dist
+          tar -czf "dist/foresprint-cli_${version}_linux_${{ matrix.goarch }}.tar.gz" -C stage foresprint LICENSE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-cli-linux-${{ matrix.goarch }}
+          path: dist/*
+
+  publish:
+    needs: [build, build-cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write       # cosign keyless and the attestation
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: archive-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum foresprint* > checksums.txt
+          cat checksums.txt
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign checksums.txt (cosign, keyless)
+        working-directory: dist
+        run: cosign sign-blob --yes --bundle checksums.txt.bundle checksums.txt
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/foresprint*
+      - name: Release page
+        run: |
+          # A tag with a suffix (v1.0.0-beta.1) is a pre-release: the self-update ignores it.
+          pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            if [ -n "$pre" ]; then gh release edit "$TAG" --prerelease; fi
+          else
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "${TAG#v}" --generate-notes $pre
+          fi

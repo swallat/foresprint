@@ -1,0 +1,33 @@
+{
+ "operation": "test_connection",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/myself",
+   "status": 302,
+   "headers": {
+    "location": "https://sso.example.org/login"
+   }
+  }
+ ],
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/myself",
+   "query": {},
+   "authorization": true
+  }
+ ],
+ "error": "jira.example.org redirects (sso.example.org) – change tracker.base_url to the final address."
+}

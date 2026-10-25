@@ -1,0 +1,596 @@
+{
+ "operation": "suggest",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/myself",
+   "status": 200,
+   "json": {
+    "self": "https://jira.example.org/rest/api/2/user?username=anna",
+    "key": "JIRAUSER10100",
+    "name": "anna",
+    "displayName": "Anna Beispiel",
+    "active": true,
+    "timeZone": "Europe/Berlin",
+    "locale": "de_DE"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "status": 200,
+   "json": [
+    {
+     "id": "summary",
+     "name": "Summary",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Summary"
+     ],
+     "schema": {
+      "type": "string",
+      "system": "summary"
+     }
+    },
+    {
+     "id": "status",
+     "name": "Status",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Status"
+     ],
+     "schema": {
+      "type": "status",
+      "system": "status"
+     }
+    },
+    {
+     "id": "issuetype",
+     "name": "Issue Type",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Issue Type"
+     ],
+     "schema": {
+      "type": "issuetype",
+      "system": "issuetype"
+     }
+    },
+    {
+     "id": "labels",
+     "name": "Labels",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Labels"
+     ],
+     "schema": {
+      "type": "array",
+      "items": "string",
+      "system": "labels"
+     }
+    },
+    {
+     "id": "parent",
+     "name": "Parent",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Parent"
+     ],
+     "schema": {
+      "type": "issuelink",
+      "system": "parent"
+     }
+    },
+    {
+     "id": "customfield_10016",
+     "name": "Story Points",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Story Points"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10016
+     }
+    },
+    {
+     "id": "customfield_10017",
+     "name": "Remaining",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Remaining"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10017
+     }
+    },
+    {
+     "id": "customfield_10014",
+     "name": "Epic Link",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Epic Link"
+     ],
+     "schema": {
+      "type": "any",
+      "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+      "customId": 10014
+     }
+    },
+    {
+     "id": "customfield_10020",
+     "name": "Sprint",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Sprint"
+     ],
+     "schema": {
+      "type": "array",
+      "items": "json",
+      "custom": "com.pyxis.greenhopper.jira:gh-sprint",
+      "customId": 10020
+     }
+    },
+    {
+     "id": "customfield_10019",
+     "name": "Rang",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Rang"
+     ],
+     "schema": {
+      "type": "any",
+      "custom": "com.pyxis.greenhopper.jira:gh-lexo-rank",
+      "customId": 10019
+     }
+    },
+    {
+     "id": "customfield_10100",
+     "name": "Business Value",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Business Value"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10100
+     }
+    },
+    {
+     "id": "customfield_10101",
+     "name": "Business Value",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Business Value"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10101
+     }
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/rest/api/2/search",
+   "status": 200,
+   "json": {
+    "expand": "names,schema",
+    "startAt": 0,
+    "maxResults": 3,
+    "total": 5,
+    "issues": [
+     {
+      "expand": "operations,versionedRepresentations",
+      "id": "10001",
+      "self": "https://jira.example.org/rest/api/2/issue/ABC-1",
+      "key": "ABC-1",
+      "fields": {
+       "summary": "Checkout   form",
+       "status": {
+        "name": "In Progress"
+       },
+       "issuetype": {
+        "name": "Story"
+       },
+       "labels": [
+        "Refined",
+        "payment"
+       ],
+       "components": [
+        {
+         "name": "Checkout"
+        },
+        {
+         "name": "Frontend"
+        }
+       ],
+       "resolution": null,
+       "issuelinks": [
+        {
+         "id": "1",
+         "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+         },
+         "inwardIssue": {
+          "id": "1",
+          "key": "ABC-3",
+          "fields": {
+           "summary": "Other",
+           "status": {
+            "name": "To Do"
+           }
+          }
+         }
+        },
+        {
+         "id": "1",
+         "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+         },
+         "outwardIssue": {
+          "id": "2",
+          "key": "ABC-4",
+          "fields": {
+           "summary": "Other",
+           "status": {
+            "name": "To Do"
+           }
+          }
+         }
+        },
+        {
+         "id": "1",
+         "type": {
+          "id": "10000",
+          "name": "Relates",
+          "inward": "is blocked by",
+          "outward": "blocks"
+         },
+         "inwardIssue": {
+          "id": "1",
+          "key": "ABC-9",
+          "fields": {
+           "summary": "Other",
+           "status": {
+            "name": "To Do"
+           }
+          }
+         }
+        }
+       ],
+       "parent": null,
+       "customfield_10016": 5.0,
+       "customfield_10017": 3.0,
+       "customfield_10014": "ABC-100",
+       "customfield_10020": [
+        "com.atlassian.greenhopper.service.sprint.Sprint@1a3f[id=20,rapidViewId=3,state=CLOSED,name=Sprint 20,goal=Ship it, then rest,startDate=2026-10-01T08:00:00.000Z,endDate=2026-10-15T16:00:00.000Z,completeDate=<null>,activatedDate=2026-10-01T08:05:00.000Z,sequence=20,autoStartStop=false]",
+        "com.atlassian.greenhopper.service.sprint.Sprint@1a40[id=21,rapidViewId=3,state=ACTIVE,name=Sprint 21, Team A [Phase 1],goal=Ship it, then rest,startDate=2026-10-01T08:00:00.000Z,endDate=2026-10-15T16:00:00.000Z,completeDate=<null>,activatedDate=2026-10-01T08:05:00.000Z,sequence=21,autoStartStop=false]",
+        "com.atlassian.greenhopper.service.sprint.Sprint@1a41[id=22,rapidViewId=3,state=FUTURE,name=Sprint 22,goal=Ship it, then rest,startDate=2026-10-01T08:00:00.000Z,endDate=2026-10-15T16:00:00.000Z,completeDate=<null>,activatedDate=2026-10-01T08:05:00.000Z,sequence=22,autoStartStop=false]"
+       ],
+       "customfield_10019": "0|i0001:"
+      }
+     },
+     {
+      "expand": "operations,versionedRepresentations",
+      "id": "10002",
+      "self": "https://jira.example.org/rest/api/2/issue/ABC-2",
+      "key": "ABC-2",
+      "fields": {
+       "summary": "Refund API",
+       "status": {
+        "name": "To Do"
+       },
+       "issuetype": {
+        "name": "Bug"
+       },
+       "labels": [],
+       "components": [],
+       "resolution": null,
+       "issuelinks": [],
+       "parent": {
+        "id": "9",
+        "key": "ABC-100",
+        "fields": {
+         "summary": "Payment",
+         "status": {
+          "name": "Open"
+         },
+         "issuetype": {
+          "name": "Epic"
+         }
+        }
+       },
+       "customfield_10016": null,
+       "customfield_10017": null,
+       "customfield_10014": null,
+       "customfield_10020": null,
+       "customfield_10019": "0|i0002:"
+      }
+     },
+     {
+      "expand": "operations,versionedRepresentations",
+      "id": "10003",
+      "self": "https://jira.example.org/rest/api/2/issue/ABC-3",
+      "key": "ABC-3",
+      "fields": {
+       "summary": "Schema v2",
+       "status": {
+        "name": "Done"
+       },
+       "issuetype": {
+        "name": "Story"
+       },
+       "labels": [],
+       "components": [],
+       "resolution": {
+        "name": "Done"
+       },
+       "issuelinks": [],
+       "parent": null,
+       "customfield_10016": 2.0,
+       "customfield_10017": 0.0,
+       "customfield_10014": "ABC-200",
+       "customfield_10020": null,
+       "customfield_10019": "0|i0003:"
+      }
+     }
+    ]
+   },
+   "query": {
+    "startAt": "0"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/rest/api/2/search",
+   "status": 200,
+   "json": {
+    "expand": "names,schema",
+    "startAt": 3,
+    "maxResults": 3,
+    "total": 5,
+    "issues": [
+     {
+      "expand": "operations,versionedRepresentations",
+      "id": "10004",
+      "self": "https://jira.example.org/rest/api/2/issue/ABC-4",
+      "key": "ABC-4",
+      "fields": {
+       "summary": "Export",
+       "status": {
+        "name": "To Do"
+       },
+       "issuetype": {
+        "name": "Sub-task"
+       },
+       "labels": [],
+       "components": [],
+       "resolution": null,
+       "issuelinks": [
+        {
+         "id": "1",
+         "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+         },
+         "inwardIssue": {
+          "id": "1",
+          "key": "ABC-1",
+          "fields": {
+           "summary": "Other",
+           "status": {
+            "name": "To Do"
+           }
+          }
+         }
+        }
+       ],
+       "parent": {
+        "id": "8",
+        "key": "ABC-1",
+        "fields": {
+         "summary": "Checkout",
+         "status": {
+          "name": "Open"
+         },
+         "issuetype": {
+          "name": "Story"
+         }
+        }
+       },
+       "customfield_10016": 8.0,
+       "customfield_10017": null,
+       "customfield_10014": null,
+       "customfield_10020": [
+        {
+         "id": 13,
+         "name": "Sprint 22",
+         "state": "future",
+         "boardId": 3
+        },
+        {
+         "id": 14,
+         "name": "Sprint 23, extended",
+         "state": "future",
+         "boardId": 3
+        }
+       ],
+       "customfield_10019": "0|i0004:"
+      }
+     },
+     {
+      "expand": "operations,versionedRepresentations",
+      "id": "10005",
+      "self": "https://jira.example.org/rest/api/2/issue/ABC-5",
+      "key": "ABC-5",
+      "fields": {
+       "summary": "Old leftover",
+       "status": {
+        "name": "To Do"
+       },
+       "issuetype": {
+        "name": "Story"
+       },
+       "labels": [],
+       "components": [],
+       "resolution": null,
+       "issuelinks": [],
+       "parent": null,
+       "customfield_10016": 1.0,
+       "customfield_10017": null,
+       "customfield_10014": null,
+       "customfield_10020": [
+        {
+         "id": 18,
+         "name": "Sprint 19",
+         "state": "closed"
+        }
+       ],
+       "customfield_10019": "0|i0005:"
+      }
+     }
+    ]
+   },
+   "query": {
+    "startAt": "3"
+   }
+  }
+ ],
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "query": {},
+   "authorization": true
+  }
+ ],
+ "ok": {
+  "estimate": [
+   {
+    "id": "customfield_10016",
+    "name": "Story Points",
+    "value": "Story Points",
+    "score": 1
+   },
+   {
+    "id": "customfield_10100",
+    "name": "Business Value",
+    "value": "customfield_10100",
+    "score": 0
+   },
+   {
+    "id": "customfield_10101",
+    "name": "Business Value",
+    "value": "customfield_10101",
+    "score": 0
+   },
+   {
+    "id": "customfield_10017",
+    "name": "Remaining",
+    "value": "Remaining",
+    "score": 0
+   }
+  ],
+  "remaining": [
+   {
+    "id": "customfield_10017",
+    "name": "Remaining",
+    "value": "Remaining",
+    "score": 2
+   },
+   {
+    "id": "customfield_10016",
+    "name": "Story Points",
+    "value": "Story Points",
+    "score": 1
+   },
+   {
+    "id": "customfield_10100",
+    "name": "Business Value",
+    "value": "customfield_10100",
+    "score": 0
+   },
+   {
+    "id": "customfield_10101",
+    "name": "Business Value",
+    "value": "customfield_10101",
+    "score": 0
+   }
+  ],
+  "epic": [
+   {
+    "id": "customfield_10014",
+    "name": "Epic Link",
+    "value": "Epic Link",
+    "score": 0
+   },
+   {
+    "id": "parent",
+    "name": "parent",
+    "value": "parent",
+    "score": 0
+   }
+  ]
+ }
+}

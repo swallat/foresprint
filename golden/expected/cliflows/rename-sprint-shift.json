@@ -1,0 +1,30 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "rename-sprint",
+  "demo",
+  "2026.21",
+  "2026.22"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {
+  "demo/protokolle/2026.22-planning-20261012-100000.md": "# planning 21\n",
+  "demo/protokolle/2026.22-review-20261015-120000_obsolet_20261016-080000.md": "# old 21\n",
+  "demo/protokolle/2026.23-planning-20261016-100000.md": "# planning 22\n",
+  "demo/sprints/2026.22.yaml": "# Sprint 2026.22. Explanations of all fields: `foresprint help fields`\nid: '2026.22'\nstart: 2026-10-14\nend: 2026-10-28\nabsences:\n  ben: 3\n  cem: 5\n  dana: 3\ncapacity: null\nforecast_ist: 10\nvelocity: null\nscope_creep: null\nplanning:\n  carryover: 0.25\n  backlog: 9.75\n  corrections:\n  - 1.5\nproducts:\n  app:\n    preplanned: 3\n    planned: 3\n  portal:\n    preplanned: 3\n    planned: 3\n  webshop:\n    preplanned: 3.5\n    planned: 4\n",
+  "demo/sprints/2026.23.yaml": "# Sprint 2026.23. Explanations of all fields: `foresprint help fields`\nid: '2026.23'\nstart: 2026-10-28\nend: 2026-11-11\nabsences:\n  cem: 5\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  app:\n    preplanned: 3\n  portal:\n    preplanned: 4\n  webshop:\n    preplanned: 3\n"
+ },
+ "deleted": [
+  "demo/protokolle/2026.21-planning-20261012-100000.md",
+  "demo/protokolle/2026.21-review-20261015-120000_obsolet_20261016-080000.md",
+  "demo/protokolle/2026.22-planning-20261016-100000.md",
+  "demo/sprints/2026.21.yaml"
+ ],
+ "seed": {
+  "demo/protokolle/2026.20-review-20261001-120000.md": "# review 20\n",
+  "demo/protokolle/2026.21-planning-20261012-100000.md": "# planning 21\n",
+  "demo/protokolle/2026.21-review-20261015-120000_obsolet_20261016-080000.md": "# old 21\n",
+  "demo/protokolle/2026.22-planning-20261016-100000.md": "# planning 22\n"
+ }
+}

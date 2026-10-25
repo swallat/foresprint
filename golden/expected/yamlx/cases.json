@@ -1,0 +1,5734 @@
+{
+ "scalars": [
+  {
+   "text": "",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "null"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": null
+  },
+  {
+   "text": "~",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "null"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:null"
+  },
+  {
+   "text": "null",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "null"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:null"
+  },
+  {
+   "text": "Null",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "null"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:null"
+  },
+  {
+   "text": "NULL",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "null"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:null"
+  },
+  {
+   "text": "nULL",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "nULL"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "none",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "none"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "None",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "None"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "true",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "True",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "TRUE",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "tRue",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "tRue"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "false",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "False",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "FALSE",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "yes",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "Yes",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "YES",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "no",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "No",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "NO",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "on",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "On",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "ON",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": true
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "off",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "Off",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "OFF",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "bool",
+        "v": false
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:bool"
+  },
+  {
+   "text": "y",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "y"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "n",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "n"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "Y",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "Y"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "N",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "N"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "oN",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "oN"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "+0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "+1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "007",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "7"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0o7",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0o7"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "010",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "8"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "08",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "08"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "09",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "09"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0b101",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "5"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0B1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0B1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "-0b11",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0x1F",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "31"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0X1f",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0X1f"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "-0xff",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-255"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "+0x10",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "16"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1_000",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "1000"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1__0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "10"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "_1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "_1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1_",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0_7",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "7"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0x_f",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "15"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0b_1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "12:30",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "750"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1:30:15",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "5415"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-1:30",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-90"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "+1:61",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "+1:61"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1:60",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1:60"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "190:20:30",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "685230"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0:0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0:0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "9223372036854775807",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "9223372036854775807"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "9223372036854775808",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "9223372036854775808"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-9223372036854775808",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-9223372036854775808"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-9223372036854775809",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "-9223372036854775809"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "123456789012345678901234567890",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "123456789012345678901234567890"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0x7FFFFFFFFFFFFFFF",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "9223372036854775807"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "0xFFFFFFFFFFFFFFFFF",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "295147905179352825855"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1:2:3:4:5:6:7:8:9:10:11:12",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "37519948336684860672"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "1.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.0",
+        "repr": "1.0",
+        "hex": "0x1.0000000000000p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1.",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.0",
+        "repr": "1.0",
+        "hex": "0x1.0000000000000p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.5",
+        "repr": "0.5",
+        "hex": "0x1.0000000000000p-1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "-.5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "-.5"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "+.5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "+.5"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.5e+3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1500.0",
+        "repr": "1500.0",
+        "hex": "0x1.7700000000000p+10"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1.5E-3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.0015",
+        "repr": "0.0015",
+        "hex": "0x1.89374bc6a7efap-10"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1e3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1e3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1e+3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1e+3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.e3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1.e3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.0e3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1.0e3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": ".5e+1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "5.0",
+        "repr": "5.0",
+        "hex": "0x1.4000000000000p+2"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".inf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "inf",
+        "repr": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".Inf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "inf",
+        "repr": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".INF",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "inf",
+        "repr": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "-.inf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "-inf",
+        "repr": "-inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "+.inf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "inf",
+        "repr": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".nan",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "nan",
+        "repr": "nan"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".NaN",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "nan",
+        "repr": "nan"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".NAN",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "nan",
+        "repr": "nan"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": ".iNf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": ".iNf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "inf",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "nan",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "nan"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "NaN",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "NaN"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1_0.0_1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "10.01",
+        "repr": "10.01",
+        "hex": "0x1.4051eb851eb85p+3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1.0_",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.0",
+        "repr": "1.0",
+        "hex": "0x1.0000000000000p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1:30.5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "90.5",
+        "repr": "90.5",
+        "hex": "0x1.6a00000000000p+6"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "-1:30.5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "-90.5",
+        "repr": "-90.5",
+        "hex": "-0x1.6a00000000000p+6"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1:30:15.25",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "5415.25",
+        "repr": "5415.25",
+        "hex": "0x1.5274000000000p+12"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "0.1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.1",
+        "repr": "0.1",
+        "hex": "0x1.999999999999ap-4"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "0.30000000000000004",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.30000000000000004",
+        "repr": "0.30000000000000004",
+        "hex": "0x1.3333333333334p-2"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1e-7",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1e-7"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0.0001",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.0001",
+        "repr": "0.0001",
+        "hex": "0x1.a36e2eb1c432dp-14"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "0.00001",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1e-05",
+        "repr": "1e-05",
+        "hex": "0x1.4f8b588e368f1p-17"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "123456789012345678.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.2345678901234568e+17",
+        "repr": "1.2345678901234568e+17",
+        "hex": "0x1.b69b4ba630f35p+56"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1e16",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1e16"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.0e+16",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1e+16",
+        "repr": "1e+16",
+        "hex": "0x1.1c37937e08000p+53"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1.0e+15",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1000000000000000.0",
+        "repr": "1000000000000000.0",
+        "hex": "0x1.c6bf526340000p+49"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "9007199254740993.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "9007199254740992.0",
+        "repr": "9007199254740992.0",
+        "hex": "0x1.0000000000000p+53"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "5e-324",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "5e-324"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.7976931348623157e+308",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.7976931348623157e+308",
+        "repr": "1.7976931348623157e+308",
+        "hex": "0x1.fffffffffffffp+1023"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1.0e+400",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "inf",
+        "repr": "inf"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "-0.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "-0.0",
+        "repr": "-0.0",
+        "hex": "-0x0.0p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "0.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.0",
+        "repr": "0.0",
+        "hex": "0x0.0p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "100.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "100.0",
+        "repr": "100.0",
+        "hex": "0x1.9000000000000p+6"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "1e22",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1e22"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.0e+22",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1e+22",
+        "repr": "1e+22",
+        "hex": "0x1.0f0cf064dd592p+73"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "12345678901234567890.0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "1.2345678901234567e+19",
+        "repr": "1.2345678901234567e+19",
+        "hex": "0x1.56a95319d63e1p+63"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "2026-01-01",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "date",
+        "v": "2026-01-01",
+        "str": "2026-01-01"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-1-1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "2026-1-1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "2026-13-01",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-02-30",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "0000-01-01",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01T10:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01t10:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01  10:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01\t10:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 1:00:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T01:00:00",
+        "str": "2026-01-01 01:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00.5",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00.500000",
+        "str": "2026-01-01 10:00:00.500000"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00.123456789",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00.123456",
+        "str": "2026-01-01 10:00:00.123456"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00.",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00",
+        "str": "2026-01-01 10:00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00Z",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00+00:00",
+        "str": "2026-01-01 10:00:00+00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00 Z",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00+00:00",
+        "str": "2026-01-01 10:00:00+00:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00 +1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00+01:00",
+        "str": "2026-01-01 10:00:00+01:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00+01:30",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00+01:30",
+        "str": "2026-01-01 10:00:00+01:30"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00 -05",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00-05:00",
+        "str": "2026-01-01 10:00:00-05:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:00-5:00",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "datetime",
+        "v": "2026-01-01T10:00:00-05:00",
+        "str": "2026-01-01 10:00:00-05:00"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 24:00:00",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:60:00",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01 10:00:60",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "2026-01-01T10:00:00+99:00",
+   "plain": {
+    "error": "ValueError"
+   },
+   "tag": "tag:yaml.org,2002:timestamp"
+  },
+  {
+   "text": "26-01-01",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "26-01-01"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "2026-01",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "2026-01"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "2026/01/01",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "2026/01/01"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "12026-01-01",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "12026-01-01"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "2026-01-01 ",
+   "plain": null,
+   "tag": null
+  },
+  {
+   "text": "2026-01-01x",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "2026-01-01x"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "<<",
+   "plain": {
+    "error": "ConstructorError"
+   },
+   "tag": "tag:yaml.org,2002:merge"
+  },
+  {
+   "text": "=",
+   "plain": {
+    "error": "ConstructorError"
+   },
+   "tag": "tag:yaml.org,2002:value"
+  },
+  {
+   "text": "<",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "<"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "==",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "=="
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "foo",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "foo"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "Foo Bar",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "Foo Bar"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "a: b",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "# c",
+   "plain": null,
+   "tag": "tag:yaml.org,2002:null"
+  },
+  {
+   "text": "-",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "- a",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "?",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "&",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "*",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "0x",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0x"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0b",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "0b"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0.",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "float",
+        "v": "0.0",
+        "repr": "0.0",
+        "hex": "0x0.0p+0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:float"
+  },
+  {
+   "text": "0:",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": ":1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": ":1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1:",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "1:1:",
+   "plain": {
+    "error": "ScannerError"
+   },
+   "tag": null
+  },
+  {
+   "text": "e3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "e3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": ".",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "."
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "..",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": ".."
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "-.",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "-."
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": ".e1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": ".e1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "+",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "+"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1 2",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1 2"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1,000",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1,000"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "1.2.3",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "1.2.3"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "٣",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "٣"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "１２",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "１２"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "0_",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "0"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  },
+  {
+   "text": "-_1",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "str",
+        "v": "-_1"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:str"
+  },
+  {
+   "text": "+1_0",
+   "plain": {
+    "value": {
+     "t": "map",
+     "entries": [
+      [
+       {
+        "t": "str",
+        "v": "x"
+       },
+       {
+        "t": "int",
+        "v": "10"
+       }
+      ]
+     ]
+    }
+   },
+   "tag": "tag:yaml.org,2002:int"
+  }
+ ],
+ "docs": [
+  {
+   "name": "empty",
+   "text": "",
+   "value": {
+    "t": "null"
+   }
+  },
+  {
+   "name": "comment",
+   "text": "# x\n",
+   "value": {
+    "t": "null"
+   }
+  },
+  {
+   "name": "scalar",
+   "text": "5\n",
+   "value": {
+    "t": "int",
+    "v": "5"
+   }
+  },
+  {
+   "name": "null-doc",
+   "text": "~\n",
+   "value": {
+    "t": "null"
+   }
+  },
+  {
+   "name": "simple-map",
+   "text": "a: 1\nb: [1, 2.5, x]\nc: {d: true, e: null}\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "int",
+         "v": "1"
+        },
+        {
+         "t": "float",
+         "v": "2.5",
+         "repr": "2.5",
+         "hex": "0x1.4000000000000p+1"
+        },
+        {
+         "t": "str",
+         "v": "x"
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "d"
+         },
+         {
+          "t": "bool",
+          "v": true
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "e"
+         },
+         {
+          "t": "null"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "order",
+   "text": "z: 1\na: 2\nm: 3\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "z"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "m"
+      },
+      {
+       "t": "int",
+       "v": "3"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "duplicate-key",
+   "text": "a: 1\nb: 2\na: 3\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "3"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-equal-in-python",
+   "text": "1: a\ntrue: b\n1.0: c\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "int",
+       "v": "1"
+      },
+      {
+       "t": "str",
+       "v": "c"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-nan",
+   "text": ".nan: 1\n.nan: 2\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "float",
+       "v": "nan",
+       "repr": "nan"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-inf",
+   "text": ".inf: 1\n.Inf: 2\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "float",
+       "v": "inf",
+       "repr": "inf"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-zero",
+   "text": "0: a\n-0: b\n0.0: c\n-0.0: d\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "int",
+       "v": "0"
+      },
+      {
+       "t": "str",
+       "v": "d"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-date",
+   "text": "2026-01-01: a\n2026-01-01 00:00:00: b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "date",
+       "v": "2026-01-01",
+       "str": "2026-01-01"
+      },
+      {
+       "t": "str",
+       "v": "a"
+      }
+     ],
+     [
+      {
+       "t": "datetime",
+       "v": "2026-01-01T00:00:00",
+       "str": "2026-01-01 00:00:00"
+      },
+      {
+       "t": "str",
+       "v": "b"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-null",
+   "text": "~: a\nnull: b\n'': c\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "null"
+      },
+      {
+       "t": "str",
+       "v": "b"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": ""
+      },
+      {
+       "t": "str",
+       "v": "c"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-str-vs-int",
+   "text": "1: a\n'1': b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "int",
+       "v": "1"
+      },
+      {
+       "t": "str",
+       "v": "a"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "1"
+      },
+      {
+       "t": "str",
+       "v": "b"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-big",
+   "text": "9007199254740993: a\n9007199254740992.0: b\n9007199254740992: c\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "int",
+       "v": "9007199254740993"
+      },
+      {
+       "t": "str",
+       "v": "a"
+      }
+     ],
+     [
+      {
+       "t": "float",
+       "v": "9007199254740992.0",
+       "repr": "9007199254740992.0",
+       "hex": "0x1.0000000000000p+53"
+      },
+      {
+       "t": "str",
+       "v": "c"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "keys-multiple-types",
+   "text": "1: a\n'a': b\nnull: c\n2.5: d\ntrue: e\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "int",
+       "v": "1"
+      },
+      {
+       "t": "str",
+       "v": "e"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "b"
+      }
+     ],
+     [
+      {
+       "t": "null"
+      },
+      {
+       "t": "str",
+       "v": "c"
+      }
+     ],
+     [
+      {
+       "t": "float",
+       "v": "2.5",
+       "repr": "2.5",
+       "hex": "0x1.4000000000000p+1"
+      },
+      {
+       "t": "str",
+       "v": "d"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "key-unhashable-list",
+   "text": "? [1, 2]\n: x\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "key-unhashable-map",
+   "text": "? {a: 1}\n: x\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "merge-basic",
+   "text": "base: &b {a: 1, b: 2}\nx:\n  <<: *b\n  b: 3\n  c: 4\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "base"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "int",
+          "v": "3"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "c"
+         },
+         {
+          "t": "int",
+          "v": "4"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-order",
+   "text": "base: &b {a: 1, b: 2}\nx:\n  c: 4\n  <<: *b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "base"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "c"
+         },
+         {
+          "t": "int",
+          "v": "4"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-list",
+   "text": "a: &a {k: 1, x: 1}\nb: &b {k: 2, y: 2}\nx:\n  <<: [*a, *b]\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-two-keys",
+   "text": "a: &a {k: 1, x: 1}\nb: &b {k: 2, y: 2}\nx:\n  <<: *a\n  <<: *b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-nested",
+   "text": "a: &a {k: 1}\nb: &b {<<: *a, j: 2}\nx:\n  <<: *b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "j"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "j"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-string-key",
+   "text": "x:\n  '<<': 1\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "<<"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "merge-scalar",
+   "text": "x:\n  <<: 1\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "merge-list-of-scalars",
+   "text": "x:\n  <<: [1, 2]\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "merge-twice-same",
+   "text": "a: &a {k: 1}\nx:\n  <<: [*a, *a]\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "k"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "value-key",
+   "text": "x:\n  =: 1\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "x"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "="
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "value-scalar",
+   "text": "x: =\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "anchors",
+   "text": "a: &x [1, 2]\nb: *x\nc: *x\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "int",
+         "v": "1"
+        },
+        {
+         "t": "int",
+         "v": "2"
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "int",
+         "v": "1"
+        },
+        {
+         "t": "int",
+         "v": "2"
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "int",
+         "v": "1"
+        },
+        {
+         "t": "int",
+         "v": "2"
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "alias-undefined",
+   "text": "a: *nope\n",
+   "error": "ComposerError"
+  },
+  {
+   "name": "anchor-recursive",
+   "text": "a: &x [*x]\n",
+   "error": "recursive"
+  },
+  {
+   "name": "quoted-not-resolved",
+   "text": "a: '1'\nb: \"true\"\nc: '~'\nd: ''\ne: \"2026-01-01\"\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "true"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "str",
+       "v": "~"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "d"
+      },
+      {
+       "t": "str",
+       "v": ""
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "e"
+      },
+      {
+       "t": "str",
+       "v": "2026-01-01"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "quoted-escapes",
+   "text": "a: \"x\\ty\\u00e4\\x41\\n\"\nb: 'it''s'\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "x\tyäA\n"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "it's"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "multiline-plain",
+   "text": "a: one\n  two\n  three\nb: x\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "one two three"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "literal-block",
+   "text": "a: |\n  one\n  two\nb: >\n  folded\n  text\n\n  para\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "one\ntwo\n"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "folded text\npara\n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "flow-nested",
+   "text": "a: {b: [1, {c: 2}], d: [ ]}\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "seq",
+          "items": [
+           {
+            "t": "int",
+            "v": "1"
+           },
+           {
+            "t": "map",
+            "entries": [
+             [
+              {
+               "t": "str",
+               "v": "c"
+              },
+              {
+               "t": "int",
+               "v": "2"
+              }
+             ]
+            ]
+           }
+          ]
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "d"
+         },
+         {
+          "t": "seq",
+          "items": []
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "flow-empty-values",
+   "text": "a: {b: , c: }\nd: [, 1]\n",
+   "error": "ParserError"
+  },
+  {
+   "name": "tag-str",
+   "text": "a: !!str 1\nb: !!str true\nc: !!str\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "true"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "str",
+       "v": ""
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-int",
+   "text": "a: !!int '12'\nb: !!int 0x10\nc: !!int 010\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "12"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "16"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "int",
+       "v": "8"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-int-bad",
+   "text": "a: !!int abc\n",
+   "error": "ValueError"
+  },
+  {
+   "name": "tag-float",
+   "text": "a: !!float 1\nb: !!float '1.5'\nc: !!float .inf\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "float",
+       "v": "1.0",
+       "repr": "1.0",
+       "hex": "0x1.0000000000000p+0"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "float",
+       "v": "1.5",
+       "repr": "1.5",
+       "hex": "0x1.8000000000000p+0"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "float",
+       "v": "inf",
+       "repr": "inf"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-float-bad",
+   "text": "a: !!float x\n",
+   "error": "ValueError"
+  },
+  {
+   "name": "tag-bool",
+   "text": "a: !!bool yes\nb: !!bool 'off'\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-bool-bad",
+   "text": "a: !!bool maybe\n",
+   "error": "KeyError"
+  },
+  {
+   "name": "tag-null",
+   "text": "a: !!null ''\nb: !!null x\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-timestamp",
+   "text": "a: !!timestamp 2026-01-01\nb: !!timestamp '2026-01-01 10:00:00'\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "date",
+       "v": "2026-01-01",
+       "str": "2026-01-01"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-01-01T10:00:00",
+       "str": "2026-01-01 10:00:00"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-timestamp-bad",
+   "text": "a: !!timestamp nope\n",
+   "error": "AttributeError"
+  },
+  {
+   "name": "tag-seq-map",
+   "text": "a: !!seq [1]\nb: !!map {x: 1}\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "int",
+         "v": "1"
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "map",
+       "entries": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tag-python",
+   "text": "a: !!python/object/apply:os.system ['echo hi']\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "tag-unknown",
+   "text": "a: !foo 1\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "tag-local-str",
+   "text": "a: !foo bar\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "multi-document",
+   "text": "a: 1\n---\nb: 2\n",
+   "error": "ComposerError"
+  },
+  {
+   "name": "explicit-document-start",
+   "text": "---\na: 1\n...\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "tabs",
+   "text": "a:\n\t- 1\n",
+   "error": "ScannerError"
+  },
+  {
+   "name": "bad-indent",
+   "text": "a:\n  b: 1\n c: 2\n",
+   "error": "ParserError"
+  },
+  {
+   "name": "unclosed-flow",
+   "text": "a: [1, 2\n",
+   "error": "ParserError"
+  },
+  {
+   "name": "unclosed-quote",
+   "text": "a: 'x\n",
+   "error": "ScannerError"
+  },
+  {
+   "name": "bom",
+   "text": "﻿a: 1\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "crlf",
+   "text": "a: 1\r\nb: 2\r\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "unicode",
+   "text": "grün: ä\n日本: 語\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "grün"
+      },
+      {
+       "t": "str",
+       "v": "ä"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "日本"
+      },
+      {
+       "t": "str",
+       "v": "語"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "emoji",
+   "text": "a: 😀\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "😀"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "control-char",
+   "text": "a: \"\\x07\"\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "\u0007"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "long-int",
+   "text": "a: 123456789012345678901234567890\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "123456789012345678901234567890"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "sequence-of-maps",
+   "text": "- id: a\n  v: 1\n- id: b\n  v: 2\n",
+   "value": {
+    "t": "seq",
+    "items": [
+     {
+      "t": "map",
+      "entries": [
+       [
+        {
+         "t": "str",
+         "v": "id"
+        },
+        {
+         "t": "str",
+         "v": "a"
+        }
+       ],
+       [
+        {
+         "t": "str",
+         "v": "v"
+        },
+        {
+         "t": "int",
+         "v": "1"
+        }
+       ]
+      ]
+     },
+     {
+      "t": "map",
+      "entries": [
+       [
+        {
+         "t": "str",
+         "v": "id"
+        },
+        {
+         "t": "str",
+         "v": "b"
+        }
+       ],
+       [
+        {
+         "t": "str",
+         "v": "v"
+        },
+        {
+         "t": "int",
+         "v": "2"
+        }
+       ]
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "top-level-seq",
+   "text": "- 1\n- [2, 3]\n",
+   "value": {
+    "t": "seq",
+    "items": [
+     {
+      "t": "int",
+      "v": "1"
+     },
+     {
+      "t": "seq",
+      "items": [
+       {
+        "t": "int",
+        "v": "2"
+       },
+       {
+        "t": "int",
+        "v": "3"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "complex-keys-seq",
+   "text": "? - a\n  - b\n: 1\n",
+   "error": "ConstructorError"
+  },
+  {
+   "name": "yaml-directive",
+   "text": "%YAML 1.1\n---\na: 1\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "yaml-directive-12",
+   "text": "%YAML 1.2\n---\na: 1\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "set-of-keys-null-values",
+   "text": "a:\nb:\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "question-null",
+   "text": "? a\n? b\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "date-values",
+   "text": "d: 2026-07-08\nt: 2026-07-08 09:05:00\nz: 2026-07-08T09:05:00Z\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "d"
+      },
+      {
+       "t": "date",
+       "v": "2026-07-08",
+       "str": "2026-07-08"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "t"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-07-08T09:05:00",
+       "str": "2026-07-08 09:05:00"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "z"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-07-08T09:05:00+00:00",
+       "str": "2026-07-08 09:05:00+00:00"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "name": "project-like",
+   "text": "schema: 1\nimported: 2026-10-14 08:30:00\nitems:\n- key: W-1\n  estimate: 5\n",
+   "value": {
+    "t": "map",
+    "entries": [
+     [
+      {
+       "t": "str",
+       "v": "schema"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "imported"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-14T08:30:00",
+       "str": "2026-10-14 08:30:00"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "items"
+      },
+      {
+       "t": "seq",
+       "items": [
+        {
+         "t": "map",
+         "entries": [
+          [
+           {
+            "t": "str",
+            "v": "key"
+           },
+           {
+            "t": "str",
+            "v": "W-1"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "estimate"
+           },
+           {
+            "t": "int",
+            "v": "5"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ ]
+}

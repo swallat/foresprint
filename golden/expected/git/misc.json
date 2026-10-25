@@ -1,0 +1,127 @@
+{
+ "tag_names": [
+  {
+   "in": "v1",
+   "ok": true
+  },
+  {
+   "in": "sprint-2026.20",
+   "ok": true
+  },
+  {
+   "in": "-bad",
+   "ok": false,
+   "message": "Invalid tag name: -bad"
+  },
+  {
+   "in": "HEAD",
+   "ok": false,
+   "message": "Invalid tag name: HEAD"
+  },
+  {
+   "in": "@",
+   "ok": false,
+   "message": "Invalid tag name: @"
+  },
+  {
+   "in": " lead",
+   "ok": false,
+   "message": "Invalid tag name:  lead"
+  },
+  {
+   "in": "trail ",
+   "ok": false,
+   "message": "Invalid tag name: trail "
+  },
+  {
+   "in": "",
+   "ok": false,
+   "message": "Invalid tag name: "
+  },
+  {
+   "in": "  ",
+   "ok": false,
+   "message": "Invalid tag name:   "
+  },
+  {
+   "in": "a b",
+   "ok": true
+  },
+  {
+   "in": "ok/name",
+   "ok": true
+  }
+ ],
+ "records": [
+  {
+   "in": "a\u001fb\u001fc",
+   "count": 3,
+   "out": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  {
+   "in": "a\u001fb",
+   "count": 3,
+   "out": [
+    "a",
+    "b",
+    ""
+   ]
+  },
+  {
+   "in": "",
+   "count": 2,
+   "out": [
+    "",
+    ""
+   ]
+  },
+  {
+   "in": "a",
+   "count": 4,
+   "out": [
+    "a",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "in": "a\u001fb\u001fc\u001fd",
+   "count": 3,
+   "out": [
+    "a",
+    "b",
+    "c\u001fd"
+   ]
+  }
+ ],
+ "split_z": [
+  {
+   "in": "",
+   "out": []
+  },
+  {
+   "in": "a\u0000b\u0000",
+   "out": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "in": "\u0000\u0000a",
+   "out": [
+    "a"
+   ]
+  },
+  {
+   "in": "x",
+   "out": [
+    "x"
+   ]
+  }
+ ]
+}

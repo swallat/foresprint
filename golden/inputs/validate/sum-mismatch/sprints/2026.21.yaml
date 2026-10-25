@@ -1,0 +1,11 @@
+id: '2026.21'
+start: 2026-10-07
+end: 2026-10-21
+absences:
+  dana: 1
+capacity: null
+forecast_ist: 30
+velocity: 30
+scope_creep: null
+not_done: 5
+additional_done: 1

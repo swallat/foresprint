@@ -1,0 +1,275 @@
+schema: 1
+imported: 2026-10-14 08:30:00
+source: golden-import.csv
+tickets:
+- key: W-1
+  title: Ticket W-1
+  status: null
+  issue_type: null
+  estimate: 5
+  priority: Blocker
+  estimate_source: refined
+  rank: 0|a
+  epic: SHOP
+  labels: []
+  components: []
+  depends_on:
+  - W-2
+  project: shop
+- key: W-2
+  title: Ticket W-2
+  status: null
+  issue_type: null
+  estimate: 8
+  priority: High
+  estimate_source: refined
+  rank: 0|b
+  epic: SHOP
+  labels: []
+  components: []
+  depends_on:
+  - W-1
+  project: shop
+- key: W-3
+  title: Ticket W-3
+  status: null
+  issue_type: null
+  estimate: 13
+  estimate_source: rough
+  rank: 0|c
+  epic: SHOP
+  labels: []
+  components: []
+  depends_on: []
+  project: shop
+- key: W-4
+  title: Ticket W-4
+  status: null
+  issue_type: null
+  estimate: 3
+  priority: High
+  estimate_source: refined
+  rank: 0|d
+  epic: PAY
+  labels: []
+  components: []
+  depends_on: []
+  project: pay
+- key: W-5
+  title: Ticket W-5
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|e
+  epic: null
+  labels:
+  - payment
+  components: []
+  depends_on: []
+  project: pay
+- key: W-6
+  title: Ticket W-6
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 0|f
+  epic: null
+  labels: []
+  components:
+  - frontend
+  depends_on: []
+- key: W-7
+  title: Ticket W-7
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|g
+  epic: null
+  labels:
+  - mobile-ios
+  components: []
+  depends_on: []
+- key: W-8
+  title: Ticket W-8
+  status: null
+  issue_type: null
+  estimate: 21
+  estimate_source: rough
+  refined_unclear: true
+  rank: 0|h
+  epic: IOS
+  labels: []
+  components: []
+  depends_on: []
+  project: ios
+- key: W-9
+  title: Ticket W-9
+  status: null
+  issue_type: null
+  estimate: 3
+  priority: Normal
+  estimate_source: refined
+  rank: 0|i
+  epic: null
+  labels: []
+  components: []
+  fields:
+    team:
+    - platform
+  depends_on: []
+  project: migr
+- key: W-10
+  title: Ticket W-10
+  status: null
+  issue_type: null
+  estimate: 4
+  estimate_source: refined
+  rank: 0|j
+  epic: null
+  labels: []
+  components: []
+  fields:
+    team:
+    - platform
+  depends_on:
+  - W-9
+  - W-6
+  project: migr
+- key: W-11
+  title: Ticket W-11
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|k
+  epic: UNKNOWN
+  labels: []
+  components: []
+  depends_on: []
+- key: W-12
+  title: Ticket W-12
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  in_sprint: '2026.10'
+  rank: 0|l
+  epic: SHOP
+  labels: []
+  components: []
+  depends_on: []
+  project: shop
+- key: W-13
+  title: Ticket W-13
+  status: null
+  issue_type: null
+  estimate: null
+  estimate_source: none
+  rank: 0|m
+  epic: IOS
+  labels: []
+  components: []
+  depends_on: []
+  project: ios
+- key: W-14
+  title: Ticket W-14
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|n
+  epic: SHOP
+  labels:
+  - payment
+  components: []
+  depends_on:
+  - W-1
+  project: shop
+- key: W-15
+  title: Ticket W-15
+  status: null
+  issue_type: null
+  estimate: 1
+  priority: Blocker
+  estimate_source: refined
+  rank: 0|o
+  epic: IOS
+  labels: []
+  components: []
+  depends_on: []
+  project: ios
+- key: L-1
+  title: Ticket L-1
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|1
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy
+- key: L-2
+  title: Ticket L-2
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|2
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy
+- key: L-3
+  title: Ticket L-3
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|3
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy
+- key: L-4
+  title: Ticket L-4
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|4
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy
+- key: L-5
+  title: Ticket L-5
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|5
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy
+- key: L-6
+  title: Ticket L-6
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 1|6
+  epic: LEGACY
+  labels: []
+  components: []
+  depends_on: []
+  project: legacy

@@ -7,7 +7,8 @@
 #   sh uninstall.sh --yes            no confirmation
 #
 # Removed, under both names (foresprint and sprintforecast):
-#   - the uv tool with its commands (foresprint, foresprint-app, sprintforecast, ...)
+#   - the program of install.sh (~/.local/bin/foresprint)
+#   - the uv tool of an old (Python) installation with its commands (foresprint, sprintforecast, ...)
 #   - the launchers (.desktop files, macOS app bundle and desktop alias)
 #   - the cache folder with the browser profile of the app window
 # Kept: the team data folder, the Jira token in the keychain, Git credentials and the settings
@@ -71,6 +72,10 @@ elif [ -e "$home/.local/bin/sprintforecast" ] || [ -e "$home/.local/bin/forespri
     say "Warning: uv not found, so the commands in ~/.local/bin cannot be removed; install uv or run 'uv tool uninstall foresprint'."
 fi
 
+# 1b. the program of the installer (a plain file, not the link of a uv tool)
+bin="${FORESPRINT_BIN:-$home/.local/bin}/foresprint"
+if [ -f "$bin" ] && [ ! -L "$bin" ]; then add file "$bin"; fi
+
 # 2. launchers; only if they really start one of our programs
 for f in "$data_home/applications/foresprint.desktop" "$data_home/applications/sprintforecast.desktop" \
     "$home/Desktop/foresprint.desktop" "$home/Desktop/sprintforecast.desktop"; do
@@ -79,7 +84,7 @@ done
 for app in Foresprint Sprint-Forecast; do
     for f in "$home/Applications/$app.app" "$home/Desktop/$app.app"; do
         # also dangling aliases
-        if grep -Eqs '(foresprint|sprintforecast)-app' "$f/Contents/MacOS/$app" ||
+        if grep -Eqs '(foresprint|sprintforecast)' "$f/Contents/MacOS/$app" ||
             { [ -L "$f" ] && [ ! -e "$f" ]; }; then
             add file "$f"
         fi

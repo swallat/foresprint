@@ -1,0 +1,53 @@
+{
+ "case": "products-edge",
+ "files": [
+  {
+   "file": "people.yaml",
+   "identical": true
+  },
+  {
+   "file": "products.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.1.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.2.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.3.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.4.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.5.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.6.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.7.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.8.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.9.yaml",
+   "identical": true
+  },
+  {
+   "file": "team.yaml",
+   "identical": true
+  }
+ ]
+}

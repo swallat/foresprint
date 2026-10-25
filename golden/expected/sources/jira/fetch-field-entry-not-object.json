@@ -1,0 +1,34 @@
+{
+ "operation": "fetch",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "status": 200,
+   "json": [
+    1,
+    2
+   ]
+  }
+ ],
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "query": {},
+   "authorization": true
+  }
+ ],
+ "error": "The answer from jira.example.org does not have the expected format (check the Jira version or tracker.base_url)"
+}

@@ -1,0 +1,11 @@
+# my team   (comment that the tool will not keep)
+name:   "Messy Team"
+sprint:
+    length_days: 14
+    first: {id: "2026.1", start: 2026-01-07}
+forecast: {reference_capacity: 50.0, window: 5, trend_mode: linear}
+capacity:
+  country: "de"
+  overhead_share: 0.10
+  region: BY
+unit: SP

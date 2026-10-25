@@ -1,0 +1,40 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": null,
+  "epic": null
+ },
+ "rule_fields": {
+  "team": "Team"
+ },
+ "ok": [
+  {
+   "key": "G-1",
+   "title": "Ein Titel",
+   "status": null,
+   "issue_type": "Story",
+   "priority": "Hoch",
+   "extra": {
+    "team": [
+     "Alpha"
+    ]
+   },
+   "estimate": 8.0,
+   "remaining": null,
+   "sprint_name": "S2",
+   "rank": "0|x:",
+   "epic": "G-100",
+   "labels": [
+    "a",
+    "b"
+   ],
+   "components": [
+    "Kern"
+   ],
+   "blocked_by": [
+    "G-2"
+   ],
+   "resolved": true
+  }
+ ]
+}
