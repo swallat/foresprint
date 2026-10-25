@@ -27,7 +27,7 @@
   "Add person": "Person hinzufügen",
   "Add product": "Produkt hinzufügen",
   "After": "Nachher",
-  "* Plannable after the carry-over of unfinished work from the running sprint has been deducted.": "* Verplanbar nach Abzug des Übertrags unfertiger Arbeit aus dem laufenden Sprint.",
+  "* The carry-over of unfinished work was deducted from the Forecast PLAN before the plannable share was applied.": "* Der Übertrag unfertiger Arbeit wurde vom Forecast PLAN abgezogen, bevor der verplanbare Anteil angewendet wurde.",
   "After {n} points of carry-over.": "Nach {n} Punkten Übertrag.",
   "All": "Alle",
   "All decided, Save finishes": "Alle entschieden, Speichern schließt ab",

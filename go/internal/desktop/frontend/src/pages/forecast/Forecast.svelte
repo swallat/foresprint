@@ -305,7 +305,7 @@
         </table>
       </div>
       {#if view.upcoming.some((r) => r.carryIn > 0)}
-        <p class="small muted">{t('* Plannable after the carry-over of unfinished work from the running sprint has been deducted.')}</p>
+        <p class="small muted">{t('* The carry-over of unfinished work was deducted from the Forecast PLAN before the plannable share was applied.')}</p>
       {/if}
     </section>
 
