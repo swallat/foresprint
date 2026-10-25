@@ -3,6 +3,7 @@ package sprintwrite
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -269,5 +270,42 @@ func TestLoadDirectoryUsesTheBoard(t *testing.T) {
 	board.err = errors.New("down")
 	if _, err := LoadDirectory(nil, board, tracker); err == nil {
 		t.Fatal("board error must be returned")
+	}
+}
+
+func TestSprintNumber(t *testing.T) {
+	for in, want := range map[string]int{"12": 12, " 12 ": 12, "12.0": 12, "1234": 1234} {
+		if got, ok := SprintNumber(in); !ok || got != want {
+			t.Errorf("%q: %d %v", in, got, ok)
+		}
+	}
+	for _, in := range []string{"", "abc", "12.5", "-3", "None"} {
+		if _, ok := SprintNumber(in); ok {
+			t.Errorf("%q must be refused", in)
+		}
+	}
+}
+
+// A sprint met in a ticket without id (Data Center text without "id=") must not hide the numeric
+// id of the same sprint on the board.
+func TestAddFillsMissingID(t *testing.T) {
+	d := NewDirectory([]sources.SprintValue{{Name: "2026.3", State: "FUTURE"}}, model.TrackerSettings{})
+	d.Add([]sources.SprintValue{{ID: "9", Name: "2026.3", State: "FUTURE"}})
+	r, ok := d.ByName("2026.3")
+	if !ok || r.ID != "9" {
+		t.Fatalf("%+v %v", r, ok)
+	}
+}
+
+func TestApplyFloatIDAndErrorNamesValue(t *testing.T) {
+	f := &fake{}
+	plan := Plan{Moves: []Move{{Key: "A-1", To: &Ref{ID: "7.0", Name: "x"}}}}
+	if res := Apply(plan, f); res.Err != nil || !reflect.DeepEqual(f.calls, []string{"sprint:7:A-1"}) {
+		t.Fatalf("%v %v", res.Err, f.calls)
+	}
+	plan = Plan{Moves: []Move{{Key: "A-1", To: &Ref{ID: "[id=x]", Name: "x"}}}}
+	res := Apply(plan, f)
+	if res.Err == nil || !strings.Contains(res.Err.Error(), "[id=x]") {
+		t.Fatalf("%v", res.Err)
 	}
 }
