@@ -10,6 +10,7 @@
   "Back on {branch}.": "Zurück auf {branch}.",
   "Back on {branch}. Your work is kept on {rescue}.": "Zurück auf {branch}. Deine Arbeit liegt auf {rescue}.",
   "Board number": "Board-Nummer",
+  "Jira board": "Jira-Board",
   "Branch": "Branch",
   "Branch {name} is in use.": "Branch {name} ist aktiv.",
   "Calculations next to numbers": "Rechenwege neben den Zahlen",
