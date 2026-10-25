@@ -25,7 +25,13 @@
   // The texts of all third-party licences are large; they load when opened.
   async function toggleNotices(): Promise<void> {
     showNotices = !showNotices;
-    if (showNotices && !notices) notices = (await import('../../assets/third-party-notices.txt?raw')).default;
+    if (showNotices && !notices) {
+      try {
+        notices = (await import('../../assets/third-party-notices.txt?raw')).default;
+      } catch {
+        notices = t('The license texts could not be loaded. They are in the file THIRD_PARTY_NOTICES.md of the release.');
+      }
+    }
   }
 </script>
 
@@ -54,14 +60,14 @@
   <div class="card">
     <h2>{t('Third-party components')}</h2>
     <p class="small muted">
-      {t('Foresprint contains the fonts Iosevka and Iosevka Aile (SIL Open Font License 1.1), the icons of Material Symbols (Apache License 2.0), Svelte (MIT) and Go libraries under MIT, BSD and Apache licenses. Their license texts follow.')}
+      {t('Foresprint contains the fonts Iosevka and Iosevka Aile (SIL Open Font License 1.1), the icons of Material Symbols (Apache License 2.0), Svelte (MIT) with its small helper packages, the holiday data of the Python "holidays" library (MIT) and the Go libraries and standard library under MIT, BSD and Apache licenses. Their license texts follow.')}
     </p>
-    <button class="btn" type="button" aria-expanded={showNotices} onclick={toggleNotices}>
+    <button class="btn" type="button" aria-expanded={showNotices} aria-controls="notices" onclick={toggleNotices}>
       <Icon name={showNotices ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} />{showNotices ? t('Hide license texts') : t('Show license texts')}
     </button>
     {#if showNotices}
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-      <pre class="notices data small" tabindex="0" aria-label={t('License texts')}>{notices || t('Loading …')}</pre>
+      <pre id="notices" class="notices data small" role="region" tabindex="0" aria-label={t('License texts')} aria-live="polite">{notices || t('Loading …')}</pre>
     {/if}
   </div>
 </div>

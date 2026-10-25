@@ -22,7 +22,7 @@ const modules = new Map();
 for (const goos of ['linux', 'windows', 'darwin']) {
   const out = execFileSync(
     'go',
-    ['list', '-tags', 'desktop,production', '-deps', '-f', '{{with .Module}}{{if not .Main}}{{.Path}}|{{.Version}}|{{.Dir}}{{end}}{{end}}', './cmd/foresprint'],
+    ['list', '-tags', 'desktop,production,webkit2_41', '-deps', '-f', '{{with .Module}}{{if not .Main}}{{.Path}}|{{.Version}}|{{.Dir}}{{end}}{{end}}', './cmd/foresprint'],
     { cwd: join(root, 'go'), env: { ...process.env, GOOS: goos, CGO_ENABLED: '1' }, encoding: 'utf8' },
   );
   for (const line of out.split('\n').filter(Boolean)) {
@@ -38,8 +38,15 @@ const section = (title, text) => parts.push(`\n---\n\n## ${title}\n\n${text}\n`)
 
 section('Iosevka and Iosevka Aile (fonts)', readFileSync(join(front, 'src/assets/fonts/LICENSE-Iosevka.md'), 'utf8').trim());
 section('Material Symbols (icons), @material-symbols/svg-400', licenseOf(join(front, 'node_modules/@material-symbols/svg-400')));
-const svelte = JSON.parse(readFileSync(join(front, 'node_modules/svelte/package.json'), 'utf8'));
-section(`Svelte ${svelte.version} (user interface runtime)`, licenseOf(join(front, 'node_modules/svelte')));
+// The packages the frontend build bundles: Svelte and the runtime dependencies it brings along.
+for (const name of ['svelte', 'clsx', 'esm-env']) {
+  const dir = join(front, 'node_modules', name);
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+  section(`${name} ${pkg.version} (user interface runtime)`, licenseOf(dir));
+}
+section('Holiday data (Python "holidays" library, embedded in the program)', readFileSync(join(root, 'go/internal/holidays/LICENSE-python-holidays.txt'), 'utf8').trim());
+const goroot = execFileSync('go', ['env', 'GOROOT'], { encoding: 'utf8' }).trim();
+section('Go standard library and runtime', readFileSync(join(goroot, 'LICENSE'), 'utf8').trim());
 
 for (const [path, { version, dir }] of [...modules].sort(([a], [b]) => a.localeCompare(b))) {
   const text = existsSync(dir) ? licenseOf(dir) : '';
