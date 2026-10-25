@@ -1,0 +1,4206 @@
+{
+ "trackers": {
+  "label-and-rule": {
+   "label": "Refined",
+   "rule": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "in_sprint",
+      "values": [
+       "true"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "To Do"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   }
+  },
+  "label-only": {
+   "label": "Refined",
+   "rule": null
+  },
+  "rule-only": {
+   "label": null,
+   "rule": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "in_sprint",
+      "values": [
+       "true"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "To Do"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   }
+  },
+  "none": {
+   "label": null,
+   "rule": null
+  },
+  "other-label": {
+   "label": "Ready",
+   "rule": null
+  }
+ },
+ "is_refined": [
+  {
+   "tracker": "label-and-rule",
+   "facts": {},
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {},
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {},
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-and-rule",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {},
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {},
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {},
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    true
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    true
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "label-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {},
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {},
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {},
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "rule-only",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    true,
+    true
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {},
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {},
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {},
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "none",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {},
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {},
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {},
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "Refined",
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "In Progress"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "x"
+    ],
+    "status": [
+     "To Do"
+    ],
+    "in_sprint": [
+     "true",
+     "2026.22"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "label": [
+     "refined"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": null,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 0.0,
+   "ok": [
+    false,
+    false
+   ]
+  },
+  {
+   "tracker": "other-label",
+   "facts": {
+    "status": [
+     "Ready"
+    ],
+    "in_sprint": [
+     "false"
+    ]
+   },
+   "estimate": 5.0,
+   "ok": [
+    false,
+    false
+   ]
+  }
+ ],
+ "projects": [
+  {
+   "id": "payment",
+   "name": "payment",
+   "product": "webshop",
+   "target": "2027-03-31",
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "ABC-100"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "payment"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "note": null
+  },
+  {
+   "id": "migration",
+   "name": "migration",
+   "product": "webshop",
+   "target": "2027-03-31",
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "Database"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "migration"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "note": null
+  },
+  {
+   "id": "dupe",
+   "name": "dupe",
+   "product": "webshop",
+   "target": "2027-03-31",
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "ABC-100"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "note": null
+  },
+  {
+   "id": "norule",
+   "name": "No rule",
+   "product": null,
+   "target": null,
+   "priority": 0,
+   "budget_basis": null,
+   "match": null,
+   "note": null
+  },
+  {
+   "id": "contains",
+   "name": "C",
+   "product": null,
+   "target": null,
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "pay"
+    ],
+    "children": [],
+    "short": false,
+    "contains": true
+   },
+   "note": null
+  }
+ ],
+ "assign_project": [
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    "contains",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "epic",
+    "component",
+    "label"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    "contains",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "label",
+    "epic"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    "contains",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration"
+    ]
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "dupe",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration",
+     "contains"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    "contains",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "all",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    "payment",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    [
+     "payment",
+     "migration"
+    ]
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    "migration",
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "first-two",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {},
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ABC-100"
+    ],
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration"
+    ],
+    "component": [
+     "Database"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "migration",
+     "payment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "component": [
+     "Database"
+    ],
+    "epic": [
+     "ABC-100"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "label": [
+     "prepayment"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  },
+  {
+   "order": [
+    "component"
+   ],
+   "projects": "none",
+   "facts": {
+    "epic": [
+     "ZZZ"
+    ]
+   },
+   "ok": [
+    null,
+    []
+   ]
+  }
+ ],
+ "sprints": {
+  "2026.1": "2026-01-21",
+  "2026.2": "2026-02-04",
+  "2026.3": "2026-02-18",
+  "2026.4": "2026-03-04",
+  "2026.5": "2026-03-18",
+  "2026.6": "2026-04-01",
+  "2026.7": "2026-04-15",
+  "2026.8": "2026-04-29",
+  "2026.9": "2026-05-13",
+  "2026.10": "2026-05-27",
+  "2026.11": "2026-06-10",
+  "2026.12": "2026-06-24",
+  "2026.13": "2026-07-08",
+  "2026.14": "2026-07-22",
+  "2026.15": "2026-08-05",
+  "2026.16": "2026-08-19",
+  "2026.17": "2026-09-02",
+  "2026.18": "2026-09-16",
+  "2026.19": "2026-09-30",
+  "2026.20": "2026-10-14",
+  "2026.21": "2026-10-28",
+  "2026.22": "2026-11-11",
+  "2026.23": "2026-11-25",
+  "2026.24": "2026-12-09",
+  "2026.25": "2026-12-23",
+  "2026.26": "2027-01-06",
+  "2027.1": "2027-01-20",
+  "2027.2": "2027-02-03",
+  "2027.3": "2027-02-17",
+  "2027.4": "2027-03-03",
+  "2027.5": "2027-03-17",
+  "2027.6": "2027-03-31",
+  "2027.7": "2027-04-14",
+  "2027.8": "2027-04-28",
+  "2027.9": "2027-05-12",
+  "2027.10": "2027-05-26",
+  "2027.11": "2027-06-09",
+  "2027.12": "2027-06-23",
+  "2027.13": "2027-07-07",
+  "2027.14": "2027-07-21",
+  "2027.15": "2027-08-04",
+  "2027.16": "2027-08-18",
+  "2027.17": "2027-09-01",
+  "2027.18": "2027-09-15",
+  "2027.19": "2027-09-29",
+  "2027.20": "2027-10-13",
+  "2027.21": "2027-10-27",
+  "2027.22": "2027-11-10",
+  "2027.23": "2027-11-24",
+  "2027.24": "2027-12-08",
+  "2027.25": "2027-12-22",
+  "2027.26": "2028-01-05",
+  "2028.1": "2028-01-19",
+  "2028.2": "2028-02-02",
+  "2028.3": "2028-02-16",
+  "2028.4": "2028-03-01",
+  "2028.5": "2028-03-15",
+  "2028.6": "2028-03-29",
+  "2028.7": "2028-04-12",
+  "2028.8": "2028-04-26",
+  "2028.9": "2028-05-10",
+  "2028.10": "2028-05-24",
+  "2028.11": "2028-06-07",
+  "2028.12": "2028-06-21",
+  "2028.13": "2028-07-05",
+  "2028.14": "2028-07-19",
+  "2028.15": "2028-08-02",
+  "2028.16": "2028-08-16",
+  "2028.17": "2028-08-30",
+  "2028.18": "2028-09-13",
+  "2028.19": "2028-09-27",
+  "2028.20": "2028-10-11",
+  "2028.21": "2028-10-25",
+  "2028.22": "2028-11-08"
+ },
+ "resolve_sprint": [
+  {
+   "name": null,
+   "ok": null
+  },
+  {
+   "name": "",
+   "ok": null
+  },
+  {
+   "name": "2026.21",
+   "ok": "2026.21"
+  },
+  {
+   "name": "2026.22",
+   "ok": "2026.22"
+  },
+  {
+   "name": "2026.30",
+   "ok": null
+  },
+  {
+   "name": "2027.99",
+   "ok": null
+  },
+  {
+   "name": "Sprint 22",
+   "ok": "2026.22"
+  },
+  {
+   "name": "Sprint 23",
+   "ok": "2026.23"
+  },
+  {
+   "name": "Sprint 99",
+   "ok": null
+  },
+  {
+   "name": "sprint 22",
+   "ok": null
+  }
+ ],
+ "find_cycles": [
+  {
+   "tickets": [],
+   "ok": []
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     []
+    ]
+   ],
+   "ok": []
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     [
+      "A"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "A"
+    ]
+   ]
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     [
+      "B"
+     ]
+    ],
+    [
+     "B",
+     [
+      "A"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "A",
+     "B"
+    ]
+   ]
+  },
+  {
+   "tickets": [
+    [
+     "B",
+     [
+      "C"
+     ]
+    ],
+    [
+     "C",
+     [
+      "A"
+     ]
+    ],
+    [
+     "A",
+     [
+      "B"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "A",
+     "B",
+     "C"
+    ]
+   ]
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     [
+      "B",
+      "X"
+     ]
+    ],
+    [
+     "B",
+     []
+    ]
+   ],
+   "ok": []
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     [
+      "B"
+     ]
+    ],
+    [
+     "B",
+     [
+      "C"
+     ]
+    ],
+    [
+     "C",
+     [
+      "B",
+      "A"
+     ]
+    ],
+    [
+     "D",
+     [
+      "A"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "B",
+     "C"
+    ],
+    [
+     "A",
+     "B",
+     "C"
+    ]
+   ]
+  },
+  {
+   "tickets": [
+    [
+     "X",
+     [
+      "Y"
+     ]
+    ],
+    [
+     "Y",
+     [
+      "X"
+     ]
+    ],
+    [
+     "P",
+     [
+      "Q"
+     ]
+    ],
+    [
+     "Q",
+     [
+      "P"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "X",
+     "Y"
+    ],
+    [
+     "P",
+     "Q"
+    ]
+   ]
+  },
+  {
+   "tickets": [
+    [
+     "A",
+     [
+      "B"
+     ]
+    ],
+    [
+     "B",
+     [
+      "A",
+      "C"
+     ]
+    ],
+    [
+     "C",
+     [
+      "B"
+     ]
+    ]
+   ],
+   "ok": [
+    [
+     "A",
+     "B"
+    ],
+    [
+     "B",
+     "C"
+    ]
+   ]
+  }
+ ]
+}

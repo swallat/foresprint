@@ -1,0 +1,81 @@
+name: Holiday data
+
+# Once a month: is there a newer release of the Python "holidays" library? If so, the embedded
+# holiday data of the Go core (go/internal/holidays/data/holidays.zip) and the golden files that
+# depend on it (golden/expected/calendar) are regenerated and a pull request against v1 shows
+# the difference. The release workflow regenerates the data again at every release; this run
+# only keeps the repository current in between. scripts/gen_holidays.py is the only Python left
+# in the repository; it declares its dependency itself and runs with uv.
+#
+# A scheduled workflow runs from the default branch only. This file therefore takes effect when
+# v1 is merged into main (version 1.0); until then start it by hand from the Actions page after
+# copying it to main, or run the commands of the "Update" step locally.
+
+on:
+  schedule:
+    - cron: "17 5 3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE: v1
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BASE }}
+      - uses: jdx/mise-action@v3
+      - name: Update
+        id: update
+        run: |
+          old=$(unzip -p go/internal/holidays/data/holidays.zip meta.json | python3 -c "import json,sys; print(json.load(sys.stdin)['holidays_version'])")
+          cp go/internal/holidays/data/holidays.zip "$RUNNER_TEMP/old.zip"
+          uv run scripts/gen_holidays.py
+          uv run scripts/gen_holidays.py --golden
+          uv run scripts/gen_holidays.py --summary "$RUNNER_TEMP/old.zip" > "$RUNNER_TEMP/summary.md"
+          new=$(unzip -p go/internal/holidays/data/holidays.zip meta.json | python3 -c "import json,sys; print(json.load(sys.stdin)['holidays_version'])")
+          echo "old=$old" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git status --porcelain)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Open the pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          OLD: ${{ steps.update.outputs.old }}
+          NEW: ${{ steps.update.outputs.new }}
+        run: |
+          branch="holidays/update-$NEW"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "Branch $branch exists already; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -A
+          git commit -m "Update holiday data to holidays $NEW"
+          git push -u origin "$branch"
+          {
+            echo "The Python library \`holidays\` moved from $OLD to $NEW. This regenerates the"
+            echo "embedded holiday data of the Go core and the golden files that depend on it."
+            echo
+            echo "Calendar entries that differ, per country:"
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "Check the list for changes you did not expect (a country that lost holidays)."
+            echo "Net-new rules for the coming years are the usual content."
+            echo
+            echo "---"
+            echo "_Opened by the monthly workflow \`holidays-update.yml\`._"
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "Update holiday data to holidays $NEW" --body-file "$RUNNER_TEMP/body.md"
+          # Pushes with the workflow token start no checks; run them on the branch by hand.
+          gh workflow run ci.yml --ref "$branch" || echo "::warning::Start the CI of $branch by hand."

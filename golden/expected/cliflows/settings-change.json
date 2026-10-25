@@ -1,0 +1,14 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "settings",
+  "demo"
+ ],
+ "input": "\nSP\n\n\n\n\nDE\nBY\n\n\n\n\n\n\n\n6\n\n\n\n\n\ny\n",
+ "exit_code": 0,
+ "files": {
+  "demo/team.yaml": "# Team settings. Explanations: `foresprint help team`\nname: Demo-Team\nunit: SP\nfeatures:\n  products: true\n  po: true\n  production: true\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.1'\n    start: 2026-01-07\nforecast:\n  reference_capacity: 45\n  window: 6\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: BY\n  rounding: 1\n"
+ },
+ "deleted": [],
+ "seed": {}
+}

@@ -1,0 +1,124 @@
+{
+ "count": 1231,
+ "digest": {
+  "de": "ea84e1faac667943ddd5677d8e081da75732d7916f5d1d72d3f795963ebbe89a",
+  "en": "479c51561dcaed33731923e2eedce902f13082c8c390dd0e9fd5fabf51133d57"
+ },
+ "sample": [
+  {
+   "text": "--write-labels needs tracker.write_labels: true in team.yaml.",
+   "de": "--write-labels braucht tracker.write_labels: true in team.yaml.",
+   "en": "--write-labels needs tracker.write_labels: true in team.yaml."
+  },
+  {
+   "text": "Absences unknown: capacity from the people list and calendar, reduced by the average absences of the last sprints with confirmed absences (setting “Absence history”).",
+   "de": "Fehltage unbekannt: Kapazität laut Personenliste und Kalender, gemindert um die durchschnittlichen Fehltage der letzten Sprints mit bestätigten Fehltagen (Einstellung „Fehltage-Historie“).",
+   "en": "Absences unknown: capacity from the people list and calendar, reduced by the average absences of the last sprints with confirmed absences (setting “Absence history”)."
+  },
+  {
+   "text": "Branch is not connected to the server",
+   "de": "Branch ist nicht mit dem Server verbunden",
+   "en": "Branch is not connected to the server"
+  },
+  {
+   "text": "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall and quickly leaves the range over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated.",
+   "de": "Beispiel: Der Durchschnitt war zuletzt 44, davor 40. Konstant (Standard): die nächsten Sprints bleiben bei 44, 44, 44. Robust, folgt aber keiner Entwicklung. Linear: der letzte Schritt (+4) wird fortgesetzt: 48, 52, 56. Klassisch: erst linear (48), dann prozentual wie zuletzt (+10 %: 52,8), danach wieder linear (57,6). Linear und klassisch schreiben auch zufällige Schwankungen fort; die Prognose kann dann steigen oder fallen und liegt bei längerem Horizont schnell außerhalb der Spanne. Sie passen nur bei einem belegten, stabilen Trend. Reicht die Historie nicht (weniger Sprints mit Wert als für den Modus nötig), gilt „konstant“; das steht dann als Hinweis dabei. Die Prognose wird nie negativ. Den Modus kann man jederzeit unter Team verwalten → Einstellungen wechseln; es gehen keine Daten verloren, nur die Prognose wird neu berechnet.",
+   "en": "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall and quickly leaves the range over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated."
+  },
+  {
+   "text": "For questions about completion",
+   "de": "Bei Fragen zur Fertigstellung",
+   "en": "For questions about completion"
+  },
+  {
+   "text": "Git refuses to work in this folder because it belongs to a different user account than the one the app runs under (a protection by Git, common with network drives, copied folders or after an account change). The app changes no Git settings. Please ask whoever looks after the computer: they can assign the folder to your own account or deliberately mark it as safe.",
+   "de": "Git verweigert die Arbeit in diesem Ordner, weil er einem anderen Benutzerkonto gehört als dem, mit dem die App läuft (eine Schutzmaßnahme von Git, häufig bei Netzlaufwerken, kopierten Ordnern oder nach einem Kontowechsel). Die App ändert keine Git-Einstellungen. Bitte bei der Betreuung des Rechners nachfragen: Sie kann den Ordner dem eigenen Konto zuordnen oder ihn bewusst als sicher eintragen.",
+   "en": "Git refuses to work in this folder because it belongs to a different user account than the one the app runs under (a protection by Git, common with network drives, copied folders or after an account change). The app changes no Git settings. Please ask whoever looks after the computer: they can assign the folder to your own account or deliberately mark it as safe."
+  },
+  {
+   "text": "Last sprint",
+   "de": "Letzter Sprint",
+   "en": "Last sprint"
+  },
+  {
+   "text": "Only check, do not install.",
+   "de": "Nur prüfen, nicht installieren.",
+   "en": "Only check, do not install."
+  },
+  {
+   "text": "Period",
+   "de": "Zeitraum",
+   "en": "Period"
+  },
+  {
+   "text": "Please use a Git client or a terminal.",
+   "de": "Bitte einen Git-Client oder ein Terminal verwenden.",
+   "en": "Please use a Git client or a terminal."
+  },
+  {
+   "text": "Read Excel list (preview, then write)",
+   "de": "Excel-Liste einlesen (Vorschau, dann schreiben)",
+   "en": "Read Excel list (preview, then write)"
+  },
+  {
+   "text": "Settings [bold]{team}[/bold] – Enter keeps the current value.",
+   "de": "Einstellungen [bold]<team>[/bold] – Enter übernimmt den aktuellen Wert.",
+   "en": "Settings [bold]<team>[/bold] – Enter keeps the current value."
+  },
+  {
+   "text": "Sprint ID {id} does not match the numbering (expected {expected}).",
+   "de": "Sprint-ID <id> passt nicht zur Nummerierung (erwartet <expected>).",
+   "en": "Sprint ID <id> does not match the numbering (expected <expected>)."
+  },
+  {
+   "text": "Team settings (deduction for Scrum events).",
+   "de": "Team-Einstellungen (Abzug für Scrum-Termine).",
+   "en": "Team settings (deduction for Scrum events)."
+  },
+  {
+   "text": "The data folder is not a Git repository yet.",
+   "de": "Der Datenordner ist noch kein Git-Repository.",
+   "en": "The data folder is not a Git repository yet."
+  },
+  {
+   "text": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "de": "Dieses Verfahren wird nicht unterstützt. Erlaubt sind https://, ssh://, git@server:pfad und vollständige Ordnerpfade.",
+   "en": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
+  },
+  {
+   "text": "Unknown field '{source}', did you mean '{close}'?",
+   "de": "Unbekanntes Feld '<source>', meintest du '<close>'?",
+   "en": "Unknown field '<source>', did you mean '<close>'?"
+  },
+  {
+   "text": "end",
+   "de": "Ende",
+   "en": "end"
+  },
+  {
+   "text": "newly created",
+   "de": "neu angelegt",
+   "en": "newly created"
+  },
+  {
+   "text": "plannable share {share}",
+   "de": "Verplanbarer Anteil <share>",
+   "en": "plannable share <share>"
+  },
+  {
+   "text": "tracker.query is missing (JQL query of the tickets, team.yaml)",
+   "de": "tracker.query fehlt (JQL-Abfrage der Tickets, team.yaml)",
+   "en": "tracker.query is missing (JQL query of the tickets, team.yaml)"
+  },
+  {
+   "text": "{where}: '{name}' does not belong in the file – tokens and passwords belong in the environment variable FORESPRINT_JIRA_TOKEN or in the keychain",
+   "de": "<where>: '<name>' gehört nicht in die Datei – Tokens und Passwörter stehen in der Umgebungsvariable FORESPRINT_JIRA_TOKEN oder im Schlüsselbund",
+   "en": "<where>: '<name>' does not belong in the file – tokens and passwords belong in the environment variable FORESPRINT_JIRA_TOKEN or in the keychain"
+  },
+  {
+   "text": "Ø over sprints",
+   "de": "Ø über Sprints",
+   "en": "Ø over sprints"
+  }
+ ]
+}

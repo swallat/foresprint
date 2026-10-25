@@ -5,20 +5,12 @@ they were measured.
 
 ## Measuring
 
-```bash
-uv run python scripts/measure.py --md          # demo team from examples/teams
-uv run python scripts/measure.py --data PATH --team NAME --runs 30
-```
-
-The script prints medians in milliseconds: import times (each in a fresh process), loading a
-team (without and with the cache), `build_forecast`, Git status, and building pages with the
-Streamlit AppTest (no browser). Only what happens inside the Python process is measured.
-**Not measured** are browser start-up, frontend rendering, and the round trips between browser
-and server.
+These measurements are of the Python version 0.8. The measuring script (`scripts/measure.py`)
+exists on the branch `main` only; run it there. The Go core of 1.0 has no comparable log yet.
 
 ## Measurement log: cloud (Linux x86_64, 4 cores, Python 3.14.6, demo team, 22 sprints)
 
-Before = `main` (78010e5 plus the measurement script), after = this state. Individual rows
+Before = `main` (78010e5 plus the measurement script), after = `main` with the measures (0.8). Individual rows
 vary by about 10 to 20 % from run to run.
 
 | Measurement | before (ms) | after (ms) |

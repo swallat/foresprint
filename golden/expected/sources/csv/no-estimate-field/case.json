@@ -1,0 +1,9 @@
+{
+ "fields": {
+  "estimate": null,
+  "remaining": "Remaining",
+  "epic": null
+ },
+ "rule_fields": {},
+ "error": "input.csv: The field name of the estimate is not configured (tracker.fields.estimate in team.yaml)"
+}

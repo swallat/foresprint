@@ -1,0 +1,33 @@
+{
+ "operation": "test_connection",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/myself",
+   "status": 200,
+   "json": {
+    "name": "anna"
+   }
+  }
+ ],
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/myself",
+   "query": {},
+   "authorization": true
+  }
+ ],
+ "ok": "anna"
+}

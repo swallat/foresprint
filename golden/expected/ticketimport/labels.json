@@ -1,0 +1,878 @@
+[
+ {
+  "name": "earmark-adds-label",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026.23",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [
+      "planned_for_2026.23"
+     ],
+     "remove": []
+    }
+   ],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_2026.23"
+      ],
+      []
+     ]
+    ],
+    "ok": 1
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 1 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_2026.23"
+      ],
+      []
+     ]
+    ],
+    "ok": 1
+   }
+  ]
+ },
+ {
+  "name": "label-present",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_2026.23"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026.23",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 1,
+    "calls": [],
+    "ok": 0
+   }
+  ]
+ },
+ {
+  "name": "earmark-changed",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_2026.22",
+     "keep"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026.24",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [
+      "planned_for_2026.24"
+     ],
+     "remove": [
+      "planned_for_2026.22"
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_2026.24"
+      ],
+      [
+       "planned_for_2026.22"
+      ]
+     ]
+    ],
+    "ok": 1
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 1 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_2026.24"
+      ],
+      [
+       "planned_for_2026.22"
+      ]
+     ]
+    ],
+    "ok": 1
+   }
+  ]
+ },
+ {
+  "name": "earmark-released",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_2026.22"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [],
+     "remove": [
+      "planned_for_2026.22"
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_2026.22"
+      ]
+     ]
+    ],
+    "ok": 1
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 1 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_2026.22"
+      ]
+     ]
+    ],
+    "ok": 1
+   }
+  ]
+ },
+ {
+  "name": "real-sprint-wins",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": "2026.22",
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_2026.23"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026.23",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [],
+     "remove": [
+      "planned_for_2026.23"
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_2026.23"
+      ]
+     ]
+    ],
+    "ok": 1
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 1 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_2026.23"
+      ]
+     ]
+    ],
+    "ok": 1
+   }
+  ]
+ },
+ {
+  "name": "done-left-alone",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_2026.23"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": true
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026.24",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 1,
+    "calls": [],
+    "ok": 0
+   }
+  ]
+ },
+ {
+  "name": "space-in-sprint-id",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "2026 23",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [],
+   "warnings": [
+    "Ticket A-1: the label \"planned_for_2026 23\" contains spaces, which Jira does not allow – change the sprint id or plan without a label"
+   ]
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 1,
+    "calls": [],
+    "ok": 0
+   }
+  ]
+ },
+ {
+  "name": "nothing-to-do",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "A-2",
+    "title": "Title A-2",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "x"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "ok": 0
+   },
+   {
+    "fail_at": 1,
+    "calls": [],
+    "ok": 0
+   }
+  ]
+ },
+ {
+  "name": "several-labels",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_a",
+     "planned_for_b",
+     "planned_for_a",
+     "other"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "b",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [],
+     "remove": [
+      "planned_for_a"
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_a"
+      ]
+     ]
+    ],
+    "ok": 1
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 1 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [],
+      [
+       "planned_for_a"
+      ]
+     ]
+    ],
+    "ok": 1
+   }
+  ]
+ },
+ {
+  "name": "many",
+  "tickets": [
+   {
+    "key": "A-1",
+    "title": "Title A-1",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "A-2",
+    "title": "Title A-2",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [
+     "planned_for_x"
+    ],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "A-3",
+    "title": "Title A-3",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "A-4",
+    "title": "Title A-4",
+    "status": "To Do",
+    "issue_type": null,
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "none",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": null,
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [
+    {
+     "ticket": "A-1",
+     "sprint": "p",
+     "note": null
+    },
+    {
+     "ticket": "A-3",
+     "sprint": "q",
+     "note": null
+    },
+    {
+     "ticket": "A-4",
+     "sprint": "r s",
+     "note": null
+    }
+   ],
+   "estimates": []
+  },
+  "plan": {
+   "writes": [
+    {
+     "key": "A-1",
+     "title": "Title A-1",
+     "add": [
+      "planned_for_p"
+     ],
+     "remove": []
+    },
+    {
+     "key": "A-2",
+     "title": "Title A-2",
+     "add": [],
+     "remove": [
+      "planned_for_x"
+     ]
+    },
+    {
+     "key": "A-3",
+     "title": "Title A-3",
+     "add": [
+      "planned_for_q"
+     ],
+     "remove": []
+    }
+   ],
+   "warnings": [
+    "Ticket A-4: the label \"planned_for_r s\" contains spaces, which Jira does not allow – change the sprint id or plan without a label"
+   ]
+  },
+  "apply": [
+   {
+    "fail_at": null,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_p"
+      ],
+      []
+     ],
+     [
+      "A-2",
+      [],
+      [
+       "planned_for_x"
+      ]
+     ],
+     [
+      "A-3",
+      [
+       "planned_for_q"
+      ],
+      []
+     ]
+    ],
+    "ok": 3
+   },
+   {
+    "fail_at": 0,
+    "calls": [],
+    "error": "Ticket A-1: Jira refuses the write (403) – 0 of 3 changes written"
+   },
+   {
+    "fail_at": 1,
+    "calls": [
+     [
+      "A-1",
+      [
+       "planned_for_p"
+      ],
+      []
+     ]
+    ],
+    "error": "Ticket A-2: Jira refuses the write (403) – 1 of 3 changes written"
+   }
+  ]
+ }
+]

@@ -1,0 +1,47 @@
+{
+ "operation": "set_labels",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "PUT",
+   "path": "/rest/api/2/issue/ABC-1",
+   "status": 403,
+   "text": ""
+  }
+ ],
+ "args": {
+  "key": "ABC-1",
+  "add": [
+   "planned_for_2026.22"
+  ],
+  "remove": []
+ },
+ "requests": [
+  {
+   "method": "PUT",
+   "path": "/rest/api/2/issue/ABC-1",
+   "query": {},
+   "authorization": true,
+   "body": {
+    "update": {
+     "labels": [
+      {
+       "add": "planned_for_2026.22"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "error": "Jira refuses the write (403): the account may not change labels of this ticket."
+}

@@ -2,18 +2,19 @@
 
 The ticket pre-planning ([design](design/ticket-planning.md), `features.tickets`) can read its
 tickets straight from **Jira Data Center** instead of from a CSV export. The import is
-**read-only**: the tool sends only `GET` requests and never changes anything in Jira. The one
-exception is the optional [label write-back](#writing-earmarks-as-labels) (`write_labels: true`,
-off by default), which adds or removes `planned_for_<sprint>` labels and nothing else.
+**read-only** by default: the tool sends only `GET` requests and never changes anything in Jira.
+There are two optional exceptions, both off by default: the [label write-back](#writing-earmarks-as-labels)
+(`write_labels: true`), which adds or removes `planned_for_<sprint>` labels, and the
+[write-back of a planned sprint](#writing-the-planned-sprint-back) (Settings > Tickets and
+tracker), which moves tickets between a sprint and the backlog through the Agile API on an
+explicit click, with preview and undo. Order, estimate, status
+and texts are never written, and no sprint is created, started or closed.
 
 ## Setup
 
-1. **Install the extra `[jira]`.** The installer does it; run it again on an older installation
-   (it keeps your plugins). By hand:
-   `uv tool install --force "foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"`
-   (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
-   the CSV import still works.
-2. **Configure the tracker.** Either on the web page *Jira connection* (Manage team; address,
+1. **Install Foresprint.** Jira is part of the program; no extra package is needed (see
+   [Installation](installation.md)). Without a tracker the CSV import still works.
+2. **Configure the tracker.** Either in **Settings > Tickets and tracker** (address,
    query and fields, with suggestions from your instance once the token is set, see step 5) or
    in `team.yaml` (details: [data-format.md](data-format.md)):
 
@@ -48,11 +49,9 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    foresprint tickets TEAM --set-token
    ```
 
-   The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
-   stored under the
-   service `foresprint-jira` (the former `sprintforecast-jira` is still read) and the **host** of `base_url` only: one token per Jira host,
-   shared by all teams and paths on it. The environment variable comes first when both exist
-   (`--set-token` warns about that).
+   The entry is stored under the service `foresprint-jira` and the **host** of `base_url` only: one
+   token per Jira host, shared by all teams and paths on it. The environment variable comes first
+   when both exist (`--set-token` warns about that).
 5. **Test the connection.** Shows the account the token belongs to and the fields found in the
    instance; writes nothing:
 
@@ -60,19 +59,36 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    foresprint tickets TEAM --test-connection
    ```
 
-   On the web page *Jira connection* the token can be entered too (hidden input, **Store in
+   In **Settings > Tickets and tracker** the token can be entered too (hidden input, **Store in
    keychain**, **Replace**, **Remove**): it goes only into the same keychain entry, never into
    `team.yaml`, the data folder or any other file, and is never shown again. Without a usable
-   keychain (package missing, or Linux without a Secret Service) the page only explains the
-   environment variable; there is no substitute store. The page shows the active source; the
-   environment variable takes precedence over a stored token.
+   keychain (for example Linux without a Secret Service) the page only explains the environment
+   variable; there is no substitute store. The page shows the active source; the environment
+   variable takes precedence over a stored token.
 
-   The web page *Jira connection* does the same with **Test connection**, and in addition offers
-   the number fields and epic links of the instance as choices for `fields.estimate`,
-   `fields.remaining` and `fields.epic` (a hint marks the likeliest by its name) and counts the
-   tickets the query matches. Components and labels need no setting; they are always read. The
-   page also sets the label of refined tickets and the order of the project assignment criteria
-   (epic, component, label); the criteria of each project are on the page Tickets.
+   The same page has **Test connection**, and in addition offers the number fields and epic links
+   of the instance as choices for `fields.estimate`, `fields.remaining` and `fields.epic` (a hint
+   marks the likeliest by its name) and counts the tickets the query matches. Components and labels
+   need no setting; they are always read. The page also sets the label of refined tickets and the
+   order of the project assignment criteria (epic, component, label); the criteria of each project
+   are set per project.
+
+## Jira board and sprints
+
+The **Jira board** card of Settings > Tickets and tracker takes the number of the board whose
+sprints Foresprint looks up (`tracker.board_id`, the number in the board's address). With it, an
+active or future sprint without tickets is found too, and a board sprint that matches a sprint of
+Foresprint (by name or your choice), starts in the future and is not closed gets a lane in the
+Backlog.
+Without a board number the sprints are known only from the tickets read. The card works without
+the write-back.
+
+The table **Sprints in Jira** matches every Jira sprint with open tickets to a sprint of
+Foresprint, by name (automatically) or by your choice, or marks it as **pro forma** (a place to park
+tickets such as "Refinement"; it never counts for capacity or forecast). Sprints that still need
+a match are listed there. The order of the Backlog follows the rank of Jira; an automatic fetch
+keeps the order you set in Foresprint, and only the button **Fetch now** (or `--fetch --apply`)
+takes the order of Jira again.
 
 ## Reading tickets
 
@@ -90,6 +106,17 @@ unclear ...) and starts with the Jira host and the number of tickets read.
 **An empty answer never counts as "no work".** If the query returns no tickets while
 `tickets.yaml` holds tickets, nothing is written (also with `--apply`) and the command fails with a
 hint to check the JQL and the permissions of the token.
+
+## Writing the planned sprint back
+
+Optional and off by default (Settings > Tickets and tracker, card "Write to Jira", switch "Writing
+back on" / "Read only"; `tracker.write_sprint`). After the plan is frozen and before the sprint has
+started, the **Plan** page shows a preview with one row per move; single tickets can be unticked, and nothing is written without your click. It moves tickets
+between a Jira sprint and the backlog (or the next or a pro-forma sprint, as chosen for taken-out
+tickets) through the Agile API. Rank, estimate, status, texts and labels are never written, no
+sprint is created, started or closed, and a closed sprint is never written to. **Take back what was
+written** puts the moved tickets back until the program is restarted or the sprint has started. The step-by-step test is in
+[Manual acceptance](manual-acceptance.md#f-jira-write-back-of-the-planned-sprint-p1).
 
 ## Writing earmarks as labels
 
@@ -133,7 +160,8 @@ Reading uses only `GET` requests, to these endpoints:
 |---|---|
 | `/rest/api/2/myself` | connection test: the display name of the account |
 | `/rest/api/2/field` | resolves the field names from `tracker.fields` to `customfield_…` ids; finds the sprint, rank and epic link fields by their schema |
-| `/rest/api/2/search` | with `maxResults=1`: the number of tickets the query matches (web page *Jira connection*) |
+| `/rest/api/2/search` | with `maxResults=1`: the number of tickets the query matches (*Test connection*) |
+| `/rest/agile/1.0/board/<id>/sprint` | with a board number, from the window (when the Backlog opens and while fetching): the active and future sprints of the board (`state=active,future`), also empty ones |
 | `/rest/api/2/search` | the tickets of `tracker.query`, 100 per page, with `fields=` limited to what is needed (summary, status, issue type, labels, components, resolution, issue links, parent, estimate, remaining, epic, sprint, rank) |
 
 Authentication is the header `Authorization: Bearer <token>`; the certificate is always verified
@@ -168,17 +196,14 @@ and every request has a 30 second timeout. Proxy settings of the environment (`H
 | The proxy requires authentication (407) | Check `HTTPS_PROXY` and its credentials. |
 | No Jira token found | Set `FORESPRINT_JIRA_TOKEN` or run `--set-token`. |
 
-## Manual test against a real instance
+## Trying it against a real instance
 
-The test suite never touches the network. One test is deselected by default and runs against a
-real instance when you ask for it:
+The automated tests never touch the network. To try a real instance without changing anything:
 
 ```bash
-FORESPRINT_JIRA_URL=https://jira.example.org \
-FORESPRINT_JIRA_TOKEN=... \
-FORESPRINT_JIRA_JQL='project = ABC AND sprint in openSprints()' \
-uv run --extra jira pytest -m jira_live
+export FORESPRINT_JIRA_TOKEN=...
+foresprint tickets TEAM --test-connection   # the account and the fields found
+foresprint tickets TEAM --fetch             # preview only, nothing is written
 ```
 
-Optionally `FORESPRINT_JIRA_ESTIMATE`, `_REMAINING` and `_EPIC` name the fields. The test
-prints only counts.
+Both commands only send `GET` requests and print counts and field names.

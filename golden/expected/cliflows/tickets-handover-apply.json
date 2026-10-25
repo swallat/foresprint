@@ -1,0 +1,25 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "tickets",
+  "demo",
+  "--handover",
+  "--apply"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {
+  "demo/sprints/2026.23.yaml": "# Sprint 2026.23. Explanations of all fields: `foresprint help fields`\nid: '2026.23'\nstart: 2026-11-11\nend: 2026-11-25\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  webshop:\n    preplanned: 3\n",
+  "demo/sprints/2026.24.yaml": "# Sprint 2026.24. Explanations of all fields: `foresprint help fields`\nid: '2026.24'\nstart: 2026-11-25\nend: 2026-12-09\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  webshop:\n    preplanned: 3\n",
+  "demo/sprints/2026.25.yaml": "# Sprint 2026.25. Explanations of all fields: `foresprint help fields`\nid: '2026.25'\nstart: 2026-12-09\nend: 2026-12-23\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  webshop:\n    preplanned: 3\n",
+  "demo/sprints/2026.26.yaml": "# Sprint 2026.26. Explanations of all fields: `foresprint help fields`\nid: '2026.26'\nstart: 2026-12-23\nend: 2027-01-06\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  webshop:\n    preplanned: 2\n",
+  "demo/sprints/2027.1.yaml": "# Sprint 2027.1. Explanations of all fields: `foresprint help fields`\nid: '2027.1'\nstart: 2027-01-06\nend: 2027-01-20\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  webshop:\n    preplanned: 1\n"
+ },
+ "deleted": [],
+ "seed": {
+  "demo/team.yaml": "name: Demo-Team\nunit: PT\nfeatures:\n  products: true\n  po: true\n  production: true\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.1'\n    start: 2026-01-07\nforecast:\n  reference_capacity: 45\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: NW\n  rounding: 1\ntracker:\n  kind: csv\n  fields:\n    estimate: Story Points\n    remaining: Remaining\n    epic: Epic Link\n  refined_label: Refined\n",
+  "demo/projects.yaml": "schema: 1\nprojects:\n- id: payment\n  name: Payment\n  product: webshop\n  target: '2027-03-31'\n  match:\n    epic:\n    - ABC-100\n- id: migration\n  name: Migration\n  product: webshop\n  target: '2026-11-30'\n  match:\n    epic:\n    - ABC-200\n",
+  "demo/jira_en.csv": "Summary,Issue key,Issue id,Issue Type,Status,Resolution,Labels,Labels,Component/s,Sprint,Sprint,Custom field (Rank),Custom field (Story Points),Custom field (Remaining),Custom field (Epic Link),Inward issue link (Blocks),Inward issue link (Blocks),Outward issue link (Blocks)\nCheckout: new payment provider,ABC-1,10001,Story,To Do,,payment,Refined,Checkout,Sprint 21,Sprint 22,0|i0001:,5,3.5,ABC-100,ABC-2,ABC-3,\n\"Schema change, part 1\",ABC-2,10002,Task,Ready,,,,Database,,,0|i0002:,8,,ABC-200,,,ABC-1\nDone already,ABC-3,10003,Bug,Done,Done,,,,Sprint 20,,0|i0003:,2,0,,,,ABC-1\n\"Line one\nline two\",ABC-4,10004,Story,To Do,,,,,,,0|i0004:,,,,,,\n,,,,,,,,,,,,,,,,,\n",
+  "demo/tickets.yaml": "schema: 1\nimported: '2026-10-15 09:00:00'\nsource: test.csv\ntickets:\n- key: M-0\n  title: M-0\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0000\n  project: migration\n- key: M-1\n  title: M-1\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0001\n  project: migration\n- key: M-2\n  title: M-2\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0002\n  project: migration\n- key: M-3\n  title: M-3\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0003\n  project: migration\n- key: M-4\n  title: M-4\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0004\n  project: migration\n- key: M-5\n  title: M-5\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0005\n  project: migration\n- key: M-6\n  title: M-6\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0006\n  project: migration\n- key: M-7\n  title: M-7\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0007\n  project: migration\n- key: M-8\n  title: M-8\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0008\n  project: migration\n- key: M-9\n  title: M-9\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0009\n  project: migration\n- key: M-10\n  title: M-10\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0010\n  project: migration\n- key: M-11\n  title: M-11\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0011\n  project: migration\n- key: M-12\n  title: M-12\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0012\n  project: migration\n- key: M-13\n  title: M-13\n  status: To Do\n  estimate: 1.0\n  estimate_source: refined\n  rank: 0|0013\n  project: migration\n"
+ }
+}

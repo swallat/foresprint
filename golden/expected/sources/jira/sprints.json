@@ -1,0 +1,182 @@
+{
+ "parse": [
+  {
+   "value": "com.atlassian.greenhopper.service.sprint.Sprint@1a2b[id=12,rapidViewId=3,state=ACTIVE,name=Sprint 21, Team A [Phase 1],goal=,startDate=2026-01-01,sequence=12]",
+   "ok": {
+    "name": "Sprint 21, Team A [Phase 1]",
+    "state": "ACTIVE",
+    "id": "12"
+   }
+  },
+  {
+   "value": "x[id=1,state=future,name=Plain]",
+   "ok": {
+    "name": "Plain",
+    "state": "FUTURE",
+    "id": "1"
+   }
+  },
+  {
+   "value": "x[name=Only name]",
+   "ok": {
+    "name": "Only name",
+    "state": "",
+    "id": ""
+   }
+  },
+  {
+   "value": "x[state=ACTIVE]",
+   "ok": null
+  },
+  {
+   "value": "x[id=1,name=<null>,state=ACTIVE]",
+   "ok": null
+  },
+  {
+   "value": "x[id=1,name=A=B,state=CLOSED]",
+   "ok": {
+    "name": "A=B",
+    "state": "CLOSED",
+    "id": "1"
+   }
+  },
+  {
+   "value": "x[name= Spaced ,state=active]  ",
+   "ok": {
+    "name": "Spaced",
+    "state": "ACTIVE",
+    "id": ""
+   }
+  },
+  {
+   "value": "no brackets",
+   "ok": null
+  },
+  {
+   "value": "[name=Bare,state=FUTURE]",
+   "ok": {
+    "name": "Bare",
+    "state": "FUTURE",
+    "id": ""
+   }
+  },
+  {
+   "value": "x[name=Open",
+   "ok": null
+  },
+  {
+   "value": {
+    "id": 5,
+    "name": " Obj ",
+    "state": "future"
+   },
+   "ok": {
+    "name": "Obj",
+    "state": "FUTURE",
+    "id": "5"
+   }
+  },
+  {
+   "value": {
+    "name": "NoState"
+   },
+   "ok": {
+    "name": "NoState",
+    "state": "",
+    "id": ""
+   }
+  },
+  {
+   "value": {
+    "name": " "
+   },
+   "ok": null
+  },
+  {
+   "value": {
+    "name": 3
+   },
+   "ok": null
+  },
+  {
+   "value": {
+    "id": 5
+   },
+   "ok": null
+  },
+  {
+   "value": 5,
+   "ok": null
+  },
+  {
+   "value": null,
+   "ok": null
+  }
+ ],
+ "choose": [
+  {
+   "values": null,
+   "ok": null
+  },
+  {
+   "values": [],
+   "ok": null
+  },
+  {
+   "values": "x[name=One,state=CLOSED]",
+   "ok": "One"
+  },
+  {
+   "values": {
+    "name": "Dict",
+    "state": "FUTURE"
+   },
+   "ok": "Dict"
+  },
+  {
+   "values": [
+    "x[name=A,state=CLOSED]",
+    "x[name=B,state=FUTURE]",
+    "x[name=C,state=ACTIVE]"
+   ],
+   "ok": "C"
+  },
+  {
+   "values": [
+    "x[name=A,state=CLOSED]",
+    "x[name=B,state=FUTURE]",
+    "x[name=C,state=FUTURE]"
+   ],
+   "ok": "B"
+  },
+  {
+   "values": [
+    "x[name=A,state=CLOSED]",
+    "x[name=B,state=CLOSED]"
+   ],
+   "ok": "B"
+  },
+  {
+   "values": [
+    "junk",
+    "x[name=A,state=CLOSED]",
+    3
+   ],
+   "ok": "A"
+  },
+  {
+   "values": [
+    "junk"
+   ],
+   "ok": null
+  },
+  {
+   "values": "junk",
+   "ok": null
+  },
+  {
+   "values": 7,
+   "ok": null
+  }
+ ]
+}
