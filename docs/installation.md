@@ -6,16 +6,19 @@ keep your team data in a Git repository.
 
 ## Install
 
+Until 1.0 moves to the `main` branch, the installer scripts are taken from the `v1` branch (the
+default branch still holds the old Python version).
+
 **Windows (PowerShell):**
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex"
 ```
 
 **Linux / macOS:**
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/v1/install.sh | sh
 ```
 
 The script downloads the archive for your system from the newest GitHub release, checks its
@@ -55,7 +58,7 @@ The release has a second Linux archive without the window part: `foresprint-cli_
 It is statically linked and needs no libraries. Install it with
 
 ```sh
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | FORESPRINT_VARIANT=cli sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/v1/install.sh | FORESPRINT_VARIANT=cli sh
 ```
 
 `foresprint update` stays on this variant. It has all commands except `foresprint gui`.
@@ -140,9 +143,9 @@ only lists, `--yes` / `-Force` skips the question). Close the app first, Windows
 programs. The `PATH` entry added by `install.ps1` stays.
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.sh | sh -s -- --dry-run
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/v1/uninstall.sh | sh -s -- --dry-run
 ```
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
+powershell -NoProfile -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/v1/uninstall.ps1))) -DryRun"
 ```

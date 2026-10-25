@@ -41,6 +41,7 @@ commands write the same files as the window.
 | `foresprint storage [server ADDRESS \| sign-in ADDRESS \| identity \| share \| branch \| save \| refresh \| history]` | Settings > Storage and the Data area on the command line, the same service as the window: show the setup, set the server (checked first), hand a token to Git's credential helper (never stored by Foresprint; read from the terminal without echo, or one line from standard input), name and email for saves, way to share, branches, save (`-m`, `--anyway`), refresh, history |
 | `foresprint check [--strict]` | validate all data (CI, before a commit) |
 | `foresprint settings TEAM` | change team settings |
+| `foresprint serve` | show the window as a page of the browser, on this computer only; prints a link with a secret key (stop with Ctrl+C), see [The window](window.md#showing-foresprint-in-the-browser) |
 | `foresprint data-dir [PATH]`, `language [de\|en]`, `shortcut`, `update` | remembered data folder, UI language, desktop launcher, update |
 | `foresprint completion bash\|zsh\|fish\|powershell`, `version` | Tab completion script, version |
 | `foresprint help [TOPIC]` | workflow, terms, fields, team settings, commands |
