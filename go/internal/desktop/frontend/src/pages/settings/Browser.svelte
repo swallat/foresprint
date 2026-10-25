@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser, copyBrowserLink, inBrowserPage, loadBrowser, openInBrowser, stopBrowser } from '../../lib/browserAccess.svelte';
   import { t } from '../../lib/i18n.svelte';
+  import { live } from '../../lib/liveData.svelte';
   import Icon from '../../lib/Icon.svelte';
   import type { PageProps } from '../../lib/routes';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -34,6 +35,20 @@
       </div>
       <p class="small muted">{t('The link only works on this computer and contains a secret key. It is new on every start and void once you switch the access off or close the program. When you share your screen, share the tab, not the link.')}</p>
       <p class="small muted">{t('Changes show up in the other view within a second or two; the page is shown anew unless you are typing in a field. Updates of the program are made in the window.')}</p>
+      <p class="small muted" data-live>
+        {#if inBrowserPage}
+          {live.streamAt ? t('Connection to the program: alive, last message {time}.', { time: new Date(live.streamAt).toLocaleTimeString() }) : t('Connection to the program: no message yet.')}
+          <br />
+        {/if}
+        {#if live.at}
+          {t('Last change of the other view: {time}, {what}.', {
+            time: new Date(live.at).toLocaleTimeString(),
+            what: live.what === 'applied' ? t('page updated') : live.what === 'typing' ? t('waiting, you are typing') : t('taken as your own work'),
+          })}
+        {:else}
+          {t('This view has not seen a change of the other view yet.')}
+        {/if}
+      </p>
     </div>
   {/if}
 </div>

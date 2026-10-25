@@ -3,14 +3,25 @@
 (function () {
   // The window and this page show the same data folder. The server tells every change of it
   // (server-sent events); the page decides whether it was its own and reloads its view if not.
+  var es = null;
   function listen() {
-    var es = new EventSource('/__events');
+    if (es) es.close();
+    es = new EventSource('/__events');
     es.onmessage = function (e) {
       // The first message is the state when the page opened; the page may not listen yet.
       if (window.foresprintFingerprint === undefined) window.foresprintFingerprint = e.data;
       window.dispatchEvent(new CustomEvent('foresprint:data', { detail: e.data }));
     };
+    // The browser retries by itself after a lost connection, but not after an error answer.
+    es.onerror = function () {
+      if (es && es.readyState === 2) setTimeout(listen, 3000);
+    };
   }
+  // A tab that slept (energy saving) may have lost the stream: open it again. The server sends the
+  // current state first, so a change made meanwhile is noticed.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') listen();
+  });
 
   function call(name, args) {
     return fetch('/api/' + name, {
