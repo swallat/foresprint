@@ -69,7 +69,6 @@ export const present = $state({ keys: [] as string[], key: '', from: '', action:
 
 let loadId = 0;
 
-/** (Re)loads the backlog of the selected team. A stale answer of an earlier call is dropped. */
 // The Jira board is read once per team and run of the window, in the background; a changed list
 // of sprints shows on a reload. A failure (no token, offline) leaves the backlog as it is.
 const boardRead = new Set<string>();
@@ -83,6 +82,7 @@ async function readBoard(team: string, tracker: boolean): Promise<void> {
   }
 }
 
+/** (Re)loads the backlog of the selected team. A stale answer of an earlier call is dropped. */
 export async function loadBacklog(): Promise<void> {
   const id = ++loadId;
   const team = app.team;

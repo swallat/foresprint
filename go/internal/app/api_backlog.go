@@ -362,7 +362,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	view.Cycles = append(view.Cycles, cycles(leftover)...)
 
 	lanes, upcoming := a.lanes(data)
-	lanes, upcoming, view.UnmatchedSprints = a.backlogTrackerLanes(data, a.trackerBoardSprints(team), all, lanes, upcoming)
+	lanes, upcoming, view.UnmatchedSprints = a.backlogTrackerLanes(data, a.trackerBoardSprintsFor(team, data.Team), all, lanes, upcoming)
 	c.learn(upcoming)
 	laneAt := map[string]int{}
 	for i, l := range lanes {

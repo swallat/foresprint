@@ -755,6 +755,15 @@ func (a *API) trackerReadBoardSprints(team string, jira *sources.JiraSource, tra
 	return len(list)
 }
 
+// trackerBoardSprintsFor is the kept list of board sprints, but only while the team still reads
+// from a Jira board: a removed or changed board number must not leave old sprints behind.
+func (a *API) trackerBoardSprintsFor(team string, t model.Team) []sources.SprintValue {
+	if t.Source() != model.SourceTracker || t.Tracker.Kind != "jira" || t.Tracker.BoardID == nil {
+		return nil
+	}
+	return a.trackerBoardSprints(team)
+}
+
 func (a *API) trackerBoardSprints(team string) []sources.SprintValue {
 	a.mu.Lock()
 	defer a.mu.Unlock()
