@@ -67,3 +67,24 @@ func TestResolveSprintExactIgnoresBareNumbers(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveSprintMatchesWithOrWithoutLeadingZero(t *testing.T) {
+	tr := model.TrackerSettings{}
+	padded := knownSprints{"2027.01": true, "2027.03": true, "2027.10": true}
+	for name, want := range map[string]string{
+		"AccSecc - BV Sprint 2027.3": "2027.03",
+		"Team Sprint 2027.03":        "2027.03",
+		"Team Sprint 2027.10":        "2027.10",
+		"Team Sprint 2027.2":         "",
+		"Team Sprint 2027.0":         "",
+	} {
+		got := ResolveSprint(name, tr, padded)
+		if (got == nil) != (want == "") || (got != nil && *got != want) {
+			t.Errorf("%q: got %v, want %q", name, got, want)
+		}
+	}
+	plain := knownSprints{"2027.3": true}
+	if got := ResolveSprint("BV Sprint 2027.03", tr, plain); got == nil || *got != "2027.3" {
+		t.Errorf("a padded name for an unpadded calendar: %v", got)
+	}
+}

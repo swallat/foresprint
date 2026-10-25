@@ -317,8 +317,14 @@ var sprintWords = regexp.MustCompile(`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`)
 func sprintWord(name string, sprints Sprints) *string {
 	var found *string
 	for _, w := range sprintWords.FindAllString(name, -1) {
-		if _, ok := sprints.End(w); !ok || !strings.ContainsAny(w, "._-") {
+		if !strings.ContainsAny(w, "._-") {
 			continue // a bare number may be anything ("Release 45"): only yearly ids count
+		}
+		if _, ok := sprints.End(w); !ok {
+			w = paddedYearly(w, sprints) // "2027.3" for a calendar whose ids are "2027.03"
+			if w == "" {
+				continue
+			}
 		}
 		if found != nil && *found != w {
 			return nil
@@ -327,6 +333,34 @@ func sprintWord(name string, sprints Sprints) *string {
 		found = &w
 	}
 	return found
+}
+
+var yearlyID = regexp.MustCompile(`^(\d{4})([._-])(\d{1,2})$`)
+
+// paddedYearly gives the id of the same yearly number with or without the leading zero ("2027.3"
+// for "2027.03" and back) when the calendar knows that spelling, else "".
+func paddedYearly(w string, sprints Sprints) string {
+	m := yearlyID.FindStringSubmatch(w)
+	if m == nil {
+		return ""
+	}
+	n := strings.TrimLeft(m[3], "0")
+	if n == "" {
+		return ""
+	}
+	padded := n
+	if len(n) == 1 {
+		padded = "0" + n
+	}
+	for _, c := range []string{m[1] + m[2] + n, m[1] + m[2] + padded} {
+		if c == w {
+			continue
+		}
+		if _, ok := sprints.End(c); ok {
+			return c
+		}
+	}
+	return ""
 }
 
 func ptrOrNil(s string) *string {
