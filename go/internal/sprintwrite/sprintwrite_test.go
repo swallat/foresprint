@@ -274,7 +274,7 @@ func TestLoadDirectoryUsesTheBoard(t *testing.T) {
 }
 
 func TestSprintNumber(t *testing.T) {
-	for in, want := range map[string]int{"12": 12, " 12 ": 12, "12.0": 12, "1234": 1234} {
+	for in, want := range map[string]int{"12": 12, "\t12\n": 12, "12.0": 12, "1234": 1234} {
 		if got, ok := SprintNumber(in); !ok || got != want {
 			t.Errorf("%q: %d %v", in, got, ok)
 		}

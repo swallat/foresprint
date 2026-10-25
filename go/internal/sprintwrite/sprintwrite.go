@@ -83,15 +83,6 @@ func (d *Directory) Add(known []sources.SprintValue) {
 	}
 }
 
-func (d Directory) byID(id string) (Ref, bool) {
-	for _, r := range d.sprints {
-		if r.ID == id {
-			return r, true
-		}
-	}
-	return Ref{}, false
-}
-
 // ByName finds a tracker sprint by its name.
 func (d Directory) ByName(name string) (Ref, bool) {
 	for _, r := range d.sprints {
