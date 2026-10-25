@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
@@ -625,7 +626,8 @@ func TestBacklogHasNoGapsBeforeTheLastUsedSprint(t *testing.T) {
 	if _, err := repo.SaveTeam(data.Team); err != nil {
 		t.Fatal(err)
 	}
-	far := "2027.4"
+	ids := forecast.KnownSprintIDs(data, forecast.DefaultLookupAhead)
+	far := ids[len(ids)-10] // well beyond the forecast horizon, whatever today is
 	tf := storage.TicketsFile{Tickets: []model.Ticket{
 		{Key: "X-1", Title: "Far ahead", InSprint: &far, EstimateSource: model.EstimateNone},
 	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
