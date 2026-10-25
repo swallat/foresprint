@@ -109,6 +109,33 @@ func TestSavePeopleRefusesToRemoveSomeoneWithHistory(t *testing.T) {
 	}
 }
 
+func TestSavePeopleRemovesNewPersonDespiteOpenSprints(t *testing.T) {
+	api, team := demoCopy(t)
+	view, _ := api.People(team)
+	today := api.day().Format(isoDay)
+	added := append(append([]PersonDTO{}, view.People...), PersonDTO{Name: "Neue Person", Kind: "member", Memberships: []MembershipDTO{{From: today, FTE: 1}}})
+	view, err := api.SavePeople(team, added)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rest []PersonDTO
+	for _, p := range view.People {
+		if p.Name == "Neue Person" {
+			if p.Used {
+				t.Fatal("a person added today must not count as used")
+			}
+			continue
+		}
+		rest = append(rest, p)
+	}
+	if len(rest) != len(view.People)-1 {
+		t.Fatal("new person not found")
+	}
+	if _, err := api.SavePeople(team, rest); err != nil {
+		t.Fatalf("a mistaken person must be removable: %v", err)
+	}
+}
+
 func TestAbsencePeriods(t *testing.T) {
 	api, team := demoCopy(t)
 	view, _ := api.People(team)
