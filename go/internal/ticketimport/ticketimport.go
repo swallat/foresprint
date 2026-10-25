@@ -427,7 +427,7 @@ func Convert(raw sources.RawTicket, env Env) model.Ticket {
 	return ticket
 }
 
-// KnownEpics returns the epics some project rule refers to.
+// KnownEpics returns the epics some project rule refers to (lower-cased: rules ignore case).
 func KnownEpics(projects []model.Project) map[string]bool {
 	found := map[string]bool{}
 	for _, p := range projects {
@@ -437,7 +437,7 @@ func KnownEpics(projects []model.Project) map[string]bool {
 		for _, leaf := range p.Match.Leaves() {
 			if leaf.Source == "epic" && !leaf.Contains {
 				for _, v := range leaf.Values {
-					found[v] = true
+					found[strings.ToLower(v)] = true
 				}
 			}
 		}
@@ -614,7 +614,7 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 		if tk.Project == nil {
 			add(Change{Kind: KindUnassigned, Key: tk.Key, Title: tk.Title, New: cloneStrings(tk.ProjectCandidates)})
 		}
-		if tk.Epic != nil && *tk.Epic != "" && !epicsKnown[*tk.Epic] {
+		if tk.Epic != nil && *tk.Epic != "" && !epicsKnown[strings.ToLower(*tk.Epic)] {
 			if _, ok := unknown[*tk.Epic]; !ok {
 				unknownOrder = append(unknownOrder, *tk.Epic)
 			}
