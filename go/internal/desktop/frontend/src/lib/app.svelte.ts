@@ -41,6 +41,8 @@ export const app = $state({
   pendingTags: [] as PendingTag[],
   /** Counts up after every Save or Refresh, so that open pages of the area Data reload. */
   rev: 0,
+  /** Counts up when the data folder changed behind this view's back (the other view wrote); the page is shown anew. */
+  changed: 0,
   toasts: [] as Toast[],
   /** Key of the ticket shown in the side panel, "" if closed. */
   ticket: '',

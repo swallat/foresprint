@@ -33,7 +33,7 @@
         <button class="btn ghost" type="button" disabled={!browser.running} onclick={stopBrowser}><Icon name="stop_circle" />{t('Switch off')}</button>
       </div>
       <p class="small muted">{t('The link only works on this computer and contains a secret key. It is new on every start and void once you switch the access off or close the program. When you share your screen, share the tab, not the link.')}</p>
-      <p class="small muted">{t('Changes made in the window show up in the browser after a few seconds, and the page offers to reload. Updates of the program are made in the window.')}</p>
+      <p class="small muted">{t('Changes show up in the other view within a second or two; the page is shown anew unless you are typing in a field. Updates of the program are made in the window.')}</p>
     </div>
   {/if}
 </div>

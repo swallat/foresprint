@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { app, leaveDemo, refresh, save, start } from './lib/app.svelte';
+  import { watchData } from './lib/liveData.svelte';
   import { t } from './lib/i18n.svelte';
   import { current, go, match } from './lib/router.svelte';
   import { pages } from './lib/routes';
@@ -39,6 +40,7 @@
   });
 
   onMount(async () => {
+    watchData();
     try {
       await start();
     } catch (e) {
@@ -99,7 +101,7 @@
           {/if}
           <svelte:boundary>
             {#if found}
-              {#key found.def.path + JSON.stringify(found.params)}
+              {#key found.def.path + JSON.stringify(found.params) + app.changed}
                 {#await found.def.load()}
                   <p class="muted">{t('Loading…')}</p>
                 {:then mod}

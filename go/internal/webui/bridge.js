@@ -1,29 +1,15 @@
 // Stands in for the Wails bridge when the page runs in a browser: window.go.app.API.<Method>(...)
-// becomes POST /api/<Method>. Also tells when the data changed behind the page's back.
+// becomes POST /api/<Method>. Also passes the changes of the data folder on to the page.
 (function () {
-  var de = /^de/i.test(navigator.language || '');
-  var known = null;
-  var banner = null;
-
-  function note(fp) {
-    if (known === null || fp === null) { known = fp; return; }
-    if (fp !== known) showBanner();
-  }
-
-  function showBanner() {
-    if (banner || !document.body) return;
-    banner = document.createElement('div');
-    banner.setAttribute('role', 'status');
-    banner.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;display:flex;gap:12px;align-items:center;padding:8px 14px;border-radius:8px;font:14px system-ui,sans-serif;background:#3b4cca;color:#fff;box-shadow:0 2px 12px rgba(0,0,0,.3)';
-    var span = document.createElement('span');
-    span.textContent = de ? 'Die Daten wurden im Fenster oder von außen geändert.' : 'The data was changed in the window or from outside.';
-    var btn = document.createElement('button');
-    btn.textContent = de ? 'Neu laden' : 'Reload';
-    btn.style.cssText = 'font:inherit;padding:2px 10px;border-radius:6px;border:1px solid #fff;background:transparent;color:#fff;cursor:pointer';
-    btn.onclick = function () { location.reload(); };
-    banner.appendChild(span);
-    banner.appendChild(btn);
-    document.body.appendChild(banner);
+  // The window and this page show the same data folder. The server tells every change of it
+  // (server-sent events); the page decides whether it was its own and reloads its view if not.
+  function listen() {
+    var es = new EventSource('/__events');
+    es.onmessage = function (e) {
+      // The first message is the state when the page opened; the page may not listen yet.
+      if (window.foresprintFingerprint === undefined) window.foresprintFingerprint = e.data;
+      window.dispatchEvent(new CustomEvent('foresprint:data', { detail: e.data }));
+    };
   }
 
   function call(name, args) {
@@ -33,11 +19,8 @@
       body: JSON.stringify(args),
     }).then(function (res) {
       if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-      var fp = res.headers.get('X-Fingerprint');
       return res.json().then(function (a) {
         if (a.error) throw a.error;
-        // Own calls move the baseline, so only the changes of the other side show the banner.
-        if (fp) known = fp;
         return a.result === undefined ? null : a.result;
       });
     });
@@ -52,11 +35,5 @@
   window.go = { app: { API: api } };
   window.foresprintWeb = true;
 
-  function poll() {
-    fetch('/__changes').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-      if (j) note(j.fingerprint);
-    }).catch(function () {});
-  }
-  setInterval(poll, 5000);
-  poll();
+  listen();
 })();

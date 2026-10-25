@@ -23,6 +23,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/swallat/foresprint/internal/app"
+	"github.com/swallat/foresprint/internal/webui"
 )
 
 //go:embed all:frontend/dist
@@ -39,7 +40,9 @@ func Run(version, dataDir string) error {
 	if err != nil {
 		return err
 	}
-	web := &browserAccess{api: api, assets: dist}
+	hub := webui.NewHub(api.DataDir, watchEvery)
+	defer hub.Close()
+	web := &browserAccess{api: api, assets: dist, hub: hub}
 	defer web.stop()
 	api.StartBrowser, api.StopBrowser, api.BrowserURL = web.start, web.stop, web.url
 	return wails.Run(&options.App{
@@ -62,6 +65,8 @@ func Run(version, dataDir string) error {
 		OnStartup: func(ctx context.Context) {
 			Trace("window created")
 			raise(ctx)
+			// The pages reload when the data changed behind their back (the browser page wrote).
+			hub.OnChange(func(fp string) { runtime.EventsEmit(ctx, "foresprint:data", fp) })
 			api.OpenURL = func(u string) { runtime.BrowserOpenURL(ctx, u) }
 			api.ChooseFolder = func(title string) (string, error) {
 				return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: title})

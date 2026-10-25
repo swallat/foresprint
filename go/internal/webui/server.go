@@ -38,7 +38,8 @@ const cookiePrefix = "foresprint_key_"
 type Server struct {
 	api    any
 	assets fs.FS
-	dir    func() string
+	hub    *Hub
+	done   chan struct{}
 	key    string
 	cookie string
 	ln     net.Listener
@@ -49,9 +50,9 @@ type Server struct {
 }
 
 // Start serves assets (the built frontend) and the methods of api (a pointer to a struct) on a
-// free port of 127.0.0.1. dataDir returns the folder whose changes the page watches.
+// free port of 127.0.0.1. The hub tells the pages when the data folder changed.
 // The methods named in deny cannot be called from the page.
-func Start(api any, assets fs.FS, dataDir func() string, deny ...string) (*Server, error) {
+func Start(api any, assets fs.FS, hub *Hub, deny ...string) (*Server, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return nil, err
@@ -62,7 +63,7 @@ func Start(api any, assets fs.FS, dataDir func() string, deny ...string) (*Serve
 	}
 	port := strconv.Itoa(ln.Addr().(*net.TCPAddr).Port)
 	s := &Server{
-		api: api, assets: assets, dir: dataDir, ln: ln,
+		api: api, assets: assets, hub: hub, done: make(chan struct{}), ln: ln,
 		key:    base64.RawURLEncoding.EncodeToString(raw),
 		cookie: cookiePrefix + port,
 		hosts:  map[string]bool{"127.0.0.1:" + port: true, "localhost:" + port: true},
@@ -84,6 +85,7 @@ func (s *Server) URL() string {
 // Close stops the server; the key is void afterwards.
 func (s *Server) Close() {
 	s.once.Do(func() {
+		close(s.done)
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		if err := s.srv.Shutdown(ctx); err != nil {
@@ -143,13 +145,52 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.URL.Path == "/__bridge.js":
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		_, _ = w.Write(bridgeJS)
-	case r.URL.Path == "/__changes":
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"fingerprint": Fingerprint(s.dir())})
+	case r.URL.Path == "/__events":
+		s.events(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/"):
 		s.call(w, r, strings.TrimPrefix(r.URL.Path, "/api/"))
 	default:
 		s.page(w, r)
+	}
+}
+
+// events streams the fingerprint of the data folder (server-sent events): first the current one,
+// then one for every change. The page decides whether the change was its own.
+func (s *Server) events(w http.ResponseWriter, r *http.Request) {
+	fl, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "no streaming", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	ch, cancel := s.hub.Subscribe()
+	defer cancel()
+	send := func(fp string) bool {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", fp)
+		fl.Flush()
+		return err == nil
+	}
+	if !send(s.hub.Current()) {
+		return
+	}
+	beat := time.NewTicker(15 * time.Second)
+	defer beat.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-s.done:
+			return
+		case fp := <-ch:
+			if !send(fp) {
+				return
+			}
+		case <-beat.C:
+			if _, err := fmt.Fprint(w, ": keep-alive\n\n"); err != nil {
+				return
+			}
+			fl.Flush()
+		}
 	}
 }
 
@@ -255,9 +296,6 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, name string) {
 		out, _ = json.Marshal(answer{Error: merr.Error()})
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if err == nil && merr == nil {
-		w.Header().Set("X-Fingerprint", Fingerprint(s.dir()))
-	}
 	_, _ = w.Write(out)
 }
 
