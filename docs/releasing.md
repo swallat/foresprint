@@ -26,7 +26,7 @@ with `-tags desktop,production` (Linux also `webkit2_41`), puts the newest holid
 attaches to the release page:
 
 - `foresprint_<version>_<os>_<arch>.tar.gz` (`.zip` on Windows) with the program at the top level
-  (the names are what the self-update looks for),
+  (the names are what the self-update looks for), next to `LICENSE` and `THIRD_PARTY_NOTICES.md`,
 - `foresprint-cli_<version>_linux_<arch>.tar.gz`: the same program without the window (built
   without the tag `desktop`, `CGO_ENABLED=0`), which needs no GTK or WebKit; the self-update of that
   variant looks for these names,
