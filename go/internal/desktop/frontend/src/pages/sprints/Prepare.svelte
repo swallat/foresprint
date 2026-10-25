@@ -14,6 +14,7 @@
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import SprintFigures from '../../lib/plan/SprintFigures.svelte';
+  import SprintMeta from '../../lib/sprints/SprintMeta.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
   import type { AbsencePeriod, PeopleView } from '../../lib/types.team';
@@ -131,6 +132,7 @@
 </script>
 
 <PageHead title={t('Prepare sprint')} lead={t('Enter the absences of the next sprints, then check what is still open.')} />
+<SprintMeta />
 <StageNav
   stage="prepare"
   missing={{
