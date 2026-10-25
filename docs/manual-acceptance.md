@@ -65,7 +65,7 @@ The core promise: YAML stays byte-identical until something is changed. Use a **
 | C3 | Compare forecast, capacity and velocity of one finished and the running sprint with `sprintforecast forecast <TEAM>` of 0.8. | Identical; report any difference with the sprint id. |
 | C4 | Only look around, then compare checksums and run `git status`. | Identical, `git status` clean. Any difference is a FAIL (attach file and diff). |
 | C5 | Make one small change (an absence period) and save. | `git diff` shows only the expected lines; LF line endings, key order unchanged, no whole-file reformatting. |
-| C6 | `foresprint check --strict <TEAM>`. | No errors (note warnings). |
+| C6 | `foresprint check --strict` (it checks every team in the data folder; use `--data <folder>` if needed). | No errors (note warnings). |
 
 ## D. Git storage (P1)
 
@@ -119,32 +119,35 @@ What the feature does (so a tester knows what a deviation is):
   planned sprint back). Source must be Jira.
 - It runs only on an explicit click, after a preview, with a per-ticket opt-out. Nothing is
   automatic.
-- It needs a frozen plan and a sprint that has not started.
+- It needs a frozen plan and a Foresprint sprint that has not started (by Foresprint's own sprint
+  dates, not the Jira sprint's state). An ACTIVE Jira sprint can still be the target; only a CLOSED
+  one is refused.
 - Two kinds of moves: committed tickets that are not yet in the Jira sprint go in; tickets in the
   Jira sprint that were taken out during planning go to `tracker.removed_target` (`backlog`, the
   `next` sprint, or a `pro_forma` sprint). Done tickets are never touched.
 - The plan is rebuilt from a fresh read of Jira just before writing, and only tickets that were
   shown and left ticked are written.
-- Jira calls: reads `GET /rest/api/2/search` and (with `tracker.board_id`)
+- Jira calls: reads `GET /rest/api/2/search`, `GET /rest/api/2/field` and (with `tracker.board_id`)
   `GET /rest/agile/1.0/board/{id}/sprint`; writes
-  `POST /rest/agile/1.0/sprint/{id}/issue` and `POST /rest/agile/1.0/backlog/issue`, in batches,
-  one request per target. The client allows no other write on this path. The first error stops
+  `POST /rest/agile/1.0/sprint/{id}/issue` and `POST /rest/agile/1.0/backlog/issue`, one
+  request per target and per 50 tickets. This path sends no other write. The first error stops
   the run; what went through stays undoable.
 - Undo puts the moved tickets back where they were, as long as the program was not restarted (the
-  list is kept in memory) and the earlier sprint is known and not closed.
+  list is kept in memory) the Foresprint sprint has not started, `write_sprint` is still on, and the earlier place is known
+  (the backlog or a known, not closed sprint).
 
 | # | Step | Expected |
 |---|---|---|
-| F1 | Switch the option on, set `board_id` and the removed-target choice, save. | The chip changes from "Read only" to "Writing back on"; `team.yaml` gains exactly these keys. |
-| F2 | Prepare Jira: a future (not started) sprint `<TEST-SPRINT>` on the board, 3 to 5 throw-away tickets in the backlog. Use the same sprint id or a `tracker.sprint_names` mapping in Foresprint; fetch the tickets. | Tickets show in the Backlog. |
+| F1 | Switch the option on, set the board (card "Jira board", field "Board number", `board_id`) and pick the removed-target choice explicitly, save. | The chip changes from "Read only" to "Writing back on"; `team.yaml` gains exactly these keys (an empty removed target means backlog and writes no key). |
+| F2 | Needs F1 (the empty future sprint is found only through the board number). Prepare Jira: a future sprint `<TEST-SPRINT>` on that board, 3 to 5 throw-away tickets on the same board. The Jira sprint must be named exactly like the Foresprint sprint id or be mapped through `tracker.sprint_names`; the Foresprint sprint must start in the future. Fetch the tickets. | Tickets show in the Backlog. |
 | F3 | Open the write-back card before freezing the plan. | Writing is not possible; the page says the plan must be frozen first. |
-| F4 | Freeze the plan with some of the tickets, open the preview. | One row per move with from, to and reason; single tickets can be unticked; nothing is written yet. |
+| F4 | Freeze the plan with some of the tickets, open the preview. | One row per move with from and destination; single tickets can be unticked; nothing is written yet. |
 | F5 | Preview with no matching Jira sprint (wrong name/mapping) or a closed sprint. | A problem text explains it; no moves are offered. |
 | F6 | Write only one or two tickets. | In Jira only the sprint of those tickets changed. Rank, estimate, status, texts, labels unchanged; no sprint created, started or closed. Unticked tickets did not move. |
 | F7 | Undo. | Tickets are back in their earlier place in Jira. After an app restart Undo is no longer offered (expected). |
-| F8 | Take a ticket out of the sprint in Foresprint that is still in the Jira sprint; open the preview. | A move to the configured removed target is offered; after writing, Jira shows it there. |
+| F8 | Mark a ticket as taken out in Foresprint that is still in the Jira sprint (before freezing, or unfreeze, take it out, freeze again; a ticket still on the frozen list is never offered as taken out); open the preview. | A move to the configured removed target is offered; after writing, Jira shows it there. |
 | F9 | Change a ticket in Jira by hand between preview and write. | The write uses the fresh state: no ticket is moved twice, no stale move is applied. |
-| F10 | A sprint that has already started. | The message says the plan can no longer be written. |
+| F10 | A Foresprint sprint that has already started. | The write-back button is disabled and the card shows "Freeze the plan first." (known wording gap: the page does not say the sprint has started; report as NOTE). Undo is refused too. |
 | F11 | Token without the right to edit sprints. | Plain-language 403; the run stops; the card says what, if anything, was already written. |
 | F12 | Work-package or CSV team. | The option is not offered or says it works with Jira only. |
 
@@ -210,7 +213,7 @@ Once per operating system if possible.
 | K3 | Window sizes and scaling: about 1000 px wide, maximised, 125% and 150% scaling, a second monitor. | Nothing cut off; tables scroll inside themselves. |
 | K4 | Folder dialog and paths: spaces, umlauts, a long path, a network drive (Windows). | The system dialog opens and remembers the choice. |
 | K5 | Speed. | Window in a few seconds, page changes feel instant, a backlog of over 1000 tickets stays smooth. |
-| K6 | Windows console: `foresprint check <TEAM>` from PowerShell. | Output shows; scripts use `Start-Process -Wait` where they need to wait. |
+| K6 | Windows console: `foresprint check` from PowerShell. | Output shows; scripts use `Start-Process -Wait` where they need to wait. |
 | K7 | macOS, Apple Silicon and Intel. | Starts, Dock name "Foresprint", menu bar, Cmd instead of Ctrl. |
 | K8 | Linux: Wayland and X11. | Window, clipboard, file dialog, application entry with icon. |
 | K9 | No internals. | No names of real teams, companies or people in the UI, help, examples or error texts (own data excepted). |
