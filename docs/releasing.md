@@ -11,6 +11,13 @@ Steps per release:
 3. The workflow builds the archives and writes the release page. A tag with a suffix
    (`v1.0.0-beta.1`) becomes a pre-release.
 
+## Third-party licenses
+
+`THIRD_PARTY_NOTICES.md` and the text shown on the About page
+(`go/internal/desktop/frontend/src/assets/third-party-notices.txt`) are generated from the Go
+modules and frontend packages that go into the program. Regenerate them whenever `go.mod` or the
+frontend dependencies change: `cd go/internal/desktop/frontend && npm ci && cd ../../../.. && node scripts/gen_notices.mjs`.
+
 ## The program (GitHub release files)
 
 The workflow builds the
