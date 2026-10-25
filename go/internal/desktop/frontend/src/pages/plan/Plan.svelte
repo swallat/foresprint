@@ -35,6 +35,7 @@
     void app.sprint;
     amounts = {};
     commit = null;
+    ctx = null;
     model.loading = true;
     void model.reload();
   });
@@ -189,6 +190,10 @@
   // priority and project in the planning order, the app says so if refused.
   async function ctxEdge(top: boolean): Promise<void> {
     const key = ctx?.key;
+    if (frozen) {
+      ctx = null;
+      return;
+    }
     const list = ctxIn === 'sprint' ? lane : candidates;
     ctx = null;
     const others = list.filter((x) => x.key !== key);
@@ -520,7 +525,7 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') ctx = null; }} onscroll={() => (ctx = null)} onresize={() => (ctx = null)} />
 
-{#if ctx && d}
+{#if ctx && d && !frozen}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div class="ctx-backdrop" onclick={() => (ctx = null)} oncontextmenu={(e) => { e.preventDefault(); ctx = null; }}></div>
   <div class="ctx" role="menu" aria-label={t('Move to')} style:left={`${ctx.x}px`} style:top={`${ctx.y}px`}>
