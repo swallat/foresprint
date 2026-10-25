@@ -214,5 +214,8 @@ table.t td.num input, table.t td.num .input { padding-right: 6px; margin-right: 
 p, .lead, .banner .grow { text-wrap: pretty; }
 .page p, .banner .grow { max-width: 70ch; }
 
-/* Top bar: below 1360 px the labels of Refresh, search and tracker give way to their icons */
-@media (max-width: 1360px) { .topbar .hide-mid { display: none; } .topbar .search { min-width: 0; padding: 4px 6px; } }
+/* Top bar, in steps so nothing runs out of the window: below 1800 px the labels of Refresh, search, tracker and update give way to
+   their icons, below 1200 px also the labels of the storage status and Save; the team picker then shrinks (see Topbar.svelte), below 520 px the update and tracker chips go (the storage status stays as icon) */
+@media (max-width: 1800px) { .topbar .hide-mid { display: none; } .topbar .search { min-width: 0; padding: 4px 6px; } }
+@media (max-width: 1200px) { .topbar .hide-compact { display: none; } }
+@media (max-width: 520px) { .topbar .sprint select { min-width: 8ch; } .topbar .brand { display: none; } .topbar .search { flex: none; } .topbar .chip-status:not([data-tour="topbar-status"]), .topbar .chip.fc { display: none; } }
