@@ -153,6 +153,15 @@
     <p class="small muted hint">
       {t('Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.')}
     </p>
+    <details class="why small">
+      <summary>{t('Why freeze?')}</summary>
+      <ul>
+        <li>{t('A frozen sprint has a fixed capacity: changing an absence period later no longer moves it. You can still type days into its cells.')}</li>
+        <li>{t('Only frozen sprints flow into the absence rate the forecast expects for future sprints.')}</li>
+        <li>{t('Closing a sprint in the Review freezes it automatically.')}</li>
+        <li>{t('A sprint you froze here opens again with a click on "Frozen"; nothing is lost.')}</li>
+      </ul>
+    </details>
     {#if current.length > 0}
       <div class="row gap period">
         <label class="small muted" for="pp-who">{t('Absence period for')}</label>
@@ -238,6 +247,13 @@
   .card h2 {
     margin: 0 0 8px;
     font: 600 16px/24px var(--font-ui);
+  }
+  .why {
+    margin: 0 0 8px;
+  }
+  .why ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
   }
   .hint {
     margin: 0 0 12px;
