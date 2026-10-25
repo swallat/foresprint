@@ -104,6 +104,31 @@ describe('Plan page', () => {
     expect(used()).toBe(before);
   });
 
+  it('the right-click menu moves a ticket between the lanes and to the top or bottom of its list', async () => {
+    await show();
+    const menu = (key: string) => {
+      row(key).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+      return tick();
+    };
+    const item = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('.ctx [role="menuitem"]')].find((b) => b.textContent!.includes(label))!;
+    await menu('ATL-415');
+    expect(item(`Sprint ${SPRINT}`).disabled).toBe(true);
+    item('Candidates').click();
+    await settled(() => expect(keys('Candidates')).toContain('ATL-415'));
+    expect(keys('Sprint')).not.toContain('ATL-415');
+
+    // The mock does not re-order; the call to the rank order is what counts.
+    const sort = vi.spyOn(mockApi, 'MoveTicketByRank');
+    const first = keys('Sprint')[0]!;
+    const last = keys('Sprint').at(-1)!;
+    await menu('ATL-423');
+    item('Top of the list').click();
+    await settled(() => expect(sort).toHaveBeenCalledWith('atlas', 'ATL-423', first, false));
+    await menu('ATL-412');
+    item('Bottom of the list').click();
+    await settled(() => expect(sort).toHaveBeenCalledWith('atlas', 'ATL-412', last, true));
+  });
+
   it('Alt+arrow moves the ticket under the focus between the lanes', async () => {
     await show();
     const before = used();
