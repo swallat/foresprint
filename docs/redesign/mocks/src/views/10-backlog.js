@@ -62,7 +62,7 @@
       ${FS.capBar(used, s.forecast, s.low, s.high)}
       <div class="row small"><span class="data"><strong>${used}</strong> Punkte vorgemerkt, Forecast ${s.forecast} (Spanne ${s.low} bis ${s.high})</span>${calcBtn(`data-calc="${id}"`)}</div>
       <div class="row only-multiprod">${prods}</div>
-      ${over ? `<div class="banner bad" style="margin:0"><span>${FS.icon("warning")}</span><div class="grow">Über der Obergrenze: ${used} Punkte, Spanne endet bei ${s.high}. Das ist eine Warnung, kein Stopp.</div></div>` : ""}
+      ${over ? `<div class="banner bad" style="margin:0"><span>${FS.icon("warning")}</span><div class="grow">Über der Obergrenze: ${used} Punkte, Spanne endet bei ${s.high}.</div></div>` : ""}
       ${noEst || open ? `<div class="row small muted">${FS.icon("help", "small")}${open} nicht refined, ${noEst} ohne Schätzung (zählen 0)</div>` : ""}
     </div><div class="lane-body">${ts.length ? ts.map((t) => row(t, { noProject: true })).join("") : `<p class="muted small bl-empty">Noch nichts vorgemerkt. Ticket hierher ziehen oder Vormerken für... wählen.</p>`}</div></div>`;
   }
@@ -301,7 +301,7 @@
     id: "F2", title: "Backlog pflegen",
     summary: "Abruf prüfen, filtern, Tickets ordnen und vormerken, Ticket-Panel pflegen, Regelhinweise klären.",
     steps: [
-      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter, nichts ist gesperrt.", before() { setView("alle"); B.stale = true; FS.setTrk("jira"); B.group = "none"; } },
+      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter.", before() { setView("alle"); B.stale = true; FS.setTrk("jira"); B.group = "none"; } },
       { view: "backlog", hl: "#bl-chips", text: "Frischer Abruf: Wähle eine gespeicherte Ansicht (zum Beispiel Refinement) oder klicke Filter an. Die Liste reagiert sofort, auch mit der Suche.", before() { B.stale = false; setView("alle"); } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type", text: "Ordnen: Ticket am Griff nach oben oder unten ziehen oder Alt+Pfeil nutzen. In einen Sprint rechts ziehen merkt es vor, ein Toast bietet Rückgängig. Ohne Maus: mehrere ankreuzen und \"Vormerken für...\".", before() { setView("alle"); B.sel = []; } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type .title", text: "Ein Klick auf den Titel öffnet das Ticket-Panel. Schlüssel und Pfeil öffnen " + D.team.tracker + "." },
