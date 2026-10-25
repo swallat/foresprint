@@ -694,6 +694,8 @@
   "{tracker}: last fetch {when}, {count} tickets.": "{tracker}: letzter Abruf {when}, {count} Tickets.",
   "{tracker}: no fetch yet.": "{tracker}: noch kein Abruf.",
   "{used} of {plan} {unit}": "{used} von {plan} {unit}",
+  "Filled: planned amount. Green area between the two lines: range {low} to {high} of the Forecast PLAN.": "Gefüllt: geplanter Betrag. Grüner Bereich zwischen den beiden Strichen: Spanne {low} bis {high} des Forecast PLAN.",
+  "Filled: planned amount.": "Gefüllt: geplanter Betrag.",
   "{used} of {plan} {unit}, range {low} to {high}": "{used} von {plan} {unit}, Spanne {low} bis {high}",
   "{used} {unit}": "{used} {unit}",
   "“also refined if”": "„auch refined, wenn“"

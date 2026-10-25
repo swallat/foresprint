@@ -22,9 +22,14 @@
       ? t('{used} of {plan} {unit}, range {low} to {high}', { used, plan: plan ?? 0, unit, low, high })
       : t('{used} of {plan} {unit}', { used, plan: plan ?? 0, unit }),
   );
+  const hint = $derived(
+    low != null && high != null
+      ? t('Filled: planned amount. Green area between the two lines: range {low} to {high} of the Forecast PLAN.', { low, high })
+      : t('Filled: planned amount.'),
+  );
 </script>
 
-<div class="cap" role="img" aria-label={label}>
+<div class="cap" role="img" aria-label={label} title={hint}>
   {#if low != null && high != null}
     <div class="fc" style:left="{pct(low)}%" style:width="{pct(high) - pct(low)}%"></div>
   {/if}
