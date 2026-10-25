@@ -97,7 +97,7 @@ let lastWriteEnd = 0;
 /** Methods that change data. Reads (the status poll, what a page loads when it opens) must not
  * count: a change of the other view right after them would be taken for the own one. */
 const writes =
-  /^(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
+  /^(?!RefreshBoardSprints|SetupCheckServer|SetupGuide|SetupState|SetupRegions|ArchivedTeams)(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
 
 /** True while a call of this view runs or a write of it ended a moment ago: a change of the data
  * folder in that time is most likely its own (see liveData.svelte.ts). */

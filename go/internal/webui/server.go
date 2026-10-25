@@ -186,10 +186,10 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case <-beat.C:
-			if _, err := fmt.Fprint(w, ": keep-alive\n\n"); err != nil {
+			// A real message (the current state again), so the page can tell the stream lives.
+			if !send(s.hub.Current()) {
 				return
 			}
-			fl.Flush()
 		}
 	}
 }

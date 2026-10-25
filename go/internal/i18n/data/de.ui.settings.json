@@ -186,6 +186,8 @@
   "page updated": "Seite aktualisiert",
   "waiting, you are typing": "wartet, du tippst gerade",
   "taken as your own work": "als eigene Arbeit gewertet",
-  "This view has not seen a change of the other view yet.": "Diese Ansicht hat noch keine Änderung der anderen Ansicht gesehen."
+  "This view has not seen a change of the other view yet.": "Diese Ansicht hat noch keine Änderung der anderen Ansicht gesehen.",
+  "Connection to the program: alive, last message {time}.": "Verbindung zum Programm: besteht, letzte Meldung {time}.",
+  "Connection to the program: no message yet.": "Verbindung zum Programm: noch keine Meldung."
  }
 }
