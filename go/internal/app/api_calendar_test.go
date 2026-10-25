@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/swallat/foresprint/internal/calendar"
 )
 
 func TestCalendarShowsFinishedRunningAndPlanned(t *testing.T) {
@@ -282,4 +284,43 @@ func viewStart(v CalendarView, id string) string {
 		}
 	}
 	return ""
+}
+
+func TestCalendarWorkdaysExcludeHolidaysOnWorkdays(t *testing.T) {
+	api, team := demoCopy(t)
+	view, err := api.Calendar(team, 40)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := api.loadTeam(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sprints, err := api.calendarWindow(data, 40)
+	if err != nil {
+		t.Fatal(err)
+	}
+	region := ""
+	if data.Team.Capacity.Region != nil {
+		region = *data.Team.Capacity.Region
+	}
+	withHoliday := 0
+	for i, r := range view.Rows {
+		// expected values from the workdays of the team, independent of the listed holidays
+		want, listed := 0, 0
+		for _, d := range calendar.TeamWorkdays(&data.Team, sprints[i].Start, sprints[i].End) {
+			if calendar.IsHoliday(d, region, data.Team.Capacity.Country) {
+				listed++
+			} else {
+				want++
+			}
+		}
+		if r.Workdays != want || len(r.Holidays) != listed {
+			t.Errorf("%s: workdays %d holidays %d, want %d and %d", r.ID, r.Workdays, len(r.Holidays), want, listed)
+		}
+		withHoliday += listed
+	}
+	if withHoliday == 0 {
+		t.Error("no sprint with a holiday in 40 sprints")
+	}
 }
