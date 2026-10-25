@@ -47,7 +47,7 @@ func SprintNumber(id string) (int, bool) {
 	if n, err := strconv.Atoi(id); err == nil && n > 0 {
 		return n, true
 	}
-	if f, err := strconv.ParseFloat(id, 64); err == nil && f == math.Trunc(f) && f >= 0 && f < 1<<31 {
+	if f, err := strconv.ParseFloat(id, 64); err == nil && f == math.Trunc(f) && f >= 1 && f < 1<<31 {
 		return int(f), true
 	}
 	return 0, false
@@ -59,25 +59,28 @@ func SprintNumber(id string) (int, bool) {
 func (d *Directory) Add(known []sources.SprintValue) {
 	for _, s := range known {
 		_, numeric := SprintNumber(s.ID)
-		merged := false
-		for i := range d.sprints {
-			r := &d.sprints[i]
-			if r.ID == s.ID && s.ID != "" {
-				merged = true
-				break
-			}
-			if r.Name == s.Name {
-				if _, have := SprintNumber(r.ID); !have && numeric {
-					r.ID = s.ID
+		sameID, fill := -1, -1
+		for i, r := range d.sprints {
+			switch {
+			case s.ID != "" && r.ID == s.ID:
+				sameID = i
+			case numeric && r.Name == s.Name && fill < 0:
+				if _, have := SprintNumber(r.ID); !have {
+					fill = i
 				}
-				if r.State == "" {
-					r.State = s.State
-				}
-				merged = true
-				break
 			}
 		}
-		if !merged {
+		switch {
+		case sameID >= 0:
+			if d.sprints[sameID].State == "" {
+				d.sprints[sameID].State = s.State
+			}
+		case fill >= 0:
+			d.sprints[fill].ID = s.ID
+			if d.sprints[fill].State == "" {
+				d.sprints[fill].State = s.State
+			}
+		default:
 			d.sprints = append(d.sprints, Ref{ID: s.ID, Name: s.Name, State: s.State})
 		}
 	}

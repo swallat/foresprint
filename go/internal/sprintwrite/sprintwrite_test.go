@@ -282,7 +282,7 @@ func TestSprintNumber(t *testing.T) {
 			t.Errorf("%q: %d %v", c.in, got, ok)
 		}
 	}
-	for _, in := range []string{"", "abc", "12.5", "-3", "None"} {
+	for _, in := range []string{"", "abc", "12.5", "-3", "None", "0", "0.0"} {
 		if _, ok := SprintNumber(in); ok {
 			t.Errorf("%q must be refused", in)
 		}
@@ -310,5 +310,31 @@ func TestApplyFloatIDAndErrorNamesValue(t *testing.T) {
 	res := Apply(plan, f)
 	if res.Err == nil || !strings.Contains(res.Err.Error(), "[id=x]") {
 		t.Fatalf("%v", res.Err)
+	}
+}
+
+func TestAddKeepsSameNamedSprintsWithOtherIDs(t *testing.T) {
+	d := NewDirectory([]sources.SprintValue{{ID: "5", Name: "2026.3", State: "CLOSED"}}, model.TrackerSettings{})
+	d.Add([]sources.SprintValue{{ID: "9", Name: "2026.3", State: "FUTURE"}, {ID: "5", Name: "2026.3"}})
+	if len(d.sprints) != 2 || d.sprints[0].ID != "5" || d.sprints[1].ID != "9" {
+		t.Fatalf("%+v", d.sprints)
+	}
+}
+
+func TestApplyUsesBoardIDForTicketSprintWithoutID(t *testing.T) {
+	id := 3
+	tracker := model.TrackerSettings{BoardID: &id}
+	d, err := LoadDirectory([]sources.SprintValue{{Name: "2026.3", State: "FUTURE"}}, &fakeBoard{}, tracker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, ok := d.ByName("2026.3")
+	if !ok {
+		t.Fatal("unknown")
+	}
+	f := &fake{}
+	res := Apply(Plan{Moves: []Move{{Key: "A-1", To: &target}}}, f)
+	if res.Err != nil || !reflect.DeepEqual(f.calls, []string{"sprint:9:A-1"}) {
+		t.Fatalf("%v %v", res.Err, f.calls)
 	}
 }
