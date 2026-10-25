@@ -304,6 +304,9 @@
           </tbody>
         </table>
       </div>
+      {#if view.upcoming.some((r) => r.carryIn > 0)}
+        <p class="small muted">{t('* Plannable after the carry-over of unfinished work from the running sprint has been deducted.')}</p>
+      {/if}
     </section>
 
     <div class="grid cols-2">
