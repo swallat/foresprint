@@ -28,7 +28,7 @@ The navigation on the left has these groups. The Backlog appears only for teams 
 | Group | Page | Content |
 |---|---|---|
 | | Today | what is due next in the sprint, findings (projects at risk, open tickets without an estimate) |
-| | Backlog | the tickets in one order, as in Jira (the rank of the tracker by default, or your own order): filter, sort, group, drag between backlog and sprints or use the context menu "Move to", with capacity and project dates changing at once; sprints of the Jira board as lanes, side by side or stacked; presentation view for the refinement or planning meeting |
+| | Backlog | the tickets in one order, as in Jira (the rank of the tracker by default, or your own order): filter, sort, group, drag between backlog and sprints or use the context menu "Send to", with capacity and project dates changing at once; coming sprints as lanes (including the matching sprints of the Jira board), side by side or stacked; presentation view for the refinement or planning meeting |
 | Sprints | Sprint overview | the sprints with their state |
 | | Prepare | absences per person and sprint with a live preview of capacity and forecast; per cell announced or confirmed |
 | | Pre-plan | per product, what should go into the sprint, compared with the default |
@@ -47,6 +47,7 @@ The navigation on the left has these groups. The Backlog appears only for teams 
 | | Tickets and tracker | tracker connection (Jira, CSV, work packages), field mapping, rules, import of a package |
 | | Storage | folder or Git server, sign-in, name and e-mail for saves, way of sharing, switching the branch |
 | | Personal | settings that only apply to you on this computer: language, theme (system, light, dark), density, how calculations are shown |
+| | Browser | show Foresprint as a page of your browser, on this computer only |
 | | Updates | the update mode (`on`, `notice`, `off`) and the check for a new version |
 | Help | Calculations, Guided flows | the formulas with your numbers, and the guided flows as a tutorial with the demo team |
 
@@ -58,9 +59,10 @@ sprint page shows the sprint id and its period in its head.
   <img src="assets/screenshots/backlog-light.png" alt="Backlog: tickets in the order of the tracker on the left, the coming sprints with their forecast on the right">
 </picture>
 
-The **Backlog** shows all tickets in one order, with the sprints of the Jira board next to it as
-lanes (also empty ones). A ticket that already sits in a Jira sprint stays there; moving it
-is done in Jira unless the optional [write-back](jira.md#writing-the-planned-sprint-back) is on.
+The **Backlog** shows all tickets in one order, with the coming sprints next to it as lanes. A
+Jira board sprint gets a lane when it matches a sprint of Foresprint. A ticket that already sits in
+a Jira sprint is locked in the Backlog ("Move it in Jira"); only the optional
+[write-back](jira.md#writing-the-planned-sprint-back) of the Plan page can move it.
 **Plan** takes tickets from the candidates into the sprint until sum, products and projects fit:
 
 <picture>
@@ -110,9 +112,9 @@ address that is demonstrably unreachable, or a server without the local branch, 
 with explicit confirmation; a repository that is not found, a rejected login or an untrusted
 certificate are never saved. Credentials in the address are rejected, never stored and never shown.
 For https servers, **Sign-in (token)** hands an access token once to Git's credential helper and
-checks it; Foresprint never stores or shows the token. Choose the kind of server (GitLab, Gitea
-or Forgejo, GitHub, other; it is detected from the address and can be changed): the user name the
-server expects follows from it (for example `oauth2` for GitLab), and "How do I get a token?" lists
+checks it; Foresprint never stores or shows the token. The kind of server (GitLab, Gitea
+or Forgejo, GitHub) is detected from the address; when it cannot be told, **My server is** lets you
+choose. The user name the server expects follows from it (for example `oauth2` for GitLab), and "How do I get a token?" lists
 the steps for that server. It creates no SSH keys and changes the
 global Git configuration only on request: the name and e-mail of the commits, and the credential
 helper when you click "Turn it on".

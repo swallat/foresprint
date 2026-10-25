@@ -61,7 +61,7 @@ It is statically linked and needs no libraries. Install it with
 curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/v1/install.sh | FORESPRINT_VARIANT=cli sh
 ```
 
-`foresprint update` stays on this variant. It has all commands except `foresprint gui`.
+`foresprint update` stays on this variant. It has all commands except `foresprint gui` and `foresprint serve`.
 
 ## Not signed: SmartScreen and Gatekeeper
 

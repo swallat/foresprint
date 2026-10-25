@@ -126,8 +126,8 @@ points out new versions; it never installs by itself (`foresprint update --auto 
 - **Several products and projects:** distribution per product, projects with milestones and
   contingents, and a traffic light that shows whether a project meets its target.
 - **Ticket pre-planning:** read tickets from Jira (read-only with a personal access token; writing
-  a planned sprint back is optional) or a CSV export. The Backlog shows them in the order of Jira,
-  with the sprints of the Jira board as lanes, and distributes them over the coming sprints.
+  a planned sprint back is optional) or a CSV export. The Backlog shows them in the order of Jira
+  and distributes them over the coming sprints, which are lanes next to the list.
 - **In the browser too:** show the same program as a page of your browser, on your computer only,
   for example next to Jira (`foresprint serve` or Settings > Browser).
 - **Analyses:** range, focus factor, buffer, and "When will it be done?" (Monte Carlo).
