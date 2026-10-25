@@ -6,17 +6,18 @@ const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority'
 
 interface DemoTicket {
   key: string;
+  title: string;
   estimate: number;
   facts: Record<string, string[]>;
 }
 
 const tickets: DemoTicket[] = [
-  { key: 'ATL-412', estimate: 5, facts: { component: ['Portal'], label: ['self-service'], epic: ['Self-Service 2.0'] } },
-  { key: 'ATL-415', estimate: 8, facts: { component: ['Portal'], label: ['self-service'], epic: ['Self-Service 2.0'] } },
-  { key: 'ATL-417', estimate: 5, facts: { component: ['Mobile App'], epic: ['Self-Service 2.0'] } },
-  { key: 'ATL-421', estimate: 8, facts: { component: ['Platform'], label: ['login', 'security'], epic: ['Login switch'] } },
-  { key: 'ATL-423', estimate: 5, facts: { component: ['Billing'], label: ['xrechnung'], epic: ['E-Invoice'] } },
-  { key: 'ATL-426', estimate: 2, facts: { component: ['Portal'] } },
+  { key: 'ATL-412', title: 'Self-service profile page', estimate: 5, facts: { component: ['Portal'], label: ['self-service'], epic: ['Self-Service 2.0'] } },
+  { key: 'ATL-415', title: 'Self-service password reset', estimate: 8, facts: { component: ['Portal'], label: ['self-service'], epic: ['Self-Service 2.0'] } },
+  { key: 'ATL-417', title: 'Self-service in the mobile app', estimate: 5, facts: { component: ['Mobile App'], epic: ['Self-Service 2.0'] } },
+  { key: 'ATL-421', title: 'Switch login to single sign-on', estimate: 8, facts: { component: ['Platform'], label: ['login', 'security'], epic: ['Login switch'] } },
+  { key: 'ATL-423', title: 'Export invoices as XRechnung', estimate: 5, facts: { component: ['Billing'], label: ['xrechnung'], epic: ['E-Invoice'] } },
+  { key: 'ATL-426', title: 'Fix portal footer links', estimate: 2, facts: { component: ['Portal'] } },
 ];
 
 // A small reader for the rule language: field = "value", field ~ "part", AND, OR. The real
@@ -373,7 +374,7 @@ export const teamMock: TeamApi = {
     if (!fields.includes(first)) {
       return { ...base, valid: false, error: `Unknown field '${first}'`, pos: 0 };
     }
-    const hit = tickets.filter((t) => evaluate(text, t.facts));
+    const hit = tickets.filter((t) => evaluate(text, { ...t.facts, title: [t.title] }));
     return {
       ...base,
       valid: true,
