@@ -228,7 +228,16 @@ async function run(kind: 'save' | 'refresh' | 'sync', call: () => Promise<Result
     app.busy = '';
     await refreshStatus();
     app.rev++;
+    // Tickets or the changes of others are new data: the open page shows them at once.
+    if (kind !== 'save') await showNewData();
   }
+}
+
+/** The page reads its data anew (like after a change from the other view). Sprints may have
+ * come with a fetch, so the list is read again first. */
+async function showNewData(): Promise<void> {
+  await refreshSprints();
+  app.changed++;
 }
 
 /** Save and share (top bar). Works from every page. */
@@ -300,7 +309,11 @@ export async function autoFetch(): Promise<void> {
   }
   const before = tr.last;
   await refreshStatus();
-  if (app.team === team && app.status.tracker.last !== before) app.rev++;
+  if (app.team === team && app.status.tracker.last !== before) {
+    app.rev++;
+    // not pulled away from under someone who is typing: the live watcher waits for a quiet moment
+    window.dispatchEvent(new CustomEvent('foresprint:news'));
+  }
 }
 
 /** Looks for a new version (once a day, never in the demo or a development build); silent on failure. */

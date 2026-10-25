@@ -94,11 +94,19 @@ function onData(fp: string): void {
   } else void apply();
 }
 
+/** News of the own view (a fetch by itself) is shown like a change from the other view, but
+ * waits while someone types. */
+function onNews(): void {
+  if (typing() || pending) applyWhenQuiet();
+  else void apply();
+}
+
 /** Starts listening; safe to call twice. Does nothing in a plain browser without the program. */
 export function watchData(): void {
   if (started) return;
   started = true;
   known = (window as unknown as { foresprintFingerprint?: string }).foresprintFingerprint;
+  window.addEventListener('foresprint:news', onNews);
   window.addEventListener(EVENT, (e) => onData(String((e as CustomEvent).detail)));
   const runtime = (window as unknown as { runtime?: WailsRuntime }).runtime;
   runtime?.EventsOn?.(EVENT, (fp) => {
