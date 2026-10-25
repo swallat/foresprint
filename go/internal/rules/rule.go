@@ -17,12 +17,14 @@ const (
 )
 
 // Sources a rule leaf can refer to; the ticket facts carry one value list per source.
-var Sources = []string{"epic", "component", "label", "status", "issue_type", "priority", "in_sprint"}
+var Sources = []string{"epic", "component", "label", "status", "issue_type", "priority", "title", "in_sprint"}
 
 // Facts are the values of a ticket per source (see Ticket.facts in the Python core).
 type Facts map[string][]string
 
-// Rule is one node of an assignment rule. A leaf (Op == OpLeaf) names a source and a list of
+// Rule is one node of an assignment rule. Equality (=, !=, IN) and contains (~, !~) both ignore
+// case: Jira finds the label "AppP" with "appp" too, and a rule that silently misses a ticket over
+// upper/lower case is worse than one that matches a little too much. A leaf (Op == OpLeaf) names a source and a list of
 // values; the values are OR-combined. The short form of projects.yaml (several sources directly
 // under "match:") is an OpAny node with Short set; it is written back as the flat mapping.
 // Unknown sources and operators without children are kept so that the check can report them.
@@ -51,7 +53,7 @@ func (r *Rule) Matches(facts Facts) bool {
 					if strings.Contains(lower(h), lower(v)) {
 						return true
 					}
-				} else if v == h {
+				} else if strings.EqualFold(v, h) {
 					return true
 				}
 			}

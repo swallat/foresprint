@@ -456,10 +456,10 @@
    },
    "matches": [
     false,
+    true,
     false,
     false,
-    false,
-    false,
+    true,
     false,
     false,
     false,
@@ -478,10 +478,13 @@
    ],
    "matched_sources": [
     [],
-    [],
+    [
+     "epic"
+    ],
     [],
     [],
     [
+     "component",
      "label"
     ],
     [],
@@ -1404,6 +1407,7 @@
     [],
     [],
     [
+     "epic",
      "label"
     ],
     [],
@@ -2257,7 +2261,9 @@
     [],
     [],
     [],
-    [],
+    [
+     "epic"
+    ],
     [],
     [],
     [],
@@ -4367,7 +4373,7 @@
   },
   {
    "text": "foo = 1",
-   "message": "Unknown field 'foo' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "message": "Unknown field 'foo' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)",
    "position": 0
   },
   {
@@ -4377,7 +4383,7 @@
   },
   {
    "text": "epic = A AND",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found 'end'",
    "position": 12
   },
   {
@@ -4437,12 +4443,12 @@
   },
   {
    "text": "AND epic = A",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'AND'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found 'AND'",
    "position": 0
   },
   {
    "text": "epic = A OR",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found 'end'",
    "position": 11
   },
   {
@@ -4452,12 +4458,12 @@
   },
   {
    "text": "NOT",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found 'end'",
    "position": 3
   },
   {
    "text": "( )",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found ')'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found ')'",
    "position": 2
   },
   {
@@ -4477,7 +4483,7 @@
   },
   {
    "text": "customer = a",
-   "message": "Unknown field 'customer' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "message": "Unknown field 'customer' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)",
    "position": 0
   },
   {
@@ -4487,12 +4493,12 @@
   },
   {
    "text": "= A",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found '='",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found '='",
    "position": 0
   },
   {
    "text": "epic = A AND AND label = b",
-   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'AND'",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, title, in_sprint), found 'AND'",
    "position": 13
   },
   {
@@ -4507,7 +4513,7 @@
   },
   {
    "text": "{allowed} = x",
-   "message": "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "message": "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)",
    "position": 0
   },
   {

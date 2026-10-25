@@ -216,9 +216,9 @@ projects:
       - label: [maintenance, hotfix]
 ```
 
-Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, `in_sprint` (`true`,
+Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, `title`, `in_sprint` (`true`,
 `false` or a sprint id). Validation rejects empty lists, unknown sources and short and long form
-in the same `match:`.
+in the same `match:`. `title` is the ticket title; use `title_contains` (`title ~ "login"`) to match parts of it. All comparisons ignore upper and lower case.
 
 More sources come from `tracker.rule_fields` in `team.yaml`: a name for the rule, the display name
 of the Jira field (or the header of the CSV column) as value, e.g. `rule_fields: {customer:
