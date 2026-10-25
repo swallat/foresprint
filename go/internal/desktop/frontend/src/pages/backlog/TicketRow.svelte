@@ -25,6 +25,8 @@
     ondragend?: () => void;
     /** Moves one lane: 1 = next sprint, -1 = back. */
     onstep?: (step: -1 | 1) => void;
+    /** Right click: the "Send to" menu. */
+    oncontext?: (e: MouseEvent) => void;
   }
   let {
     ticket: tk,
@@ -39,6 +41,7 @@
     ondragstart,
     ondragend,
     onstep,
+    oncontext,
   }: Props = $props();
 
   const packages = $derived(view.source === 'packages');
@@ -83,6 +86,7 @@
   onkeydown={key}
   ondragstart={ondragstart}
   ondragend={ondragend}
+  oncontextmenu={oncontext}
 >
   {#if selectable}
     <input type="checkbox" class="sel" {checked} aria-label={t('Select {key}', { key: tk.key })} onchange={(e) => onselect?.(e.currentTarget.checked)} />

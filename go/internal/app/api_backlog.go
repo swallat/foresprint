@@ -23,9 +23,6 @@ import (
 	"github.com/swallat/foresprint/internal/workpackages"
 )
 
-// lanesShown is the number of coming sprints the backlog shows as lanes.
-const lanesShown = 3
-
 // backlogMu serialises the changes of the ticket files (read, change, write).
 var backlogMu sync.Mutex
 
@@ -321,6 +318,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	view.Cycles = append(view.Cycles, cycles(leftover)...)
 
 	lanes, upcoming := a.lanes(data)
+	lanes, upcoming = a.backlogTrackerLanes(data, all, lanes, upcoming)
 	c.learn(upcoming)
 	laneAt := map[string]int{}
 	for i, l := range lanes {
@@ -407,8 +405,8 @@ func cycles(left []model.Ticket) [][]string {
 	return [][]string{keys}
 }
 
-// lanes returns the next coming sprints with their Forecast PLAN, and all coming sprints of
-// the timeline.
+// lanes returns every coming sprint of the timeline as a lane with its Forecast PLAN (the same
+// list as the second return value).
 func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 	now := today()
 	plans := map[string]*float64{}
@@ -429,12 +427,8 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 		}
 	}
 	sort.SliceStable(upcoming, func(i, j int) bool { return upcoming[i].Start.Before(upcoming[j].Start) })
-	shown := upcoming
-	if len(shown) > lanesShown {
-		shown = shown[:lanesShown]
-	}
-	out := make([]BacklogLane, 0, len(shown))
-	for _, s := range shown {
+	out := make([]BacklogLane, 0, len(upcoming))
+	for _, s := range upcoming {
 		state := "unknown"
 		switch s.AbsenceStatus() {
 		case model.AbsencesConfirmed:
@@ -452,6 +446,39 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 		})
 	}
 	return out, upcoming
+}
+
+// backlogTrackerLanes adds a lane for every coming sprint a ticket is in according to the tracker that
+// the timeline does not reach (further ahead than the forecast horizon), so that no sprint of the
+// tracker is missing from the backlog.
+func (a *API) backlogTrackerLanes(data *storage.TeamData, all []model.Ticket, lanes []BacklogLane, upcoming []model.Sprint) ([]BacklogLane, []model.Sprint) {
+	now := today()
+	have := map[string]bool{}
+	for _, l := range lanes {
+		have[l.Sprint] = true
+	}
+	var extra []model.Sprint
+	for _, tk := range all {
+		id := backlogStr(tk.InSprint)
+		if id == "" || have[id] {
+			continue
+		}
+		have[id] = true // also a miss: look each sprint up once
+		s, err := forecast.FindSprint(data, id, forecast.DefaultLookupAhead)
+		if err != nil || s == nil || !s.Start.After(now) {
+			continue
+		}
+		extra = append(extra, *s)
+	}
+	sort.SliceStable(extra, func(i, j int) bool { return extra[i].Start.Before(extra[j].Start) })
+	for _, s := range extra {
+		lanes = append(lanes, BacklogLane{
+			Sprint: s.ID, Start: s.Start.Format("2006-01-02"), End: s.End.Format("2006-01-02"),
+			Absences: "unknown", Tickets: []BacklogTicket{},
+		})
+		upcoming = append(upcoming, s)
+	}
+	return lanes, upcoming
 }
 
 // Ticket returns one ticket with all details.
@@ -617,6 +644,9 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 					s = &e.Sprint
 				}
 			}
+		}
+		if s == nil {
+			s, _ = forecast.FindSprint(data, sprint, forecast.DefaultLookupAhead) // a tracker sprint beyond the horizon
 		}
 		if s == nil {
 			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is not known.", "id", sprint))

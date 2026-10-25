@@ -76,14 +76,15 @@ export async function changed(): Promise<void> {
 }
 
 /** Puts a work package before (or after) another one in the backlog order; anchor "" = to the end. */
-export async function reorder(key: string, anchor: string, after = false): Promise<void> {
+export async function reorder(key: string, anchor: string, after = false): Promise<boolean> {
   try {
     await api.MoveWorkPackage(app.team, key, anchor, after);
   } catch (e) {
     toast(String(e), 'bad');
-    return;
+    return false;
   }
   await changed();
+  return true;
 }
 
 /** Takes the own order of tracker tickets away; the tracker's rank counts again. */

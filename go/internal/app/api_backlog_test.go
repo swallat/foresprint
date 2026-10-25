@@ -444,3 +444,56 @@ func TestMoveTrackerTicketKeepsOwnOrderBesideTrackerRank(t *testing.T) {
 		t.Errorf("tracker rank changed: %+v", after.TicketByKey("X-3").Rank)
 	}
 }
+
+func TestBacklogShowsEveryComingSprint(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	far := "2027.2" // well beyond the recorded sprints and the forecast horizon
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "Far ahead", InSprint: &far, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	view, err := api.Backlog("t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	upcoming := 0
+	for _, s := range data.Sprints {
+		if s.Start.After(today()) {
+			upcoming++
+		}
+	}
+	if len(view.Lanes) < upcoming || len(view.Lanes) <= 3 {
+		t.Errorf("%d lanes for %d recorded coming sprints: all of them show, not only three", len(view.Lanes), upcoming)
+	}
+	found := false
+	for _, l := range view.Lanes {
+		for _, tk := range l.Tickets {
+			found = found || tk.Key == "X-1"
+		}
+	}
+	if !found {
+		t.Errorf("X-1 is in sprint %s in the tracker and must show in its lane", far)
+	}
+	for _, tk := range view.Tickets {
+		if tk.Key == "X-1" {
+			t.Error("X-1 must not be in the plain backlog")
+		}
+	}
+	// A lane beyond the horizon takes earmarks like any other.
+	other := "2027.3"
+	tf.Tickets = append(tf.Tickets, model.Ticket{Key: "X-2", Title: "Free", EstimateSource: model.EstimateNone})
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.EarmarkTicket("t", "X-2", other, ""); err != nil {
+		t.Errorf("earmark into a sprint beyond the horizon: %v", err)
+	}
+}

@@ -41,7 +41,15 @@
   // Long lists render in steps (a sentinel at the end asks for the next step as it scrolls into
   // view), so that the filter stays instant with thousands of tickets.
   const STEP = 60;
+  // Like Jira's "Show all issues": the lists start short and expand on request.
+  const PREVIEW = 10;
+  const LANE_PREVIEW = 5;
   let shown = $state(STEP);
+  let backlogOpen = $state(false);
+  let laneOpen = $state<Record<string, boolean>>({});
+  let laneClosed = $state<Record<string, boolean>>({});
+  const LANES_OPEN = 3;
+  const laneIsClosed = (id: string, index: number): boolean => laneClosed[id] ?? index >= LANES_OPEN;
   $effect(() => {
     void ui.filter.q;
     void ui.filter.products;
@@ -52,7 +60,7 @@
     void ui.sort;
     shown = STEP;
   });
-  const visible = $derived(items.slice(0, shown));
+  const visible = $derived(items.slice(0, backlogOpen ? shown : PREVIEW));
   const sections = $derived(view ? group(visible, ui.group, view) : []);
   function more(node: HTMLElement): { destroy(): void } {
     const io = new IntersectionObserver((entries) => {
@@ -146,6 +154,12 @@
     if (tk.fixed) return;
     const next = neighbour(laneIds, tk.earmark, by);
     if (next === undefined) return;
+    if (next) {
+      laneClosed[next] = false;
+      laneOpen[next] = true;
+    } else {
+      backlogOpen = true;
+    }
     await earmark([tk.key], next);
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
@@ -180,10 +194,42 @@
     } else {
       if (!items[i + 1]) return;
       shown = Math.max(shown, i + 3);
+      backlogOpen = true;
       await reorder(tk.key, items[i + 1]!.key, true);
     }
     await tick();
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
+  }
+
+  // --- right-click menu: "Send to", as in Jira -------------------------------------------
+  let ctx = $state<{ key: string; x: number; y: number } | null>(null);
+  function openMenu(e: MouseEvent, tk: BacklogTicket): void {
+    if ((e.target as HTMLElement).closest('a, input')) return; // keep the native menu on links
+    e.preventDefault();
+    ctx = { key: tk.key, x: Math.max(0, Math.min(e.clientX, window.innerWidth - 260)), y: Math.max(0, Math.min(e.clientY, window.innerHeight - 360)) };
+  }
+  const ctxKeys = $derived(ctx ? (ui.selection.includes(ctx.key) ? [...ui.selection] : [ctx.key]) : []);
+  const ctxTicket = $derived(ctx ? allTickets(view).find((tk) => tk.key === ctx!.key) : undefined);
+  async function ctxSprint(sprint: string): Promise<void> {
+    const keys = ctxKeys;
+    ctx = null;
+    await sendTo(keys, sprint);
+  }
+  async function ctxPro(name: string): Promise<void> {
+    const keys = ctxKeys.filter((k) => !fixedKeys.has(k));
+    ctx = null;
+    await toProForma(keys, name);
+  }
+  // Top or bottom of the backlog: out of any sprint first, then to the end of the order. The
+  // order only moves among tickets of the same priority and project; the app says so if refused.
+  async function ctxEdge(top: boolean): Promise<void> {
+    const keys = ctxKeys.filter((k) => !fixedKeys.has(k));
+    ctx = null;
+    const away = keys.filter((k) => !(view?.tickets ?? []).some((tk) => tk.key === k));
+    if (away.length) await sendTo(away, '');
+    const anchor = (view?.tickets ?? []).find((tk) => !keys.includes(tk.key))?.key ?? '';
+    ui.selection = ui.selection.filter((k) => !keys.includes(k));
+    for (const key of keys) if (!(await reorder(key, top ? anchor : ''))) break;
   }
 
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
@@ -426,9 +472,17 @@
                 {/each}
               {/each}
             {/if}
-            {#if items.length > shown}
+            {#if !backlogOpen && items.length > PREVIEW}
+              <div class="more">
+                <button class="btn ghost" type="button" onclick={() => (backlogOpen = true)}>{t('Show all issues ({total})', { total: items.length })}</button>
+              </div>
+            {:else if backlogOpen && items.length > shown}
               <div class="more" use:more>
                 <button class="btn" type="button" onclick={() => (shown += STEP)}>{t('Show more ({shown} of {total})', { shown, total: items.length })}</button>
+              </div>
+            {:else if backlogOpen && items.length > PREVIEW}
+              <div class="more">
+                <button class="btn ghost" type="button" onclick={() => (backlogOpen = false)}>{t('Show fewer issues')}</button>
               </div>
             {/if}
           </div>
@@ -469,15 +523,18 @@
         {#if lanes.length === 0}
           <div class="card muted">{t('There are no coming sprints yet. Add them under Team, Sprint calendar.')}</div>
         {/if}
-        {#each lanes as l (l.sprint)}
+        {#each lanes as l, li (l.sprint)}
           {@const used = sprintTotal(l.tickets)}
+          {@const closed = laneIsClosed(l.sprint, li)}
           {@const over = l.plan != null && used > l.plan}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="lane" class:over={overZone === l.sprint} data-zone={l.sprint} ondragover={(e) => dragOver(e, l.sprint)} ondragleave={() => (overZone = '')} ondrop={(e) => drop(e, l.sprint)}>
             <div class="lane-head">
               <div class="row">
+                <button class="btn ghost icon" type="button" aria-expanded={!closed} aria-label={closed ? t('Expand sprint {id}', { id: l.sprint }) : t('Collapse sprint {id}', { id: l.sprint })} onclick={() => (laneClosed[l.sprint] = !closed)}><Icon name={closed ? 'chevron_right' : 'keyboard_arrow_down'} /></button>
                 <strong class="data">{l.sprint}</strong>
                 <span class="muted small data">{formatPeriod(l.start, l.end)}</span>
+                <span class="chip data" title={t('Earmarked tickets')}>{l.tickets.length}</span>
                 <span class="grow"></span>
                 {#if l.absences === 'confirmed'}
                   <span class="chip ok"><Icon name="check" size={14} />{t('Absences confirmed')}</span>
@@ -518,15 +575,22 @@
                 </div>
               {/if}
             </div>
+            {#if !closed}
             <div class="lane-body">
               {#if l.tickets.length === 0}
                 <p class="muted small pad">{t('Nothing earmarked yet. Drag a ticket here or use Earmark for…')}</p>
               {:else}
-                {#each l.tickets as tk (tk.key)}
+                {#each laneOpen[l.sprint] ? l.tickets : l.tickets.slice(0, LANE_PREVIEW) as tk (tk.key)}
                   {@render row(tk, true, false)}
                 {/each}
+                {#if l.tickets.length > LANE_PREVIEW}
+                  <div class="more">
+                    <button class="btn ghost" type="button" onclick={() => (laneOpen[l.sprint] = !laneOpen[l.sprint])}>{laneOpen[l.sprint] ? t('Show fewer issues') : t('Show all issues ({total})', { total: l.tickets.length })}</button>
+                  </div>
+                {/if}
               {/if}
             </div>
+            {/if}
           </div>
         {/each}
         <p class="small muted">{t('The sprints always show everything earmarked, whatever the filter says.')}</p>
@@ -535,6 +599,27 @@
   {:else if store.loading}
     <p class="muted">{t('Loading…')}</p>
   {/if}
+{/if}
+
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') ctx = null; }} onscroll={() => (ctx = null)} onresize={() => (ctx = null)} />
+
+{#if ctx && view}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="ctx-backdrop" onclick={() => (ctx = null)} oncontextmenu={(e) => { e.preventDefault(); ctx = null; }}></div>
+  <div class="ctx" role="menu" aria-label={t('Send to')} style:left={`${ctx.x}px`} style:top={`${ctx.y}px`}>
+    <div class="ctx-title">{ctxKeys.length > 1 ? t('Send {n} tickets to', { n: ctxKeys.length }) : t('Send to')}</div>
+    {#each lanes as l (l.sprint)}
+      <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed || (ctxKeys.length === 1 && ctxTicket?.earmark === l.sprint)} onclick={() => ctxSprint(l.sprint)}>
+        <span class="data">{t('Sprint {id}', { id: l.sprint })}</span><span class="muted small data">{formatPeriod(l.start, l.end)}</span>
+      </button>
+    {/each}
+    {#each view.source === 'tracker' ? view.proForma : [] as pf (pf.name)}
+      <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed} onclick={() => ctxPro(pf.name)}>{pf.name}</button>
+    {/each}
+    <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed} onclick={() => ctxEdge(true)}>{t('Top of backlog')}</button>
+    <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed} onclick={() => ctxEdge(false)}>{t('Bottom of backlog')}</button>
+    {#if ctxTicket?.fixed}<div class="ctx-note small muted">{t('In a sprint in the tracker: move it there.')}</div>{/if}
+  </div>
 {/if}
 
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
@@ -554,12 +639,57 @@
       ondragstart={(e) => dragStart(e, tk)}
       ondragend={dragEnd}
       onstep={(by) => step(tk, by)}
+      oncontext={(e) => openMenu(e, tk)}
     />
     </div>
   {/if}
 {/snippet}
 
 <style>
+  .ctx-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+  .ctx {
+    position: fixed;
+    z-index: 51;
+    width: 250px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 4px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+  .ctx-title {
+    padding: 6px 12px;
+    font-weight: 600;
+  }
+  .ctx-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: 0;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ctx-item:hover:not(:disabled),
+  .ctx-item:focus-visible {
+    background: var(--surface-2);
+  }
+  .ctx-item:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .ctx-note {
+    padding: 6px 12px;
+  }
   .slot.over {
     box-shadow: 0 -2px 0 0 var(--primary);
   }
