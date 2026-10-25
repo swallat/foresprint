@@ -154,6 +154,12 @@
     if (tk.fixed) return;
     const next = neighbour(laneIds, tk.earmark, by);
     if (next === undefined) return;
+    if (next) {
+      laneClosed[next] = false;
+      laneOpen[next] = true;
+    } else {
+      backlogOpen = true;
+    }
     await earmark([tk.key], next);
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
@@ -188,6 +194,7 @@
     } else {
       if (!items[i + 1]) return;
       shown = Math.max(shown, i + 3);
+      backlogOpen = true;
       await reorder(tk.key, items[i + 1]!.key, true);
     }
     await tick();
@@ -197,8 +204,9 @@
   // --- right-click menu: "Send to", as in Jira -------------------------------------------
   let ctx = $state<{ key: string; x: number; y: number } | null>(null);
   function openMenu(e: MouseEvent, tk: BacklogTicket): void {
+    if ((e.target as HTMLElement).closest('a, input')) return; // keep the native menu on links
     e.preventDefault();
-    ctx = { key: tk.key, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 360) };
+    ctx = { key: tk.key, x: Math.max(0, Math.min(e.clientX, window.innerWidth - 260)), y: Math.max(0, Math.min(e.clientY, window.innerHeight - 360)) };
   }
   const ctxKeys = $derived(ctx ? (ui.selection.includes(ctx.key) ? [...ui.selection] : [ctx.key]) : []);
   const ctxTicket = $derived(ctx ? allTickets(view).find((tk) => tk.key === ctx!.key) : undefined);
@@ -220,7 +228,8 @@
     const away = keys.filter((k) => !(view?.tickets ?? []).some((tk) => tk.key === k));
     if (away.length) await sendTo(away, '');
     const anchor = (view?.tickets ?? []).find((tk) => !keys.includes(tk.key))?.key ?? '';
-    for (const key of keys) await reorder(key, top ? anchor : '');
+    ui.selection = ui.selection.filter((k) => !keys.includes(k));
+    for (const key of keys) if (!(await reorder(key, top ? anchor : ''))) break;
   }
 
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));

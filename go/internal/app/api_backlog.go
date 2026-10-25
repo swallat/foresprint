@@ -463,11 +463,11 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, all []model.Ticket, la
 		if id == "" || have[id] {
 			continue
 		}
+		have[id] = true // also a miss: look each sprint up once
 		s, err := forecast.FindSprint(data, id, forecast.DefaultLookupAhead)
 		if err != nil || s == nil || !s.Start.After(now) {
 			continue
 		}
-		have[id] = true
 		extra = append(extra, *s)
 	}
 	sort.SliceStable(extra, func(i, j int) bool { return extra[i].Start.Before(extra[j].Start) })
@@ -644,6 +644,9 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 					s = &e.Sprint
 				}
 			}
+		}
+		if s == nil {
+			s, _ = forecast.FindSprint(data, sprint, forecast.DefaultLookupAhead) // a tracker sprint beyond the horizon
 		}
 		if s == nil {
 			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is not known.", "id", sprint))
