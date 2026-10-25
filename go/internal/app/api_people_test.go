@@ -325,6 +325,7 @@ func TestSavePeopleNewPersonRemovableInSprintClosedEarly(t *testing.T) {
 	today := api.day()
 	v := 40.0
 	early := &model.Sprint{ID: "zz-early", Start: today.AddDate(0, 0, -3), End: today.AddDate(0, 0, 10), Capacity: &v, Velocity: &v}
+	early.Absences = map[string]float64{"neue-person": 1}
 	if _, err := repo.SaveSprint(team, early); err != nil {
 		t.Fatal(err)
 	}
