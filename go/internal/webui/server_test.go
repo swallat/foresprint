@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 )
 
 type fakeAPI struct{}
@@ -23,12 +24,19 @@ func start(t *testing.T) *Server {
 	t.Helper()
 	dir := t.TempDir()
 	assets := fstest.MapFS{"index.html": {Data: []byte("<html><head></head><body>app</body></html>")}}
-	s, err := Start(&fakeAPI{}, assets, func() string { return dir })
+	s, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
 	return s
+}
+
+func testHub(t *testing.T, dir string) *Hub {
+	t.Helper()
+	h := NewHub(func() string { return dir }, time.Hour)
+	t.Cleanup(h.Close)
+	return h
 }
 
 func client() *http.Client {
@@ -167,12 +175,12 @@ func TestFingerprintChanges(t *testing.T) {
 func TestDeniedMethodsAndCookiePerPort(t *testing.T) {
 	dir := t.TempDir()
 	assets := fstest.MapFS{"index.html": {Data: []byte("<head></head>")}}
-	a, err := Start(&fakeAPI{}, assets, func() string { return dir }, "Add")
+	a, err := Start(&fakeAPI{}, assets, testHub(t, dir), "Add")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer a.Close()
-	b, err := Start(&fakeAPI{}, assets, func() string { return dir })
+	b, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +224,7 @@ func TestAssetsAreServedWithTheirType(t *testing.T) {
 		"assets/index.js": {Data: []byte("1")},
 		"assets/x.css":    {Data: []byte("a{}")},
 	}
-	s, err := Start(&fakeAPI{}, assets, func() string { return dir })
+	s, err := Start(&fakeAPI{}, assets, testHub(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,5 +247,57 @@ func TestAssetsAreServedWithTheirType(t *testing.T) {
 	}
 	if code, body := get(t, c, base+"/some/route"); code != 200 || !strings.Contains(body, "__bridge.js") {
 		t.Errorf("route falls back to the page: %d", code)
+	}
+}
+
+func TestHubTellsChangesAndServerStreamsThem(t *testing.T) {
+	dir := t.TempDir()
+	hub := NewHub(func() string { return dir }, 20*time.Millisecond)
+	defer hub.Close()
+	assets := fstest.MapFS{"index.html": {Data: []byte("<head></head>")}}
+	s, err := Start(&fakeAPI{}, assets, hub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	c := client()
+	get(t, c, s.URL())
+	base := strings.SplitN(s.URL(), "/?k=", 2)[0]
+	res, err := c.Get(base + "/__events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	if ct := res.Header.Get("Content-Type"); ct != "text/event-stream" {
+		t.Fatalf("type %q", ct)
+	}
+	lines := make(chan string, 8)
+	go func() {
+		buf := make([]byte, 512)
+		for {
+			n, err := res.Body.Read(buf)
+			if n > 0 {
+				lines <- string(buf[:n])
+			}
+			if err != nil {
+				close(lines)
+				return
+			}
+		}
+	}()
+	first := <-lines
+	if !strings.HasPrefix(first, "data: ") {
+		t.Fatalf("first event %q", first)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case next := <-lines:
+		if !strings.HasPrefix(next, "data: ") || next == first {
+			t.Fatalf("change event %q", next)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("no event after a change")
 	}
 }
