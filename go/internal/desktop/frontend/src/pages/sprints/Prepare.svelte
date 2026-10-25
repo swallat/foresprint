@@ -156,10 +156,10 @@
     <details class="why small">
       <summary>{t('Why freeze?')}</summary>
       <ul>
-        <li>{t('A frozen sprint has a fixed capacity: changing an absence period later no longer moves it.')}</li>
-        <li>{t('Only frozen sprints shape the absence rate the forecast expects for future sprints.')}</li>
-        <li>{t('Closing the Review freezes automatically. A click on "Frozen" opens the sprint again; nothing is lost.')}</li>
-        <li>{t('Frozen: absence periods do not change this sprint any more. Type days into the cells to change it.')}</li>
+        <li>{t('A frozen sprint has a fixed capacity: changing an absence period later no longer moves it. You can still type days into its cells.')}</li>
+        <li>{t('Only frozen sprints flow into the absence rate the forecast expects for future sprints.')}</li>
+        <li>{t('Closing a sprint in the Review freezes it automatically.')}</li>
+        <li>{t('A sprint you froze here opens again with a click on "Frozen"; nothing is lost.')}</li>
       </ul>
     </details>
     {#if current.length > 0}
