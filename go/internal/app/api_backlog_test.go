@@ -569,6 +569,7 @@ func TestBacklogShowsEmptyBoardSprints(t *testing.T) {
 		{ID: "12", Name: "Some Release Train", State: "FUTURE"},
 		{ID: "13", Name: "Team Sprint 2026.1", State: "CLOSED"},
 	}}
+	api.run.boardID = map[string]int{"t": board}
 	view, err := api.Backlog("t")
 	if err != nil {
 		t.Fatal(err)
@@ -610,5 +611,8 @@ func TestBoardSprintsSurviveARestartAndSkipForeignOnes(t *testing.T) {
 	}
 	if got := restarted.trackerBoardSprints("t", 8); len(got) != 0 {
 		t.Errorf("another board number must not use the kept list: %+v", got)
+	}
+	if got := api.trackerBoardSprints("t", 8); len(got) != 0 {
+		t.Errorf("a changed board number must not use the list of this run either: %+v", got)
 	}
 }

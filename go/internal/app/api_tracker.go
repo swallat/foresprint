@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/swallat/foresprint/internal/config"
@@ -486,6 +487,7 @@ type trackerRun struct {
 	failed  map[string]string
 	mapped  map[string]TrackerFields         // per team: the mapping the last fetch of this run used
 	board   map[string][]sources.SprintValue // per team: the open and future sprints of the Jira board, as the last read found them
+	boardID map[string]int                   // per team: the board number that list was read from
 }
 
 // TrackerInfo is the state of the tracker sync of a team for the chip in the top bar.
@@ -762,26 +764,36 @@ func (a *API) trackerBoardSprintsFor(team string, t model.Team) []sources.Sprint
 	return a.trackerBoardSprints(team, *t.Tracker.BoardID)
 }
 
-// trackerBoardSprints is the list of this run, else the one the last run kept on disk (only for
-// the same board number), so that the sprints are there after a restart before the first read.
+// trackerBoardSprints is the list of this run (only if it was read from this board number), else
+// the one the last run kept on disk (also only for the same board number), so that the sprints
+// are there after a restart before the first read.
 func (a *API) trackerBoardSprints(team string, board int) []sources.SprintValue {
 	a.mu.Lock()
-	defer a.mu.Unlock()
-	if list, ok := a.run.board[team]; ok {
+	list, ok := a.run.board[team]
+	same := a.run.boardID[team] == board
+	a.mu.Unlock()
+	if ok && same {
 		return list
 	}
 	return trackerBoardCache(board)[team]
 }
 
+// trackerBoardFileMu serialises the writes of the file of kept board sprints.
+var trackerBoardFileMu sync.Mutex
+
 // trackerKeepBoard keeps the list for this run and, best effort, on disk next to the program's
 // settings (the data folder is the team's repository and holds nothing of the tracker).
 func (a *API) trackerKeepBoard(team string, board int, list []sources.SprintValue) {
 	a.mu.Lock()
-	defer a.mu.Unlock()
 	if a.run.board == nil {
 		a.run.board = map[string][]sources.SprintValue{}
+		a.run.boardID = map[string]int{}
 	}
 	a.run.board[team] = list
+	a.run.boardID[team] = board
+	a.mu.Unlock()
+	trackerBoardFileMu.Lock()
+	defer trackerBoardFileMu.Unlock()
 	kept := trackerBoardCache(board)
 	if kept == nil {
 		kept = map[string][]sources.SprintValue{}

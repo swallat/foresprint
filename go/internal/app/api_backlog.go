@@ -503,9 +503,11 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.Sprint
 		have[l.Sprint] = true
 	}
 	var ids []string
+	ticketSprint := map[string]bool{}
 	for _, tk := range all {
 		if id := backlogStr(tk.InSprint); id != "" {
 			ids = append(ids, id)
+			ticketSprint[id] = true
 		}
 	}
 	// Sprints of the board, also those without a ticket. A board is often shared with other teams:
@@ -517,6 +519,12 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.Sprint
 			continue
 		}
 		id := ticketimport.ResolveSprintExact(s.Name, data.Team.Tracker, knownSprints{data})
+		if id == nil {
+			// The looser guess of the import counts when a ticket of the team is in that sprint already.
+			if loose := ticketimport.ResolveSprint(s.Name, data.Team.Tracker, knownSprints{data}); loose != nil && ticketSprint[*loose] {
+				id = loose
+			}
+		}
 		switch {
 		case id == nil:
 			unmatched = append(unmatched, s.Name)
