@@ -67,7 +67,7 @@ header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg
 nav.main{margin-left:auto;display:flex;gap:4px;align-items:center}
 nav.main a{color:var(--text);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:.9375rem}
 nav.main a:hover{background:var(--surface-2)}
-@media(max-width:640px){nav.main a.opt{display:none}}
+@media(max-width:900px){nav.main a.opt{display:none}}
 .btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 16px;border-radius:6px;border:1px solid var(--border-control);background:transparent;color:var(--text);font:600 .9375rem var(--sans);text-decoration:none;cursor:pointer}
 .btn:hover{background:var(--surface-2)}
 .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
@@ -84,6 +84,7 @@ nav.main a:hover{background:var(--surface-2)}
 .bigmark{display:none}
 @media(min-width:900px){.bigmark{display:block}.bigmark img{width:100%;height:auto;filter:drop-shadow(0 24px 40px color-mix(in srgb,var(--primary) 35%,transparent))}}
 .hero h1{max-width:22ch;margin:0 0 20px}
+.nb{white-space:nowrap}
 .hero h1 em{font-style:normal;color:var(--primary)}
 .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .hero .meta{margin-top:16px;font:400 .8125rem var(--mono);color:var(--text-muted)}
@@ -214,7 +215,7 @@ footer .sp{margin-left:auto}
   <div class="wrap">
     <div class="hero-grid"><div>
     <div class="lockup"><img src="assets/logo.svg" alt="" width="72" height="72"><span class="word">Foresprint</span></div>
-    <h1>Velocity is easy. Several POs and several products <em>in one team</em> is the hard part.</h1>
+    <h1>Velocity is easy. Several POs and several products <em class="nb">in one team</em> is the hard part.</h1>
     <p class="lead">Foresprint forecasts how much your team can plan in the next sprint, and splits that number across the product owners and products who all want a share of it. Every figure opens the calculation behind it.</p>
     <div class="cta">
       <a class="btn primary" href="#install"><svg class="i" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M480-313 287-506l43-43 120 120v-371h60v371l120-120 43 43-193 193ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z"/></svg>Download Foresprint</a>
