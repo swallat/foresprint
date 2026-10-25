@@ -133,6 +133,8 @@ type PlanTicket struct {
 	ProdSource string  `json:"prodSource"`
 	// Remaining is the remaining effort of a ticket that is already worked on.
 	Remaining *float64 `json:"remaining"`
+	// RankPos is the place in the order of the tracker's rank, from 1; 0 for a ticket that is done.
+	RankPos int `json:"rankPos"`
 }
 
 // PlanProject is a project with work in the sprint, against its contingent.

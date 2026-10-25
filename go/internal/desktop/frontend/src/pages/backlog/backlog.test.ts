@@ -5,7 +5,7 @@ import { activeCustom, activeView, addCustom, applyView, blank, group, hasOpenPo
 const t = (key: string, o: Partial<BacklogTicket> = {}): BacklogTicket => ({
   key, title: `Title ${key}`, status: '', type: '', priority: '', assignee: '', url: '', size: 3, sizeSource: 'refined',
   refined: true, refinedUnclear: false, product: 'a', project: '', productSet: false, projectSet: false, earmark: '',
-  trackerSprint: '', production: null, epic: '', labels: [], dependsOn: [], blocked: false, ...o,
+  trackerSprint: '', production: null, epic: '', labels: [], dependsOn: [], blocked: false, rankPos: 0, ...o,
 });
 const names = { product: (id: string) => (id === 'a' ? 'Alpha' : id), project: (id: string) => (id === 'p' ? 'Relaunch' : 'Daily') };
 const view = { products: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Beta' }], projects: [{ id: 'p', name: 'Relaunch' }] } as BacklogView;
@@ -93,6 +93,8 @@ describe('sort', () => {
   const list = [t('A-10', { size: 2 }), t('A-2', { size: null, title: 'b' }), t('A-3', { size: 8, title: 'a' })];
   it('keeps the planning order by default', () => {
     expect(sortTickets(list, 'order')).toBe(list);
+    const ranked = [t('A', { rankPos: 3 }), t('B', { rankPos: 1 }), t('C', { rankPos: 2 })];
+    expect(sortTickets(ranked, 'rank').map((x) => x.key)).toEqual(['B', 'C', 'A']);
   });
   it('sorts by size with unestimated tickets last', () => {
     expect(sortTickets(list, 'size-desc').map((x) => x.key)).toEqual(['A-3', 'A-10', 'A-2']);
@@ -120,7 +122,7 @@ describe('custom views', () => {
   });
   it('fills in defaults for incomplete entries and finds the active view by filter, group and sort', () => {
     const list = readCustom('[{"id":"x","name":"X","filter":{"flag":"open"},"sort":"bogus"}]');
-    expect(list[0]).toMatchObject({ group: 'none', sort: 'order', filter: { flag: 'open', products: [] } });
+    expect(list[0]).toMatchObject({ group: 'none', sort: 'rank', filter: { flag: 'open', products: [] } });
     const big = addCustom([], 'Big', blank(), 'none', 'size-desc');
     expect(activeCustom(big, blank(), 'none', 'size-desc')?.id).toBe('big');
     expect(activeCustom(big, blank(), 'none', 'order')).toBeUndefined();

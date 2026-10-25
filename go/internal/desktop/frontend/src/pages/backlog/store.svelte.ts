@@ -25,10 +25,31 @@ export const store = $state({
   error: '',
 });
 
+export type Layout = 'side' | 'stacked';
+
+function readLayout(): Layout {
+  try {
+    return localStorage.getItem('foresprint.backlog.layout') === 'stacked' ? 'stacked' : 'side';
+  } catch {
+    return 'side';
+  }
+}
+
+/** Switches the backlog between backlog and sprints side by side or one below the other; kept on this machine. */
+export function setLayout(layout: Layout): void {
+  ui.layout = layout;
+  try {
+    localStorage.setItem('foresprint.backlog.layout', layout);
+  } catch {
+    /* blocked storage: the choice lasts until the window closes */
+  }
+}
+
 export const ui = $state({
   filter: blank(),
   group: 'none' as Group,
-  sort: 'order' as Sort,
+  sort: 'rank' as Sort,
+  layout: readLayout(),
   custom: [] as CustomView[],
   selection: [] as string[],
   menu: false,
@@ -78,7 +99,9 @@ export async function changed(): Promise<void> {
 /** Puts a work package before (or after) another one in the backlog order; anchor "" = to the end. */
 export async function reorder(key: string, anchor: string, after = false): Promise<boolean> {
   try {
-    await api.MoveWorkPackage(app.team, key, anchor, after);
+    // The rank order moves anywhere; the planning order only among equal priority and project.
+    if (ui.sort === 'rank') await api.MoveTicketByRank(app.team, key, anchor, after);
+    else await api.MoveWorkPackage(app.team, key, anchor, after);
   } catch (e) {
     toast(String(e), 'bad');
     return false;

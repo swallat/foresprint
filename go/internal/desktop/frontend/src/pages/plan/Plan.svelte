@@ -70,7 +70,10 @@
   const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
-  const lane = $derived<PlanTicket[]>(d?.tickets ?? []);
+  /** The order of both lanes: the tracker's rank (default) or the planning order (priority, project, rank). */
+  let laneSort = $state<'rank' | 'order'>('rank');
+  const byRank = (list: PlanTicket[]): PlanTicket[] => (laneSort === 'rank' ? [...list].sort((a, b) => a.rankPos - b.rankPos) : list);
+  const lane = $derived<PlanTicket[]>(byRank(d?.tickets ?? []));
   const allCandidates = $derived<PlanTicket[]>(d?.candidates ?? []);
   /** Filters of the candidate lane (view only, nothing is saved): the running sprint is hidden by default. */
   let showRunning = $state(false);
@@ -78,7 +81,7 @@
   let fProduct = $state('');
   let fProject = $state('');
   const candidates = $derived(
-    allCandidates.filter(
+    byRank(allCandidates).filter(
       (x) =>
         (showRunning || !d?.running || x.sprint !== d.running) &&
         (!onlyRefined || x.refined) &&
@@ -167,7 +170,7 @@
     const moving = dragKey;
     const after = overRow.after;
     dragEnd();
-    await model.change(async () => void (await api.MoveWorkPackage(app.team, moving, key, after)));
+    await model.change(async () => void (await (laneSort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, moving, key, after)));
   }
   function dragStart(e: DragEvent, key: string): void {
     dragKey = key;
@@ -351,6 +354,10 @@
               <label class="small"><input type="checkbox" bind:checked={showRunning} /> {t('Running sprint too')}</label>
             {/if}
             <label class="small"><input type="checkbox" bind:checked={onlyRefined} /> {t('Refined only')}</label>
+            <select class="input small" aria-label={t('Sort by')} bind:value={laneSort}>
+              <option value="rank">{t('Rank in the tracker')}</option>
+              <option value="order">{t('Planning order')}</option>
+            </select>
             {#if productIds.length}
               <select class="input small" aria-label={t('Product')} bind:value={fProduct}>
                 <option value="">{t('All products')}</option>
