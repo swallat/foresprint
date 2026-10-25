@@ -2,6 +2,7 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "The browser access is only available in the window.": "Den Browser-Zugriff gibt es nur im Fenster.",
   "'{text}' is not a date (YYYY-MM-DD).": "'{text}' ist kein Datum (JJJJ-MM-TT).",
   "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",
   "A finished sprint is locked.": "Ein abgeschlossener Sprint ist gesperrt.",

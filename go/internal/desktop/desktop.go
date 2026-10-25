@@ -39,6 +39,9 @@ func Run(version, dataDir string) error {
 	if err != nil {
 		return err
 	}
+	web := &browserAccess{api: api, assets: dist}
+	defer web.stop()
+	api.StartBrowser, api.StopBrowser, api.BrowserURL = web.start, web.stop, web.url
 	return wails.Run(&options.App{
 		Title:     "Foresprint",
 		Width:     1360,
@@ -59,6 +62,7 @@ func Run(version, dataDir string) error {
 		OnStartup: func(ctx context.Context) {
 			Trace("window created")
 			raise(ctx)
+			api.OpenURL = func(u string) { runtime.BrowserOpenURL(ctx, u) }
 			api.ChooseFolder = func(title string) (string, error) {
 				return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: title})
 			}

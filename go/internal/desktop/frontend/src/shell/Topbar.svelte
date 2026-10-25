@@ -3,6 +3,7 @@
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
   import { go, link } from '../lib/router.svelte';
+  import BrowserMenu from './BrowserMenu.svelte';
   import Logo from './Logo.svelte';
   import NewMenu from './NewMenu.svelte';
   import StatusChip from './StatusChip.svelte';
@@ -82,6 +83,7 @@
   <button class="btn primary" type="button" data-tour="topbar-save" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
     <Icon name="save" /><span class="hide-narrow">{t('Save')}</span>
   </button>
+  <BrowserMenu />
   <a class="btn icon ghost" href={link('/help/guided')} aria-label={t('Help')} title={t('Help: guided flows and calculations')}>
     <Icon name="help" />
   </a>
