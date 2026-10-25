@@ -47,9 +47,8 @@
   </span>
   <span class="title" title={ticket.title}>{ticket.title}</span>
   <span class="chips">
-    {#if !ticket.refined}
-      <span class="chip warn">{ticket.size == null ? t('no estimate') : t('not refined')}</span>
-    {/if}
+    {#if !ticket.refined}<span class="chip warn">{t('not refined')}</span>{/if}
+    {#if ticket.size == null}<span class="chip warn">{t('no estimate')}</span>{/if}
     {#if showProduct && d.multiProduct && product}<span class="chip">{product.name}</span>{/if}
     {#if showProject && project}<span class="chip"><Icon name="flag" size={14} />{project.name}</span>{/if}
     {#if d.production && ticket.prodPct > 0}
