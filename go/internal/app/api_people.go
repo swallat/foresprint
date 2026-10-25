@@ -97,17 +97,37 @@ func (a *API) peopleView(data *storage.TeamData) PeopleView {
 	return view
 }
 
-// personUsed: the person was in the team during a sprint that has begun or has recorded absences.
+// peopleSprintIsHistory: the sprint is over or has recorded results; everybody in it stays.
+func peopleSprintIsHistory(s model.Sprint, today time.Time) bool {
+	return s.End.Before(today) || s.Capacity != nil || s.Velocity != nil
+}
+
+// peopleSprintIsPlanned: the sprint was frozen at Planning. Who worked in it before today stays,
+// somebody who joined today cannot be part of its commitment.
+func peopleSprintIsPlanned(s model.Sprint) bool {
+	return s.Commitment != nil || s.Planning != nil || s.ForecastPlan != nil || s.CommittedTickets != nil
+}
+
+// personUsed: the person was in the team during a sprint that is over or has recorded results,
+// or before today in a planned sprint. Their entries in other open and future sprints do not
+// count, they are removed with the person.
 func personUsed(data *storage.TeamData, p model.Person, today time.Time) bool {
 	for _, s := range data.Sprints {
-		if s.Start.After(today) {
-			continue
-		}
-		if p.ActiveBetween(s.Start, s.End.AddDate(0, 0, 1)) {
-			return true
-		}
-		if _, ok := s.Absences[p.ID]; ok {
-			return true
+		switch {
+		case peopleSprintIsHistory(s, today):
+			if p.ActiveBetween(s.Start, s.End.AddDate(0, 0, 1)) {
+				return true
+			}
+			if _, ok := s.Absences[p.ID]; ok {
+				return true
+			}
+			if _, ok := s.ExpectedAbsences[p.ID]; ok {
+				return true
+			}
+		case peopleSprintIsPlanned(s) && s.Start.Before(today):
+			if p.ActiveBetween(s.Start, today) {
+				return true
+			}
 		}
 	}
 	return false
@@ -162,6 +182,37 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 	}
 	a.forget(team)
 	repo := storage.NewRepository(a.DataDir())
+	// Entries of removed people in open and future sprints go with them. The sprints are written
+	// first and all or nothing, so a failure leaves the people as they were.
+	var changedSprints []*model.Sprint
+	for _, sp := range data.Sprints {
+		if peopleSprintIsHistory(sp, today) {
+			continue
+		}
+		s := sp
+		changed := false
+		for _, p := range data.People {
+			if seen[p.ID] {
+				continue
+			}
+			if _, ok := s.Absences[p.ID]; ok {
+				s.Absences = peopleWithout(s.Absences, p.ID)
+				changed = true
+			}
+			if _, ok := s.ExpectedAbsences[p.ID]; ok {
+				s.ExpectedAbsences = peopleWithout(s.ExpectedAbsences, p.ID)
+				changed = true
+			}
+		}
+		if changed {
+			changedSprints = append(changedSprints, &s)
+		}
+	}
+	if len(changedSprints) > 0 {
+		if _, err := storage.SaveSprintsTogether(repo, team, changedSprints); err != nil {
+			return PeopleView{}, err
+		}
+	}
 	if _, err := repo.SavePeople(team, out); err != nil {
 		return PeopleView{}, err
 	}
@@ -344,4 +395,15 @@ func peopleOptionalValue(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// peopleWithout copies the per-person map without one person (the source is shared with the loaded data).
+func peopleWithout(m map[string]float64, id string) map[string]float64 {
+	out := make(map[string]float64, len(m))
+	for k, v := range m {
+		if k != id {
+			out[k] = v
+		}
+	}
+	return out
 }
