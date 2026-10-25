@@ -56,7 +56,7 @@ export const flows: Flow[] = [
     title: () => t('Groom the backlog'),
     summary: () => t('Check the sync, filter, order and earmark tickets, maintain the ticket panel, clear rule conflicts.'),
     steps: [
-      { route: '/backlog', target: tour('backlog-sync'), trackerOnly: true, text: () => t('First the sync state. If it is stale or failed, a banner offers a retry. Work continues with the last data; nothing is locked.') },
+      { route: '/backlog', target: tour('backlog-sync'), trackerOnly: true, text: () => t('First the sync state. If it is stale or failed, a banner offers a retry. Work continues with the last data.') },
       { route: '/backlog', target: tour('backlog-views'), text: () => t('Pick a saved view such as Refinement or click a filter. The list reacts at once, also while you search.') },
       { route: '/backlog', target: tour('backlog-list'), text: () => t('Order the tickets by dragging the handle up or down, or with Alt and the arrow keys. Dragging into a sprint earmarks the ticket; a toast offers Undo.') },
       { route: '/backlog', target: tour('backlog-ticket'), text: () => t('A click on the title opens the ticket panel. The key and the arrow open the ticket in the tracker.') },
@@ -72,7 +72,7 @@ export const flows: Flow[] = [
       { route: '/sprint/prepare', sprint: 'next', target: tour('sprint-stepper'), text: () => t('Today says the next sprint needs preparation. The stages at the top are links.') },
       { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-grid'), text: () => t('The grid shows absences for this and the next sprints. Type the days directly; Tab or Enter moves on. A new entry is announced (open lock); a click on the lock confirms it.') },
       { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-freeze'), text: () => t('"Freeze" confirms the whole allocation of a sprint: every entry counts as confirmed, empty cells as 0 days. A sprint with nobody absent is done this way too.') },
-      { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-ready'), text: () => t('Readiness sums up absences, refinement and pre-planning. Open points only warn; you can always go on.') },
+      { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-ready'), text: () => t('Readiness sums up absences, refinement and pre-planning.') },
       { route: '/sprint/preplan', sprint: 'next', target: tour('preplan-whatif'), text: () => t('While the running sprint is still open you estimate what will finish. Mark tickets as carried over and estimate their rest; the expected velocity falls by the full estimate, only the rest moves on.') },
       { route: '/sprint/preplan', sprint: 'next', target: tour('preplan-earmarks'), text: () => t('You can pre-plan at any time, also for later sprints. The earmarks from the backlog are listed by project and daily business, with a hint on the contingent.') },
       { route: '/sprint/preplan', sprint: 'next', target: tour('preplan-table'), text: () => t('One table per sprint: you enter the pre-planned amount, "Take over earmarks" makes a proposal. Planned and done are read-only at this stage.') },
