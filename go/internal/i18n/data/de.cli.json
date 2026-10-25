@@ -163,7 +163,7 @@
   "{key}: its earlier place is unknown, it stays where it is": "{key}: Der frühere Platz ist unbekannt, das Ticket bleibt, wo es ist",
   "{key}: its earlier sprint “{name}” is closed, it stays where it is": "{key}: Der frühere Sprint „{name}“ ist geschlossen, das Ticket bleibt, wo es ist",
   "No pro-forma sprint exists in the tracker, taken-out tickets stay where they are": "Im Tracker gibt es keinen Pro-forma-Sprint, herausgenommene Tickets bleiben, wo sie sind",
-  "Sprint “{name}” has no usable id": "Der Sprint „{name}“ hat keine nutzbare Nummer",
+  "Sprint “{name}” has no usable number (read: “{id}”)": "Der Sprint „{name}“ hat keine nutzbare Nummer (gelesen: „{id}“)",
   "Set automatic mode: on or notice (look once a day and report, never install), off (never look).": "Automatik einstellen: on oder notice (einmal täglich nachsehen und melden, nie installieren), off (nie nachsehen)."
  }
 }
