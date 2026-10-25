@@ -1,7 +1,7 @@
 <script lang="ts">
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
-  import { app, selectSprint, syncTracker } from '../../lib/app.svelte';
+  import { app, selectSprint, syncTracker, toast } from '../../lib/app.svelte';
   import { tick } from 'svelte';
   import { language } from '../../lib/i18n.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
@@ -146,6 +146,7 @@
   const fixedKeys = $derived(new Set(allTickets(view).filter((tk) => tk.fixed).map((tk) => tk.key)));
   const proKeys = $derived(new Set((view?.proForma ?? []).flatMap((p) => p.tickets.map((tk) => tk.key))));
   async function sendTo(keys: string[], sprint: string): Promise<void> {
+    if (keys.some((k) => fixedKeys.has(k))) toast(t('This ticket is already in a Jira sprint. Move it in Jira.'), 'info');
     const fromPro = sprint === '' ? keys.filter((k) => proKeys.has(k)) : [];
     if (fromPro.length === 0) return earmark(keys, sprint);
     // One notice for the whole move: the earmark (if any) is taken away with it.
@@ -170,9 +171,22 @@
   // Reordering: in the planning order, ungrouped. A tracker's own rank stays; the order is kept beside it.
   const canReorder = $derived(view?.source !== 'none' && (ui.sort === 'order' || ui.sort === 'rank') && ui.group === 'none');
   let overRow = $state('');
+  // The list a ticket sits in ("" = a pro-forma sprint, not reorderable): the backlog or one sprint lane.
+  // Reordering works inside one list, also for tickets the tracker has in a sprint (the order is only local).
+  function zoneOf(key: string): string {
+    if ((view?.tickets ?? []).some((x) => x.key === key)) return 'backlog';
+    const lane = lanes.find((l) => l.tickets.some((x) => x.key === key));
+    return lane ? `lane:${lane.sprint}` : '';
+  }
+  function listOf(zone: string): BacklogTicket[] {
+    if (zone === 'backlog') return items;
+    if (zone.startsWith('lane:')) return laneTickets(lanes.find((l) => l.sprint === zone.slice(5))?.tickets ?? []);
+    return [];
+  }
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
     if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
-    if (!items.some((i) => i.key === dragKeys[0]) || !items.some((i) => i.key === tk.key)) return; // a sprint lane row: the lane's drop earmarks
+    const zone = zoneOf(tk.key);
+    if (!zone || zoneOf(dragKeys[0] ?? '') !== zone) return; // another list: the lane's drop earmarks
     e.preventDefault();
     e.stopPropagation();
     overRow = tk.key;
@@ -188,17 +202,21 @@
   }
   async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
     if (!canReorder || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    const i = items.findIndex((x) => x.key === tk.key);
+    const zone = zoneOf(tk.key);
+    const list = listOf(zone);
+    const i = list.findIndex((x) => x.key === tk.key);
     if (i < 0) return;
     e.preventDefault();
     if (e.key === 'ArrowUp') {
-      if (!items[i - 1]) return;
-      await reorder(tk.key, items[i - 1]!.key);
+      if (!list[i - 1]) return;
+      await reorder(tk.key, list[i - 1]!.key);
     } else {
-      if (!items[i + 1]) return;
-      shown = Math.max(shown, i + 3);
-      backlogOpen = true;
-      await reorder(tk.key, items[i + 1]!.key, true);
+      if (!list[i + 1]) return;
+      if (zone === 'backlog') {
+        shown = Math.max(shown, i + 3);
+        backlogOpen = true;
+      }
+      await reorder(tk.key, list[i + 1]!.key, true);
     }
     await tick();
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
@@ -233,6 +251,22 @@
     const anchor = sortTickets(view?.tickets ?? [], ui.sort === 'rank' ? 'rank' : 'order').find((tk) => !keys.includes(tk.key))?.key ?? '';
     ui.selection = ui.selection.filter((k) => !keys.includes(k));
     for (const key of keys) if (!(await reorder(key, top ? anchor : ''))) break;
+  }
+
+  // Top or bottom of the sprint the ticket is in: only its place in the order moves, also for
+  // tickets the tracker has in that sprint. Several tickets keep their order.
+  const ctxZone = $derived(ctx ? zoneOf(ctx.key) : '');
+  async function ctxListEdge(top: boolean): Promise<void> {
+    const zone = ctxZone;
+    const keys = ctxKeys.filter((k) => zoneOf(k) === zone);
+    ctx = null;
+    const others = listOf(zone).filter((tk) => !keys.includes(tk.key));
+    if (others.length === 0) return;
+    let prev = top ? others[0]!.key : others[others.length - 1]!.key;
+    for (const key of keys) {
+      if (!(await reorder(key, prev, !top))) break;
+      if (!top) prev = key;
+    }
   }
 
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
@@ -627,7 +661,11 @@
     {/each}
     <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed} onclick={() => ctxEdge(true)}>{t('Top of backlog')}</button>
     <button class="ctx-item" type="button" role="menuitem" disabled={ctxTicket?.fixed} onclick={() => ctxEdge(false)}>{t('Bottom of backlog')}</button>
-    {#if ctxTicket?.fixed}<div class="ctx-note small muted">{t('In a sprint in the tracker: move it there.')}</div>{/if}
+    {#if ctxZone.startsWith('lane:')}
+      <button class="ctx-item" type="button" role="menuitem" disabled={!canReorder} onclick={() => ctxListEdge(true)}>{t('Top of sprint')}</button>
+      <button class="ctx-item" type="button" role="menuitem" disabled={!canReorder} onclick={() => ctxListEdge(false)}>{t('Bottom of sprint')}</button>
+    {/if}
+    {#if ctxTicket?.fixed}<div class="ctx-note small muted">{t('This ticket is already in a Jira sprint. Move it in Jira.')}</div>{/if}
   </div>
 {/if}
 
@@ -639,7 +677,7 @@
       ticket={tk}
       {view}
       selectable
-      draggable={!tk.fixed}
+      draggable
       tour={tk.key === view.tickets[0]?.key ? 'backlog-ticket' : undefined}
       {showProduct}
       {showProject}
