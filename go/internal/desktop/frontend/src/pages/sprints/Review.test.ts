@@ -118,7 +118,7 @@ describe('Minutes page', () => {
   });
 });
 
-// A team that commits to tickets: the table lists them, and "will finish" / "carry-over" per
+// A team that commits to tickets: the table lists them, and "is done" / "carry-over" per
 // ticket decides the numbers (the typed fields are replaced by figures that follow the table).
 describe('Review page with tickets', () => {
   let tickets = createReviewMock(demoSprints, { tickets: true });
@@ -148,9 +148,9 @@ describe('Review page with tickets', () => {
     expect(num('velocity')).toBe(0);
   });
 
-  it('marking a ticket "will finish" lowers Not done and the rest and raises the velocity, "carry-over" takes it back', async () => {
+  it('marking a ticket "is done" lowers Not done and the rest and raises the velocity, "carry-over" takes it back', async () => {
     await show(Review, running);
-    expectation('ATL-101', /will finish/).click();
+    expectation('ATL-101', /is done/).click();
     await tick();
     expect(num('not-done')).toBe(19);
     expect(num('rest-next')).toBe(19);
@@ -158,7 +158,7 @@ describe('Review page with tickets', () => {
     // A finished ticket has no rest to enter.
     expect(restField('ATL-101')).toBeNull();
 
-    expectation('ATL-103', /will finish/).click();
+    expectation('ATL-103', /is done/).click();
     await tick();
     expect(num('not-done')).toBe(11);
     expect(num('velocity')).toBe(13);
@@ -201,7 +201,7 @@ describe('Review page with tickets', () => {
 
   it('sends the decisions of the table when the sprint is closed', async () => {
     await show(Review, running);
-    expectation('ATL-101', /will finish/).click();
+    expectation('ATL-101', /is done/).click();
     await type(restField('ATL-102'), '1');
     await tick();
     button(/Close sprint/).click();
@@ -214,7 +214,7 @@ describe('Review page with tickets', () => {
     await vi.waitFor(() => expect(host.textContent).toMatch(/closed/), { timeout: 3000 });
     // A closed review shows what was stored: figures stay, the decisions cannot be changed any more.
     expect(num('not-done')).toBe(19);
-    expect(expectation('ATL-101', /will finish/).disabled).toBe(true);
+    expect(expectation('ATL-101', /is done/).disabled).toBe(true);
     expect(restField('ATL-102').disabled).toBe(true);
   });
 

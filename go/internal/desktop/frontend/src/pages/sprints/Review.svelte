@@ -288,7 +288,7 @@
               <th scope="col">{t('Ticket')}</th>
               <th scope="col">{t('Status')}</th>
               <th scope="col" class="num">{t('Size')}</th>
-              <th scope="col">{t('Expectation')}</th>
+              <th scope="col">{t('Result')}</th>
               <th scope="col" class="num">{t('Rest')}</th>
               <th scope="col">{t('Continues in')}</th>
             </tr>
@@ -408,7 +408,7 @@
     <td class="tk"><span class="key">{r.key}</span> {r.title}</td>
     <td><span class="chip">{r.status}</span></td>
     <td class="num">{days(r.estimate)}</td>
-    <td><ExpectSeg ticket={r.key} carry={!r.done} disabled={locked} onchange={(on) => (r.done = !on)} /></td>
+    <td><ExpectSeg review ticket={r.key} carry={!r.done} disabled={locked} onchange={(on) => (r.done = !on)} /></td>
     <td class="num">
       {#if r.done}<span class="muted">–</span>{:else}
         <input class="input data narrow" inputmode="decimal" bind:value={rests[r.key]} disabled={locked} aria-label={t('Rest of {key}', { key: r.key })} />
