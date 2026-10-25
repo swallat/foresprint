@@ -172,6 +172,31 @@
     dragEnd();
     await model.change(async () => void (await (laneSort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, moving, key, after)));
   }
+  // --- Right-click menu: "Move to", as in the backlog -------------------------------------
+  let ctx = $state<{ key: string; x: number; y: number } | null>(null);
+  function openMenu(e: MouseEvent, key: string): void {
+    if (frozen || (e.target as HTMLElement).closest('a, input')) return; // keep the native menu on links
+    e.preventDefault();
+    ctx = { key, x: Math.max(0, Math.min(e.clientX, window.innerWidth - 260)), y: Math.max(0, Math.min(e.clientY, window.innerHeight - 220)) };
+  }
+  const ctxIn = $derived<'sprint' | 'candidates'>(ctx && lane.some((x) => x.key === ctx!.key) ? 'sprint' : 'candidates');
+  async function ctxMove(to: 'sprint' | 'candidates'): Promise<void> {
+    const key = ctx?.key;
+    ctx = null;
+    if (key) await move(key, to);
+  }
+  // Top or bottom of the list the ticket is in; the order only moves among tickets of the same
+  // priority and project in the planning order, the app says so if refused.
+  async function ctxEdge(top: boolean): Promise<void> {
+    const key = ctx?.key;
+    const list = ctxIn === 'sprint' ? lane : candidates;
+    ctx = null;
+    const others = list.filter((x) => x.key !== key);
+    const anchor = top ? others[0] : others[others.length - 1];
+    if (!key || !anchor) return;
+    await model.change(async () => void (await (laneSort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, key, anchor.key, !top)));
+  }
+
   function dragStart(e: DragEvent, key: string): void {
     dragKey = key;
     e.dataTransfer?.setData('text/plain', key);
@@ -493,6 +518,22 @@
   <div class="banner info"><Icon name="info" /><div class="grow">{t('Choose a team and a sprint first.')}</div></div>
 {/if}
 
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') ctx = null; }} onscroll={() => (ctx = null)} onresize={() => (ctx = null)} />
+
+{#if ctx && d}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="ctx-backdrop" onclick={() => (ctx = null)} oncontextmenu={(e) => { e.preventDefault(); ctx = null; }}></div>
+  <div class="ctx" role="menu" aria-label={t('Move to')} style:left={`${ctx.x}px`} style:top={`${ctx.y}px`}>
+    <div class="ctx-title">{t('Move to')}</div>
+    <button class="ctx-item" type="button" role="menuitem" disabled={ctxIn === 'sprint'} onclick={() => ctxMove('sprint')}>
+      <span class="data">{t('Sprint {sprint}', { sprint: d.sprint })}</span>
+    </button>
+    <button class="ctx-item" type="button" role="menuitem" disabled={ctxIn === 'candidates'} onclick={() => ctxMove('candidates')}>{t('Candidates')}</button>
+    <button class="ctx-item" type="button" role="menuitem" onclick={() => ctxEdge(true)}>{t('Top of the list')}</button>
+    <button class="ctx-item" type="button" role="menuitem" onclick={() => ctxEdge(false)}>{t('Bottom of the list')}</button>
+  </div>
+{/if}
+
 {#snippet laneRow(x: PlanTicket, here: 'sprint' | 'candidates')}
   {#if d}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -503,6 +544,7 @@
       ondragover={(e) => rowOver(e, x.key, here)}
       ondragleave={() => { if (overRow?.key === x.key) overRow = null; }}
       ondrop={(e) => rowDrop(e, x.key, here)}
+      oncontextmenu={(e) => openMenu(e, x.key)}
     >
       <TicketRow
         ticket={x}
@@ -519,6 +561,33 @@
 {/snippet}
 
 <style>
+  .ctx-backdrop { position: fixed; inset: 0; z-index: 50; }
+  .ctx {
+    position: fixed;
+    z-index: 51;
+    width: 250px;
+    padding: 4px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+  .ctx-title { padding: 6px 12px; font-weight: 600; }
+  .ctx-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: 0;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ctx-item:hover:not(:disabled),
+  .ctx-item:focus-visible { background: var(--surface-2); }
+  .ctx-item:disabled { opacity: 0.45; cursor: default; }
   .cand-filter { flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
   .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
   .slot.after { box-shadow: 0 2px 0 0 var(--primary); }

@@ -36,7 +36,7 @@ export const pages: PageDef[] = [
   { path: '/sprints', title: 'Sprint overview', load: () => import('../pages/sprints/Sprints.svelte') },
   { path: '/sprint/prepare', title: 'Prepare', load: () => import('../pages/sprints/Prepare.svelte') },
   { path: '/sprint/preplan', title: 'Pre-plan', load: () => import('../pages/plan/Preplan.svelte') },
-  { path: '/sprint/plan', title: 'Plan', load: () => import('../pages/plan/Plan.svelte') },
+  { path: '/sprint/plan', title: 'Plan', wide: true, load: () => import('../pages/plan/Plan.svelte') },
   { path: '/sprint/review', title: 'Review', load: () => import('../pages/sprints/Review.svelte') },
   { path: '/sprint/minutes', title: 'Minutes', load: () => import('../pages/sprints/Minutes.svelte') },
 
