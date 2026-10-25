@@ -214,7 +214,7 @@ Once per operating system if possible.
 | K7 | macOS, Apple Silicon and Intel. | Starts, Dock name "Foresprint", menu bar, Cmd instead of Ctrl. |
 | K8 | Linux: Wayland and X11. | Window, clipboard, file dialog, application entry with icon. |
 | K9 | No internals. | No names of real teams, companies or people in the UI, help, examples or error texts (own data excepted). |
-| K10 | Browser mode (`foresprint serve`, "show in the browser" in the window). | The page works like the window on this computer only; with the window open, calls that switch the data folder or demo are refused in the browser; changes made in one show up in the other after a refresh. |
+| K10 | Browser mode (`foresprint serve`, "show in the browser" in the window). | The page works like the window on this computer only; with the window open, calls that switch the data folder or demo are refused in the browser; note whether a change made in one shows up in the other and how (report as NOTE). |
 
 ## After the run
 
