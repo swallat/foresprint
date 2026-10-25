@@ -267,7 +267,7 @@
       <Icon name="event_busy" />
       <div class="grow">
         <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
-        {t('Capacity and Forecast PLAN can still change. This blocks nothing.')}
+        {t('Capacity and Forecast PLAN can still change.')}
         {#if announced.length}
           <div class="small">{t('Announced days:')} {announced.map((x) => `${x.name} (${fmt(x.days, 1)})`).join(', ')}</div>
         {/if}
@@ -439,7 +439,7 @@
             </tbody>
           </table>
         </div>
-        <p class="small muted">{t('Budget is the pre-planned amount. Deviations warn and lock nothing.')}</p>
+        <p class="small muted">{t('Budget is the pre-planned amount.')}</p>
       </div>
     {/if}
     <div class="card">

@@ -71,7 +71,7 @@
   const open = (id: string) => selectSprint(id);
 </script>
 
-<PageHead title={t('Sprint overview')} lead={t('All sprints at a glance. Open any stage of any sprint from here; nothing is locked.')}>
+<PageHead title={t('Sprint overview')} lead={t('All sprints at a glance. Open any stage of any sprint from here.')}>
   {#snippet actions()}
     <button class="btn" type="button" aria-pressed={all} onclick={() => (all = !all)}>
       <Icon name="history" size={18} />{all ? t('Show fewer finished sprints') : t('Show all finished sprints')}

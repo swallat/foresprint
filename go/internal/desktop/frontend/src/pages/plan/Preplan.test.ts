@@ -80,7 +80,7 @@ describe('Pre-plan page', () => {
     expect(host.querySelector('#overcap')).toBeNull();
     await enter(input('Customer portal'), '50');
     await settled(() => expect(host.querySelector('#overcap')).not.toBeNull());
-    expect(host.querySelector('#overcap')!.textContent).toMatch(/only a warning/);
+    expect(host.querySelector('#overcap')!.textContent).toMatch(/upper end/);
     await enter(input('Customer portal'), '20');
     await settled(() => expect(host.querySelector('#overcap')).toBeNull());
   });

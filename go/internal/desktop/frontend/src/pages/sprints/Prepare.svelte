@@ -130,7 +130,7 @@
   }
 </script>
 
-<PageHead title={t('Prepare sprint')} lead={t('Enter the absences of the next sprints, then check what is still open. Nothing is locked.')} />
+<PageHead title={t('Prepare sprint')} lead={t('Enter the absences of the next sprints, then check what is still open.')} />
 <StageNav
   stage="prepare"
   missing={{
@@ -194,7 +194,6 @@
             </li>
           {/each}
         </ul>
-        <p class="small muted">{t('Open points block nothing. You can plan at any time with the data that is there.')}</p>
       </section>
 
       <section class="card" aria-labelledby="prev-h">
