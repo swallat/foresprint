@@ -6,8 +6,8 @@
 </p>
 
 <h3 align="center">
-  How much can the team plan in the next sprint? Velocity and capacity forecasts for Scrum teams,
-  from plain YAML files in your own Git repository.
+  How much can the team plan in the next sprint? Forecasts for Scrum teams with several product
+  owners and several products, from plain YAML files in your own Git repository.
 </h3>
 
 <p align="center">
@@ -23,11 +23,16 @@ team plan in the next sprint?** It answers that mid-sprint too, so product owner
 while the current sprint is still running. Every figure comes with the calculation behind it, with
 the numbers substituted, so a forecast is something you can discuss, not just believe.
 
+Anyone can calculate a velocity. Foresprint is built for the teams where it gets hard: several
+product owners, several products and projects across both, and only part of the team with
+production access. The forecast is split by product and PO and checked against the plan, and it
+comes from your real Jira tickets.
+
 It is for Scrum teams that want to own their planning data. There is no server and no account: the
 data is a folder of YAML files, by default in a Git repository, and the desktop application and the
 command line read and write the same files. Several people can work on them in parallel, and every
-change has an author and a history. Foresprint does not tie you to a tracker or Git host; Jira or a
-CSV export from any tracker feeds the ticket pre-planning.
+change has an author and a history. Foresprint does not tie you to a Git host. Tickets come
+from Jira or a CSV export from any tracker; GitHub and GitLab as ticket sources are planned.
 
 Foresprint 1.0 is a single native program written in Go with a [Wails](https://wails.io) window
 (Svelte frontend). The window and the command line are the same file, and nothing else has to be
@@ -78,7 +83,7 @@ installed.
 
 </details>
 
-*The screenshots show the invented demo team "Atlas".*
+*The screenshots show the invented demo team "Atlas". Product page: [foresprint.ing](https://foresprint.ing).*
 
 ## Install
 
@@ -120,13 +125,18 @@ points out new versions; it never installs by itself (`foresprint update --auto 
 - **Forecast PLAN:** normalized velocity, moving average and trend, configurable per team, with a
   range from the conservative, median and optimistic variants. Every figure is traceable.
 - **Capacity from a people list:** memberships with period and FTE, absences per person and sprint
-  (periods only, no reasons are stored), public holidays and working week per country and region.
+  (periods only, no reasons are stored), public holidays and working week for every country and
+  region of the built-in holiday data.
+- **Production access:** mark who may work on tickets that need it, enter the planned and done
+  amount with production access, and get a bottleneck note when the plan exceeds it.
 - **Guided sprint workflow:** assistants for preparing the sprint, PO pre-planning, planning and
   the review explain every field.
-- **Several products and projects:** distribution per product, projects with milestones and
-  contingents, and a traffic light that shows whether a project meets its target.
-- **Ticket pre-planning:** read tickets from Jira (read-only with a personal access token; writing
-  a planned sprint back is optional) or a CSV export. The Backlog shows them in the order of Jira
+- **Several POs, several products, projects across both:** the forecast is split per product and
+  PO, each PO pre-plans their share, and projects (many-to-many with products) have milestones,
+  contingents and a traffic light that shows whether a project meets its target.
+- **Ticket pre-planning:** the forecast comes from your real tickets, read from Jira (personal
+  access token; writing a planned sprint back is optional) or a CSV export. GitHub and GitLab as
+  ticket sources are planned. The Backlog shows them in the order of Jira
   and distributes them over the coming sprints, which are lanes next to the list.
 - **In the browser too:** show the same program as a page of your browser, on your computer only,
   for example next to Jira (`foresprint serve` or Settings > Browser).
@@ -174,8 +184,9 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
 - **Transparent calculation.** The formulas, capacity sources, trend modes and the uncertainty
   range are described in [Calculation](docs/calculation.md), and the app shows them with your
   numbers.
-- **Careful with trackers.** Reading from Jira is the default; writing a planned sprint back is an
-  opt-in setting. See [Jira import](docs/jira.md).
+- **Forecast from your tickets.** Foresprint reads the tickets of your Jira query and distributes
+  them over the coming sprints. Writing a planned sprint back is an opt-in setting. See
+  [Jira import](docs/jira.md).
 
 ## Documentation
 
