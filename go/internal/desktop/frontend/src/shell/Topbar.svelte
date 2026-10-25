@@ -77,7 +77,7 @@
   </button>
   {#if readyTags.length > 0}
     <a class="chip fc" href={link('/data/history')} title={t('The next Save sets these tags.')} aria-label={t('The next Save sets these tags: {names}', { names: readyTags.join(', ') })}>
-      <Icon name="sell" /><span class="data">{readyTags.join(', ')}</span>
+      <Icon name="sell" /><span class="data tags hide-compact">{readyTags.join(', ')}</span>
     </a>
   {/if}
   <button class="btn primary" type="button" data-tour="topbar-save" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
@@ -112,6 +112,11 @@
     max-width: min(40ch, 30vw);
     text-overflow: ellipsis;
     color: inherit;
+  }
+  .tags {
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   /* the sprint name is short and must stay readable: the team picker shrinks first */
   .sprint {
