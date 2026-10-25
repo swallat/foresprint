@@ -569,6 +569,7 @@ func TestBacklogShowsEmptyBoardSprints(t *testing.T) {
 		{ID: "12", Name: "Some Release Train", State: "FUTURE"},
 		{ID: "13", Name: "Team Sprint 2026.1", State: "CLOSED"},
 	}}
+	api.run.boardID = map[string]int{"t": board}
 	view, err := api.Backlog("t")
 	if err != nil {
 		t.Fatal(err)
@@ -585,5 +586,33 @@ func TestBacklogShowsEmptyBoardSprints(t *testing.T) {
 	}
 	if err := api.EarmarkTicket("t", "X-1", "2027.4", ""); err != nil {
 		t.Errorf("a ticket can be earmarked into the empty board sprint: %v", err)
+	}
+}
+
+func TestBoardSprintsSurviveARestartAndSkipForeignOnes(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("APPDATA", "")
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	board := 7
+	data.Team.Tracker.BoardID = &board
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	api.trackerKeepBoard("t", board, []sources.SprintValue{
+		{ID: "11", Name: "Team Sprint 2027.4", State: "FUTURE"},
+		{ID: "12", Name: "Other Team Sprint 3", State: "FUTURE"},
+	})
+	restarted := New("test", api.DataDir())
+	if got := restarted.trackerBoardSprints("t", board); len(got) != 2 {
+		t.Fatalf("after a restart the kept list is read: %+v", got)
+	}
+	if got := restarted.trackerBoardSprints("t", 8); len(got) != 0 {
+		t.Errorf("another board number must not use the kept list: %+v", got)
+	}
+	if got := api.trackerBoardSprints("t", 8); len(got) != 0 {
+		t.Errorf("a changed board number must not use the list of this run either: %+v", got)
 	}
 }

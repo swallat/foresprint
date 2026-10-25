@@ -252,6 +252,22 @@ func ResolveSprint(name string, tracker model.TrackerSettings, sprints Sprints) 
 	return sprintAfterWord(name, sprints)
 }
 
+// ResolveSprintExact is ResolveSprint without the guesses by number: the name itself when it is a
+// known id, tracker.sprint_names, or the one yearly id (2026.20) the name contains as a word.
+// For sprints of a board that other teams may share: "Other Team Sprint 3" is nobody's sprint 3.
+func ResolveSprintExact(name string, tracker model.TrackerSettings, sprints Sprints) *string {
+	if name == "" {
+		return nil
+	}
+	if _, ok := sprints.End(name); ok {
+		return &name
+	}
+	if id, ok := tracker.SprintNames.Get(name); ok {
+		return &id
+	}
+	return sprintWord(name, sprints)
+}
+
 var sprintNumber = regexp.MustCompile(`(?i)\bsprint\s+(\d+)\b([._-]\d)?`)
 
 // sprintAfterWord finds a bare number after the word "Sprint" ("Team Sprint 17") when it is a

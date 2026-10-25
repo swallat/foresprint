@@ -47,3 +47,23 @@ func TestReresolveAppliesAChangedSprintTable(t *testing.T) {
 		t.Error("a second run must change nothing")
 	}
 }
+
+func TestResolveSprintExactIgnoresBareNumbers(t *testing.T) {
+	sprints := knownSprints{"3": true, "2026.20": true}
+	var names model.OrderedMap[string]
+	names.Set("BV Sprint 33", "2026.20")
+	tr := model.TrackerSettings{SprintNames: names}
+	for name, want := range map[string]string{
+		"2026.20":             "2026.20",
+		"Team Sprint 2026.20": "2026.20",
+		"BV Sprint 33":        "2026.20",
+		"3":                   "3",
+		"Other Team Sprint 3": "",
+		"Release 45":          "",
+	} {
+		got := ResolveSprintExact(name, tr, sprints)
+		if (got == nil) != (want == "") || (got != nil && *got != want) {
+			t.Errorf("%q: got %v, want %q", name, got, want)
+		}
+	}
+}
