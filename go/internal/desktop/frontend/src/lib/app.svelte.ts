@@ -240,21 +240,6 @@ async function showNewData(): Promise<void> {
   app.changed++;
 }
 
-/** A fetch by itself must not pull the page away from under someone who is typing. */
-let showWhenIdle = false;
-const typingNow = (): boolean => {
-  const el = document.activeElement;
-  return !!el && !!el.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
-};
-async function showAfterAutoFetch(): Promise<void> {
-  if (typingNow()) {
-    showWhenIdle = true;
-    return;
-  }
-  showWhenIdle = false;
-  await showNewData();
-}
-
 /** Save and share (top bar). Works from every page. */
 export const save = () => run('save', () => api.Save());
 /** Save although the check of the data found errors (after the person has seen them). */
@@ -326,7 +311,8 @@ export async function autoFetch(): Promise<void> {
   await refreshStatus();
   if (app.team === team && app.status.tracker.last !== before) {
     app.rev++;
-    await showAfterAutoFetch();
+    // not pulled away from under someone who is typing: the live watcher waits for a quiet moment
+    window.dispatchEvent(new CustomEvent('foresprint:news'));
   }
 }
 
@@ -351,8 +337,5 @@ export async function start(): Promise<void> {
   app.ready = true;
   void checkUpdate();
   timer ??= setInterval(refreshStatus, 15000);
-  fetchTimer ??= setInterval(() => {
-    if (showWhenIdle && !app.busy) void showAfterAutoFetch();
-    void autoFetch();
-  }, 30000);
+  fetchTimer ??= setInterval(autoFetch, 30000);
 }
