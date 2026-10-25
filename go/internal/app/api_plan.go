@@ -39,6 +39,8 @@ type planCtx struct {
 	sprint model.Sprint
 	today  time.Time
 	repo   *storage.Repository
+	// ranks is the place of each open ticket in the order of the tracker's rank (see backlogByRank).
+	ranks map[string]int
 }
 
 func planToday() time.Time {
@@ -149,6 +151,16 @@ func (c *planCtx) projectOf(t model.Ticket) string {
 	return str(t.Project)
 }
 
+func (c *planCtx) rankPos(key string) int {
+	if c.ranks == nil {
+		c.ranks = map[string]int{}
+		for i, tk := range backlogByRank(c.data) {
+			c.ranks[tk.Key] = i + 1
+		}
+	}
+	return c.ranks[key]
+}
+
 func (c *planCtx) planTicket(t model.Ticket) PlanTicket {
 	size, _ := preplan.TicketSize(t, c.data, 1)
 	pct, src := c.prodShare(t)
@@ -158,7 +170,7 @@ func (c *planCtx) planTicket(t model.Ticket) PlanTicket {
 		Product: c.productOf(t), Project: c.projectOf(t),
 		Refined: t.Estimate != nil && t.EstimateSource == model.EstimateRefined && !t.RefinedUnclear,
 		Sprint:  c.earmarkSprint(t), InTracker: str(t.InSprint),
-		ProdPct: pct, ProdSource: src,
+		ProdPct: pct, ProdSource: src, RankPos: c.rankPos(t.Key),
 	}
 }
 

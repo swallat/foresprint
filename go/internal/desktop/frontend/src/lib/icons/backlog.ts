@@ -5,6 +5,9 @@
 //   import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
 //   const icons = { add: i_add } as const;
 
-const icons = {} as const;
+import i_vertical_split from '@material-symbols/svg-400/outlined/vertical_split.svg?raw';
+import i_splitscreen from '@material-symbols/svg-400/outlined/splitscreen.svg?raw';
+
+const icons = { vertical_split: i_vertical_split, splitscreen: i_splitscreen } as const;
 
 export default icons;

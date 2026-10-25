@@ -38,6 +38,8 @@ export interface BacklogTicket {
   labels: string[];
   dependsOn: string[];
   blocked: boolean;
+  /** Place in the order of the tracker's rank, from 1. */
+  rankPos: number;
 }
 
 export interface BacklogLane {
@@ -188,6 +190,7 @@ export interface BacklogApi {
   EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
   MoveToProForma(team: string, key: string, name: string): Promise<void>;
   ResetOrder(team: string): Promise<void>;
+  MoveTicketByRank(team: string, key: string, anchor: string, after: boolean): Promise<void>;
   SetEarmarkNote(team: string, key: string, note: string): Promise<void>;
   SetEstimate(team: string, key: string, value: number | null): Promise<void>;
   SetRefined(team: string, key: string, refined: boolean): Promise<void>;
