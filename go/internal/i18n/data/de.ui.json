@@ -315,6 +315,7 @@
   "Normalized velocity": "Normierte Velocity",
   "Show normalized velocity and its trend": "Normierte Velocity und ihren Trend anzeigen",
   "Trend of the normalized velocity": "Trend der normierten Velocity",
+  "{id}: trend of the normalized velocity {n}": "{id}: Trend der normierten Velocity {n}",
   "The normalized velocity exists only for completed sprints. For coming sprints it is carried on as a trend; Forecast PLAN = rate × capacity of the sprint.": "Die normierte Velocity gibt es nur für abgeschlossene Sprints. Für kommende Sprints wird sie als Trend fortgeführt; Forecast PLAN = Rate × Kapazität des Sprints.",
   "Not a real sprint: it never counts for capacity or forecast.": "Kein echter Sprint: zählt nie für Kapazität oder Forecast.",
   "Not possible: the person already stands in sprints. Enter a leaving day instead.": "Nicht möglich: Die Person steht schon in Sprints. Trage stattdessen einen letzten Tag ein.",

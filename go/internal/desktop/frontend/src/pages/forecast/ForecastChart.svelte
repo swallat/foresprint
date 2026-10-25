@@ -124,6 +124,11 @@
   {#if velocityPts.length > 1}<polyline points={line(velocityPts)} class="s vel" fill="none" />{/if}
   {#if planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
 
+  {#if showNv}
+    {#each trendPts as p (p.r.id)}
+      <circle cx={p.x} cy={p.y} r="3.5" class="o nv"><title>{t('{id}: trend of the normalized velocity {n}', { id: p.r.id, n: fmt(p.r.trend) })}</title></circle>
+    {/each}
+  {/if}
   {#each showNv ? nvPts : [] as p (p.r.id)}
     <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmt(p.r.normalizedVelocity) })}</title></rect>
   {/each}

@@ -196,8 +196,8 @@
     <section class="card" aria-labelledby="fc-chart" data-tour="forecast-chart">
       <h2 id="fc-chart">{t('Velocity and Forecast PLAN')}</h2>
       <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} digits={view.rounding} />
-      <p class="small muted rate">{t('The normalized velocity exists only for completed sprints. For coming sprints it is carried on as a trend; Forecast PLAN = rate × capacity of the sprint.')}</p>
       {#if view.rate !== null}
+      <p class="small muted rate">{t('The normalized velocity exists only for completed sprints. For coming sprints it is carried on as a trend; Forecast PLAN = rate × capacity of the sprint.')}</p>
         <p class="small muted rate">
           {#if view.rateFixed}
             {t('Fixed factor of the team: {rate} points per person day.', { rate: fmt(view.rate, 2) })}
