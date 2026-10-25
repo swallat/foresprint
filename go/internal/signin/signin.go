@@ -61,8 +61,7 @@ func GuideFor(kind string) HostGuide {
 	}
 	return HostGuide{kind, "", i18n.T("Create an access token with read and write permission on the " +
 		"repository at the server. The user name it expects depends on the server: GitLab takes " +
-		"“oauth2”, Forgejo and Gitea take your own account name. Pick the server type to see the " +
-		"matching steps.")}
+		"“oauth2”, Forgejo and Gitea take your own account name.")}
 }
 
 // HTTPSParts are the host and path of an https address for the credential helper. Other
