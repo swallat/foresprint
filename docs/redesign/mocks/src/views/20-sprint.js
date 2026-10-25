@@ -676,7 +676,7 @@
     { view: "preplan", hl: "#sp-prod-table", text: "Probiere es aus: Trägst du bei Abrechnung 12 ein, liegt die Summe über dem Forecast PLAN und eine Warnung erscheint. Passt alles, ist der Sprint bereit für die Planung." },
   ] });
   FS.flow({ id: "F4", title: "Sprint planen", summary: "Abwesenheiten bestätigen, Tickets live gegen Forecast, Produkte und Kontingente abwägen, Einigung einfrieren.", steps: [
-    { view: "plan", before() { FS.state.sprint = "2026.22"; delete st().frozen["2026.22"]; st().noTracker = false; }, hl: ".sp-abs-banner", text: "Zuerst die Abwesenheiten: Sind sie nur angekündigt, bestätigst du sie direkt hier. Ohne Bestätigung kannst du trotzdem planen." },
+    { view: "plan", before() { FS.state.sprint = "2026.22"; delete st().frozen["2026.22"]; st().noTracker = false; }, hl: ".sp-abs-banner", text: "Zuerst die Abwesenheiten: Sind sie nur angekündigt, bestätigst du sie direkt hier." },
     { view: "plan", hl: ".sp-sumbar", text: "Oben steht der Forecast PLAN mit Spanne. Der Knopf mit dem Taschenrechner zeigt den Rechenweg." },
     { view: "plan", hl: "#sp-lanes", text: "Links die Kandidaten, rechts der Sprint, vorbelegt aus den Vormerkungen. Ticket ziehen oder mit Alt+Pfeil links/rechts verschieben." },
     { view: "plan", hl: "#sp-live", text: "Live: Summe gegen die Spanne, Produkte gegen Budget, Projekte gegen Kontingent in PT (Schätzung). Login-Umstellung liegt über dem Kontingent." },

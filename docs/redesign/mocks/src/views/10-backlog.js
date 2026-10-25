@@ -241,7 +241,7 @@
       const sprint22Abs = Object.keys(D.absences["2026.22"] || {}).length;
       const inc = D.storage.incoming;
       const finding = (chip, text, btn, cls = "") => `<li class="row ${cls}" style="padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start"><span>${chip}</span><span style="flex:1;min-width:200px">${text}</span>${btn}</li>`;
-      return `<div class="page-head"><div><h1>Heute, ${FS.fmtDate(D.today)}</h1><p class="lead">Was als Nächstes ansteht, was andere geändert haben und was auffällt. Jeder Punkt führt in die passende Ansicht. Nichts davon ist Pflicht und nichts sperrt eine Seite.</p></div></div>
+      return `<div class="page-head"><div><h1>Heute, ${FS.fmtDate(D.today)}</h1><p class="lead">Was als Nächstes ansteht, was andere geändert haben und was auffällt. Jeder Punkt führt in die passende Ansicht.</p></div></div>
       <div class="grid cols-2" style="margin-bottom:16px">
         <section class="card stack" aria-labelledby="td-h21"><div class="row"><h2 id="td-h21" style="margin:0">Sprint <span class="data">2026.21</span></h2><span class="chip fc">läuft</span><span class="muted small data">${FS.fmtDate(cur.start)} bis ${FS.fmtDate(cur.end)}</span></div>
           ${FS.trk() === "none" ? `<div class="row small"><span>Zusage <span class="data">${cur.plan}</span> Punkte. Ohne Tickets steht das Ergebnis erst im Review fest.</span></div>` : `${FS.capBar(done, cur.plan, null, null, cur.plan * 1.15)}
