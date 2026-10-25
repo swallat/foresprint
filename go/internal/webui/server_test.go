@@ -193,3 +193,51 @@ func TestDeniedMethodsAndCookiePerPort(t *testing.T) {
 		t.Fatalf("first server: %d", code)
 	}
 }
+
+func TestAssetName(t *testing.T) {
+	for in, want := range map[string]string{
+		"/":                        "index.html",
+		"":                         "index.html",
+		"/assets/index-x.js":       "assets/index-x.js",
+		"//assets/index-x.js":      "assets/index-x.js",
+		"/assets/../../etc/passwd": "etc/passwd",
+		"/setup":                   "setup",
+	} {
+		if got := assetName(in); got != want {
+			t.Errorf("assetName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestAssetsAreServedWithTheirType(t *testing.T) {
+	dir := t.TempDir()
+	assets := fstest.MapFS{
+		"index.html":      {Data: []byte("<head></head>")},
+		"assets/index.js": {Data: []byte("1")},
+		"assets/x.css":    {Data: []byte("a{}")},
+	}
+	s, err := Start(&fakeAPI{}, assets, func() string { return dir })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	c := client()
+	get(t, c, s.URL())
+	base := strings.SplitN(s.URL(), "/?k=", 2)[0]
+	for path, ct := range map[string]string{"/assets/index.js": "text/javascript", "/assets/x.css": "text/css"} {
+		res, err := c.Get(base + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), ct) {
+			t.Errorf("%s: %d %s", path, res.StatusCode, res.Header.Get("Content-Type"))
+		}
+	}
+	if code, _ := get(t, c, base+"/assets/missing.js"); code != http.StatusNotFound {
+		t.Errorf("missing asset must be 404, got %d", code)
+	}
+	if code, body := get(t, c, base+"/some/route"); code != 200 || !strings.Contains(body, "__bridge.js") {
+		t.Errorf("route falls back to the page: %d", code)
+	}
+}
