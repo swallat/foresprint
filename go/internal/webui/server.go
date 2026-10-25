@@ -29,7 +29,9 @@ import (
 //go:embed bridge.js
 var bridgeJS []byte
 
-const cookieName = "foresprint_key"
+// cookiePrefix starts the name of the cookie; the port is added, so that two servers on this
+// computer (the window and "foresprint serve") do not overwrite each other's key.
+const cookiePrefix = "foresprint_key_"
 
 // Server is one running browser access.
 type Server struct {
@@ -37,6 +39,7 @@ type Server struct {
 	assets fs.FS
 	dir    func() string
 	key    string
+	cookie string
 	ln     net.Listener
 	srv    *http.Server
 	hosts  map[string]bool
@@ -46,7 +49,8 @@ type Server struct {
 
 // Start serves assets (the built frontend) and the methods of api (a pointer to a struct) on a
 // free port of 127.0.0.1. dataDir returns the folder whose changes the page watches.
-func Start(api any, assets fs.FS, dataDir func() string) (*Server, error) {
+// The methods named in deny cannot be called from the page.
+func Start(api any, assets fs.FS, dataDir func() string, deny ...string) (*Server, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return nil, err
@@ -58,9 +62,13 @@ func Start(api any, assets fs.FS, dataDir func() string) (*Server, error) {
 	port := strconv.Itoa(ln.Addr().(*net.TCPAddr).Port)
 	s := &Server{
 		api: api, assets: assets, dir: dataDir, ln: ln,
-		key:   base64.RawURLEncoding.EncodeToString(raw),
-		hosts: map[string]bool{"127.0.0.1:" + port: true, "localhost:" + port: true},
-		calls: methodsOf(api),
+		key:    base64.RawURLEncoding.EncodeToString(raw),
+		cookie: cookiePrefix + port,
+		hosts:  map[string]bool{"127.0.0.1:" + port: true, "localhost:" + port: true},
+		calls:  methodsOf(api),
+	}
+	for _, n := range deny {
+		delete(s.calls, n)
 	}
 	s.srv = &http.Server{Handler: s, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = s.srv.Serve(ln) }()
@@ -77,7 +85,9 @@ func (s *Server) Close() {
 	s.once.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_ = s.srv.Shutdown(ctx)
+		if err := s.srv.Shutdown(ctx); err != nil {
+			_ = s.srv.Close()
+		}
 	})
 }
 
@@ -86,7 +96,7 @@ func methodsOf(api any) map[string]reflect.Value {
 	v := reflect.ValueOf(api)
 	for i := 0; i < v.NumMethod(); i++ {
 		name := v.Type().Method(i).Name
-		// The access itself and the dialogs of the system are not for the page in the browser.
+		// The access itself is not for the page in the browser (more is denied by Start).
 		if strings.HasPrefix(name, "Browser") {
 			continue
 		}
@@ -96,7 +106,7 @@ func methodsOf(api any) map[string]reflect.Value {
 }
 
 func (s *Server) authed(r *http.Request) bool {
-	c, err := r.Cookie(cookieName)
+	c, err := r.Cookie(s.cookie)
 	return err == nil && subtle.ConstantTimeCompare([]byte(c.Value), []byte(s.key)) == 1
 }
 
@@ -117,7 +127,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: s.key, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode})
+		http.SetCookie(w, &http.Cookie{Name: s.cookie, Value: s.key, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode})
 		q := r.URL.Query()
 		q.Del("k")
 		u := url.URL{Path: r.URL.Path, RawQuery: q.Encode()}
@@ -220,14 +230,20 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 	res, err := invoke(m, body)
-	w.Header().Set("Content-Type", "application/json")
+	a := answer{Result: res}
 	if err != nil {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(answer{Error: err.Error()})
-		return
+		a = answer{Error: err.Error()}
 	}
-	w.Header().Set("X-Fingerprint", Fingerprint(s.dir()))
-	_ = json.NewEncoder(w).Encode(answer{Result: res})
+	// Encode first: a result that cannot be encoded (NaN) becomes an error, not an empty body.
+	out, merr := json.Marshal(a)
+	if merr != nil {
+		out, _ = json.Marshal(answer{Error: merr.Error()})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err == nil && merr == nil {
+		w.Header().Set("X-Fingerprint", Fingerprint(s.dir()))
+	}
+	_, _ = w.Write(out)
 }
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()

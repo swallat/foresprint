@@ -35,7 +35,7 @@
 
 {#if browser.available && !inBrowserPage}
   <div class="menu" bind:this={root}>
-    <button class="btn icon ghost" class:on={browser.running} type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('Browser')} title={t('Show in the browser')} onclick={() => (open = !open)}>
+    <button class="btn icon ghost" class:on={browser.running} type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('Browser')} title={browser.running ? t('The browser access is on') : t('Show in the browser')} onclick={() => (open = !open)}>
       <Icon name="open_in_browser" />
     </button>
     {#if open}

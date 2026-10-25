@@ -7,10 +7,15 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/swallat/foresprint/internal/app"
 	"github.com/swallat/foresprint/internal/webui"
 )
+
+// windowOnly are the methods the page in the browser must not call while the window is open: they
+// switch the data folder or the demo of the program that the window uses as well.
+var windowOnly = []string{"SetDataDir", "PickDataDir", "EnterDemo", "LeaveDemo"}
 
 // browserAccess starts and stops the local server that shows the window as a page of the browser.
 type browserAccess struct {
@@ -24,7 +29,7 @@ func (b *browserAccess) start() (string, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.srv == nil {
-		srv, err := webui.Start(b.api, b.assets, b.api.DataDir)
+		srv, err := webui.Start(b.api, b.assets, b.api.DataDir, windowOnly...)
 		if err != nil {
 			return "", err
 		}
@@ -65,7 +70,8 @@ func Serve(version, dataDir string, out func(string)) error {
 	defer srv.Close()
 	out(srv.URL())
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(stop)
 	<-stop
 	return nil
 }

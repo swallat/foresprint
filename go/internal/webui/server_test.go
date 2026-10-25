@@ -163,3 +163,33 @@ func TestFingerprintChanges(t *testing.T) {
 		t.Fatal(".git must not count")
 	}
 }
+
+func TestDeniedMethodsAndCookiePerPort(t *testing.T) {
+	dir := t.TempDir()
+	assets := fstest.MapFS{"index.html": {Data: []byte("<head></head>")}}
+	a, err := Start(&fakeAPI{}, assets, func() string { return dir }, "Add")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	b, err := Start(&fakeAPI{}, assets, func() string { return dir })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	c := client()
+	get(t, c, a.URL())
+	get(t, c, b.URL())
+	baseA := strings.SplitN(a.URL(), "/?k=", 2)[0]
+	baseB := strings.SplitN(b.URL(), "/?k=", 2)[0]
+	if code, _ := post(t, c, baseA+"/api/Add", "[1,2]"); code != http.StatusNotFound {
+		t.Fatalf("denied method: %d", code)
+	}
+	// Both keys live side by side in one browser.
+	if code, _ := post(t, c, baseB+"/api/Add", "[1,2]"); code != 200 {
+		t.Fatalf("second server: %d", code)
+	}
+	if code, _ := post(t, c, baseA+"/api/Hello", `["x"]`); code != 200 {
+		t.Fatalf("first server: %d", code)
+	}
+}
