@@ -22,13 +22,15 @@ export interface PageDef {
   nav?: string;
   /** Full window without the rail and top bar (first-run wizard). */
   bare?: boolean;
+  /** Uses the whole width of the window instead of the page's maximum width (lists side by side). */
+  wide?: boolean;
 }
 
 export const pages: PageDef[] = [
   { path: '/today', title: 'Today', load: () => import('../pages/today/Today.svelte') },
   { path: '/setup', title: 'First start', bare: true, load: () => import('../pages/today/FirstRun.svelte') },
 
-  { path: '/backlog', title: 'Backlog', load: () => import('../pages/backlog/Backlog.svelte') },
+  { path: '/backlog', title: 'Backlog', wide: true, load: () => import('../pages/backlog/Backlog.svelte') },
   { path: '/present', title: 'Presentation view', nav: '/backlog', load: () => import('../pages/backlog/Present.svelte') },
 
   { path: '/sprints', title: 'Sprint overview', load: () => import('../pages/sprints/Sprints.svelte') },
