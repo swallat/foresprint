@@ -25,7 +25,7 @@ program with the window on Windows, macOS (Apple silicon and Intel) and Linux (a
 with `-tags desktop,production` (Linux also `webkit2_41`), puts the newest holiday data in, and
 attaches to the release page:
 
-- `foresprint_<version>_<os>_<arch>.tar.gz` (`.zip` on Windows) with the program at the top level
+- `foresprint_<version>_<os>_<arch>.tar.gz` (`.zip` on Windows) with the program at the top level, next to `LICENSE` and `THIRD_PARTY_NOTICES.md`
   (the names are what the self-update looks for),
 - `foresprint-cli_<version>_linux_<arch>.tar.gz`: the same program without the window (built
   without the tag `desktop`, `CGO_ENABLED=0`), which needs no GTK or WebKit; the self-update of that
