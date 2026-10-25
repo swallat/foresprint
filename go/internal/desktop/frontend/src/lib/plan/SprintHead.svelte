@@ -2,10 +2,11 @@
   // Title, lead and stage steps of the sprint workspace for Pre-plan and Plan. The steps are
   // links, never gates: every stage opens at any time and says what is missing.
   import type { Snippet } from 'svelte';
-  import { formatPeriod } from '../format';
+  import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { PlanSprint } from '../types.plan';
+  import SprintMeta from '../sprints/SprintMeta.svelte';
   import PageHead from '../ui/PageHead.svelte';
   import { itemWord } from './model.svelte';
 
@@ -48,11 +49,16 @@
   const hint = $derived(steps.find((s) => s.id === stage)?.missing ?? '');
 </script>
 
-<PageHead title={`${stage === 'preplan' ? t('Pre-plan') : t('Plan')}: ${t('Sprint')} ${d.sprint}`} {lead} {actions} />
-<p class="small muted head-meta">
-  <span class="chip">{stageChip}</span>
-  <span class="data">{formatPeriod(d.start, d.end)}</span> · {t('{n} working days', { n: d.days })}
-</p>
+<PageHead title={stage === 'preplan' ? t('Pre-plan') : t('Plan')} {lead} {actions} />
+<SprintMeta>
+  {#snippet extra()}
+    {#if d.sprint === app.sprint}
+      <span aria-hidden="true">·</span>
+      <span class="chip">{stageChip}</span>
+      <span>{t('{n} working days', { n: d.days })}</span>
+    {/if}
+  {/snippet}
+</SprintMeta>
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}
     <a
@@ -70,13 +76,3 @@
 {#if hint && stage !== 'plan'}
   <div class="banner info"><Icon name="info" /><div class="grow">{hint} {t('The page works with the data at hand.')}</div></div>
 {/if}
-
-<style>
-  .head-meta {
-    margin: -8px 0 12px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-</style>
