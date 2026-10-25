@@ -1,0 +1,852 @@
+{
+ "distributions": [
+  {
+   "sprint": "2026.1",
+   "plan": 32.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 32.0,
+   "current_plan": 32.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 16.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 8.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 8.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 32.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 24.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 8.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.2",
+   "plan": 30.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 30.0,
+   "current_plan": 30.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 15.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 7.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 7.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 30.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 22.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 7.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.3",
+   "plan": 34.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 34.0,
+   "current_plan": 34.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 17.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 8.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 8.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 34.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 25.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 8.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.4",
+   "plan": 34.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 34.0,
+   "current_plan": 34.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 17.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 8.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 8.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 34.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 25.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 8.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.5",
+   "plan": 31.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 31.0,
+   "current_plan": 31.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 15.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 7.75,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 7.75,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 31.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 23.25,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 7.75,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.6",
+   "plan": 31.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 31.5,
+   "current_plan": 31.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 15.75,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 7.875,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 7.875,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 31.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 23.625,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 7.875,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.7",
+   "plan": 31.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 31.5,
+   "current_plan": 31.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 4,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 15.75,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "new",
+     "name": "New",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 31.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 21.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 10.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.8",
+   "plan": 31.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 31.5,
+   "current_plan": 31.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 4,
+   "rows": [
+    {
+     "product": "web",
+     "name": "Web",
+     "po": "Alex",
+     "active": true,
+     "standard": 15.75,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "App",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "old",
+     "name": "Old",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "new",
+     "name": "New",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.25,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 31.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 21.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 10.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  }
+ ],
+ "plan_views": [
+  {
+   "sprint": "2026.1",
+   "current": 32.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.2",
+   "current": 30.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.3",
+   "current": 34.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.4",
+   "current": 34.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.5",
+   "current": 31.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.6",
+   "current": 31.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.7",
+   "current": 31.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.8",
+   "current": 31.5,
+   "frozen": null,
+   "difference": null
+  }
+ ],
+ "sprint_products": [
+  {
+   "sprint": "2026.1",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.2",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.3",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.4",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.5",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.6",
+   "products": [
+    "web",
+    "app",
+    "old"
+   ]
+  },
+  {
+   "sprint": "2026.7",
+   "products": [
+    "web",
+    "app",
+    "old",
+    "new"
+   ]
+  },
+  {
+   "sprint": "2026.8",
+   "products": [
+    "web",
+    "app",
+    "old",
+    "new"
+   ]
+  }
+ ],
+ "balance": [],
+ "balance_last3": []
+}

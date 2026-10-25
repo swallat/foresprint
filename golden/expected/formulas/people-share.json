@@ -1,0 +1,2078 @@
+{
+ "entries": [
+  {
+   "sprint": "2026.14",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 3) × 1 + Ben (10 − 0 − 1.5) × 1 + Cem (10 − 0 − 2) × 1 + Dana (10 − 1 − 0) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 = 78.50 − 9.42 (12 %) → 69 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 69.08 × 40 = 16.21"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 30.00 = 93 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 3) × 1 + `Ben` (10 − 0 − 1.5) × 1 + `Cem` (10 − 0 − 2) × 1 + `Dana` (10 − 1 − 0) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 = 78.50 − 9.42 (12 %) → 69 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 69.08 × 40 = 16.21"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 30.00 = 93 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "plain_no_note": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.15",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 0) × 1 + Ben (10 − 0 − 0) × 1 + Cem (10 − 0 − 0) × 1 + Dana (10 − 0 − 0) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 = 86.00 − 10.32 (12 %) → 76 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 75.68 × 40 = 15.86"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "31.00 → 31.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "31.0 × 80 % = 24.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "31.0 − 24.80 = 6.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 31.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 0) × 1 + `Ben` (10 − 0 − 0) × 1 + `Cem` (10 − 0 − 0) × 1 + `Dana` (10 − 0 − 0) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 = 86.00 − 10.32 (12 %) → 76 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 75.68 × 40 = 15.86"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "31.00 → 31.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "31.0 × 80 % = 24.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "31.0 − 24.80 = 6.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 31.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+   "plain_no_note": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.16",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 0) × 1 + Ben (10 − 0 − 0) × 1 + Cem (10 − 0 − 0) × 1 + Dana (10 − 0 − 1) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 = 85.00 − 10.20 (12 %) → 75 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "27.00 / 74.8 × 40 = 14.44"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "27.00 / 30.00 = 90 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 0) × 1 + `Ben` (10 − 0 − 0) × 1 + `Cem` (10 − 0 − 0) × 1 + `Dana` (10 − 0 − 1) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 = 85.00 − 10.20 (12 %) → 75 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "27.00 / 74.8 × 40 = 14.44"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "27.00 / 30.00 = 90 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "plain_no_note": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.17",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 73 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "33.00 / 73.04 × 40 = 18.07"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "34.00 → 34.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "34.0 × 80 % = 27.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "34.0 − 27.20 = 6.80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "33.00 / 34.00 = 97 %"
+    },
+    {
+     "key": "delta",
+     "name": "Planning delta",
+     "formula": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+     "calculation": "34.0 − (4.00 + 26.00 − 1.50) = 5.50"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 73 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "33.00 / 73.04 × 40 = 18.07"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+     "calculation": "– (not enough history)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "34.00 → 34.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "34.0 × 80 % = 27.20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "34.0 − 27.20 = 6.80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "33.00 / 34.00 = 97 %"
+    },
+    {
+     "key": "delta",
+     "name": "Planning delta",
+     "formula": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+     "calculation": "34.0 − (4.00 + 26.00 − 1.50) = 5.50"
+    }
+   ],
+   "plain": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+   "plain_no_note": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (34.00 PT) counts, rounded down to 34.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.18",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 72 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "31.00 / 72.16 × 40 = 17.18"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(16.21 + 15.86 + 14.44 + 18.07 + 17.18) / 5 = 16.35"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "32.00 → 32.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.0 × 80 % = 25.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.0 − 25.60 = 6.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "31.00 / 32.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 72 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "31.00 / 72.16 × 40 = 17.18"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(16.21 + 15.86 + 14.44 + 18.07 + 17.18) / 5 = 16.35"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "32.00 → 32.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.0 × 80 % = 25.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.0 − 25.60 = 6.40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "31.00 / 32.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+   "plain_no_note": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (32.00 PT) counts, rounded down to 32.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.19",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 3) × 1 + Ben (10 − 0 − 1.5) × 0.5 + Cem (10 − 0 − 2) × 1 + Dana (10 − 0 − 0) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 + Jonas (6 − 0 − 0) × 1 = 81.25 − 9.75 (12 %) → 72 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "29.00 / 71.5 × 40 = 16.22"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(15.86 + 14.44 + 18.07 + 17.18 + 16.22) / 5 = 16.35"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "29.00 / 30.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 3) × 1 + `Ben` (10 − 0 − 1.5) × 0.5 + `Cem` (10 − 0 − 2) × 1 + `Dana` (10 − 0 − 0) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 + `Jonas` (6 − 0 − 0) × 1 = 81.25 − 9.75 (12 %) → 72 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "29.00 / 71.5 × 40 = 16.22"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(15.86 + 14.44 + 18.07 + 17.18 + 16.22) / 5 = 16.35"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.35"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "29.00 / 30.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "plain_no_note": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.20",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 0) × 1 + Ben (10 − 0 − 0) × 0.5 + Cem (10 − 0 − 0) × 1 + Dana (10 − 0 − 0) × 1 + Eli (10 − 5 − 0) × 0.8 + Fadi (10 − 1 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 + Jonas (10 − 0 − 0) × 1 = 86.00 − 10.32 (12 %) → 76 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "35.00 / 75.68 × 40 = 18.50"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(14.44 + 18.07 + 17.18 + 16.22 + 18.50) / 5 = 16.88"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.88"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "35.00 / 36.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 0) × 1 + `Ben` (10 − 0 − 0) × 0.5 + `Cem` (10 − 0 − 0) × 1 + `Dana` (10 − 0 − 0) × 1 + `Eli` (10 − 5 − 0) × 0.8 + `Fadi` (10 − 1 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 + `Jonas` (10 − 0 − 0) × 1 = 86.00 − 10.32 (12 %) → 76 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "35.00 / 75.68 × 40 = 18.50"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(14.44 + 18.07 + 17.18 + 16.22 + 18.50) / 5 = 16.88"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.88"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "36.00 → 36.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "36.0 × 80 % = 28.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "36.0 − 28.80 = 7.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "35.00 / 36.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "plain_no_note": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (36.00 PT) counts, rounded down to 36.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.21",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 0) × 1 + Ben (10 − 0 − 0) × 0.5 + Cem (10 − 0 − 0) × 1 + Dana (10 − 0 − 1) × 1 + Eli (10 − 1 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 + Jonas (10 − 0 − 0) × 1 = 89.20 − 10.70 (12 %) → 78 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 78.496 × 40 = 15.29"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(18.07 + 17.18 + 16.22 + 18.50 + 15.29) / 5 = 17.05"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 17.05"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "31.00 → 31.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "31.0 × 80 % = 24.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "31.0 − 24.80 = 6.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 31.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 0) × 1 + `Ben` (10 − 0 − 0) × 0.5 + `Cem` (10 − 0 − 0) × 1 + `Dana` (10 − 0 − 1) × 1 + `Eli` (10 − 1 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 + `Jonas` (10 − 0 − 0) × 1 = 89.20 − 10.70 (12 %) → 78 PT (rounded)"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "30.00 / 78.496 × 40 = 15.29"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(18.07 + 17.18 + 16.22 + 18.50 + 15.29) / 5 = 17.05"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 17.05"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "31.00 → 31.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "31.0 × 80 % = 24.80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "31.0 − 24.80 = 6.20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "30.00 / 31.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+   "plain_no_note": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (31.00 PT) counts, rounded down to 31.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.22",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 77 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 76.56 × 40 = 14.63"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(17.18 + 16.22 + 18.50 + 15.29 + 14.63) / 5 = 16.36"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.36"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 30.00 = 93 %"
+    },
+    {
+     "key": "delta",
+     "name": "Planning delta",
+     "formula": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+     "calculation": "30.0 − (4.00 + 26.00 − 1.50) = 1.50"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 77 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "28.00 / 76.56 × 40 = 14.63"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(17.18 + 16.22 + 18.50 + 15.29 + 14.63) / 5 = 16.36"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.36"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "30.00 → 30.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "30.0 × 80 % = 24.00"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "30.0 − 24.00 = 6.00"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "28.00 / 30.00 = 93 %"
+    },
+    {
+     "key": "delta",
+     "name": "Planning delta",
+     "formula": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+     "calculation": "30.0 − (4.00 + 26.00 − 1.50) = 1.50"
+    }
+   ],
+   "plain": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "plain_no_note": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (30.00 PT) counts, rounded down to 30.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.23",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 79 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "32.00 / 79.2 × 40 = 16.16"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(16.22 + 18.50 + 15.29 + 14.63 + 16.16) / 5 = 16.16"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "33.00 → 33.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "33.0 × 80 % = 26.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "33.0 − 26.40 = 6.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "32.00 / 33.00 = 97 %"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 79 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "norm. velocity",
+     "formula": "norm. velocity = velocity / capacity × reference capacity",
+     "calculation": "32.00 / 79.2 × 40 = 16.16"
+    },
+    {
+     "key": "average",
+     "name": "Ø norm. velocity",
+     "formula": "Ø norm. velocity = mean of the norm. velocity of the last 5 sprints with a value (sprints without a value do not count)",
+     "calculation": "(16.22 + 18.50 + 15.29 + 14.63 + 16.16) / 5 = 16.16"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = Ø norm. velocity – past sprint",
+     "calculation": "Ø = 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down(commitment) – past sprint",
+     "calculation": "33.00 → 33.0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "33.0 × 80 % = 26.40"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "33.0 − 26.40 = 6.60"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = velocity / commitment",
+     "calculation": "32.00 / 33.00 = 97 %"
+    }
+   ],
+   "plain": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+   "plain_no_note": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+   "structured": {
+    "message": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "Past sprint: the commitment (33.00 PT) counts, rounded down to 33.0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.24",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 3) × 1 + Ben (10 − 0 − 1.5) × 0.5 + Cem (10 − 0 − 2) × 1 + Dana (10 − 2 − 0) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 + Jonas (10 − 0 − 0) × 1 = 83.25 − 9.99 (12 %) → 73 PT (rounded)"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 73.26 = 29.597 → 29.5 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "29.5 × 80 % = 23.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "29.5 − 23.60 = 5.90"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 3) × 1 + `Ben` (10 − 0 − 1.5) × 0.5 + `Cem` (10 − 0 − 2) × 1 + `Dana` (10 − 2 − 0) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 + `Jonas` (10 − 0 − 0) × 1 = 83.25 − 9.99 (12 %) → 73 PT (rounded)"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 73.26 = 29.597 → 29.5 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "29.5 × 80 % = 23.60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "29.5 − 23.60 = 5.90"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 73 PT are available for 2026.24 (people list). That gives 16.1602 / 40 × 73.26 = 29.597 PT, rounded down **29.5 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 73 PT are available for 2026.24 (people list). That gives 16.1602 / 40 × 73.26 = 29.597 PT, rounded down **29.5 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.24`",
+      "73 PT (people list)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 73.26 = 29.597 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "29.5 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.24`",
+      "73 PT (people list)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 73.26 = 29.597 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "29.5 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.25",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "Anna (10 − 0 − 0) × 1 + Ben (10 − 0 − 0) × 0.5 + Cem (10 − 0 − 0) × 1 + Dana (10 − 0 − 0) × 1 + Eli (10 − 0 − 0) × 0.8 + Fadi (10 − 0 − 0) × 1 + Gina (8 − 0 − 0) × 1 + Hugo (10 − 0 − 0) × 1 + Ines (10 − 0 − 0) × 1 + Jonas (10 − 0 − 0) × 1 = 91.00 − 10.92 (12 %) → 80 PT (rounded)"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 80.08 = 32.353 → 32.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.3 × 80 % = 25.84"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.3 − 25.84 = 6.46"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum events deduction; frozen after the review; unknown absences estimated from the history (without history, no deduction); trend only without a people list",
+     "calculation": "`Anna` (10 − 0 − 0) × 1 + `Ben` (10 − 0 − 0) × 0.5 + `Cem` (10 − 0 − 0) × 1 + `Dana` (10 − 0 − 0) × 1 + `Eli` (10 − 0 − 0) × 0.8 + `Fadi` (10 − 0 − 0) × 1 + `Gina` (8 − 0 − 0) × 1 + `Hugo` (10 − 0 − 0) × 1 + `Ines` (10 − 0 − 0) × 1 + `Jonas` (10 − 0 − 0) × 1 = 91.00 − 10.92 (12 %) → 80 PT (rounded)"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 80.08 = 32.353 → 32.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "32.3 × 80 % = 25.84"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "32.3 − 25.84 = 6.46"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 80 PT are available for 2026.25 (people list). That gives 16.1602 / 40 × 80.08 = 32.353 PT, rounded down **32.3 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 80 PT are available for 2026.25 (people list). That gives 16.1602 / 40 × 80.08 = 32.353 PT, rounded down **32.3 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.25`",
+      "80 PT (people list)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 80.08 = 32.353 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "32.3 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.25`",
+      "80 PT (people list)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 80.08 = 32.353 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "32.3 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.26",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 73 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 72.6 = 29.331 → 29.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "29.3 × 80 % = 23.44"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "29.3 − 23.44 = 5.86"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 73 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 72.6 = 29.331 → 29.3 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "29.3 × 80 % = 23.44"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "29.3 − 23.44 = 5.86"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 73 PT are available for 2026.26 (announced absences). That gives 16.1602 / 40 × 72.6 = 29.331 PT, rounded down **29.3 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 73 PT are available for 2026.26 (announced absences). That gives 16.1602 / 40 × 72.6 = 29.331 PT, rounded down **29.3 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.26`",
+      "73 PT (announced absences)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 72.6 = 29.331 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "29.3 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.26`",
+      "73 PT (announced absences)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 72.6 = 29.331 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "29.3 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.27",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 65 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 64.856 = 26.202 → 26.2 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "26.2 × 80 % = 20.96"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "26.2 − 20.96 = 5.24"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "No absences confirmed → capacity from the people list with the announced absences from the PO pre-planning",
+     "calculation": "= 65 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 64.856 = 26.202 → 26.2 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "26.2 × 80 % = 20.96"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "26.2 − 20.96 = 5.24"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 65 PT are available for 2026.27 (announced absences). That gives 16.1602 / 40 × 64.856 = 26.202 PT, rounded down **26.2 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 65 PT are available for 2026.27 (announced absences). That gives 16.1602 / 40 × 64.856 = 26.202 PT, rounded down **26.2 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.27`",
+      "65 PT (announced absences)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 64.856 = 26.202 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "26.2 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2026.27`",
+      "65 PT (announced absences)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 64.856 = 26.202 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "26.2 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2027.1",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 70 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 70.4 = 28.442 → 28.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "28.4 × 80 % = 22.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "28.4 − 22.72 = 5.68"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 70 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 70.4 = 28.442 → 28.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "28.4 × 80 % = 22.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "28.4 − 22.72 = 5.68"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 70 PT are available for 2027.1 (Calendar, absences unknown). That gives 16.1602 / 40 × 70.4 = 28.442 PT, rounded down **28.4 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 70 PT are available for 2027.1 (Calendar, absences unknown). That gives 16.1602 / 40 × 70.4 = 28.442 PT, rounded down **28.4 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.1`",
+      "70 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 70.4 = 28.442 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "28.4 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.1`",
+      "70 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 70.4 = 28.442 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "28.4 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2027.2",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 69 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 69.168 = 27.944 → 27.9 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "27.9 × 80 % = 22.32"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "27.9 − 22.32 = 5.58"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 69 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 69.168 = 27.944 → 27.9 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "27.9 × 80 % = 22.32"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "27.9 − 22.32 = 5.58"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 69 PT are available for 2027.2 (Calendar, absences unknown). That gives 16.1602 / 40 × 69.168 = 27.944 PT, rounded down **27.9 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 69 PT are available for 2027.2 (Calendar, absences unknown). That gives 16.1602 / 40 × 69.168 = 27.944 PT, rounded down **27.9 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.2`",
+      "69 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 69.168 = 27.944 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "27.9 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.2`",
+      "69 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 69.168 = 27.944 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "27.9 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2027.3",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 69 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 68.816 = 27.802 → 27.8 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "27.8 × 80 % = 22.24"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "27.8 − 22.24 = 5.56"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 69 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 68.816 = 27.802 → 27.8 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "27.8 × 80 % = 22.24"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "27.8 − 22.24 = 5.56"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 69 PT are available for 2027.3 (Calendar, absences unknown). That gives 16.1602 / 40 × 68.816 = 27.802 PT, rounded down **27.8 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 69 PT are available for 2027.3 (Calendar, absences unknown). That gives 16.1602 / 40 × 68.816 = 27.802 PT, rounded down **27.8 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.3`",
+      "69 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 68.816 = 27.802 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "27.8 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.3`",
+      "69 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 68.816 = 27.802 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "27.8 PT",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2027.4",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 70 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 70.4 = 28.442 → 28.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "28.4 × 80 % = 22.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "28.4 − 22.72 = 5.68"
+    }
+   ],
+   "steps_code_no_note": [
+    {
+     "key": "capacity",
+     "name": "Capacity",
+     "formula": "Absences unknown and no history yet → capacity from the people list and calendar (holidays, sprint length) without deduction for absences",
+     "calculation": "= 70 PT"
+    },
+    {
+     "key": "trend",
+     "name": "norm. velocity trend",
+     "formula": "norm. velocity trend = value_prev (flat)",
+     "calculation": "= 16.16"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = rounded down to 1 digit(s): (norm. velocity trend / reference capacity × capacity)",
+     "calculation": "16.1602 / 40 × 70.4 = 28.442 → 28.4 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Plannable",
+     "formula": "Plannable = Forecast PLAN × plannable share",
+     "calculation": "28.4 × 80 % = 22.72"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Small items",
+     "formula": "Small stuff = Forecast PLAN − plannable",
+     "calculation": "28.4 − 22.72 = 5.68"
+    }
+   ],
+   "plain": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 70 PT are available for 2027.4 (Calendar, absences unknown). That gives 16.1602 / 40 × 70.4 = 28.442 PT, rounded down **28.4 PT**.",
+   "plain_no_note": "The team recently (sprints 2026.19, 2026.20, 2026.21, 2026.22, 2026.23) achieved an average of 16.16 PT, converted to a reference capacity of 40 PT (normalized velocity). 70 PT are available for 2027.4 (Calendar, absences unknown). That gives 16.1602 / 40 × 70.4 = 28.442 PT, rounded down **28.4 PT**.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.4`",
+      "70 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 70.4 = 28.442 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "28.4 PT",
+    "notes": []
+   },
+   "structured_no_note": {
+    "message": "",
+    "inputs": [
+     [
+      "Basis sprints",
+      "`2026.19`, `2026.20`, `2026.21`, `2026.22`, `2026.23`"
+     ],
+     [
+      "Normalized velocity (reference capacity 40 PT)",
+      "16.16 PT"
+     ],
+     [
+      "Available in `2027.4`",
+      "70 PT (Calendar, absences unknown)"
+     ]
+    ],
+    "calculation": "16.1602 / 40 × 70.4 = 28.442 PT",
+    "result_label": "Forecast PLAN (rounded down)",
+    "result": "28.4 PT",
+    "notes": []
+   }
+  }
+ ]
+}

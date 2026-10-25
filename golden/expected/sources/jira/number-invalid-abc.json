@@ -1,0 +1,255 @@
+{
+ "operation": "fetch",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "status": 200,
+   "json": [
+    {
+     "id": "summary",
+     "name": "Summary",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Summary"
+     ],
+     "schema": {
+      "type": "string",
+      "system": "summary"
+     }
+    },
+    {
+     "id": "status",
+     "name": "Status",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Status"
+     ],
+     "schema": {
+      "type": "status",
+      "system": "status"
+     }
+    },
+    {
+     "id": "issuetype",
+     "name": "Issue Type",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Issue Type"
+     ],
+     "schema": {
+      "type": "issuetype",
+      "system": "issuetype"
+     }
+    },
+    {
+     "id": "labels",
+     "name": "Labels",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Labels"
+     ],
+     "schema": {
+      "type": "array",
+      "items": "string",
+      "system": "labels"
+     }
+    },
+    {
+     "id": "parent",
+     "name": "Parent",
+     "custom": false,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Parent"
+     ],
+     "schema": {
+      "type": "issuelink",
+      "system": "parent"
+     }
+    },
+    {
+     "id": "customfield_10016",
+     "name": "Story Points",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Story Points"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10016
+     }
+    },
+    {
+     "id": "customfield_10017",
+     "name": "Remaining",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Remaining"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10017
+     }
+    },
+    {
+     "id": "customfield_10014",
+     "name": "Epic Link",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Epic Link"
+     ],
+     "schema": {
+      "type": "any",
+      "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+      "customId": 10014
+     }
+    },
+    {
+     "id": "customfield_10020",
+     "name": "Sprint",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Sprint"
+     ],
+     "schema": {
+      "type": "array",
+      "items": "json",
+      "custom": "com.pyxis.greenhopper.jira:gh-sprint",
+      "customId": 10020
+     }
+    },
+    {
+     "id": "customfield_10019",
+     "name": "Rang",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Rang"
+     ],
+     "schema": {
+      "type": "any",
+      "custom": "com.pyxis.greenhopper.jira:gh-lexo-rank",
+      "customId": 10019
+     }
+    },
+    {
+     "id": "customfield_10100",
+     "name": "Business Value",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Business Value"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10100
+     }
+    },
+    {
+     "id": "customfield_10101",
+     "name": "Business Value",
+     "custom": true,
+     "orderable": true,
+     "navigable": true,
+     "searchable": true,
+     "clauseNames": [
+      "Business Value"
+     ],
+     "schema": {
+      "type": "number",
+      "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+      "customId": 10101
+     }
+    }
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/rest/api/2/search",
+   "status": 200,
+   "json": {
+    "startAt": 0,
+    "maxResults": 100,
+    "total": 1,
+    "issues": [
+     {
+      "id": "N-1",
+      "key": "N-1",
+      "fields": {
+       "summary": "n",
+       "customfield_10016": "abc"
+      }
+     }
+    ]
+   },
+   "query": {
+    "startAt": "0"
+   }
+  }
+ ],
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/rest/api/2/field",
+   "query": {},
+   "authorization": true
+  },
+  {
+   "method": "GET",
+   "path": "/rest/api/2/search",
+   "query": {
+    "jql": "project = ABC ORDER BY Rank",
+    "fields": "summary,status,issuetype,priority,labels,components,resolution,issuelinks,parent,customfield_10016,customfield_10017,customfield_10014,customfield_10020,customfield_10019",
+    "startAt": "0",
+    "maxResults": "100"
+   },
+   "authorization": true
+  }
+ ],
+ "error": "Ticket N-1: the field “Story Points” does not contain a valid non-negative number"
+}

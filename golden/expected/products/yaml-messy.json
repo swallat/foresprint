@@ -1,0 +1,304 @@
+{
+ "distributions": [
+  {
+   "sprint": "2026.1",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.2",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.3",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.4",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.5",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.6",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.7",
+   "plan": null,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": null,
+   "current_plan": null,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  }
+ ],
+ "plan_views": [
+  {
+   "sprint": "2026.1",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.2",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.3",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.4",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.5",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.6",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.7",
+   "current": null,
+   "frozen": null,
+   "difference": null
+  }
+ ],
+ "sprint_products": [
+  {
+   "sprint": "2026.1",
+   "products": []
+  },
+  {
+   "sprint": "2026.2",
+   "products": []
+  },
+  {
+   "sprint": "2026.3",
+   "products": []
+  },
+  {
+   "sprint": "2026.4",
+   "products": []
+  },
+  {
+   "sprint": "2026.5",
+   "products": []
+  },
+  {
+   "sprint": "2026.6",
+   "products": []
+  },
+  {
+   "sprint": "2026.7",
+   "products": []
+  }
+ ],
+ "balance": [],
+ "balance_last3": []
+}

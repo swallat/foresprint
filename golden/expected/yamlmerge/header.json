@@ -1,0 +1,26 @@
+[
+ {
+  "text": "",
+  "header": ""
+ },
+ {
+  "text": "no header\nkey: 1\n",
+  "header": ""
+ },
+ {
+  "text": "# comment\n\n# more\nkey: 1\n# not header\n",
+  "header": "# comment\n\n# more\n"
+ },
+ {
+  "text": "\n\n# x\r\nkey: 1\r\n",
+  "header": "\n\n# x\r\n"
+ },
+ {
+  "text": "# only comment",
+  "header": "# only comment"
+ },
+ {
+  "text": "   \n# after blank with spaces\nkey: 2\n",
+  "header": "   \n# after blank with spaces\n"
+ }
+]

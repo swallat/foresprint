@@ -93,8 +93,8 @@ written directly. Both need `features.tickets: true` in `team.yaml`.
 ## Worked example
 
 [examples/](examples/) contains an invented workbook (`demo-sheet/`) and the exact files an
-import should produce (`expected/`). The repository test suite runs `foresprint check` on
-`expected/`, so the example stays valid.
+import should produce (`expected/`). Check it with
+`foresprint --data expected/teams check`.
 
 ## Keeping this skill current
 

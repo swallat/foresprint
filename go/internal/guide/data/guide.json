@@ -1,0 +1,434 @@
+{
+ "fields": [
+  {
+   "key": "absences",
+   "title": "Planned absences",
+   "what": "Working days on which a person is not available for sprint work: vacation, time off, training, conferences, other projects. Do NOT enter public holidays – they are taken into account automatically via the German state.",
+   "source": "Vacation calendar or asking the team. Half days as 0.5.",
+   "example": "2 days of vacation + half a day of training → 2.5"
+  },
+  {
+   "key": "absence_state",
+   "title": "Absence status",
+   "what": "Each sprint has one of three states: “unknown” (nothing recorded: the capacity comes from calendar and people list, absences are estimated from the last sprints), “announced” (absences entered but not yet confirmed) and “confirmed” (absences confirmed, or explicitly “nobody is absent”). Without an explicit confirmation a sprint is never “confirmed”.",
+   "source": "“Prepare” page (option “Nobody is absent”).",
+   "example": "Sprint 2026.23: no entries, “Nobody is absent” ticked → confirmed, full staffing"
+  },
+  {
+   "key": "fte",
+   "title": "FTE and workweek",
+   "what": "FTE is the share of a person's working days that they work in the team (1 = all their working days). The workweek (e.g. mon,tue,wed,thu) defines which weekdays are their working days. Please model part-time only once: either the full workweek with FTE 0.8 or the four-day week with FTE 1 – not both, otherwise it is deducted twice (10 days → 8 × 0.8 = 6.4 instead of 8 PT).",
+   "source": "Employment contract or agreement with the person (People page).",
+   "example": "10 working days in the sprint: Mon–Fri + FTE 0.8 → 8 PT · mon,tue,wed,thu + FTE 1 → 8 PT · Mon–Fri + FTE 0.5 (half time) → 5 PT"
+  },
+  {
+   "key": "overhead",
+   "title": "Deduction for Scrum events",
+   "what": "Time for dailies, planning, review, retro and refinement that is not available for tickets. Either in percent or as fixed PT per person and sprint (× FTE) – both are the same deduction in two units, the fields synchronize. If PT per person are set, they apply instead of the percentage. The deduction works the same for confirmed, expected and estimated absences: first holidays and absences, then the deduction. Rounding only happens when shown and when frozen.",
+   "source": "Team settings (deduction for Scrum events).",
+   "example": "1 PT per person with 10 working days equals 10 %; full time: −1 PT, half time (FTE 0.5): −0.5 PT"
+  },
+  {
+   "key": "capacity",
+   "title": "Capacity",
+   "what": "Available person days (PT) of the team in the sprint. Normally calculated from the people list, holidays and absences and frozen at the review.",
+   "source": "Automatic. Only enter manually if there is no people list.",
+   "example": "5 people × 10 days − 6.5 days absent = 43.5"
+  },
+  {
+   "key": "forecast_ist",
+   "title": "Commitment",
+   "what": "The amount committed in sprint planning for THIS sprint: the sum of the estimates of all tickets in the sprint at sprint start. Not the velocity of the previous sprint; tickets added later count as scope creep.",
+   "source": "Right after planning: sum of the estimates on the board, or in Jira the value \"Commitment\" in the sprint report/velocity chart. Equals carry-over + backlog; if left empty it is prefilled with this sum from the cross-check.",
+   "example": "15.5"
+  },
+  {
+   "key": "velocity",
+   "title": "Velocity",
+   "what": "Amount actually done in the sprint: estimates of the finished tickets plus – by team practice – the parts of open tickets completed in the sprint (estimate of the ticket, not the actual effort). See “Done per product”.",
+   "source": "At the review: sprint report, or in Jira the value \"Completed\" in the velocity chart.",
+   "example": "13.5"
+  },
+  {
+   "key": "scope_creep",
+   "title": "Scope creep",
+   "what": "Share of work added to the sprint after planning, relative to the commitment (0.3 = 30 %). Leave empty if unknown – do not enter 0.",
+   "source": "Sprint report: estimates added later / commitment.",
+   "example": "4.5 added later with 15 committed → 0.3"
+  },
+  {
+   "key": "carryover",
+   "title": "Carry-over (remaining effort)",
+   "what": "Remaining effort of unfinished tickets taken over from the previous sprint. Part of the optional cross-check – only affects the planning delta.",
+   "source": "Sprint board at planning.",
+   "example": "1.5"
+  },
+  {
+   "key": "backlog",
+   "title": "Backlog",
+   "what": "Sum of the tickets newly planned in the planning. Part of the optional cross-check; carry-over + backlog equals the commitment.",
+   "source": "Sprint board at planning.",
+   "example": "33.6"
+  },
+  {
+   "key": "corrections",
+   "title": "Correction of remaining effort",
+   "what": "Parts of tickets already done that are still included in the planning value (subtracted). Separate several values with spaces. Part of the optional cross-check – only affects the planning delta.",
+   "source": "Tickets with partial progress.",
+   "example": "4.25 4.5"
+  },
+  {
+   "key": "preplanned",
+   "title": "PO pre-planning per product",
+   "what": "Amount the PO of a product intends for the sprint – before planning, as a basis for agreement between the POs. Compared with the standard (available amount / number of products handled).",
+   "source": "PO meeting or the POs' preparation, e.g. sum of the intended tickets.",
+   "example": "4"
+  },
+  {
+   "key": "planned",
+   "title": "Planning per product",
+   "what": "Amount planned for the product in sprint planning (sum of the product's tickets in the sprint).",
+   "source": "Sprint board at planning, filtered by product (component, label, epic …).",
+   "example": "4.5"
+  },
+  {
+   "key": "done",
+   "title": "Done per product",
+   "what": "Amount actually done for the product in the sprint: estimates of the finished tickets plus the parts of open tickets completed in the sprint (team practice). The sum over the products is at most the velocity. This way of counting should be uniform in the team – otherwise velocity and done are not comparable between teams or across a change.",
+   "source": "At the review: sprint report, filtered by product.",
+   "example": "3.75"
+  }
+ ],
+ "workflow": [
+  {
+   "when": "Once",
+   "title": "Set up the team",
+   "text": "Create a new team, then add the people with their FTE share.",
+   "page": "new_team",
+   "cli": "foresprint init TEAM"
+  },
+  {
+   "when": "Any time",
+   "title": "Create future sprints",
+   "text": "Following sprints are created automatically from the sprint length and the end of the previous one. In the sprint calendar they can be created in advance, and different lengths (e.g. over Christmas) set via the last day; the following sprints shift accordingly. The capacity counts the working days of the sprint, so the Forecast PLAN scales with the length. Enter bridge days as absences.",
+   "page": "sprints",
+   "cli": "foresprint sprints TEAM [--create] [--end SPRINT=DATE]"
+  },
+  {
+   "when": "Any time",
+   "title": "Maintain absences",
+   "text": "As soon as vacations, training etc. are known, enter them per person and sprint – also for future sprints. If none are known, explicitly confirm “Nobody is absent”. Without confirmation the absences stay “unknown” and are estimated from the last sprints.",
+   "page": "absences",
+   "cli": "foresprint absences TEAM [SPRINT]"
+  },
+  {
+   "when": "Before planning / PO planning",
+   "title": "View the forecast",
+   "text": "Shows the Forecast PLAN for the current and upcoming sprints – the recommended planning amount, split into plannable and small items. The Today page shows what is due next.",
+   "page": "forecast",
+   "cli": "foresprint forecast TEAM"
+  },
+  {
+   "when": "Before planning (POs)",
+   "title": "PO pre-planning per product",
+   "text": "Only with product distribution switched on (settings). If the team looks after several products, the POs enter how much they plan per product – compared to the default (available amount / number of products).",
+   "page": "preplanning",
+   "cli": "foresprint products TEAM --preplanning"
+  },
+  {
+   "when": "Sprint planning (sprint start)",
+   "title": "Planning in three steps",
+   "text": "1. Confirm the absences of the sprint (Prepare). 2. Plan the tickets with the Forecast PLAN, optionally per product. 3. Before the sprint starts, enter the commitment (the amount committed) and freeze the plan; the Forecast PLAN is frozen at that point. Optionally the cross-check from carry-over, backlog and corrections (delta to the Forecast PLAN).",
+   "page": "planning",
+   "cli": "foresprint planning TEAM"
+  },
+  {
+   "when": "Sprint review (sprint end)",
+   "title": "Record the review",
+   "text": "Enter velocity, scope creep and optionally done per product. The sprint's capacity is frozen so that later changes to the people list do not change the history. Product values are entered only on the boards (pre-planning, planning, review); the product distribution only evaluates them.",
+   "page": "review",
+   "cli": "foresprint review TEAM --commit"
+  },
+  {
+   "when": "For questions about completion",
+   "title": "Analysis",
+   "text": "In addition to the forecast: range (conservative/optimistic), focus factor, buffer recommendation and \"When will it be done?\" for a remaining amount.",
+   "page": "analysis",
+   "cli": "foresprint analysis TEAM [--remaining AMOUNT]"
+  },
+  {
+   "when": "When the team changes",
+   "title": "People and settings",
+   "text": "Record joining, leaving and FTE changes; adjust team settings such as German state or reference capacity.",
+   "page": "people",
+   "cli": "foresprint people TEAM · foresprint settings TEAM"
+  },
+  {
+   "when": "When the products change",
+   "title": "Maintain products",
+   "text": "Only with product distribution switched on. Create new products (with PO if “PO assignment” is on) and start date; end handed-over ones with “until” instead of deleting – past reports are kept.",
+   "page": "product_list",
+   "cli": "foresprint product-list TEAM"
+  }
+ ],
+ "terms": [
+  [
+   "Capacity",
+   "Available person days in the sprint (always PT, also for SP teams)."
+  ],
+  [
+   "Commitment",
+   "The amount committed at planning – the commitment at sprint start, not a result (formerly “Forecast IST”; the file keys are still called forecast_ist)."
+  ],
+  [
+   "Velocity",
+   "Amount done in the sprint."
+  ],
+  [
+   "Normalized velocity",
+   "Velocity / capacity × reference capacity. Makes sprints with vacation and fully staffed sprints comparable. The same quantity as the focus factor, just scaled by the reference capacity; the reference capacity does not change the Forecast PLAN."
+  ],
+  [
+   "Focus factor",
+   "Velocity / capacity (= normalized velocity / reference capacity). Not comparable between teams because it depends on the estimation unit; the trend within one's own team is what counts."
+  ],
+  [
+   "Ø (moving)",
+   "Average of the last sprints with a value (default 5, adjustable). Sprints without a value do not count; the window then reaches further back."
+  ],
+  [
+   "Trend",
+   "Extrapolation of the average into the future. Default “constant” (last average). “Linear” and “classic” also extrapolate noise and must be chosen explicitly; with thin history “constant” applies."
+  ],
+  [
+   "Trend modes",
+   "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall and quickly leaves the range over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated."
+  ],
+  [
+   "Current forecast / at planning",
+   "Current forecast: the Forecast PLAN calculated today. Forecast at planning: the state frozen at the planning (basis of the distribution per product). The difference shows how the forecast has changed since."
+  ],
+  [
+   "Range",
+   "Forecast with the lowest and highest normalized velocity of the last sprints. With fewer than 8 sprints with velocity only a rough hint."
+  ],
+  [
+   "Done",
+   "Finished tickets plus the parts of open tickets completed in the sprint (team practice)."
+  ],
+  [
+   "Forecast PLAN",
+   "Recommended planning amount: norm. velocity trend / reference capacity × capacity, rounded down. Never negative."
+  ],
+  [
+   "Plannable share",
+   "Reserved share of the Forecast PLAN for plannable topics (default 80 %); the rest is called \"small items\". It is a split of the forecast, not another value: plannable + small items = Forecast PLAN."
+  ],
+  [
+   "Feature areas",
+   "Three optional areas that can be switched on independently in the settings (off for new teams): product distribution (several products), PO assignment (product owner per product) and production access (only some people may work on certain tickets). Areas that are switched off hide pages, columns and hints; recorded values stay in the files."
+  ],
+  [
+   "Announced absences",
+   "Absences entered by the POs in the pre-planning (forecast, not yet confirmed). Not to be confused with the expected absences."
+  ],
+  [
+   "Expected absences",
+   "Estimate from the history (average of the last sprints with confirmed absences) for sprints whose absences are unknown. Calculated, not entered by anyone."
+  ],
+  [
+   "Small items",
+   "Rest of the Forecast PLAN for bugs, support and small things."
+  ],
+  [
+   "Fulfillment",
+   "Velocity / commitment – how well was the commitment kept?"
+  ],
+  [
+   "Standard per product",
+   "Available amount / number of products handled. Available = Forecast PLAN (frozen at planning) or only its plannable share (setting)."
+  ],
+  [
+   "Balance per product",
+   "Σ done − Σ standard over several sprints."
+  ],
+  [
+   "Delta",
+   "Forecast PLAN − planning total (carry-over + backlog − corrections). Optional cross-check in planning; does not affect any other metric."
+  ]
+ ],
+ "capacity_sources": [
+  [
+   "recorded",
+   "Value is in the sprint file (frozen at the review or entered manually)."
+  ],
+  [
+   "people list",
+   "Calculated from people, holidays and absences."
+  ],
+  [
+   "Calendar, absences unknown",
+   "Absences still unknown and no history yet: capacity from the people list and calendar (holidays, sprint length), without deduction for absences."
+  ],
+  [
+   "Trend",
+   "Only for teams without a people list: capacity extrapolated like the normalized velocity."
+  ],
+  [
+   "announced absences",
+   "Absences not yet confirmed: capacity from the people list with the announced absences entered in the PO pre-planning."
+  ],
+  [
+   "expected absences",
+   "Absences unknown: capacity from the people list and calendar, reduced by the average absences of the last sprints with confirmed absences (setting “Absence history”)."
+  ]
+ ],
+ "commands": [
+  [
+   "foresprint gui",
+   "Open the window (a double click on the launcher does the same)"
+  ],
+  [
+   "foresprint estimation TEAM [--unit SP|PT [--from SPRINT]] [--factor F]",
+   "Show or change the estimation unit and the conversion factor"
+  ],
+  [
+   "foresprint sprint-naming TEAM [--pattern P]",
+   "Show or set the sprint naming pattern"
+  ],
+  [
+   "foresprint storage …",
+   "Where the data is kept: server, sign-in, name, save, refresh, history"
+  ],
+  [
+   "foresprint version",
+   "Show the version"
+  ],
+  [
+   "foresprint shortcut",
+   "Create a double-click launcher (desktop/start menu)"
+  ],
+  [
+   "foresprint completion SHELL",
+   "Tab completion script (bash, zsh, fish, powershell)"
+  ],
+  [
+   "foresprint forecast TEAM [--explain SPRINT]",
+   "Forecast for the current and upcoming sprints"
+  ],
+  [
+   "foresprint absences TEAM [SPRINT]",
+   "Record absences per person"
+  ],
+  [
+   "foresprint sprints TEAM [--create] [--end SPRINT=DATE]",
+   "Sprint calendar: upcoming sprints, end dates"
+  ],
+  [
+   "foresprint rename-sprint TEAM SPRINT NEW",
+   "Change a sprint ID; the sprints after it count on"
+  ],
+  [
+   "foresprint planning TEAM [SPRINT]",
+   "Record commitment and planning values"
+  ],
+  [
+   "foresprint review TEAM [SPRINT] [--commit]",
+   "Record velocity and scope creep, freeze capacity"
+  ],
+  [
+   "foresprint people TEAM [--former]",
+   "Maintain people"
+  ],
+  [
+   "foresprint product-list TEAM",
+   "Maintain products (PO, period)"
+  ],
+  [
+   "foresprint products TEAM [SPRINT] [--preplanning]",
+   "Show distribution per product, record PO pre-planning, balance"
+  ],
+  [
+   "foresprint settings TEAM",
+   "Change team settings"
+  ],
+  [
+   "foresprint capacity TEAM [SPRINT]",
+   "Capacity calculation in detail"
+  ],
+  [
+   "foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]",
+   "Range, focus factor, buffer, completion"
+  ],
+  [
+   "foresprint report [TEAM] [--output PATH]",
+   "Generate FORECAST.md"
+  ],
+  [
+   "foresprint excel TEAM [--output PATH]",
+   "Excel list with formulas and trend chart"
+  ],
+  [
+   "foresprint excel-import TEAM FILE [--apply]",
+   "Read Excel list (preview, then write)"
+  ],
+  [
+   "foresprint tickets TEAM [--fetch | --import FILE | --handover [--overwrite]] [--apply] [--commit] [--sprints N] [--variant median|conservative|optimistic] | --test-connection | --set-token",
+   "Read tickets from Jira or a CSV file, distribute them over future sprints (ticket pre-planning, with range); --handover proposes the sums per sprint and product as the PO pre-planning"
+  ],
+  [
+   "foresprint init TEAM",
+   "Create new team"
+  ],
+  [
+   "foresprint check [--strict]",
+   "Check all data (for CI and before committing); also reports duplicate keys and empty number fields"
+  ],
+  [
+   "foresprint data-dir [PATH]",
+   "Show or set the saved data folder"
+  ],
+  [
+   "foresprint language [de|en]",
+   "Show or set the interface language"
+  ],
+  [
+   "foresprint update",
+   "Update to the latest version (--auto on|notice|off)"
+  ],
+  [
+   "foresprint help [TOPIC]",
+   "This help"
+  ],
+  [
+   "foresprint --data PATH …",
+   "Before the command: set the data directory (otherwise FORESPRINT_DATA, the current or the saved directory)"
+  ],
+  [
+   "foresprint --as-of DATE …",
+   "Before the command: set the date (YYYY-MM-DD) that counts as “today” – for looking back"
+  ]
+ ],
+ "topics": [
+  [
+   "workflow",
+   "What to do when?"
+  ],
+  [
+   "terms",
+   "Terms and capacity sources"
+  ],
+  [
+   "fields",
+   "Input fields: meaning, source, example"
+  ],
+  [
+   "team",
+   "Team settings"
+  ],
+  [
+   "commands",
+   "All commands"
+  ]
+ ]
+}

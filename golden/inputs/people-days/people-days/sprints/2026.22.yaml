@@ -1,0 +1,18 @@
+# Sprint 2026.22. Explanations of all fields: `foresprint help fields`
+id: '2026.22'
+start: 2026-10-21
+end: 2026-11-04
+absences: {}
+absence_state: expected
+capacity: null
+forecast_ist: 30
+velocity: 28
+scope_creep: null
+planning:
+  carryover: 4
+  backlog: 26
+  corrections:
+  - 1.5
+expected_absences:
+  anna: 2
+  gina: 1

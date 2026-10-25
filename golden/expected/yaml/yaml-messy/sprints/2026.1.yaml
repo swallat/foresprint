@@ -1,0 +1,11 @@
+# Sprint 2026.1. Explanations of all fields: `foresprint help fields`
+id: '2026.1'
+start: 2026-01-07
+end: 2026-01-21
+absences: {}
+capacity: 41.5
+forecast_ist: null
+velocity: 28
+scope_creep: null
+note: A long note that has to wrap because it is longer than one hundred characters, which is the width
+  the dumper uses.

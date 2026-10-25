@@ -1,0 +1,1184 @@
+[
+ {
+  "kind": "team",
+  "name": "empty",
+  "yaml": "",
+  "ok": "name: key\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "minimal",
+  "yaml": "name: X\n",
+  "ok": "name: X\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "full",
+  "yaml": "name: Full\nunit: SP\nfeatures: {products: true, po: true, production: true, tickets: true}\nsprint: {length_days: 7, numbering: sequential, first: {id: '12', start: 2026-01-05}}\nforecast: {reference_capacity: 41.5, window: 4, roadmap_share: 0.75, rounding: 2, trend_mode: classic, horizon: 5, product_basis: roadmap}\ncapacity: {overhead_share: 0.1, overhead_days: 1.5, country: us, region: CA, workweek: sun-thu, rounding: 0, absence_history: 0}\ntracker:\n  kind: jira\n  base_url: https://jira.example.com\n  query: project = X\n  fields: {estimate: Est, remaining: Rest, epic: Epic Link}\n  planning_uses: estimate\n  refined_label: refined\n  refined_also_if: {status: [Ready]}\n  project_match_order: [label, epic]\n  priority_order: []\n  dependency_gap: 0\n  budget_basis: plan\n  rough_factor: 2\n  write_labels: true\n  sprint_names: {'Sprint 1': '2026.1', Beta: '2026.2'}\n  link_type: Depends\n  rule_fields: {team: Team, area: Area}\n",
+  "ok": "name: Full\nunit: SP\nfeatures:\n  products: true\n  po: true\n  production: true\n  tickets: true\nsprint:\n  length_days: 7\n  numbering: sequential\n  first:\n    id: '12'\n    start: 2026-01-05\nforecast:\n  reference_capacity: 41.5\n  window: 4\n  roadmap_share: 0.75\n  rounding: 2\n  trend_mode: classic\n  horizon: 5\n  product_basis: roadmap\ncapacity:\n  overhead_share: 0.1\n  overhead_days: 1.5\n  country: US\n  region: CA\n  rounding: 0\n  workweek: sun-thu\n  absence_history: 0\ntracker:\n  kind: jira\n  base_url: https://jira.example.com\n  query: project = X\n  fields:\n    estimate: Est\n    remaining: Rest\n    epic: Epic Link\n  planning_uses: estimate\n  refined_label: refined\n  refined_also_if:\n    status:\n    - Ready\n  project_match_order:\n  - label\n  - epic\n  priority_order: []\n  dependency_gap: 0\n  budget_basis: plan\n  rough_factor: 2\n  write_labels: true\n  sprint_names:\n    Sprint 1: '2026.1'\n    Beta: '2026.2'\n  link_type: Depends\n  rule_fields:\n    team: Team\n    area: Area\n"
+ },
+ {
+  "kind": "team",
+  "name": "old-german-trend",
+  "yaml": "name: A\nforecast: {trend_mode: klassisch}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: classic\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "no-features-key",
+  "yaml": "name: A\nsprint: {length_days: 14}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "features-null",
+  "yaml": "name: A\nfeatures:\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-off-valid-tracker",
+  "yaml": "name: A\ntracker: {kind: jira, base_url: https://j.example.com}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: jira\n  base_url: https://j.example.com\n  planning_uses: remaining\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-off-bad-tracker",
+  "yaml": "name: A\ntracker: {rough_factor: abc}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  rough_factor: abc\n"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-off-secret",
+  "yaml": "name: A\ntracker: {token: abc}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  token: abc\n"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-on-secret",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {api-token: abc}\n",
+  "error": "FILE: tracker: 'api-token' does not belong in the file – tokens and passwords belong in the environment variable FORESPRINT_JIRA_TOKEN or in the keychain"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-on-nested-secret",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {fields: {my_password: x}}\n",
+  "error": "FILE: tracker: 'my_password' does not belong in the file – tokens and passwords belong in the environment variable FORESPRINT_JIRA_TOKEN or in the keychain"
+ },
+ {
+  "kind": "team",
+  "name": "tickets-on-free-key",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {sprint_names: {token: '1'}}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n  sprint_names:\n    token: '1'\n"
+ },
+ {
+  "kind": "team",
+  "name": "country-no",
+  "yaml": "name: A\ncapacity: {country: NO}\n",
+  "error": "FILE: please put 'capacity.country' in quotes, e.g. capacity.country: \"NO\" (unquoted, YAML reads it as a boolean)"
+ },
+ {
+  "kind": "team",
+  "name": "country-no-quoted",
+  "yaml": "name: A\ncapacity: {country: 'no'}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  country: 'NO'\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "country-int",
+  "yaml": "name: A\ncapacity: {country: 5}\n",
+  "error": "FILE: 'capacity.country' must be text (e.g. DE or NW), found 5"
+ },
+ {
+  "kind": "team",
+  "name": "region-on",
+  "yaml": "name: A\ncapacity: {region: ON}\n",
+  "error": "FILE: please put 'capacity.region' in quotes, e.g. capacity.region: \"NO\" (unquoted, YAML reads it as a boolean)"
+ },
+ {
+  "kind": "team",
+  "name": "unit-bad",
+  "yaml": "name: A\nunit: XX\n",
+  "error": "FILE: 'XX' is not a valid Unit"
+ },
+ {
+  "kind": "team",
+  "name": "unit-lower",
+  "yaml": "name: A\nunit: pt\n",
+  "error": "FILE: 'pt' is not a valid Unit"
+ },
+ {
+  "kind": "team",
+  "name": "unit-null",
+  "yaml": "name: A\nunit:\n",
+  "error": "FILE: None is not a valid Unit"
+ },
+ {
+  "kind": "team",
+  "name": "trend-bad",
+  "yaml": "name: A\nforecast: {trend_mode: sideways}\n",
+  "error": "FILE: 'sideways' is not a valid TrendMode"
+ },
+ {
+  "kind": "team",
+  "name": "numbering-bad",
+  "yaml": "name: A\nsprint: {numbering: weekly}\n",
+  "error": "FILE: 'weekly' is not a valid Numbering"
+ },
+ {
+  "kind": "team",
+  "name": "basis-bad",
+  "yaml": "name: A\nforecast: {product_basis: x}\n",
+  "error": "FILE: 'x' is not a valid ProductBasis"
+ },
+ {
+  "kind": "team",
+  "name": "length-string",
+  "yaml": "name: A\nsprint: {length_days: '10'}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 10\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "length-bad-string",
+  "yaml": "name: A\nsprint: {length_days: ten}\n",
+  "error": "FILE: invalid literal for int() with base 10: 'ten'"
+ },
+ {
+  "kind": "team",
+  "name": "length-float",
+  "yaml": "name: A\nsprint: {length_days: 10.7}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 10\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "length-null",
+  "yaml": "name: A\nsprint: {length_days: }\n",
+  "error": "FILE: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'"
+ },
+ {
+  "kind": "team",
+  "name": "length-list",
+  "yaml": "name: A\nsprint: {length_days: [1]}\n",
+  "error": "FILE: int() argument must be a string, a bytes-like object or a real number, not 'list'"
+ },
+ {
+  "kind": "team",
+  "name": "length-inf",
+  "yaml": "name: A\nsprint: {length_days: .inf}\n",
+  "error": "FILE: cannot convert float infinity to integer"
+ },
+ {
+  "kind": "team",
+  "name": "length-nan",
+  "yaml": "name: A\nsprint: {length_days: .nan}\n",
+  "error": "FILE: cannot convert float NaN to integer"
+ },
+ {
+  "kind": "team",
+  "name": "window-bool",
+  "yaml": "name: A\nforecast: {window: true}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 1\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-nan",
+  "yaml": "name: A\nforecast: {reference_capacity: .nan}\n",
+  "error": "FILE: not a finite number: nan"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-inf",
+  "yaml": "name: A\nforecast: {reference_capacity: .inf}\n",
+  "error": "FILE: not a finite number: inf"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-string",
+  "yaml": "name: A\nforecast: {reference_capacity: '12.5'}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 12.5\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-bad",
+  "yaml": "name: A\nforecast: {reference_capacity: lots}\n",
+  "error": "FILE: could not convert string to float: 'lots'"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-null",
+  "yaml": "name: A\nforecast: {reference_capacity: }\n",
+  "error": "FILE: float() argument must be a string or a real number, not 'NoneType'"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-underscore",
+  "yaml": "name: A\nforecast: {reference_capacity: '1_0'}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 10\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "ref-capacity-date",
+  "yaml": "name: A\nforecast: {reference_capacity: 2026-01-01}\n",
+  "error": "FILE: float() argument must be a string or a real number, not 'datetime.date'"
+ },
+ {
+  "kind": "team",
+  "name": "share-nan-string",
+  "yaml": "name: A\nforecast: {roadmap_share: ' nan '}\n",
+  "error": "FILE: not a finite number:  nan "
+ },
+ {
+  "kind": "team",
+  "name": "overhead-bad",
+  "yaml": "name: A\ncapacity: {overhead_share: x}\n",
+  "error": "FILE: could not convert string to float: 'x'"
+ },
+ {
+  "kind": "team",
+  "name": "sprint-not-mapping",
+  "yaml": "name: A\nsprint: 5\n",
+  "error": "FILE: 'sprint' must be a mapping (lines of the form 'key: value'), found 5"
+ },
+ {
+  "kind": "team",
+  "name": "sprint-list",
+  "yaml": "name: A\nsprint: [1, 2]\n",
+  "error": "FILE: 'sprint' must be a mapping (lines of the form 'key: value'), found [1, 2]"
+ },
+ {
+  "kind": "team",
+  "name": "forecast-string",
+  "yaml": "name: A\nforecast: text\n",
+  "error": "FILE: 'forecast' must be a mapping (lines of the form 'key: value'), found 'text'"
+ },
+ {
+  "kind": "team",
+  "name": "first-float",
+  "yaml": "name: A\nsprint: {first: {id: 2026.20, start: 2026-01-01}}\n",
+  "error": "FILE: please quote the id, e.g. id: \"2026.20\""
+ },
+ {
+  "kind": "team",
+  "name": "first-bad-id",
+  "yaml": "name: A\nsprint: {first: {id: 'a/b', start: 2026-01-01}}\n",
+  "error": "FILE: id 'a/b' is not allowed (path separator, colon, special or control character)"
+ },
+ {
+  "kind": "team",
+  "name": "first-bad-start",
+  "yaml": "name: A\nsprint: {first: {id: x, start: tomorrow}}\n",
+  "error": "FILE: date in format YYYY-MM-DD expected, found 'tomorrow'"
+ },
+ {
+  "kind": "team",
+  "name": "first-compact-date",
+  "yaml": "name: A\nsprint: {first: {id: x, start: '20260105'}}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: x\n    start: 2026-01-05\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "first-week-date",
+  "yaml": "name: A\nsprint: {first: {id: x, start: '2026-W02-3'}}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: x\n    start: 2026-01-07\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "first-start-only",
+  "yaml": "name: A\nsprint: {first: {start: 2026-01-05}}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "name-number",
+  "yaml": "name: 42\n",
+  "ok": "name: '42'\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "name-bool",
+  "yaml": "name: yes\n",
+  "ok": "name: 'True'\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "name-list",
+  "yaml": "name: [a, b]\n",
+  "ok": "name: '[''a'', ''b'']'\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "unknown-keys-dropped",
+  "yaml": "name: A\nfoo: bar\nsprint: {extra: 1}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-bad-kind-number",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {kind: 5}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: '5'\n  planning_uses: remaining\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-planning-bad",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {planning_uses: nope}\n",
+  "error": "FILE: tracker: planning_uses 'nope' unknown (allowed: remaining, estimate)"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-budget-bad",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {budget_basis: nope}\n",
+  "error": "FILE: tracker: budget_basis 'nope' unknown (allowed: roadmap_share, plan)"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-gap-bad",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {dependency_gap: 1.5}\n",
+  "error": "FILE: tracker: 'dependency_gap' must be a whole number, found 1.5"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rough-bad",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {rough_factor: [1]}\n",
+  "error": "FILE: tracker: rough_factor: number expected, found [1]"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-order-scalar",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {project_match_order: label}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  project_match_order:\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-order-map",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {project_match_order: {a: b}}\n",
+  "error": "FILE: tracker: 'project_match_order' must be a list (entries starting with '- '), found {'a': 'b'}"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-sprint-names-float",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  sprint_names: {2026.20: x}\n",
+  "error": "FILE: tracker: sprint_names: please put 2026.2 in quotes (otherwise digits are lost, e.g. \"2026.20\")"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-sprint-names-float-value",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  sprint_names: {a: 2026.20}\n",
+  "error": "FILE: tracker: sprint_names: please put 2026.2 in quotes (otherwise digits are lost, e.g. \"2026.20\")"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-link-empty",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {link_type: ''}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n  link_type: ''\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-link-null",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: {link_type: }\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n  link_type: ''\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-not-mapping",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker: [a]\n",
+  "error": "FILE: 'tracker' must be a mapping (lines of the form 'key: value'), found ['a']"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-nested",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if:\n    all:\n      - status: [Ready, 'In Progress']\n      - none:\n          - label_contains: wip\n      - in_sprint: [true]\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    all:\n    - status:\n      - Ready\n      - In Progress\n    - none:\n      - label_contains:\n        - wip\n    - in_sprint:\n      - true\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-short",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if:\n    epic: [E1]\n    label: [x, y]\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    epic:\n    - E1\n    label:\n    - x\n    - y\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-float",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {in_sprint: [2026.20]}\n",
+  "error": "FILE: tracker.refined_also_if: in_sprint: please put 2026.2 in quotes (otherwise digits are lost, e.g. \"2026.20\")"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-dict-value",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {epic: {a: b}}\n",
+  "error": "FILE: tracker.refined_also_if: 'epic' must be a list of values (entries with '- '), found {'a': 'b'}"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-operator-not-list",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {any: x}\n",
+  "error": "FILE: tracker.refined_also_if: 'any' must be a list (entries starting with '- '), found 'x'"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-mixed",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if:\n    any: [{epic: a}]\n    label: [b]\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    any:\n    - epic:\n      - a\n    label:\n    - b\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-null-values",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {epic: }\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    epic: []\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-scalar-value",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {epic: E1, label_contains: abc}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    epic:\n    - E1\n    label_contains:\n    - abc\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "team",
+  "name": "tracker-rule-contains-only",
+  "yaml": "name: A\nfeatures: {tickets: true}\ntracker:\n  refined_also_if: {_contains: x}\n",
+  "ok": "name: A\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\ntracker:\n  kind: csv\n  planning_uses: remaining\n  refined_also_if:\n    _contains:\n    - x\n  project_match_order:\n  - epic\n  - component\n  - label\n  dependency_gap: 1\n  budget_basis: roadmap_share\n  rough_factor: 1.5\n  write_labels: false\n"
+ },
+ {
+  "kind": "people",
+  "name": "empty",
+  "yaml": "",
+  "ok": "people: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "basic",
+  "yaml": "people:\n  - {id: a, name: Anna, memberships: [{from: 2025-01-01}]}\n  - id: b\n    name: Ben\n    country: de\n    region: BY\n    workweek: mon-thu\n    production_access: true\n    memberships:\n      - {from: 2025-01-01, to: 2025-12-31, fte: 0.5}\n      - {from: 2026-02-01, fte: '0.8'}\n",
+  "error": "FILE: people[1]: number expected, found '0.8'"
+ },
+ {
+  "kind": "people",
+  "name": "no-name",
+  "yaml": "people: [{id: x}]\n",
+  "ok": "people:\n- id: x\n  name: x\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "id-number",
+  "yaml": "people: [{id: 7, name: Seven}]\n",
+  "ok": "people:\n- id: '7'\n  name: Seven\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "no-id",
+  "yaml": "people: [{name: x}]\n",
+  "error": "FILE: people[0]: field 'id' missing"
+ },
+ {
+  "kind": "people",
+  "name": "entry-not-mapping",
+  "yaml": "people: [x]\n",
+  "error": "FILE: people[0]: field 'id' missing"
+ },
+ {
+  "kind": "people",
+  "name": "people-not-list",
+  "yaml": "people: {a: 1}\n",
+  "error": "FILE: 'people' must be a list (entries starting with '- '), found {'a': 1}"
+ },
+ {
+  "kind": "people",
+  "name": "membership-not-mapping",
+  "yaml": "people: [{id: a, memberships: [x]}]\n",
+  "error": "FILE: people[0]: 'memberships[0]' must be a mapping (lines of the form 'key: value'), found 'x'"
+ },
+ {
+  "kind": "people",
+  "name": "membership-no-from",
+  "yaml": "people: [{id: a, memberships: [{to: 2026-01-01}]}]\n",
+  "error": "FILE: people[0]: date in format YYYY-MM-DD expected, found None"
+ },
+ {
+  "kind": "people",
+  "name": "membership-bad-date2",
+  "yaml": "people: [{id: a, memberships: [{from: 'soon'}]}]\n",
+  "error": "FILE: people[0]: date in format YYYY-MM-DD expected, found 'soon'"
+ },
+ {
+  "kind": "people",
+  "name": "membership-datetime",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01 10:00:00}]}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  memberships:\n  - from: 2026-01-01\n    to: null\n    fte: 1\n"
+ },
+ {
+  "kind": "people",
+  "name": "fte-bool",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01, fte: true}]}]\n",
+  "error": "FILE: people[0]: number expected, found True"
+ },
+ {
+  "kind": "people",
+  "name": "fte-string",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01, fte: half}]}]\n",
+  "error": "FILE: people[0]: number expected, found 'half'"
+ },
+ {
+  "kind": "people",
+  "name": "fte-null",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01, fte: }]}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  memberships:\n  - from: 2026-01-01\n    to: null\n    fte: 0\n"
+ },
+ {
+  "kind": "people",
+  "name": "fte-zero",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01, fte: 0}]}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  memberships:\n  - from: 2026-01-01\n    to: null\n    fte: 0\n"
+ },
+ {
+  "kind": "people",
+  "name": "fte-inf",
+  "yaml": "people: [{id: a, memberships: [{from: 2026-01-01, fte: .inf}]}]\n",
+  "error": "FILE: people[0]: finite number expected, found inf"
+ },
+ {
+  "kind": "people",
+  "name": "region-bool",
+  "yaml": "people: [{id: a, region: NO}]\n",
+  "error": "FILE: people[0]: please put 'region' in quotes, e.g. region: \"NO\" (unquoted, YAML reads it as a boolean)"
+ },
+ {
+  "kind": "people",
+  "name": "country-no-quoted",
+  "yaml": "people: [{id: a, country: 'no'}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  country: 'NO'\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "country-number",
+  "yaml": "people: [{id: a, country: 49}]\n",
+  "error": "FILE: people[0]: 'country' must be text (e.g. DE or NW), found 49"
+ },
+ {
+  "kind": "people",
+  "name": "workweek-number",
+  "yaml": "people: [{id: a, workweek: 5}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  workweek: '5'\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "access-string",
+  "yaml": "people: [{id: a, production_access: 'no'}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  production_access: true\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "access-zero",
+  "yaml": "people: [{id: a, production_access: 0}]\n",
+  "ok": "people:\n- id: a\n  name: a\n  memberships: []\n"
+ },
+ {
+  "kind": "people",
+  "name": "umlauts",
+  "yaml": "people: [{id: zoe, name: Zoë Äpfel}]\n",
+  "ok": "people:\n- id: zoe\n  name: Zoë Äpfel\n  memberships: []\n"
+ },
+ {
+  "kind": "products",
+  "name": "empty",
+  "yaml": "",
+  "ok": "products: []\n"
+ },
+ {
+  "kind": "products",
+  "name": "basic",
+  "yaml": "products:\n  - {id: p1, name: One, po: Pat, share: 0.5, from: 2026-01-01, to: 2026-12-31}\n  - id: p2\n    match: {label: [a], epic: [E]}\n  - {id: p3, share: '0.25'}\n",
+  "ok": "products:\n- id: p1\n  name: One\n  po: Pat\n  share: 0.5\n  from: 2026-01-01\n  to: 2026-12-31\n- id: p2\n  name: p2\n  match:\n    label:\n    - a\n    epic:\n    - E\n  from: null\n  to: null\n- id: p3\n  name: p3\n  share: 0.25\n  from: null\n  to: null\n"
+ },
+ {
+  "kind": "products",
+  "name": "no-id",
+  "yaml": "products: [{name: x}]\n",
+  "error": "FILE: products[0]: field 'id' missing"
+ },
+ {
+  "kind": "products",
+  "name": "bad-share",
+  "yaml": "products: [{id: a, share: lots}]\n",
+  "error": "FILE: products[0]: share: number expected, found 'lots'"
+ },
+ {
+  "kind": "products",
+  "name": "share-nan",
+  "yaml": "products: [{id: a, share: .nan}]\n",
+  "error": "FILE: products[0]: share: finite number expected, found nan"
+ },
+ {
+  "kind": "products",
+  "name": "share-bool",
+  "yaml": "products: [{id: a, share: true}]\n",
+  "ok": "products:\n- id: a\n  name: a\n  share: 1\n  from: null\n  to: null\n"
+ },
+ {
+  "kind": "products",
+  "name": "share-list",
+  "yaml": "products: [{id: a, share: [1]}]\n",
+  "error": "FILE: products[0]: share: number expected, found [1]"
+ },
+ {
+  "kind": "products",
+  "name": "bad-from",
+  "yaml": "products: [{id: a, from: nope}]\n",
+  "error": "FILE: products[0]: date in format YYYY-MM-DD expected, found 'nope'"
+ },
+ {
+  "kind": "products",
+  "name": "po-number",
+  "yaml": "products: [{id: a, po: 5}]\n",
+  "ok": "products:\n- id: a\n  name: a\n  po: '5'\n  from: null\n  to: null\n"
+ },
+ {
+  "kind": "products",
+  "name": "match-bad",
+  "yaml": "products: [{id: a, match: [x]}]\n",
+  "error": "FILE: products[0]: match: 'match' must be a mapping (lines of the form 'key: value'), found ['x']"
+ },
+ {
+  "kind": "products",
+  "name": "match-empty",
+  "yaml": "products: [{id: a, match: {}}]\n",
+  "ok": "products:\n- id: a\n  name: a\n  from: null\n  to: null\n"
+ },
+ {
+  "kind": "products",
+  "name": "match-null",
+  "yaml": "products: [{id: a, match: }]\n",
+  "ok": "products:\n- id: a\n  name: a\n  from: null\n  to: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "minimal",
+  "yaml": "id: '2026.1'\nstart: 2026-01-07\nend: 2026-01-21\n",
+  "ok": "id: '2026.1'\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "missing-id",
+  "yaml": "start: 2026-01-07\nend: 2026-01-21\n",
+  "error": "FILE: field 'id' missing"
+ },
+ {
+  "kind": "sprint",
+  "name": "missing-end",
+  "yaml": "id: x\nstart: 2026-01-07\n",
+  "error": "FILE: field 'end' missing"
+ },
+ {
+  "kind": "sprint",
+  "name": "id-float",
+  "yaml": "id: 2026.20\nstart: 2026-01-07\nend: 2026-01-21\n",
+  "error": "FILE: please quote the id, e.g. id: \"2026.20\""
+ },
+ {
+  "kind": "sprint",
+  "name": "id-int",
+  "yaml": "id: 5\nstart: 2026-01-07\nend: 2026-01-21\n",
+  "ok": "id: '5'\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "full",
+  "yaml": "id: '2026.2'\nstart: 2026-01-21\nend: 2026-02-04\nabsences: {zed: 2, amy: 1.5}\nabsence_state: confirmed\ncapacity: 41.5\nforecast_ist: 30\nvelocity: 28\nscope_creep: 3\nplanning: {carryover: 5, backlog: 25, corrections: [2, 1.5]}\nforecast_plan: 33.3333333\nproducts: {b: {planned: 10, done: 8, production_done: 2}, a: {preplanned: 5}, c: {}}\nexpected_absences: {q: 1, a: 2}\nproduction_planned: 4\nproduction_done: 3\nnot_done: 2\nadditional_done: 1\nnote: Hello\nprognoses:\n  - {at: 2026-01-20 08:00:00, comment: Daily, forecast_ist: 30, not_done: 2, additional_done: 1, expected_done: 29, target: '2026.3', plan: 33, preplanned: {b: 2, a: 1}}\n  - {at: '2026-01-21T09:30:00.123456'}\n",
+  "ok": "id: '2026.2'\nstart: 2026-01-21\nend: 2026-02-04\nabsences:\n  amy: 1.5\n  zed: 2\ncapacity: 41.5\nforecast_ist: 30\nvelocity: 28\nscope_creep: 3\nplanning:\n  carryover: 5\n  backlog: 25\n  corrections:\n  - 2\n  - 1.5\nforecast_plan: 33.333333\nproducts:\n  a:\n    preplanned: 5\n  b:\n    planned: 10\n    done: 8\n    production_done: 2\nexpected_absences:\n  a: 2\n  q: 1\nproduction_planned: 4\nproduction_done: 3\nnot_done: 2\nadditional_done: 1\nprognoses:\n- at: 2026-01-20 08:00:00\n  comment: Daily\n  forecast_ist: 30\n  not_done: 2\n  additional_done: 1\n  expected_done: 29\n  target: '2026.3'\n  plan: 33\n  preplanned:\n    b: 2\n    a: 1\n- at: 2026-01-21 09:30:00\nnote: Hello\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "state-expected-derived",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsence_state: expected\nexpected_absences: {a: 1}\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nexpected_absences:\n  a: 1\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "state-unknown-with-velocity",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsence_state: unknown\nvelocity: 5\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\nabsence_state: unknown\ncapacity: null\nforecast_ist: null\nvelocity: 5\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "state-bad",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsence_state: maybe\n",
+  "error": "FILE: absence_state 'maybe' unknown (allowed: unknown, expected, confirmed)"
+ },
+ {
+  "kind": "sprint",
+  "name": "legacy-confirmed",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences_confirmed: true\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\nabsence_state: confirmed\nabsences_confirmed: true\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "legacy-velocity",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nvelocity: 5\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: 5\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "legacy-preplanned-only",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nproducts: {a: {preplanned: 5}}\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  a:\n    preplanned: 5\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "absences-confirmed-empty-state",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsence_state: confirmed\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\nabsence_state: confirmed\nabsences_confirmed: true\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "absences-entered",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {a: 1}\nabsence_state: unknown\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences:\n  a: 1\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-string",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: '40'\n",
+  "error": "FILE: capacity: number expected, found '40'"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-bool",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: true\n",
+  "error": "FILE: capacity: number expected, found True"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-nan",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: .nan\n",
+  "error": "FILE: capacity: finite number expected, found nan"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-empty-string",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: ''\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-fraction",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: 0.1234567891\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: 0.123457\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-tiny",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: 0.0000001\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: 0.0\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-negative-tiny",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: -0.0000001\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: -0.0\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-huge",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: 1.0e+20\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: 100000000000000000000\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "capacity-rounding",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\ncapacity: 2.6666665\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: 2.666666\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "absence-bad",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {a: lots}\n",
+  "error": "FILE: absences.a: number expected, found 'lots'"
+ },
+ {
+  "kind": "sprint",
+  "name": "absences-list",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: [a]\n",
+  "error": "FILE: 'absences' must be a mapping (lines of the form 'key: value'), found ['a']"
+ },
+ {
+  "kind": "sprint",
+  "name": "absences-null-value",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {a: }\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences:\n  a: 0\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "absences-int-key",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {1: 2}\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences:\n  '1': 2\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "products-bad",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nproducts: {a: 5}\n",
+  "error": "FILE: products.a: mapping with preplanned/planned/done expected"
+ },
+ {
+  "kind": "sprint",
+  "name": "products-bad-value",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nproducts: {a: {done: x}}\n",
+  "error": "FILE: products.a: number expected, found 'x'"
+ },
+ {
+  "kind": "sprint",
+  "name": "planning-empty",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nplanning: {}\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "planning-corrections-bad",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nplanning: {backlog: 1, corrections: {a: 1}}\n",
+  "error": "FILE: 'corrections' must be a list (entries starting with '- '), found {'a': 1}"
+ },
+ {
+  "kind": "sprint",
+  "name": "planning-zero",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nplanning: {carryover: 0}\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nplanning:\n  carryover: 0\n  backlog: 0\n  corrections: []\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-no-at",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{comment: a}]\n",
+  "error": "FILE: prognoses[0]: field 'at' missing"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-bad-at",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: yesterday}]\n",
+  "error": "FILE: prognoses[0]: invalid time 'yesterday'"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-date-at",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: 2026-01-05}]\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nprognoses:\n- at: 2026-01-05 00:00:00\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-string-date-at",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: '2026-01-05'}]\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nprognoses:\n- at: 2026-01-05 00:00:00\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-zone",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: '2026-01-05T10:00:00+02:00'}]\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nprognoses:\n- at: 2026-01-05 10:00:00+02:00\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-target-number",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: 2026-01-05 10:00:00, target: 5}]\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nprognoses:\n- at: 2026-01-05 10:00:00\n  target: '5'\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "prognosis-preplanned-bad",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nprognoses: [{at: 2026-01-05 10:00:00, preplanned: {a: z}}]\n",
+  "error": "FILE: prognoses[0]: number expected, found 'z'"
+ },
+ {
+  "kind": "sprint",
+  "name": "note-number",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nnote: 5\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nnote: 5\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "note-empty",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nnote: ''\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "note-multiline",
+  "yaml": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nnote: |\n  line one\n  line two\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nnote: 'line one\n\n  line two\n\n  '\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "start-datetime",
+  "yaml": "id: x\nstart: 2026-01-07 10:00:00\nend: 2026-01-21\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "sprint",
+  "name": "start-bad",
+  "yaml": "id: x\nstart: nope\nend: 2026-01-21\n",
+  "error": "FILE: date in format YYYY-MM-DD expected, found 'nope'"
+ },
+ {
+  "kind": "sprint",
+  "name": "start-quoted",
+  "yaml": "id: x\nstart: '2026-01-07'\nend: '2026-01-21'\n",
+  "ok": "id: x\nstart: 2026-01-07\nend: 2026-01-21\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ {
+  "kind": "projects",
+  "name": "empty",
+  "yaml": "",
+  "ok": "schema: 1\nprojects: []\n"
+ },
+ {
+  "kind": "projects",
+  "name": "basic",
+  "yaml": "schema: 1\nprojects:\n  - {id: p, name: Proj, product: prod, target: 2026-06-30, priority: 2, budget_basis: plan, note: Hi, match: {epic: [E1]}}\n  - {id: q}\n",
+  "ok": "schema: 1\nprojects:\n- id: p\n  name: Proj\n  product: prod\n  target: 2026-06-30\n  priority: 2\n  budget_basis: plan\n  match:\n    epic:\n    - E1\n  note: Hi\n- id: q\n  name: q\n  target: null\n  priority: 0\n"
+ },
+ {
+  "kind": "projects",
+  "name": "schema-newer",
+  "yaml": "schema: 2\nprojects: []\n",
+  "error": "FILE: The file was written by a newer program version (schema 2, this version knows up to 1). Please update foresprint."
+ },
+ {
+  "kind": "projects",
+  "name": "schema-bad",
+  "yaml": "schema: one\nprojects: []\n",
+  "error": "FILE: schema must be a whole number, found 'one'"
+ },
+ {
+  "kind": "projects",
+  "name": "schema-float",
+  "yaml": "schema: 1.0\nprojects: []\n",
+  "error": "FILE: schema must be a whole number, found 1.0"
+ },
+ {
+  "kind": "projects",
+  "name": "schema-bool",
+  "yaml": "schema: true\nprojects: []\n",
+  "error": "FILE: schema must be a whole number, found True"
+ },
+ {
+  "kind": "projects",
+  "name": "no-id",
+  "yaml": "projects: [{name: x}]\n",
+  "error": "FILE: projects[0]: field 'id' missing"
+ },
+ {
+  "kind": "projects",
+  "name": "basis-bad",
+  "yaml": "projects: [{id: a, budget_basis: nope}]\n",
+  "error": "FILE: projects[0]: budget_basis 'nope' unknown (allowed: roadmap_share, plan)"
+ },
+ {
+  "kind": "projects",
+  "name": "priority-bad",
+  "yaml": "projects: [{id: a, priority: high}]\n",
+  "error": "FILE: projects[0]: 'priority' must be a whole number, found 'high'"
+ },
+ {
+  "kind": "projects",
+  "name": "priority-float",
+  "yaml": "projects: [{id: a, priority: 1.5}]\n",
+  "error": "FILE: projects[0]: 'priority' must be a whole number, found 1.5"
+ },
+ {
+  "kind": "projects",
+  "name": "priority-whole-float",
+  "yaml": "projects: [{id: a, priority: 2.0}]\n",
+  "ok": "schema: 1\nprojects:\n- id: a\n  name: a\n  target: null\n  priority: 2\n"
+ },
+ {
+  "kind": "projects",
+  "name": "target-bad",
+  "yaml": "projects: [{id: a, target: soon}]\n",
+  "error": "FILE: projects[0]: date in format YYYY-MM-DD expected, found 'soon'"
+ },
+ {
+  "kind": "tickets",
+  "name": "empty",
+  "yaml": "",
+  "ok": "schema: 1\ntickets: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "basic",
+  "yaml": "schema: 1\nimported: 2026-10-14 08:00:00\nsource: export.csv\ntickets:\n  - {key: A-1, title: One, status: Open, issue_type: Story, estimate: 5, remaining: 3, estimate_source: refined, in_sprint: '2026.5', sprint_name: Sprint 5, rank: '0|i0000:', epic: E1, labels: [x, y], components: [c], depends_on: [A-2], priority: High, project: p, project_candidates: [p, q], done: true, refined_unclear: true, fields: {team: [t1], area: a}}\n  - {key: A-2}\n",
+  "ok": "schema: 1\nimported: 2026-10-14 08:00:00\nsource: export.csv\ntickets:\n- key: A-1\n  title: One\n  status: Open\n  issue_type: Story\n  estimate: 5\n  priority: High\n  remaining: 3\n  estimate_source: refined\n  refined_unclear: true\n  in_sprint: '2026.5'\n  sprint_name: Sprint 5\n  rank: '0|i0000:'\n  epic: E1\n  labels:\n  - x\n  - y\n  components:\n  - c\n  fields:\n    team:\n    - t1\n    area:\n    - a\n  depends_on:\n  - A-2\n  project: p\n  project_candidates:\n  - p\n  - q\n  done: true\n- key: A-2\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: null\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "imported-date",
+  "yaml": "imported: 2026-10-14\ntickets: []\n",
+  "ok": "schema: 1\nimported: 2026-10-14 00:00:00\ntickets: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "imported-bad",
+  "yaml": "imported: yesterday\ntickets: []\n",
+  "error": "FILE: imported: invalid time 'yesterday'"
+ },
+ {
+  "kind": "tickets",
+  "name": "imported-micro",
+  "yaml": "imported: 2026-10-14 08:00:00.5\ntickets: []\n",
+  "ok": "schema: 1\nimported: 2026-10-14 08:00:00\ntickets: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "imported-string",
+  "yaml": "imported: '2026-10-14T08:00:00'\ntickets: []\n",
+  "ok": "schema: 1\nimported: 2026-10-14 08:00:00\ntickets: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "no-key",
+  "yaml": "tickets: [{title: x}]\n",
+  "error": "FILE: tickets[0]: field 'key' is missing"
+ },
+ {
+  "kind": "tickets",
+  "name": "key-number",
+  "yaml": "tickets: [{key: 5}]\n",
+  "ok": "schema: 1\ntickets:\n- key: '5'\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: null\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "key-zero",
+  "yaml": "tickets: [{key: 0}]\n",
+  "error": "FILE: tickets[0]: field 'key' is missing"
+ },
+ {
+  "kind": "tickets",
+  "name": "estimate-bad",
+  "yaml": "tickets: [{key: a, estimate: lots}]\n",
+  "error": "FILE: tickets[0]: estimate: number expected, found 'lots'"
+ },
+ {
+  "kind": "tickets",
+  "name": "source-bad",
+  "yaml": "tickets: [{key: a, estimate_source: guess}]\n",
+  "error": "FILE: tickets[0]: estimate_source 'guess' unknown (allowed: refined, rough, manual, none)"
+ },
+ {
+  "kind": "tickets",
+  "name": "in-sprint-float",
+  "yaml": "tickets: [{key: a, in_sprint: 2026.20}]\n",
+  "error": "FILE: tickets[0]: please put in_sprint in quotation marks, e.g. in_sprint: \"2026.20\""
+ },
+ {
+  "kind": "tickets",
+  "name": "labels-scalar",
+  "yaml": "tickets: [{key: a, labels: x}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: null\n  epic: null\n  labels:\n  - x\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "labels-map",
+  "yaml": "tickets: [{key: a, labels: {a: b}}]\n",
+  "error": "FILE: tickets[0]: 'labels' must be a list (entries starting with '- '), found {'a': 'b'}"
+ },
+ {
+  "kind": "tickets",
+  "name": "labels-number",
+  "yaml": "tickets: [{key: a, labels: [1, 2.5, true]}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: null\n  epic: null\n  labels:\n  - '1'\n  - '2.5'\n  - 'True'\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "fields-bad",
+  "yaml": "tickets: [{key: a, fields: [x]}]\n",
+  "error": "FILE: tickets[0]: 'fields' must be a mapping (lines of the form 'key: value'), found ['x']"
+ },
+ {
+  "kind": "tickets",
+  "name": "fields-map-value",
+  "yaml": "tickets: [{key: a, fields: {t: {a: b}}}]\n",
+  "error": "FILE: tickets[0]: 'fields.t' must be a list (entries starting with '- '), found {'a': 'b'}"
+ },
+ {
+  "kind": "tickets",
+  "name": "title-number",
+  "yaml": "tickets: [{key: a, title: 12}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: '12'\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: null\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "schema-newer",
+  "yaml": "schema: 9\ntickets: []\n",
+  "error": "FILE: The file was written by a newer program version (schema 9, this version knows up to 1). Please update foresprint."
+ },
+ {
+  "kind": "tickets",
+  "name": "rank-number",
+  "yaml": "tickets: [{key: a, rank: 12}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  estimate_source: none\n  rank: '12'\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "unestimated",
+  "yaml": "tickets: [{key: a, estimate: , remaining: 0}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: ''\n  status: null\n  issue_type: null\n  estimate: null\n  remaining: 0\n  estimate_source: none\n  rank: null\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "tickets",
+  "name": "estimate-rounding",
+  "yaml": "tickets: [{key: a, estimate: 2.123456789}]\n",
+  "ok": "schema: 1\ntickets:\n- key: a\n  title: ''\n  status: null\n  issue_type: null\n  estimate: 2.123457\n  estimate_source: none\n  rank: null\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ {
+  "kind": "preplan",
+  "name": "empty",
+  "yaml": "",
+  "ok": "schema: 1\nearmarks: []\nestimates: []\n"
+ },
+ {
+  "kind": "preplan",
+  "name": "basic",
+  "yaml": "schema: 1\nearmarks:\n  - {ticket: A-1, sprint: '2026.5', note: soon}\n  - {ticket: A-2, sprint: x}\nestimates:\n  - {ticket: A-3, estimate: 5, note: guess}\n  - {ticket: A-4}\n",
+  "ok": "schema: 1\nearmarks:\n- ticket: A-1\n  sprint: '2026.5'\n  note: soon\n- ticket: A-2\n  sprint: x\nestimates:\n- ticket: A-3\n  estimate: 5\n  note: guess\n- ticket: A-4\n  estimate: null\n"
+ },
+ {
+  "kind": "preplan",
+  "name": "earmark-no-ticket",
+  "yaml": "earmarks: [{sprint: x}]\n",
+  "error": "FILE: earmarks[0]: field 'ticket' is missing"
+ },
+ {
+  "kind": "preplan",
+  "name": "earmark-no-sprint",
+  "yaml": "earmarks: [{ticket: a}]\n",
+  "error": "FILE: earmarks[0]: field 'sprint' is missing"
+ },
+ {
+  "kind": "preplan",
+  "name": "earmark-sprint-float",
+  "yaml": "earmarks: [{ticket: a, sprint: 2026.20}]\n",
+  "error": "FILE: earmarks[0]: please put sprint in quotation marks, e.g. sprint: \"2026.20\""
+ },
+ {
+  "kind": "preplan",
+  "name": "estimate-no-ticket",
+  "yaml": "estimates: [{estimate: 1}]\n",
+  "error": "FILE: estimates[0]: field 'ticket' is missing"
+ },
+ {
+  "kind": "preplan",
+  "name": "estimate-bad",
+  "yaml": "estimates: [{ticket: a, estimate: lots}]\n",
+  "error": "FILE: estimates[0]: estimate: number expected, found 'lots'"
+ },
+ {
+  "kind": "preplan",
+  "name": "entry-not-mapping",
+  "yaml": "earmarks: [x]\n",
+  "error": "FILE: earmarks[0]: field 'ticket' is missing"
+ },
+ {
+  "kind": "preplan",
+  "name": "earmarks-map",
+  "yaml": "earmarks: {a: 1}\n",
+  "error": "FILE: 'earmarks' must be a list (entries starting with '- '), found {'a': 1}"
+ },
+ {
+  "kind": "preplan",
+  "name": "schema-newer",
+  "yaml": "schema: 3\n",
+  "error": "FILE: The file was written by a newer program version (schema 3, this version knows up to 1). Please update foresprint."
+ }
+]

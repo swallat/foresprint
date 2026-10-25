@@ -1,0 +1,161 @@
+schema: 1
+tickets:
+- key: AP-1
+  title: {{tr "Concept for the new self-service area"}}
+  status: Done
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: portal
+  project: self-service
+  done: true
+  rank: '001'
+- key: AP-2
+  title: {{tr "Customers change their address themselves"}}
+  status: In progress
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: portal
+  project: self-service
+  in_sprint: '{{sprintID 6}}'
+  rank: '002'
+- key: AP-3
+  title: {{tr "Customers download their invoices"}}
+  status: Open
+  issue_type: Story
+  estimate: 3
+  estimate_source: refined
+  product: portal
+  project: self-service
+  in_sprint: '{{sprintID 6}}'
+  rank: '003'
+- key: AP-4
+  title: {{tr "Mobile screens for the self-service area"}}
+  status: Open
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: mobile
+  project: self-service
+  depends_on: [AP-2]
+  rank: '004'
+- key: AP-5
+  title: {{tr "Cancel a contract online"}}
+  status: Open
+  issue_type: Story
+  estimate: 8
+  estimate_source: rough
+  product: portal
+  project: self-service
+  depends_on: [AP-3]
+  rank: '005'
+- key: AP-6
+  title: {{tr "Help texts and feedback form"}}
+  status: Open
+  issue_type: Task
+  estimate: 2
+  estimate_source: rough
+  product: portal
+  project: self-service
+  rank: '006'
+- key: AP-7
+  title: {{tr "Choose the e-invoice format"}}
+  status: In progress
+  issue_type: Story
+  estimate: 3
+  estimate_source: refined
+  product: billing
+  project: e-invoice
+  in_sprint: '{{sprintID 6}}'
+  rank: '007'
+- key: AP-8
+  title: {{tr "Create invoices in the new format"}}
+  status: Open
+  issue_type: Story
+  estimate: 8
+  estimate_source: refined
+  product: billing
+  project: e-invoice
+  depends_on: [AP-7]
+  rank: '008'
+- key: AP-9
+  title: {{tr "Send invoices by e-mail"}}
+  status: Open
+  issue_type: Story
+  estimate: 5
+  estimate_source: rough
+  product: billing
+  project: e-invoice
+  depends_on: [AP-8]
+  rank: '009'
+- key: AP-10
+  title: {{tr "Single sign-on: connect the identity provider"}}
+  status: In progress
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: platform
+  project: login
+  in_sprint: '{{sprintID 6}}'
+  rank: '010'
+- key: AP-11
+  title: {{tr "Single sign-on: migrate existing accounts"}}
+  status: Open
+  issue_type: Story
+  estimate: 8
+  estimate_source: refined
+  product: platform
+  project: login
+  depends_on: [AP-10]
+  rank: '011'
+- key: AP-12
+  title: {{tr "Faster start of the mobile app"}}
+  status: Open
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: mobile
+  rank: '012'
+- key: AP-13
+  title: {{tr "Export the order list as a file"}}
+  status: Open
+  issue_type: Story
+  estimate_source: none
+  product: portal
+  rank: '013'
+- key: AP-14
+  title: {{tr "Daily check of the nightly jobs"}}
+  status: Open
+  issue_type: Task
+  estimate: 2
+  estimate_source: manual
+  product: platform
+  rank: '014'
+- key: AP-15
+  title: {{tr "Update the build pipeline"}}
+  status: Open
+  issue_type: Task
+  estimate: 3
+  estimate_source: refined
+  product: platform
+  rank: '015'
+- key: AP-16
+  title: {{tr "Fix rounding on credit notes"}}
+  status: Open
+  issue_type: Bug
+  estimate: 1
+  estimate_source: refined
+  product: billing
+  in_sprint: '{{sprintID 6}}'
+  rank: '016'
+- key: AP-17
+  title: {{tr "Dark mode for the portal"}}
+  status: Done
+  issue_type: Story
+  estimate: 5
+  estimate_source: refined
+  product: portal
+  project: dark-mode
+  done: true
+  rank: '017'

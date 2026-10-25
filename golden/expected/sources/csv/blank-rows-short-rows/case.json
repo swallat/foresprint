@@ -1,0 +1,44 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": "Remaining",
+  "epic": "Epic Link"
+ },
+ "rule_fields": {},
+ "ok": [
+  {
+   "key": "A-1",
+   "title": "One",
+   "status": null,
+   "issue_type": null,
+   "priority": null,
+   "extra": {},
+   "estimate": null,
+   "remaining": null,
+   "sprint_name": null,
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  },
+  {
+   "key": "A-2",
+   "title": "Two",
+   "status": "Open",
+   "issue_type": null,
+   "priority": null,
+   "extra": {},
+   "estimate": 1.0,
+   "remaining": null,
+   "sprint_name": null,
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  }
+ ]
+}

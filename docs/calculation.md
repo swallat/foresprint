@@ -1,8 +1,8 @@
 # Calculation
 
 How foresprint turns the [data files](data-format.md) into a forecast. Every figure can be
-traced with the numbers substituted: in the web UI through tooltips (the "i" next to figures and
-column headers) and the collapsible **Calculation** on the Forecast and Planning pages, on the
+traced with the numbers substituted: in the window through the calculator icon next to figures and the
+**Calculations** help page, on the
 command line with `foresprint forecast TEAM --explain SPRINT` (`-` = the next planning).
 `foresprint capacity TEAM [SPRINT]` shows the capacity calculation in detail.
 
@@ -14,7 +14,7 @@ command line with `foresprint forecast TEAM --explain SPRINT` (`-` = the next pl
 | Average | mean of the last `window` sprints **with a value**, only if the sprint itself has a value; sprints without a value (gaps) do not count, the window reaches further back |
 | Trend | extrapolation of the average into the future (never negative) |
 | Forecast PLAN | normalized velocity trend / reference x capacity, rounded down to 1 decimal, never negative; for past sprints: the commitment |
-| Plannable / small items | Forecast PLAN x plannable share (default 0.8, key `roadmap_share`) / the rest |
+| Plannable / small items | Forecast PLAN x plannable share (default 0.8, key `roadmap_share`) / the rest. With a rest carried over from earlier sprints (entered in the Review, or the assumption of a running sprint) it is rounded down((PLAN - carry-over) x share), small items = PLAN - carry-over - plannable; a carry-over above the PLAN leaves 0 (decision 20). Without carry-over the result is the same as in 0.8 |
 | Fulfillment | velocity / commitment |
 | Planning delta | Forecast PLAN - (carryover + backlog - corrections) |
 | Done | finished tickets **plus** the parts of open tickets finished within the sprint (team practice); should be counted consistently in the team, otherwise velocity and done are not comparable across a change of practice |
@@ -39,7 +39,7 @@ In this order:
      absences*
    - *unknown*: calendar and people, reduced by the average absences of the last
      `absence_history` sprints **with confirmed absences** (confirmed sprints without absences
-     count as 0; the sprints used are shown on the *Prepare sprint: Absences* page): source
+     count as 0; the sprints used are named in the calculation): source
      *expected absences*; if there is no such history yet, without deduction: source *calendar,
      absences unknown* (warning)
 3. Only **without a people list**: capacity trend: source *trend* (warning)
@@ -86,7 +86,7 @@ distribution per product); where both appear, they are shown separately with the
 ## Supplementary analyses
 
 `foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
-**Analysis** page, in addition to the forecast; the existing figures stay unchanged:
+**Forecast** page, in addition to the forecast; the existing figures stay unchanged:
 
 - **Range:** forecast with the lowest, middle and highest normalized velocity of the last sprints
   (conservative / middle / optimistic).

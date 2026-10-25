@@ -1,0 +1,9 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": "Remaining",
+  "epic": "Epic Link"
+ },
+ "rule_fields": {},
+ "error": "input.csv: column missing – expected „Custom field (Story Points)“ / „Benutzerdefiniertes Feld (Story Points)“ / „Story Points“"
+}
