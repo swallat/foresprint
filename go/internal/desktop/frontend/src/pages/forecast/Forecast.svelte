@@ -304,6 +304,9 @@
           </tbody>
         </table>
       </div>
+      {#if view.upcoming.some((r) => r.carryIn > 0)}
+        <p class="small muted">{t('* The carry-over of unfinished work was deducted from the Forecast PLAN before the plannable share was applied.')}</p>
+      {/if}
     </section>
 
     <div class="grid cols-2">
