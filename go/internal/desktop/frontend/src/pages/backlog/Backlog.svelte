@@ -573,7 +573,7 @@
                 </Calc>
               </div>
               {#if over}
-                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}. This is a warning, not a stop.', { used: fmt(used), plan: fmt(l.plan ?? 0) })}</div></div>
+                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}.', { used: fmt(used), plan: fmt(l.plan ?? 0) })}</div></div>
               {/if}
               {#if l.tickets.some((tk) => !tk.refined || tk.size == null)}
                 <div class="row small muted">

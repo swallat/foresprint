@@ -107,7 +107,7 @@
     <div class="banner warn" id="overcap">
       <Icon name="warning" />
       <div class="grow">
-        {t('Pre-planned {pre} and earmarked {ear} are above the upper end {high} of the Forecast PLAN ({plan}). This is only a warning; the team decides in the planning.', { pre: fmt(d.preplanned), ear: fmt(d.earmarked), high: fmt(d.high), plan: fmt(d.plan) })}
+        {t('Pre-planned {pre} and earmarked {ear} are above the upper end {high} of the Forecast PLAN ({plan}).', { pre: fmt(d.preplanned), ear: fmt(d.earmarked), high: fmt(d.high), plan: fmt(d.plan) })}
       </div>
     </div>
   {/if}
