@@ -228,7 +228,31 @@ async function run(kind: 'save' | 'refresh' | 'sync', call: () => Promise<Result
     app.busy = '';
     await refreshStatus();
     app.rev++;
+    // Tickets or the changes of others are new data: the open page shows them at once.
+    if (kind !== 'save') await showNewData();
   }
+}
+
+/** The page reads its data anew (like after a change from the other view). Sprints may have
+ * come with a fetch, so the list is read again first. */
+async function showNewData(): Promise<void> {
+  await refreshSprints();
+  app.changed++;
+}
+
+/** A fetch by itself must not pull the page away from under someone who is typing. */
+let showWhenIdle = false;
+const typingNow = (): boolean => {
+  const el = document.activeElement;
+  return !!el && !!el.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+};
+async function showAfterAutoFetch(): Promise<void> {
+  if (typingNow()) {
+    showWhenIdle = true;
+    return;
+  }
+  showWhenIdle = false;
+  await showNewData();
 }
 
 /** Save and share (top bar). Works from every page. */
@@ -300,7 +324,10 @@ export async function autoFetch(): Promise<void> {
   }
   const before = tr.last;
   await refreshStatus();
-  if (app.team === team && app.status.tracker.last !== before) app.rev++;
+  if (app.team === team && app.status.tracker.last !== before) {
+    app.rev++;
+    await showAfterAutoFetch();
+  }
 }
 
 /** Looks for a new version (once a day, never in the demo or a development build); silent on failure. */
@@ -324,5 +351,8 @@ export async function start(): Promise<void> {
   app.ready = true;
   void checkUpdate();
   timer ??= setInterval(refreshStatus, 15000);
-  fetchTimer ??= setInterval(autoFetch, 30000);
+  fetchTimer ??= setInterval(() => {
+    if (showWhenIdle && !app.busy) void showAfterAutoFetch();
+    void autoFetch();
+  }, 30000);
 }
