@@ -661,7 +661,7 @@
     summary: "Forecast mit Spanne ansehen, Annahmen durchspielen, ein Projekt prüfen und Zahlen exportieren.",
     steps: [
       { view: "forecast", before() { FS.state.fcTab = "forecast"; }, hl: ".fp-chart", text: "Der Forecast ist immer erreichbar. Der Chart zeigt die Velocity der letzten Sprints (durchgezogen) und den Forecast PLAN der kommenden vier Sprints mit Spanne (mint, gestrichelt)." },
-      { view: "forecast", hl: ".fp-table", text: "Die Tabelle nennt Kapazität in PT, Forecast PLAN und Spanne. Für 2026.23 und 2026.24 fehlen Abwesenheiten: Das ist nur ein Hinweis, die Seite bleibt benutzbar. Das Rechenweg-Symbol erklärt jede Zeile." },
+      { view: "forecast", hl: ".fp-table", text: "Die Tabelle nennt Kapazität in PT, Forecast PLAN und Spanne. Für 2026.23 und 2026.24 fehlen Abwesenheiten. Das Rechenweg-Symbol erklärt jede Zeile." },
       { view: "forecast", hl: ".fp-whatif", text: "Was wäre wenn: Ziehen Sie den Regler für Abwesenheit oder Fokus. Das Ergebnis erscheint im Chart in Violett. Gefällt es, speichern Sie es ausdrücklich als Prognose. Ohne Speichern bleibt der Forecast unverändert." },
       { view: "forecast", before() { FS.state.fcTab = "analyse"; FS.state.anProject = "ss2"; FS.state.anShare = null; }, hl: ".fp-analysis", text: "Analyse: Wählen Sie ein Projekt. Foresprint nennt den wahrscheinlichen Sprint mit Spanne und vergleicht ihn mit dem Projektende." },
       { view: "forecast", before() { FS.state.fcTab = "verlauf"; }, hl: ".fp-history", text: "Produkte im Verlauf: dieselben Stufen wie in der Sprintansicht, über mehrere Sprints und je PO gruppiert. Prüfen Sie, ob Budgets zur Abmachung passen." },
