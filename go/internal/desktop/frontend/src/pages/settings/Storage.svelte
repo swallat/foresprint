@@ -29,6 +29,10 @@
   let allowOffline = $state(false);
   let check = $state<ServerCheck>();
   let user = $state('');
+  /** True once the person typed a user name; until then it follows the kind of server. */
+  let userTouched = $state(false);
+  /** The kind of server the user name was last filled for. */
+  let guideKind = '';
   let token = $state('');
   let name = $state('');
   let email = $state('');
@@ -50,7 +54,12 @@
     if (name === shown.name) name = st.name;
     if (email === shown.email) email = st.email;
     shown = { server: st.server, name: st.name, email: st.email };
-    user = user || st.guide.username;
+    // A new kind of server (other address or other pick) suggests its user name again.
+    if (st.guide.kind !== guideKind) {
+      guideKind = st.guide.kind;
+      userTouched = false;
+    }
+    if (!userTouched) user = st.guide.username;
     recent = await api.RecentFolders().catch(() => []);
     if (st.ready) {
       branches = await api.Branches().catch(() => []);
@@ -308,6 +317,14 @@
             </button>
           </div>
         {/if}
+        {#if st.detectedHost === 'generic' || st.host}
+          <div class="field top">
+            <label for="s-kind">{t('My server is')}</label>
+            <select id="s-kind" class="input" value={st.host} disabled={working} onchange={(e) => act(() => api.SetHost(e.currentTarget.value), t('Saved.'))}>
+              {#each ['', ...st.hosts] as h (h)}<option value={h}>{hostLabel(h)}</option>{/each}
+            </select>
+          </div>
+        {/if}
         {#if st.guide.steps}
           <details class="top">
             <summary>{t('How do I get a token?')}</summary>
@@ -316,7 +333,7 @@
         {/if}
         <div class="field top">
           <label for="s-user">{t('User name at the server')}</label>
-          <input id="s-user" class="input data" bind:value={user} autocomplete="off" />
+          <input id="s-user" class="input data" bind:value={user} oninput={() => (userTouched = user !== '')} autocomplete="off" />
         </div>
         <div class="field top">
           <label for="s-token">{t('New token')}</label>
