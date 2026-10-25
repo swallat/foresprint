@@ -553,6 +553,8 @@ func TestBacklogShowsEmptyBoardSprints(t *testing.T) {
 	repo := storage.NewRepository(api.DataDir())
 	data, _ := repo.Load("t")
 	data.Team.Tracker.Kind = "jira"
+	board := 7
+	data.Team.Tracker.BoardID = &board
 	if _, err := repo.SaveTeam(data.Team); err != nil {
 		t.Fatal(err)
 	}
