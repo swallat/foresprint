@@ -6,7 +6,7 @@ they were measured.
 ## Measuring
 
 These measurements are of the Python version 0.8. The measuring script (`scripts/measure.py`)
-exists on the branch `main` only; run it there. The Go core of 1.0 has no comparable log yet.
+is not part of the 1.0 tree any more; it is in the history of `main` and the 0.x tags. The Go core of 1.0 has no comparable log yet.
 
 ## Measurement log: cloud (Linux x86_64, 4 cores, Python 3.14.6, demo team, 22 sprints)
 

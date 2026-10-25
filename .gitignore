@@ -12,3 +12,5 @@ dist/
 rsrc_windows_*.syso
 go/internal/desktop/frontend/coverage/
 go/internal/desktop/frontend/coverage.txt
+
+node_modules/
