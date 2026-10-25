@@ -158,7 +158,7 @@
   "{name} saved.": "{name} gespeichert.",
   "{n} PD free": "{n} PT frei",
   "{n} PD left": "noch {n} PT",
-  "{n} PD over booked": "{n} PT über gebucht",
+  "{n} PD overbooked": "{n} PT überbucht",
   "{n} PD over the contingent": "{n} PT über dem Kontingent",
   "{n} milestones later": "{n} Meilensteine danach",
   "{n} of {total} projects": "{n} von {total} Projekten",
