@@ -134,6 +134,11 @@
   "{n} earmarked tickets are not refined: {keys}.": "{n} vorgemerkte Tickets sind nicht refined: {keys}.",
   "{n} entries confirmed, all others 0 days. A click opens the sprint again.": "{n} Einträge bestätigt, alle anderen 0 Tage. Ein Klick öffnet den Sprint wieder.",
   "{n} people announced, not yet confirmed. Freeze the allocation in the table above.": "{n} Personen angekündigt, noch nicht bestätigt. Oben in der Tabelle festschreiben.",
-  "{person}, {sprint}: absence in days": "{person}, {sprint}: Abwesenheit in Tagen"
+  "{person}, {sprint}: absence in days": "{person}, {sprint}: Abwesenheit in Tagen",
+  "Why freeze?": "Warum festschreiben?",
+  "A frozen sprint has a fixed capacity: changing an absence period later no longer moves it.": "Ein festgeschriebener Sprint hat eine feste Kapazität: Ändert sich später ein Abwesenheitszeitraum, verschiebt sie sich nicht mehr.",
+  "Only frozen sprints shape the absence rate the forecast expects for future sprints.": "Nur festgeschriebene Sprints prägen die Abwesenheitsquote, die der Forecast für künftige Sprints erwartet.",
+  "Closing the Review freezes automatically. A click on \"Frozen\" opens the sprint again; nothing is lost.": "Der Review-Abschluss schreibt automatisch fest. Ein Klick auf „Festgeschrieben“ öffnet den Sprint wieder; nichts geht verloren.",
+  "Frozen: absence periods do not change this sprint any more. Type days into the cells to change it.": "Festgeschrieben: Abwesenheitszeiträume ändern diesen Sprint nicht mehr. Zum Ändern die Tage in die Zellen tippen."
  }
 }
