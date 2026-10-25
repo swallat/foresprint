@@ -42,4 +42,44 @@ describe('liveData', () => {
     expect(app.changed).toBe(before + 1);
     main.remove();
   });
+
+  it('keeps working in both directions, round after round', async () => {
+    const { app } = await import('./app.svelte');
+    const { ownCallRecent } = await import('./api');
+    const main = document.createElement('main');
+    main.id = 'main';
+    const input = document.createElement('input');
+    main.appendChild(input);
+    document.body.appendChild(main);
+    const send = (fp: string) => window.dispatchEvent(new CustomEvent('foresprint:data', { detail: fp }));
+    // A view edits (own write, its field keeps the focus), then the other view edits, and so on.
+    for (let round = 0; round < 3; round++) {
+      input.focus();
+      vi.mocked(ownCallRecent).mockReturnValue(true);
+      const mine = app.changed;
+      send(`own-${round}`);
+      expect(app.changed).toBe(mine);
+      vi.mocked(ownCallRecent).mockReturnValue(false);
+      send(`other-${round}`);
+      expect(app.changed).toBe(mine + 1);
+    }
+    main.remove();
+  });
+
+  it('waits while someone is typing in a focused field of this window', async () => {
+    const { app } = await import('./app.svelte');
+    const main = document.createElement('main');
+    main.id = 'main';
+    const input = document.createElement('input');
+    main.appendChild(input);
+    document.body.appendChild(main);
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    input.focus();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    const before = app.changed;
+    window.dispatchEvent(new CustomEvent('foresprint:data', { detail: 'typing-1' }));
+    expect(app.changed).toBe(before);
+    vi.mocked(document.hasFocus).mockRestore();
+    main.remove();
+  });
 });
