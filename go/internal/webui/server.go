@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -157,12 +158,15 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	name := strings.TrimPrefix(filepath.ToSlash(filepath.Clean("/"+r.URL.Path)), "/")
-	if name == "" {
-		name = "index.html"
-	}
+	name := assetName(r.URL.Path)
 	data, err := fs.ReadFile(s.assets, name)
 	if err != nil {
+		// A file with an extension that is missing is an error, not a page of the app; the
+		// page answers the other addresses (a route of the app).
+		if path.Ext(name) != "" {
+			http.NotFound(w, r)
+			return
+		}
 		name = "index.html"
 		if data, err = fs.ReadFile(s.assets, name); err != nil {
 			http.NotFound(w, r)
@@ -177,6 +181,17 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", ct)
 	}
 	_, _ = w.Write(data)
+}
+
+// assetName turns the address into a name inside the embedded files ("index.html" for the root).
+// It uses package path, not filepath: on Windows filepath.Clean reads "//assets/x" as a network
+// path and the lookup finds nothing.
+func assetName(urlPath string) string {
+	name := strings.TrimPrefix(path.Clean("/"+urlPath), "/")
+	if name == "" {
+		return "index.html"
+	}
+	return name
 }
 
 func contentType(name string) string {
