@@ -71,7 +71,31 @@
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
   const lane = $derived<PlanTicket[]>(d?.tickets ?? []);
-  const candidates = $derived<PlanTicket[]>(d?.candidates ?? []);
+  const allCandidates = $derived<PlanTicket[]>(d?.candidates ?? []);
+  /** Filters of the candidate lane (view only, nothing is saved): the running sprint is hidden by default. */
+  let showRunning = $state(false);
+  let onlyRefined = $state(false);
+  let fProduct = $state('');
+  let fProject = $state('');
+  const candidates = $derived(
+    allCandidates.filter(
+      (x) =>
+        (showRunning || !d?.running || x.sprint !== d.running) &&
+        (!onlyRefined || x.refined) &&
+        (!fProduct || x.product === fProduct) &&
+        (!fProject || x.project === fProject),
+    ),
+  );
+  const hidden = $derived(allCandidates.length - candidates.length);
+  const productIds = $derived([...new Set(allCandidates.map((x) => x.product).filter(Boolean))]);
+  const projectIds = $derived([...new Set(allCandidates.map((x) => x.project).filter(Boolean))]);
+  const productName = (id: string) => d?.products.find((p) => p.id === id)?.name || id;
+  const projectName = (id: string) => d?.projects.find((p) => p.id === id)?.name || id;
+  // A filter value the new team or sprint does not have must not keep hiding everything.
+  $effect(() => {
+    if (fProduct && !productIds.includes(fProduct)) fProduct = '';
+    if (fProject && !projectIds.includes(fProject)) fProject = '';
+  });
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -84,7 +108,7 @@
 
   const adjust = $derived(
     d && d.source === 'tracker'
-      ? d.candidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
+      ? allCandidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
       : [],
   );
 
@@ -322,12 +346,33 @@
         <div class="lane-head">
           <div class="row"><strong class="grow">{t('Candidates')}</strong><span class="small muted data">{candidates.length} {itemWord(d)} · {fmt(sizeSum(candidates), 1)} {unitName(d)}</span></div>
           <span class="small muted">{t('Backlog and earmarked for later sprints')}</span>
+          <div class="row cand-filter" role="group" aria-label={t('Filter candidates')}>
+            {#if d.running}
+              <label class="small"><input type="checkbox" bind:checked={showRunning} /> {t('Running sprint too')}</label>
+            {/if}
+            <label class="small"><input type="checkbox" bind:checked={onlyRefined} /> {t('Refined only')}</label>
+            {#if productIds.length}
+              <select class="input small" aria-label={t('Product')} bind:value={fProduct}>
+                <option value="">{t('All products')}</option>
+                {#each productIds as id (id)}<option value={id}>{productName(id)}</option>{/each}
+              </select>
+            {/if}
+            {#if projectIds.length}
+              <select class="input small" aria-label={t('Project')} bind:value={fProject}>
+                <option value="">{t('All projects')}</option>
+                {#each projectIds as id (id)}<option value={id}>{projectName(id)}</option>{/each}
+              </select>
+            {/if}
+          </div>
+          {#if hidden > 0}
+            <span class="small muted">{t('{n} hidden by the filters', { n: hidden })}</span>
+          {/if}
         </div>
         <div class="lane-body body" role="list">
           {#each candidates as x (x.key)}
             {@render laneRow(x, 'candidates')}
           {:else}
-            <div class="small muted pad">{t('No candidates left.')}</div>
+            <div class="small muted pad">{hidden > 0 ? t('All candidates are hidden by the filters.') : t('No candidates left.')}</div>
           {/each}
         </div>
       </div>
@@ -467,6 +512,7 @@
 {/snippet}
 
 <style>
+  .cand-filter { flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
   .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
   .slot.after { box-shadow: 0 2px 0 0 var(--primary); }
   .gapb {

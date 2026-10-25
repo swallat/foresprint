@@ -63,6 +63,21 @@ describe('Plan page', () => {
     expect(used()).toBe(34);
   });
 
+  it('hides the running sprint and filters the candidates', async () => {
+    await show();
+    expect(keys('Candidates')).not.toContain('ATL-401');
+    expect(keys('Candidates')).toContain('ATL-433');
+    const box = (label: string) =>
+      [...lane('Candidates').querySelectorAll<HTMLLabelElement>('label')].find((l) => l.textContent!.includes(label))!.querySelector('input')!;
+    box('Running sprint too').click();
+    await tick();
+    expect(keys('Candidates')).toContain('ATL-401');
+    box('Refined only').click();
+    await tick();
+    expect(keys('Candidates')).not.toContain('ATL-433');
+    expect(keys('Candidates')).toContain('ATL-424');
+  });
+
   it('taking a ticket out with the button lowers the bar by its estimate and puts it into the candidates', async () => {
     await show();
     const before = used();

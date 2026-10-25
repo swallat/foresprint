@@ -139,7 +139,7 @@ func (j *JiraSource) ticket(issue any, resolved *ResolvedFields) (RawTicket, err
 		IssueType: named(data["issuetype"]),
 		Priority:  named(data["priority"]),
 		Extra:     map[string][]string{},
-		Resolved:  data["resolution"] != nil,
+		Resolved:  data["resolution"] != nil || statusDone(data["status"]),
 	}
 	if pyTruthy(data["summary"]) {
 		ticket.Title = collapse(pyStr(data["summary"]))
@@ -252,4 +252,19 @@ func mapGet(value any, key string) any {
 		return nil
 	}
 	return obj[key]
+}
+
+// statusDone reports whether the status belongs to Jira's status category "done", whatever the
+// status is called ("Closed", "Fertig", ...): workflows do not always set a resolution.
+func statusDone(status any) bool {
+	obj, ok := asObject(status)
+	if !ok {
+		return false
+	}
+	category, ok := asObject(obj["statusCategory"])
+	if !ok {
+		return false
+	}
+	key, _ := asString(category["key"])
+	return key == "done"
 }
