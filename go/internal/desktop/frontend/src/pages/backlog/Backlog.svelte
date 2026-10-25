@@ -146,7 +146,7 @@
   const fixedKeys = $derived(new Set(allTickets(view).filter((tk) => tk.fixed).map((tk) => tk.key)));
   const proKeys = $derived(new Set((view?.proForma ?? []).flatMap((p) => p.tickets.map((tk) => tk.key))));
   async function sendTo(keys: string[], sprint: string): Promise<void> {
-    if (keys.some((k) => fixedKeys.has(k))) toast(t('This ticket is already in a Jira sprint. Move it in Jira.'), 'info');
+    if (keys.some((k) => fixedKeys.has(k) && zoneOf(k) !== `lane:${sprint}`)) toast(t('This ticket is already in a Jira sprint. Move it in Jira.'), 'info');
     const fromPro = sprint === '' ? keys.filter((k) => proKeys.has(k)) : [];
     if (fromPro.length === 0) return earmark(keys, sprint);
     // One notice for the whole move: the earmark (if any) is taken away with it.
@@ -174,7 +174,7 @@
   // The list a ticket sits in ("" = a pro-forma sprint, not reorderable): the backlog or one sprint lane.
   // Reordering works inside one list, also for tickets the tracker has in a sprint (the order is only local).
   function zoneOf(key: string): string {
-    if ((view?.tickets ?? []).some((x) => x.key === key)) return 'backlog';
+    if (items.some((x) => x.key === key)) return 'backlog'; // the main list, whatever it shows (also under the Earmarked filter)
     const lane = lanes.find((l) => l.tickets.some((x) => x.key === key));
     return lane ? `lane:${lane.sprint}` : '';
   }
@@ -215,6 +215,8 @@
       if (zone === 'backlog') {
         shown = Math.max(shown, i + 3);
         backlogOpen = true;
+      } else {
+        laneOpen[zone.slice(5)] = true;
       }
       await reorder(tk.key, list[i + 1]!.key, true);
     }
@@ -258,9 +260,11 @@
   const ctxZone = $derived(ctx ? zoneOf(ctx.key) : '');
   async function ctxListEdge(top: boolean): Promise<void> {
     const zone = ctxZone;
-    const keys = ctxKeys.filter((k) => zoneOf(k) === zone);
+    const list = listOf(zone);
+    const keys = ctxKeys.filter((k) => zoneOf(k) === zone).sort((x, y) => list.findIndex((tk) => tk.key === x) - list.findIndex((tk) => tk.key === y));
     ctx = null;
-    const others = listOf(zone).filter((tk) => !keys.includes(tk.key));
+    ui.selection = ui.selection.filter((k) => !keys.includes(k));
+    const others = list.filter((tk) => !keys.includes(tk.key));
     if (others.length === 0) return;
     let prev = top ? others[0]!.key : others[others.length - 1]!.key;
     for (const key of keys) {

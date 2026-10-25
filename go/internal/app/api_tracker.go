@@ -787,6 +787,8 @@ func (a *API) trackerKeepBoard(team string, board int, list []sources.SprintValu
 	a.mu.Lock()
 	if a.run.board == nil {
 		a.run.board = map[string][]sources.SprintValue{}
+	}
+	if a.run.boardID == nil {
 		a.run.boardID = map[string]int{}
 	}
 	a.run.board[team] = list
