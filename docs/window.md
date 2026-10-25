@@ -2,8 +2,9 @@
 
 Foresprint 1.0 is one program: a double click on the launcher (or `foresprint gui`) opens the
 window. It reads and writes the **same YAML files** as the command line and validates everything
-before saving. Nothing runs in a browser and no server is started; the data stays in the local
-folder or Git clone. See the [README](../README.md) for installation and the quick start, and
+before saving. The data stays in the local folder or Git clone; no Foresprint server exists. The
+window can optionally also be shown as a [page of your browser](#showing-foresprint-in-the-browser),
+on this computer only. See the [README](../README.md) for installation and the quick start, and
 [Installation](installation.md) for the launcher.
 
 ```bash
@@ -27,7 +28,7 @@ The navigation on the left has these groups. The Backlog appears only for teams 
 | Group | Page | Content |
 |---|---|---|
 | | Today | what is due next in the sprint, findings (projects at risk, open tickets without an estimate) |
-| | Backlog | the tickets in order: filter, sort, drag between backlog and sprints, with capacity and project dates changing at once; presentation view for the refinement or planning meeting |
+| | Backlog | the tickets in one order, as in Jira (the rank of the tracker by default, or your own order): filter, sort, group, drag between backlog and sprints or use the context menu "Send to", with capacity and project dates changing at once; coming sprints as lanes (including the matching sprints of the Jira board), side by side or stacked; presentation view for the refinement or planning meeting |
 | Sprints | Sprint overview | the sprints with their state |
 | | Prepare | absences per person and sprint with a live preview of capacity and forecast; per cell announced or confirmed |
 | | Pre-plan | per product, what should go into the sprint, compared with the default |
@@ -46,10 +47,28 @@ The navigation on the left has these groups. The Backlog appears only for teams 
 | | Tickets and tracker | tracker connection (Jira, CSV, work packages), field mapping, rules, import of a package |
 | | Storage | folder or Git server, sign-in, name and e-mail for saves, way of sharing, switching the branch |
 | | Personal | settings that only apply to you on this computer: language, theme (system, light, dark), density, how calculations are shown |
+| | Browser | show Foresprint as a page of your browser, on this computer only |
 | | Updates | the update mode (`on`, `notice`, `off`) and the check for a new version |
 | Help | Calculations, Guided flows | the formulas with your numbers, and the guided flows as a tutorial with the demo team |
 
-Every figure opens its calculation. The sprint chosen in the header applies across pages.
+Every figure opens its calculation. The sprint chosen in the header applies across pages, and every
+sprint page shows the sprint id and its period in its head.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/backlog-dark.png">
+  <img src="assets/screenshots/backlog-light.png" alt="Backlog: tickets in the order of the tracker on the left, the coming sprints with their forecast on the right">
+</picture>
+
+The **Backlog** shows all tickets in one order, with the coming sprints next to it as lanes. A
+Jira board sprint gets a lane when it matches a sprint of Foresprint. A ticket that already sits in
+a Jira sprint is locked in the Backlog ("Move it in Jira"); only the optional
+[write-back](jira.md#writing-the-planned-sprint-back) of the Plan page can move it.
+**Plan** takes tickets from the candidates into the sprint until sum, products and projects fit:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/plan-dark.png">
+  <img src="assets/screenshots/plan-light.png" alt="Plan: capacity, Forecast PLAN, plannable amount and the two lanes candidates and sprint">
+</picture>
 
 ## Saving, sharing and refreshing
 
@@ -92,10 +111,39 @@ confirmation). **Test connection** asks the server for its branches and changes 
 address that is demonstrably unreachable, or a server without the local branch, can be saved only
 with explicit confirmation; a repository that is not found, a rejected login or an untrusted
 certificate are never saved. Credentials in the address are rejected, never stored and never shown.
-For https servers, **Set up sign-in** hands an access token once to Git's credential helper and
-checks it; Foresprint never stores or shows the token. It creates no SSH keys and changes the
+For https servers, **Sign-in (token)** hands an access token once to Git's credential helper and
+checks it; Foresprint never stores or shows the token. The kind of server (GitLab, Gitea
+or Forgejo, GitHub) is detected from the address; when it cannot be told, **My server is** lets you
+choose. The user name the server expects follows from it (for example `oauth2` for GitLab), and "How do I get a token?" lists
+the steps for that server. It creates no SSH keys and changes the
 global Git configuration only on request: the name and e-mail of the commits, and the credential
 helper when you click "Turn it on".
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/storage-dark.png">
+  <img src="assets/screenshots/storage-light.png" alt="Settings, Storage: data folder, server, token sign-in, branch, name and e-mail">
+</picture>
+
+## Showing Foresprint in the browser
+
+The same program can be shown as a page of your browser, for example next to Jira while you share
+your screen. Switch it on from the top bar menu or **Settings > Browser** (**Open in browser** or
+**Copy browser link**), or start it without a window with `foresprint serve`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/browser-dark.png">
+  <img src="assets/screenshots/browser-light.png" alt="Settings, Browser: the browser access with Open in browser, Copy browser link and Switch off">
+</picture>
+
+- The access works **only on this computer** (`127.0.0.1`). The link contains a secret key that is
+  new on every start and void once you switch the access off or close the program. Share the
+  browser tab when you share the screen, never the link.
+- Window and page show the same data and update each other within a second or two. A page that is
+  being edited is not replaced.
+- Native dialogs (choosing a folder) open on the computer, not in the page; with
+  `foresprint serve` they are not available. While the window is open, the data folder cannot be
+  switched from the page. Updates of the program are made in the window.
+- It is meant for a personal computer; on a computer shared by several people use the window.
 
 ## Changes and history
 
