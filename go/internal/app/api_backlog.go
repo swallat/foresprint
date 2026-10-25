@@ -544,6 +544,26 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.Sprint
 		}
 		extra = append(extra, *s)
 	}
+	// No gaps: every coming sprint up to the last one a ticket or the board uses shows too.
+	if len(extra) > 0 {
+		last := extra[0].Start
+		for _, s := range extra {
+			if s.Start.After(last) {
+				last = s.Start
+			}
+		}
+		for _, id := range forecast.KnownSprintIDs(data, forecast.DefaultLookupAhead) {
+			if have[id] {
+				continue
+			}
+			s, err := forecast.FindSprint(data, id, forecast.DefaultLookupAhead)
+			if err != nil || s == nil || !s.Start.After(now) || s.Start.After(last) {
+				continue
+			}
+			have[id] = true
+			extra = append(extra, *s)
+		}
+	}
 	sort.SliceStable(extra, func(i, j int) bool { return extra[i].Start.Before(extra[j].Start) })
 	for _, s := range extra {
 		lanes = append(lanes, BacklogLane{
