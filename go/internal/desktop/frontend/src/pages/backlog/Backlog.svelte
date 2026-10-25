@@ -13,7 +13,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, store, t, toProForma, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -70,6 +70,8 @@
     return { destroy: () => io.disconnect() };
   }
   const lanes = $derived(view?.lanes ?? []);
+  // Lanes follow the rank too while that is the sort; any other sort leaves them in planning order.
+  const laneTickets = (list: BacklogTicket[]): BacklogTicket[] => sortTickets(list, ui.sort === 'rank' ? 'rank' : 'order');
   const laneIds = $derived(lanes.map((l) => l.sprint));
   const current = $derived(activeView(ui.filter));
   const viewName: Record<string, string> = $derived({
@@ -81,6 +83,7 @@
     open: t('Open points'),
   });
   const sortNames = $derived<[Sort, string][]>([
+    ['rank', t('Rank in the tracker')],
     ['order', t('Planning order')],
     ['size-desc', t('Largest first')],
     ['size-asc', t('Smallest first')],
@@ -165,7 +168,7 @@
   }
 
   // Reordering: in the planning order, ungrouped. A tracker's own rank stays; the order is kept beside it.
-  const canReorder = $derived(view?.source !== 'none' && ui.sort === 'order' && ui.group === 'none');
+  const canReorder = $derived(view?.source !== 'none' && (ui.sort === 'order' || ui.sort === 'rank') && ui.group === 'none');
   let overRow = $state('');
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
     if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
@@ -227,7 +230,7 @@
     ctx = null;
     const away = keys.filter((k) => !(view?.tickets ?? []).some((tk) => tk.key === k));
     if (away.length) await sendTo(away, '');
-    const anchor = (view?.tickets ?? []).find((tk) => !keys.includes(tk.key))?.key ?? '';
+    const anchor = sortTickets(view?.tickets ?? [], ui.sort === 'rank' ? 'rank' : 'order').find((tk) => !keys.includes(tk.key))?.key ?? '';
     ui.selection = ui.selection.filter((k) => !keys.includes(k));
     for (const key of keys) if (!(await reorder(key, top ? anchor : ''))) break;
   }
@@ -333,7 +336,7 @@
           role="tab"
           aria-selected={!currentCustom && current === v.id}
           class:active={!currentCustom && current === v.id}
-          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.sort = 'order'; ui.group = 'none'; ui.selection = []; }}
+          onclick={(e) => { e.preventDefault(); ui.filter = applyView(v.id, ui.filter.q); ui.sort = 'rank'; ui.group = 'none'; ui.selection = []; }}
         >{viewName[v.id]}</a>
       {/each}
       {#each ui.custom as v (v.id)}
@@ -369,6 +372,9 @@
         <select class="input sort" aria-label={t('Sort by')} bind:value={ui.sort}>
           {#each sortNames as [value, label] (value)}<option {value}>{label}</option>{/each}
         </select>
+        <span class="small muted gap">{t('Layout')}</span>
+        <button type="button" class="chip filter" class:on={ui.layout === 'side'} aria-pressed={ui.layout === 'side'} onclick={() => setLayout('side')}><Icon name="vertical_split" size={14} />{t('Side by side')}</button>
+        <button type="button" class="chip filter" class:on={ui.layout === 'stacked'} aria-pressed={ui.layout === 'stacked'} onclick={() => setLayout('stacked')}><Icon name="splitscreen" size={14} />{t('Stacked')}</button>
         <span class="small muted gap">{t('Group by')}</span>
         {#each [['none', t('Nothing')], ['project', t('Project')], ...(view.multi ? [['product', t('Product')]] : [])] as [value, label] (value)}
           <button type="button" class="chip filter" class:on={ui.group === value} aria-pressed={ui.group === value} onclick={() => (ui.group = value as Group)}>{label}</button>
@@ -417,8 +423,8 @@
       </div>
     {/if}
 
-    <div class="board">
-      <div class="stack" data-tour="backlog-list">
+    <div class="board" class:stacked={ui.layout === 'stacked'}>
+      <div class="stack list" data-tour="backlog-list">
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="lane"
@@ -443,7 +449,7 @@
               <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
               <span class="small muted">{t('The next fetch takes over the order of the tracker again.')}</span>
             {/if}
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' && ui.sort !== 'rank' ? t('Sorted by your choice. Choose the rank in the tracker or the planning order to see the list as planned.') : ui.sort === 'rank' ? (canReorder ? t('Order: your own order, then the rank in the tracker. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: your own order, then the rank in the tracker. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')) : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -580,7 +586,7 @@
               {#if l.tickets.length === 0}
                 <p class="muted small pad">{t('Nothing earmarked yet. Drag a ticket here or use Earmark for…')}</p>
               {:else}
-                {#each laneOpen[l.sprint] ? l.tickets : l.tickets.slice(0, LANE_PREVIEW) as tk (tk.key)}
+                {#each (laneOpen[l.sprint] ? laneTickets(l.tickets) : laneTickets(l.tickets).slice(0, LANE_PREVIEW)) as tk (tk.key)}
                   {@render row(tk, true, false)}
                 {/each}
                 {#if l.tickets.length > LANE_PREVIEW}
@@ -773,9 +779,28 @@
   .flat {
     margin: 0;
   }
+  /* Side by side, each column scrolls on its own, so a long sprint list does not push the backlog away. */
+  .board:not(.stacked) .stack {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+  }
+  /* Stacked, as in Jira: the sprints first, the backlog below. */
+  .board.stacked {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .board.stacked .lanes {
+    order: -1;
+  }
   @media (max-width: 1100px) {
     .board {
       grid-template-columns: minmax(0, 1fr);
+    }
+    .board:not(.stacked) .stack {
+      position: static;
+      max-height: none;
+      overflow-y: visible;
     }
   }
 </style>

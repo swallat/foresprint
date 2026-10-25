@@ -53,6 +53,7 @@ func (a *API) loadTickets(team string) (*storage.Repository, *storage.TeamData, 
 type backlogContext struct {
 	data     *storage.TeamData
 	order    map[string]int
+	rankPos  map[string]int // place in the order of the tracker's rank, from 1
 	sprints  map[string]model.Sprint
 	proForma map[string]string // lower case name to name
 	byKey    map[string]*model.Ticket
@@ -62,6 +63,7 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 	c := &backlogContext{
 		data:     data,
 		order:    map[string]int{},
+		rankPos:  map[string]int{},
 		sprints:  map[string]model.Sprint{},
 		proForma: map[string]string{},
 		byKey:    map[string]*model.Ticket{},
@@ -69,6 +71,9 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 	ordered, leftover := preplan.OrderTickets(data)
 	for i, tk := range append(append([]model.Ticket{}, ordered...), leftover...) {
 		c.order[tk.Key] = i
+	}
+	for i, tk := range backlogByRank(data) {
+		c.rankPos[tk.Key] = i + 1
 	}
 	for _, s := range data.Sprints {
 		c.sprints[s.ID] = s
@@ -158,6 +163,41 @@ func backlogTrackerName(team model.Team) string {
 	return ""
 }
 
+// backlogByRank returns the open tickets the way the tracker ranks them: the PO's own order
+// (tracker teams, preplan.yaml) first, then the tracker's rank, tickets without rank last. This is
+// the default order of the backlog; priority and project do not count here.
+func backlogByRank(data *storage.TeamData) []model.Ticket {
+	own := map[string]int{}
+	if data.Team.Source() == model.SourceTracker {
+		for i, key := range data.Preplan.Order {
+			own[key] = i + 1
+		}
+	}
+	var open []model.Ticket
+	for _, tk := range data.Tickets {
+		if !tk.Done {
+			open = append(open, tk)
+		}
+	}
+	sort.SliceStable(open, func(i, j int) bool {
+		a, b := open[i], open[j]
+		na, oa := own[a.Key]
+		nb, ob := own[b.Key]
+		switch {
+		case oa != ob:
+			return oa
+		case oa && na != nb:
+			return na < nb
+		case (a.Rank == nil) != (b.Rank == nil):
+			return b.Rank == nil
+		case a.Rank != nil && *a.Rank != *b.Rank:
+			return *a.Rank < *b.Rank
+		}
+		return a.Key < b.Key
+	})
+	return open
+}
+
 func backlogTicketURL(team model.Team, key string) string {
 	if team.Tracker.Kind != "jira" || team.Tracker.BaseURL == nil || *team.Tracker.BaseURL == "" {
 		return ""
@@ -186,6 +226,7 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 		SubtaskCount:   tk.SubtaskCount,
 		Labels:         append([]string{}, tk.Labels...),
 		DependsOn:      append([]string{}, tk.DependsOn...),
+		RankPos:        c.rankPos[tk.Key],
 	}
 	if r.TrackerSprint == "" {
 		r.TrackerSprint = backlogStr(tk.SprintName)
@@ -687,6 +728,52 @@ func backlogSetProForma(data *storage.TeamData, c *backlogContext, tk model.Tick
 	}
 }
 
+// MoveTicketByRank puts a ticket next to another one in the order of the tracker's rank (the
+// default order of the backlog): before the anchor, after it when after is set, "" = to the end.
+// Nothing decides here but the position, so it always works, as in the tracker. For a tracker
+// the order is kept in preplan.yaml beside the tracker's rank and never written back.
+func (a *API) MoveTicketByRank(team, key, anchor string, after bool) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if data.Team.Source() == model.SourceNone {
+			return nil, fmt.Errorf("%s", i18n.T("There are no tickets to order."))
+		}
+		if tk.Done {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is done and has no place in the backlog.", "key", key))
+		}
+		if anchor == key {
+			return func() error { return nil }, nil
+		}
+		var keys []string
+		for _, o := range backlogByRank(data) {
+			if o.Key != key {
+				keys = append(keys, o.Key)
+			}
+		}
+		at := len(keys)
+		if anchor != "" {
+			at = slices.Index(keys, anchor)
+			if at < 0 {
+				return nil, fmt.Errorf("%s", i18n.T("{key} is not in the backlog.", "key", anchor))
+			}
+			if after {
+				at++
+			}
+		}
+		keys = slices.Insert(keys, at, key)
+		if a.writePackages(data) {
+			for n, k := range keys {
+				r := fmt.Sprintf("%08d", (n+1)*10)
+				if t := data.TicketByKey(k); t != nil {
+					t.Rank = &r
+				}
+			}
+			return backlogSavePackages(repo, team, data), nil
+		}
+		data.Preplan.Order = keys
+		return backlogSavePreplan(repo, team, data), nil
+	})
+}
+
 // ResetOrder takes the PO's own order of tracker tickets away: the tracker's rank counts again.
 func (a *API) ResetOrder(team string) error {
 	backlogMu.Lock()
@@ -1073,9 +1160,10 @@ func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 		if anchor == key {
 			return func() error { return nil }, nil
 		}
-		ordered, leftover := preplan.OrderTickets(data)
+		// The stored order is the order of the rank with this one ticket moved, so that a move
+		// in the planning order does not turn the rank order of the others into planning order.
 		var keys []string
-		for _, o := range append(ordered, leftover...) {
+		for _, o := range backlogByRank(data) {
 			if o.Key != key {
 				keys = append(keys, o.Key)
 			}

@@ -43,6 +43,8 @@ export interface PlanTicket {
   prodPct: number;
   prodSource: 'manual' | 'label' | 'rule' | 'none';
   remaining: number | null;
+  /** Place in the order of the tracker's rank, from 1. */
+  rankPos: number;
 }
 
 export interface RunningTicket extends PlanTicket {

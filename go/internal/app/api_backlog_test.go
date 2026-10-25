@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -495,5 +496,53 @@ func TestBacklogShowsEveryComingSprint(t *testing.T) {
 	}
 	if err := api.EarmarkTicket("t", "X-2", other, ""); err != nil {
 		t.Errorf("earmark into a sprint beyond the horizon: %v", err)
+	}
+}
+
+func TestRankPositionAndMoveByRankIgnorePriority(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	data.Team.Tracker.PriorityOrder = []string{"High", "Low"}
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	r1, r2, r3 := "0|a", "0|b", "0|c"
+	low, high := "Low", "High"
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "One", Rank: &r1, Priority: &low, EstimateSource: model.EstimateNone},
+		{Key: "X-2", Title: "Two", Rank: &r2, Priority: &high, EstimateSource: model.EstimateNone},
+		{Key: "X-3", Title: "Three", Rank: &r3, Priority: &high, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	pos := func() string {
+		view, err := api.Backlog("t")
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := map[string]int{}
+		for _, tk := range view.Tickets {
+			m[tk.Key] = tk.RankPos
+		}
+		return fmt.Sprintf("%d%d%d", m["X-1"], m["X-2"], m["X-3"])
+	}
+	if got := pos(); got != "123" {
+		t.Fatalf("rank positions %s: the tracker's rank counts, not the priority", got)
+	}
+	// X-3 is High, X-1 Low: the planning order refuses this move, the rank order does it.
+	if err := api.MoveTicketByRank("t", "X-3", "X-1", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := pos(); got != "231" {
+		t.Errorf("rank positions %s, want X-3 first", got)
+	}
+	if err := api.MoveTicketByRank("t", "X-3", "", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := pos(); got != "123" {
+		t.Errorf("rank positions %s, want X-3 last again", got)
 	}
 }

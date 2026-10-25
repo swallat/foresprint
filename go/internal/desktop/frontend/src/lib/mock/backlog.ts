@@ -84,6 +84,7 @@ function seed(prefix: string): Row[] {
       labels: n === '418' ? ['xrechnung'] : [],
       dependsOn: n === '421' ? [`${prefix}-424`] : [],
       blocked: false,
+      rankPos: 0,
       description:
         n === '421'
           ? 'Customers sign in with a link they get by e-mail. The link works once and for 15 minutes.\n\nThe old password stays as a second option.'
@@ -137,7 +138,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
   const plain = (r: Row): BacklogTicket => {
     const { rank: _rank, description: _d, acceptance: _a, subtasks: _s, comments: _c, dependencies: _dp, components: _co, estimate: _e, remaining: _r, note: _n, editable: _ed, sprints: _sp, statuses: _st, types: _t, priorities: _pr, people: _pe, ...row } = r;
     void [_rank, _d, _a, _s, _c, _dp, _co, _e, _r, _n, _ed, _sp, _st, _t, _pr, _pe];
-    return { ...row, blocked: blocked(r) };
+    return { ...row, blocked: blocked(r), rankPos: [...rows].sort((a, b) => a.rank - b.rank).findIndex((x) => x.key === r.key) + 1 };
   };
   const blocked = (r: Row) =>
     !!r.earmark &&
@@ -302,6 +303,9 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       const i = rows.findIndex((x) => x.key === key);
       if (i >= 0) rows.splice(i, 1);
       rows.forEach((x) => (x.dependsOn = x.dependsOn.filter((k) => k !== key)));
+    },
+    async MoveTicketByRank(team, key, before, after) {
+      await this.MoveWorkPackage(team, key, before, after);
     },
     async MoveWorkPackage(_team, key, before, after) {
       const order = [...rows].sort((a, b) => a.rank - b.rank).filter((x) => x.key !== key);

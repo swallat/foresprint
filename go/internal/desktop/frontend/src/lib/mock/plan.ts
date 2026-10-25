@@ -106,6 +106,7 @@ function ticketOf(x: T): PlanTicket {
     estimate: x.est, size, product: simple() ? '' : x.product, project: x.project, refined: x.refined && x.est != null,
     sprint: resolve(x.sprint), inTracker: x.sprint === '$cur' ? curId() : '',
     prodPct: x.prod, prodSource: x.prodSet ? 'manual' : x.prod > 0 ? 'rule' : 'none', remaining: x.remaining ?? null,
+    rankPos: tickets.findIndex((q) => q.key === x.key) + 1,
   };
 }
 

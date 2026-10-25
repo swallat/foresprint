@@ -55,6 +55,9 @@ type BacklogTicket struct {
 	DependsOn    []string `json:"dependsOn"`
 	// Blocked: a ticket this one depends on is earmarked for a later sprint or not at all.
 	Blocked bool `json:"blocked"`
+	// RankPos is the place of the ticket in the order of the tracker's rank (own order first,
+	// then the tracker's rank), from 1; 0 for a ticket that is done.
+	RankPos int `json:"rankPos"`
 }
 
 // BacklogLane is one coming sprint with what is earmarked for it.

@@ -5,7 +5,7 @@ import type { BacklogTicket, BacklogView, Named } from '../../lib/types.backlog'
 
 export type Refined = 'all' | 'yes' | 'open';
 export type Flag = '' | 'unassigned' | 'earmarked' | 'open';
-export type Sort = 'order' | 'size-desc' | 'size-asc' | 'key' | 'title';
+export type Sort = 'rank' | 'order' | 'size-desc' | 'size-asc' | 'key' | 'title';
 export type Group = 'none' | 'project' | 'product';
 
 export interface Filter {
@@ -139,12 +139,14 @@ export function neighbour(lanes: string[], at: string, step: -1 | 1): string | u
   return lanes[next];
 }
 
-/** Sorts a copy of the list; "order" keeps the planning order. The sort is stable, so equal tickets keep it. */
+/** Sorts a copy of the list; "order" keeps the planning order, "rank" follows the tracker's rank. The sort is stable, so equal tickets keep it. */
 export function sortTickets(items: BacklogTicket[], by: Sort): BacklogTicket[] {
   if (by === 'order') return items;
   const out = [...items];
   const nullsLast = (t: BacklogTicket, dir: 1 | -1): number => t.size ?? (dir === 1 ? Infinity : -Infinity);
   switch (by) {
+    case 'rank':
+      return out.sort((a, b) => a.rankPos - b.rankPos);
     case 'size-desc':
       return out.sort((a, b) => nullsLast(b, -1) - nullsLast(a, -1));
     case 'size-asc':
@@ -160,7 +162,7 @@ export function sortTickets(items: BacklogTicket[], by: Sort): BacklogTicket[] {
 
 const customKey = (team: string): string => `backlog.views.${team}`;
 
-const SORTS: Sort[] = ['order', 'size-desc', 'size-asc', 'key', 'title'];
+const SORTS: Sort[] = ['rank', 'order', 'size-desc', 'size-asc', 'key', 'title'];
 const GROUPS: Group[] = ['none', 'project', 'product'];
 
 /** Reads the custom views of a team from a string store; bad data gives an empty list, and a
@@ -178,7 +180,7 @@ export function readCustom(raw: string): CustomView[] {
           name: v.name,
           filter: { ...base, ...v.filter },
           group: GROUPS.includes(v.group) ? v.group : 'none',
-          sort: SORTS.includes(v.sort) ? v.sort : 'order',
+          sort: SORTS.includes(v.sort) ? v.sort : 'rank',
         };
       });
   } catch {
