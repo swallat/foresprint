@@ -91,14 +91,29 @@ async function resolve(method: string): Promise<Api> {
   return impl;
 }
 
+let callsOpen = 0;
+let lastCallEnd = 0;
+
+/** True while a call of this view runs or ended a moment ago: a change of the data folder in that
+ * time is most likely its own (see liveData.svelte.ts). */
+export function ownCallRecent(graceMs: number): boolean {
+  return callsOpen > 0 || Date.now() - lastCallEnd < graceMs;
+}
+
 /** Calls through to the core; every method is async because Wails calls are. */
 export const api: Api = new Proxy({} as Api, {
   get:
     (_, method: string) =>
     async (...args: unknown[]) => {
-      const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
-      const fn = target[method];
-      if (!fn) throw new Error(`api: unknown method ${method}`);
-      return fn.apply(target, args);
+      callsOpen++;
+      try {
+        const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
+        const fn = target[method];
+        if (!fn) throw new Error(`api: unknown method ${method}`);
+        return await fn.apply(target, args);
+      } finally {
+        callsOpen--;
+        lastCallEnd = Date.now();
+      }
     },
 });
