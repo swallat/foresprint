@@ -2,6 +2,7 @@
   // Title, lead and stage steps of the sprint workspace for Pre-plan and Plan. The steps are
   // links, never gates: every stage opens at any time and says what is missing.
   import type { Snippet } from 'svelte';
+  import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { PlanSprint } from '../types.plan';
@@ -49,11 +50,13 @@
 </script>
 
 <PageHead title={stage === 'preplan' ? t('Pre-plan') : t('Plan')} {lead} {actions} />
-<SprintMeta sprint={{ id: d.sprint, start: d.start, end: d.end }}>
+<SprintMeta>
   {#snippet extra()}
-    <span aria-hidden="true">·</span>
-    <span class="chip">{stageChip}</span>
-    <span>{t('{n} working days', { n: d.days })}</span>
+    {#if d.sprint === app.sprint}
+      <span aria-hidden="true">·</span>
+      <span class="chip">{stageChip}</span>
+      <span>{t('{n} working days', { n: d.days })}</span>
+    {/if}
   {/snippet}
 </SprintMeta>
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
