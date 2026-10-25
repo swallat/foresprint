@@ -38,8 +38,18 @@ installed.
   <img src="docs/assets/screenshots/forecast-light.png" alt="Forecast: velocity, trend and the PLAN range for the coming sprints">
 </picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/backlog-dark.png">
+  <img src="docs/assets/screenshots/backlog-light.png" alt="Backlog in the order of the tracker, with the coming sprints and their forecast beside it">
+</picture>
+
 <details>
 <summary>More screenshots</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/plan-dark.png">
+  <img src="docs/assets/screenshots/plan-light.png" alt="Plan: capacity, Forecast PLAN and the lanes candidates and sprint">
+</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/today-dark.png">
@@ -61,6 +71,11 @@ installed.
   <img src="docs/assets/screenshots/analysis-light.png" alt="When is it done? Monte Carlo analysis">
 </picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/storage-dark.png">
+  <img src="docs/assets/screenshots/storage-light.png" alt="Settings, Storage: data folder, server, token sign-in and branch">
+</picture>
+
 </details>
 
 *The screenshots show the invented demo team "Atlas".*
@@ -78,7 +93,7 @@ powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://raw.githubusercont
 ```
 
 A specific version (the default is the newest release): set it first, for example
-`$env:FORESPRINT_VERSION = "1.0.0-beta.5"; irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex`.
+`$env:FORESPRINT_VERSION = "1.0.0"; irm https://raw.githubusercontent.com/swallat/foresprint/v1/install.ps1 | iex`.
 
 **Linux / macOS:**
 
@@ -111,10 +126,14 @@ points out new versions; it never installs by itself (`foresprint update --auto 
 - **Several products and projects:** distribution per product, projects with milestones and
   contingents, and a traffic light that shows whether a project meets its target.
 - **Ticket pre-planning:** read tickets from Jira (read-only with a personal access token; writing
-  a planned sprint back is optional) or a CSV export, and distribute them over the coming sprints.
+  a planned sprint back is optional) or a CSV export. The Backlog shows them in the order of Jira
+  and distributes them over the coming sprints, which are lanes next to the list.
+- **In the browser too:** show the same program as a page of your browser, on your computer only,
+  for example next to Jira (`foresprint serve` or Settings > Browser).
 - **Analyses:** range, focus factor, buffer, and "When will it be done?" (Monte Carlo).
 - **Git without the terminal:** save and share, fetch others' changes, resolve conflicts, view the
-  history and restore an earlier state from the window.
+  history and restore an earlier state from the window. Sign-in with a token for GitLab, Gitea,
+  Forgejo and GitHub.
 - **Excel round trip:** `foresprint excel` writes a workbook with real formulas,
   `foresprint excel-import` reads the changes back.
 - **Unit-neutral:** the estimation unit, story points (SP) or person days (PD), is a team setting.
@@ -161,7 +180,7 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
 ## Documentation
 
 - [Installation and updates](docs/installation.md)
-- [The window](docs/window.md): pages, saving and sharing with Git, server setup, history
+- [The window](docs/window.md): pages, saving and sharing with Git, server setup, history, browser access
 - [Sprint workflow](docs/sprint-workflow.md): what to do when
 - [Command line and configuration](docs/cli.md): all commands, the data directory, language
 - [Data format](docs/data-format.md): `team.yaml`, `people.yaml`, `products.yaml`, sprint files

@@ -10,6 +10,10 @@ const pages = [
   { name: 'forecast', hash: '/forecast', height: 790 },
   { name: 'analysis', hash: '/forecast?tab=when', click: 'text=Calculate', height: 910 },
   { name: 'projects', hash: '/projects' },
+  { name: 'backlog', hash: '/backlog' },
+  { name: 'plan', hash: '/sprint/plan' },
+  { name: 'storage', hash: '/settings/storage' },
+  { name: 'browser', hash: '/settings/browser', height: 440 },
 ];
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
@@ -21,7 +25,9 @@ const pages = [
       await p.reload();
       await p.waitForTimeout(1500);
       if (pg.click) { await p.click(pg.click); await p.waitForTimeout(1500); }
-      await p.screenshot({ path: `${out}/${pg.name}-${scheme}.png`, clip: { x: 0, y: 0, width: 1440, height: pg.height || 940 } });
+      const path = `${out}/${pg.name}-${scheme}.png`;
+      if (pg.full) await p.screenshot({ path, fullPage: true });
+      else await p.screenshot({ path, clip: { x: 0, y: 0, width: 1440, height: pg.height || 940 } });
     }
     await ctx.close();
   }
