@@ -1160,9 +1160,10 @@ func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 		if anchor == key {
 			return func() error { return nil }, nil
 		}
-		ordered, leftover := preplan.OrderTickets(data)
+		// The stored order is the order of the rank with this one ticket moved, so that a move
+		// in the planning order does not turn the rank order of the others into planning order.
 		var keys []string
-		for _, o := range append(ordered, leftover...) {
+		for _, o := range backlogByRank(data) {
 			if o.Key != key {
 				keys = append(keys, o.Key)
 			}

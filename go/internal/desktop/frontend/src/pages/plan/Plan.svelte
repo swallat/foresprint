@@ -72,7 +72,7 @@
   const frozen = $derived(!!d?.frozen);
   /** The order of both lanes: the tracker's rank (default) or the planning order (priority, project, rank). */
   let laneSort = $state<'rank' | 'order'>('rank');
-  const byRank = (list: PlanTicket[]): PlanTicket[] => (laneSort === 'rank' ? [...list].sort((a, b) => a.rankPos - b.rankPos) : list);
+  const byRank = (list: PlanTicket[]): PlanTicket[] => (laneSort === 'rank' ? [...list].sort((a, b) => (a.rankPos || Infinity) - (b.rankPos || Infinity)) : list);
   const lane = $derived<PlanTicket[]>(byRank(d?.tickets ?? []));
   const allCandidates = $derived<PlanTicket[]>(d?.candidates ?? []);
   /** Filters of the candidate lane (view only, nothing is saved): the running sprint is hidden by default. */

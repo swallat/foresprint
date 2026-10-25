@@ -449,7 +449,7 @@
               <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
               <span class="small muted">{t('The next fetch takes over the order of the tracker again.')}</span>
             {/if}
-            <span class="small muted">{ui.sort !== 'order' && ui.sort !== 'rank' ? t('Sorted by your choice. Choose the rank in the tracker or the planning order to see the list as planned.') : ui.sort === 'rank' ? (canReorder ? t('Order: the rank in the tracker, then your own order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: the rank in the tracker, then your own order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')) : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' && ui.sort !== 'rank' ? t('Sorted by your choice. Choose the rank in the tracker or the planning order to see the list as planned.') : ui.sort === 'rank' ? (canReorder ? t('Order: your own order, then the rank in the tracker. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: your own order, then the rank in the tracker. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')) : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -796,6 +796,11 @@
   @media (max-width: 1100px) {
     .board {
       grid-template-columns: minmax(0, 1fr);
+    }
+    .board:not(.stacked) .stack {
+      position: static;
+      max-height: none;
+      overflow-y: visible;
     }
   }
 </style>
