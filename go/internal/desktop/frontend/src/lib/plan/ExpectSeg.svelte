@@ -8,13 +8,15 @@
     ticket: string;
     carry: boolean;
     disabled?: boolean;
+    // In the Review the outcome is known: "is done" instead of "will finish".
+    review?: boolean;
     onchange: (carry: boolean) => void;
   }
-  let { ticket, carry, disabled = false, onchange }: Props = $props();
+  let { ticket, carry, disabled = false, review = false, onchange }: Props = $props();
 </script>
 
-<div class="seg" role="group" aria-label={t('Expectation for {key}', { key: ticket })}>
-  <button type="button" class="seg-b" class:on={!carry} aria-pressed={!carry} {disabled} onclick={() => onchange(false)}><Icon name="check" size={14} />{t('will finish')}</button>
+<div class="seg" role="group" aria-label={review ? t('Result for {key}', { key: ticket }) : t('Expectation for {key}', { key: ticket })}>
+  <button type="button" class="seg-b" class:on={!carry} aria-pressed={!carry} {disabled} onclick={() => onchange(false)}><Icon name="check" size={14} />{review ? t('is done') : t('will finish')}</button>
   <button type="button" class="seg-b warn" class:on={carry} aria-pressed={carry} {disabled} onclick={() => onchange(true)}><Icon name="redo" size={14} />{t('carry-over')}</button>
 </div>
 
