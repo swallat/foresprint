@@ -91,3 +91,18 @@ func TestApplyReportsAMissingAndAnImpossibleLastDay(t *testing.T) {
 		t.Fatalf("problems = %v", problems)
 	}
 }
+
+func TestTableWorkingDaysWithoutHolidays(t *testing.T) {
+	_, data := demoCopy(t)
+	data.Team.Capacity.Country = "DE"
+	data.Team.Capacity.Region = nil
+	day := func(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }
+	// 23.12.2026 to 05.01.2027: ten weekdays, of which 25.12. and 01.01. are holidays
+	christmas := model.Sprint{ID: "x", Start: day(2026, 12, 23), End: day(2027, 1, 6)}
+	// 28.09.2026 to 11.10.2026: ten weekdays, the holiday 03.10. is a Saturday
+	weekend := model.Sprint{ID: "y", Start: day(2026, 9, 28), End: day(2026, 10, 12)}
+	rows := Table(data, []model.Sprint{christmas, weekend}, day(2026, 1, 1))
+	if rows[0].WorkingDays != 8 || rows[1].WorkingDays != 10 {
+		t.Errorf("working days = %d and %d, want 8 and 10", rows[0].WorkingDays, rows[1].WorkingDays)
+	}
+}

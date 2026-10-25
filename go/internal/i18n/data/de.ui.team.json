@@ -61,7 +61,7 @@
   "Use pattern for the next sprints": "Muster für die nächsten Sprints übernehmen",
   "Without a number in the pattern the names are not unique.": "Ohne Nummer im Muster sind die Namen nicht eindeutig.",
   "Working days": "Arbeitstage",
-  "Working days = calendar days minus weekends. Holidays are deducted in the capacity, not here.": "Arbeitstage = Kalendertage minus Wochenenden. Feiertage werden erst in der Kapazität abgezogen, nicht hier.",
+  "Working days = calendar days minus weekends and holidays on a workday. Holidays are listed under free days.": "Arbeitstage = Kalendertage minus Wochenenden und Feiertage an Arbeitstagen. Die Feiertage stehen unter Freie Tage.",
   "Working days of {id}": "Arbeitstage von {id}",
   "Works in the team": "Arbeitet im Team",
   "Year, 2 digits": "Jahr, 2-stellig",
