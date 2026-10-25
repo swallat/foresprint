@@ -7,8 +7,10 @@ package sprintwrite
 
 import (
 	"errors"
+	"math"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/sources"
@@ -34,29 +36,54 @@ type Directory struct {
 // NewDirectory builds the directory from the sprints met while reading the tickets.
 func NewDirectory(known []sources.SprintValue, tracker model.TrackerSettings) Directory {
 	d := Directory{sprintNames: tracker.SprintNames}
-	for _, s := range known {
-		d.sprints = append(d.sprints, Ref{ID: s.ID, Name: s.Name, State: s.State})
-	}
+	d.Add(known)
 	return d
 }
 
+// SprintNumber reads the numeric tracker id of a sprint. It accepts what a tracker may hand out
+// for the same number: "12", " 12 " and "12.0".
+func SprintNumber(id string) (int, bool) {
+	id = strings.TrimSpace(id)
+	if n, err := strconv.Atoi(id); err == nil && n > 0 {
+		return n, true
+	}
+	if f, err := strconv.ParseFloat(id, 64); err == nil && f == math.Trunc(f) && f >= 1 && f < 1<<31 {
+		return int(f), true
+	}
+	return 0, false
+}
+
 // Add makes further tracker sprints known, for example the sprints of a board that hold no ticket
-// yet (JiraSource.ListBoardSprints). A sprint already known is kept as it is.
+// yet (JiraSource.ListBoardSprints). A sprint already known is kept as it is, except that a
+// missing or non-numeric id is replaced by the numeric id of a sprint of the same name.
 func (d *Directory) Add(known []sources.SprintValue) {
 	for _, s := range known {
-		if _, ok := d.byID(s.ID); !ok {
+		_, numeric := SprintNumber(s.ID)
+		sameID, fill := -1, -1
+		for i, r := range d.sprints {
+			switch {
+			case s.ID != "" && r.ID == s.ID:
+				sameID = i
+			case numeric && r.Name == s.Name && fill < 0:
+				if _, have := SprintNumber(r.ID); !have {
+					fill = i
+				}
+			}
+		}
+		switch {
+		case sameID >= 0:
+			if d.sprints[sameID].State == "" {
+				d.sprints[sameID].State = s.State
+			}
+		case fill >= 0:
+			d.sprints[fill].ID = s.ID
+			if d.sprints[fill].State == "" {
+				d.sprints[fill].State = s.State
+			}
+		default:
 			d.sprints = append(d.sprints, Ref{ID: s.ID, Name: s.Name, State: s.State})
 		}
 	}
-}
-
-func (d Directory) byID(id string) (Ref, bool) {
-	for _, r := range d.sprints {
-		if r.ID == id {
-			return r, true
-		}
-	}
-	return Ref{}, false
 }
 
 // ByName finds a tracker sprint by its name.
@@ -273,8 +300,8 @@ func Apply(plan Plan, mover Mover) Result {
 			var err error
 			if g.to == nil {
 				err = mover.MoveToBacklog(keys)
-			} else if id, convErr := strconv.Atoi(g.to.ID); convErr != nil {
-				err = errors.New(sources.T("Sprint “{name}” has no usable id", "name", g.to.Name))
+			} else if id, ok := SprintNumber(g.to.ID); !ok {
+				err = errors.New(sources.T("Sprint “{name}” has no usable number (read: “{id}”)", "name", g.to.Name, "id", g.to.ID))
 			} else {
 				err = mover.MoveToSprint(id, keys)
 			}

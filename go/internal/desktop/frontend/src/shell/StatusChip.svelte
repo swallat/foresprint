@@ -47,7 +47,7 @@
   const l = $derived(look(app.status.storage, app.status.incoming));
 </script>
 
-<a class="chip-status {l.tone}" href={link(l.to)} title={t('Storage status')} data-tour="topbar-status">
+<a class="chip-status {l.tone}" href={link(l.to)} title={t('Storage status')} aria-label={`${t('Storage status')}: ${app.status.detail || l.text}`} data-tour="topbar-status">
   <Icon name={l.icon} />
-  <span class="hide-narrow">{app.status.detail || l.text}</span>
+  <span class="hide-narrow hide-compact">{app.status.detail || l.text}</span>
 </a>
