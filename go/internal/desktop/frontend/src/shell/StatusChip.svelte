@@ -49,5 +49,5 @@
 
 <a class="chip-status {l.tone}" href={link(l.to)} title={t('Storage status')} data-tour="topbar-status">
   <Icon name={l.icon} />
-  <span class="hide-narrow">{app.status.detail || l.text}</span>
+  <span class="hide-narrow hide-compact">{app.status.detail || l.text}</span>
 </a>
