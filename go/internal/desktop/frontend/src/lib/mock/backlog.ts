@@ -185,6 +185,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
         production: true,
         cycles: [],
         ownOrder: kind === 'tracker' && ordered,
+        unmatchedSprints: [],
         adjust: [...placed].filter(([key, to]) => to !== (tracked.get(key) ?? '')).map(([key, to]) => ({ key, title: find(key).title, url: '', from: tracked.get(key) ?? '', to })),
       };
       return clone(view);
@@ -317,6 +318,9 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       order.splice(at, 0, moving);
       order.forEach((x, i) => (x.rank = (i + 1) * 10));
       ordered = true;
+    },
+    async RefreshBoardSprints() {
+      return 0;
     },
     async ResetOrder() {
       ordered = false;

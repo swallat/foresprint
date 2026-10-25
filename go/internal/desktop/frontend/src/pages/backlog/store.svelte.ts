@@ -69,6 +69,19 @@ export const present = $state({ keys: [] as string[], key: '', from: '', action:
 
 let loadId = 0;
 
+// The Jira board is read once per team and run of the window, in the background; a changed list
+// of sprints shows on a reload. A failure (no token, offline) leaves the backlog as it is.
+const boardRead = new Set<string>();
+async function readBoard(team: string, tracker: boolean): Promise<void> {
+  if (!tracker || boardRead.has(team)) return;
+  boardRead.add(team);
+  try {
+    if ((await api.RefreshBoardSprints(team)) > 0 && team === app.team) await loadBacklog();
+  } catch {
+    /* the backlog works without the board */
+  }
+}
+
 /** (Re)loads the backlog of the selected team. A stale answer of an earlier call is dropped. */
 export async function loadBacklog(): Promise<void> {
   const id = ++loadId;
@@ -84,6 +97,7 @@ export async function loadBacklog(): Promise<void> {
     store.view = view;
     store.team = team;
     store.error = '';
+    void readBoard(team, view.tracker !== '');
   } catch (e) {
     if (id === loadId) store.error = String(e);
   } finally {
