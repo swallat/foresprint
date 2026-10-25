@@ -62,7 +62,7 @@
       ${FS.capBar(used, s.forecast, s.low, s.high)}
       <div class="row small"><span class="data"><strong>${used}</strong> Punkte vorgemerkt, Forecast ${s.forecast} (Spanne ${s.low} bis ${s.high})</span>${calcBtn(`data-calc="${id}"`)}</div>
       <div class="row only-multiprod">${prods}</div>
-      ${over ? `<div class="banner bad" style="margin:0"><span>${FS.icon("warning")}</span><div class="grow">Über der Obergrenze: ${used} Punkte, Spanne endet bei ${s.high}. Das ist eine Warnung, kein Stopp.</div></div>` : ""}
+      ${over ? `<div class="banner bad" style="margin:0"><span>${FS.icon("warning")}</span><div class="grow">Über der Obergrenze: ${used} Punkte, Spanne endet bei ${s.high}.</div></div>` : ""}
       ${noEst || open ? `<div class="row small muted">${FS.icon("help", "small")}${open} nicht refined, ${noEst} ohne Schätzung (zählen 0)</div>` : ""}
     </div><div class="lane-body">${ts.length ? ts.map((t) => row(t, { noProject: true })).join("") : `<p class="muted small bl-empty">Noch nichts vorgemerkt. Ticket hierher ziehen oder Vormerken für... wählen.</p>`}</div></div>`;
   }
@@ -241,7 +241,7 @@
       const sprint22Abs = Object.keys(D.absences["2026.22"] || {}).length;
       const inc = D.storage.incoming;
       const finding = (chip, text, btn, cls = "") => `<li class="row ${cls}" style="padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start"><span>${chip}</span><span style="flex:1;min-width:200px">${text}</span>${btn}</li>`;
-      return `<div class="page-head"><div><h1>Heute, ${FS.fmtDate(D.today)}</h1><p class="lead">Was als Nächstes ansteht, was andere geändert haben und was auffällt. Jeder Punkt führt in die passende Ansicht. Nichts davon ist Pflicht und nichts sperrt eine Seite.</p></div></div>
+      return `<div class="page-head"><div><h1>Heute, ${FS.fmtDate(D.today)}</h1><p class="lead">Was als Nächstes ansteht, was andere geändert haben und was auffällt. Jeder Punkt führt in die passende Ansicht.</p></div></div>
       <div class="grid cols-2" style="margin-bottom:16px">
         <section class="card stack" aria-labelledby="td-h21"><div class="row"><h2 id="td-h21" style="margin:0">Sprint <span class="data">2026.21</span></h2><span class="chip fc">läuft</span><span class="muted small data">${FS.fmtDate(cur.start)} bis ${FS.fmtDate(cur.end)}</span></div>
           ${FS.trk() === "none" ? `<div class="row small"><span>Zusage <span class="data">${cur.plan}</span> Punkte. Ohne Tickets steht das Ergebnis erst im Review fest.</span></div>` : `${FS.capBar(done, cur.plan, null, null, cur.plan * 1.15)}
@@ -301,7 +301,7 @@
     id: "F2", title: "Backlog pflegen",
     summary: "Abruf prüfen, filtern, Tickets ordnen und vormerken, Ticket-Panel pflegen, Regelhinweise klären.",
     steps: [
-      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter, nichts ist gesperrt.", before() { setView("alle"); B.stale = true; FS.setTrk("jira"); B.group = "none"; } },
+      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter.", before() { setView("alle"); B.stale = true; FS.setTrk("jira"); B.group = "none"; } },
       { view: "backlog", hl: "#bl-chips", text: "Frischer Abruf: Wähle eine gespeicherte Ansicht (zum Beispiel Refinement) oder klicke Filter an. Die Liste reagiert sofort, auch mit der Suche.", before() { B.stale = false; setView("alle"); } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type", text: "Ordnen: Ticket am Griff nach oben oder unten ziehen oder Alt+Pfeil nutzen. In einen Sprint rechts ziehen merkt es vor, ein Toast bietet Rückgängig. Ohne Maus: mehrere ankreuzen und \"Vormerken für...\".", before() { setView("alle"); B.sel = []; } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type .title", text: "Ein Klick auf den Titel öffnet das Ticket-Panel. Schlüssel und Pfeil öffnen " + D.team.tracker + "." },
