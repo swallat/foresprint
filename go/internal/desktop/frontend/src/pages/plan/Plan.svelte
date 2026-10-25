@@ -87,8 +87,15 @@
     ),
   );
   const hidden = $derived(allCandidates.length - candidates.length);
-  const productNames = $derived([...new Set(allCandidates.map((x) => x.product).filter(Boolean))].sort());
-  const projectNames = $derived([...new Set(allCandidates.map((x) => x.project).filter(Boolean))].sort());
+  const productIds = $derived([...new Set(allCandidates.map((x) => x.product).filter(Boolean))]);
+  const projectIds = $derived([...new Set(allCandidates.map((x) => x.project).filter(Boolean))]);
+  const productName = (id: string) => d?.products.find((p) => p.id === id)?.name || id;
+  const projectName = (id: string) => d?.projects.find((p) => p.id === id)?.name || id;
+  // A filter value the new team or sprint does not have must not keep hiding everything.
+  $effect(() => {
+    if (fProduct && !productIds.includes(fProduct)) fProduct = '';
+    if (fProject && !projectIds.includes(fProject)) fProject = '';
+  });
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -344,16 +351,16 @@
               <label class="small"><input type="checkbox" bind:checked={showRunning} /> {t('Running sprint too')}</label>
             {/if}
             <label class="small"><input type="checkbox" bind:checked={onlyRefined} /> {t('Refined only')}</label>
-            {#if productNames.length}
+            {#if productIds.length}
               <select class="input small" aria-label={t('Product')} bind:value={fProduct}>
                 <option value="">{t('All products')}</option>
-                {#each productNames as n (n)}<option value={n}>{n}</option>{/each}
+                {#each productIds as id (id)}<option value={id}>{productName(id)}</option>{/each}
               </select>
             {/if}
-            {#if projectNames.length}
+            {#if projectIds.length}
               <select class="input small" aria-label={t('Project')} bind:value={fProject}>
                 <option value="">{t('All projects')}</option>
-                {#each projectNames as n (n)}<option value={n}>{n}</option>{/each}
+                {#each projectIds as id (id)}<option value={id}>{projectName(id)}</option>{/each}
               </select>
             {/if}
           </div>
@@ -365,7 +372,7 @@
           {#each candidates as x (x.key)}
             {@render laneRow(x, 'candidates')}
           {:else}
-            <div class="small muted pad">{t('No candidates left.')}</div>
+            <div class="small muted pad">{hidden > 0 ? t('All candidates are hidden by the filters.') : t('No candidates left.')}</div>
           {/each}
         </div>
       </div>
