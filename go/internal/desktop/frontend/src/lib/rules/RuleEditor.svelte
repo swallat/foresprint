@@ -115,6 +115,7 @@
       <button class="link data" type="button" onclick={() => insert(f)}>{f}</button>{' '}
     {/each}
     · {t('Operators')} <span class="data">= != ~ !~ IN NOT IN AND OR NOT ( )</span>
+    · {t('~ finds parts of a text, e.g. title ~ "login"; upper and lower case are ignored.')}
   </div>
 
   <span class="sr-only" aria-live="polite">{status}</span>

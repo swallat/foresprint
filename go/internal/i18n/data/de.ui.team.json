@@ -35,6 +35,7 @@
   "One ticket matches ({points} points).": "Ein Ticket passt ({points} Punkte).",
   "Only ended products": "Nur beendete Produkte",
   "Operators": "Operatoren",
+  "~ finds parts of a text, e.g. title ~ \"login\"; upper and lower case are ignored.": "~ findet Teiltexte, z. B. title ~ \"login\"; Groß- und Kleinschreibung wird ignoriert.",
   "Pattern": "Muster",
   "Pattern in use": "Muster in Gebrauch",
   "Preview": "Vorschau",

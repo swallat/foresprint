@@ -2,7 +2,7 @@
 
 import type { AbsencePeriod, CalendarResult, CalendarRow, CalendarView, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsDefault, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
 
-const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
+const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'title', 'in_sprint'];
 
 interface DemoTicket {
   key: string;

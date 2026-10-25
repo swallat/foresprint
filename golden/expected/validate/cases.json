@@ -5629,7 +5629,7 @@
     {
      "level": "Error",
      "where": "projects.yaml: shop",
-     "message": "match: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, team)"
+     "message": "match: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, team)"
     },
     {
      "level": "Notice",
@@ -5734,7 +5734,7 @@
     {
      "level": "Error",
      "where": "products.yaml: web",
-     "message": "match: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, team)"
+     "message": "match: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, team)"
     },
     {
      "level": "Notice",
@@ -6353,7 +6353,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.project_match_order: only sources from epic, component, label, status, issue_type, priority, in_sprint, team, each at most once"
+     "message": "tracker.project_match_order: only sources from epic, component, label, status, issue_type, priority, title, in_sprint, team, each at most once"
     },
     {
      "level": "Notice",
@@ -6375,7 +6375,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.project_match_order: only sources from epic, component, label, status, issue_type, priority, in_sprint, team, each at most once"
+     "message": "tracker.project_match_order: only sources from epic, component, label, status, issue_type, priority, title, in_sprint, team, each at most once"
     },
     {
      "level": "Notice",
@@ -6397,7 +6397,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.rule_fields: 'Bad Name' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
+     "message": "tracker.rule_fields: 'Bad Name' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, title, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
     },
     {
      "level": "Notice",
@@ -6407,7 +6407,7 @@
     {
      "level": "Error",
      "where": "projects.yaml: migr",
-     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, in_sprint, Bad Name)"
+     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, Bad Name)"
     }
    ]
   },
@@ -6424,7 +6424,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.rule_fields: 'epic' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
+     "message": "tracker.rule_fields: 'epic' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, title, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
     },
     {
      "level": "Notice",
@@ -6434,7 +6434,7 @@
     {
      "level": "Error",
      "where": "projects.yaml: migr",
-     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, in_sprint)"
+     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)"
     }
    ]
   },
@@ -6451,7 +6451,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.rule_fields: 'and' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
+     "message": "tracker.rule_fields: 'and' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, title, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
     },
     {
      "level": "Notice",
@@ -6461,7 +6461,7 @@
     {
      "level": "Error",
      "where": "projects.yaml: migr",
-     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, in_sprint, and)"
+     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, and)"
     }
    ]
   },
@@ -6478,7 +6478,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.rule_fields: 'x_contains' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
+     "message": "tracker.rule_fields: 'x_contains' is not allowed (lower-case words with digits and underscores, not one of epic, component, label, status, issue_type, priority, title, in_sprint, not a keyword (and, or, not, in, any, all, none), not ending in _contains)"
     },
     {
      "level": "Notice",
@@ -6488,7 +6488,7 @@
     {
      "level": "Error",
      "where": "projects.yaml: migr",
-     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, in_sprint, x_contains)"
+     "message": "match: unknown source 'team' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, x_contains)"
     }
    ]
   },
@@ -6527,7 +6527,7 @@
     {
      "level": "Error",
      "where": "team.yaml",
-     "message": "tracker.refined_also_if: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, team)"
+     "message": "tracker.refined_also_if: unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, team)"
     },
     {
      "level": "Notice",
@@ -9625,6 +9625,7 @@
    "status",
    "issue_type",
    "priority",
+   "title",
    "in_sprint",
    "customer"
   ],
@@ -9657,10 +9658,10 @@
      "contains": false
     },
     "problems": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint)"
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)"
     ],
     "with_configured": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, customer)"
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, customer)"
     ]
    },
    {
@@ -9691,11 +9692,11 @@
      "contains": false
     },
     "problems": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)",
      "'colour' without values (empty list)"
     ],
     "with_configured": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, customer)",
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, customer)",
      "'colour' without values (empty list)"
     ]
    },
@@ -9929,12 +9930,12 @@
      "contains": false
     },
     "problems": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)",
      "'any' without conditions",
      "'epic' without values (empty list)"
     ],
     "with_configured": [
-     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, in_sprint, customer)",
+     "unknown source 'colour' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint, customer)",
      "'any' without conditions",
      "'epic' without values (empty list)"
     ]
@@ -9985,7 +9986,7 @@
      "contains": false
     },
     "problems": [
-     "unknown source 'customer' (allowed: epic, component, label, status, issue_type, priority, in_sprint)"
+     "unknown source 'customer' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)"
     ],
     "with_configured": []
    }

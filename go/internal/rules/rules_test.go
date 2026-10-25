@@ -144,7 +144,7 @@ func TestPythonLowerAndFormat(t *testing.T) {
 	}
 	_, err := rules.ParseRule("{allowed} = x", rules.Sources)
 	var se *rules.SyntaxError
-	if !errors.As(err, &se) || se.Message != "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, in_sprint)" {
+	if !errors.As(err, &se) || se.Message != "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, title, in_sprint)" {
 		t.Errorf("placeholder text expanded: %v", err)
 	}
 	if rules.NewLeaf("label", "İ").Matches(rules.Facts{"label": {"i"}}) {
@@ -154,5 +154,23 @@ func TestPythonLowerAndFormat(t *testing.T) {
 	c.Contains = true
 	if c.Matches(rules.Facts{"label": {"i"}}) {
 		t.Error("İ lower-cases to two code points in Python")
+	}
+}
+
+func TestTitleAndCaseInsensitive(t *testing.T) {
+	facts := rules.Facts{"title": {"Fix Login timeout"}, "label": {"appp"}}
+	cases := map[string]bool{
+		`title ~ "login"`:              true,
+		`title !~ "login"`:             false,
+		`title = "fix login timeout"`:  true,
+		`title != "Fix Login timeout"`: false,
+		`label = AppP`:                 true,
+		`label IN (x, APPP)`:           true,
+		`label != AppP`:                false,
+	}
+	for expr, want := range cases {
+		if got := rules.MustParse(expr).Matches(facts); got != want {
+			t.Errorf("%s: got %v, want %v", expr, got, want)
+		}
 	}
 }

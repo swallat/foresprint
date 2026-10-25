@@ -309,6 +309,7 @@ func (t Ticket) Facts() Facts {
 	facts["status"] = one(t.Status)
 	facts["issue_type"] = one(t.IssueType)
 	facts["priority"] = one(t.Priority)
+	facts["title"] = one(&t.Title)
 	facts["in_sprint"] = inSprint
 	return facts
 }
