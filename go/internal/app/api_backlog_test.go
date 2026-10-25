@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
@@ -614,5 +615,39 @@ func TestBoardSprintsSurviveARestartAndSkipForeignOnes(t *testing.T) {
 	}
 	if got := api.trackerBoardSprints("t", 8); len(got) != 0 {
 		t.Errorf("a changed board number must not use the list of this run either: %+v", got)
+	}
+}
+
+func TestBacklogHasNoGapsBeforeTheLastUsedSprint(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	ids := forecast.KnownSprintIDs(data, forecast.DefaultLookupAhead)
+	far := ids[len(ids)-10] // well beyond the forecast horizon, whatever today is
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "Far ahead", InSprint: &far, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	view, err := api.Backlog("t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var last time.Time
+	for _, l := range view.Lanes {
+		start, _ := time.Parse("2006-01-02", l.Start)
+		end, _ := time.Parse("2006-01-02", l.End)
+		if !last.IsZero() && start.Sub(last) > 4*24*time.Hour {
+			t.Errorf("gap before lane %s: the previous one ended %s, this one starts %s", l.Sprint, last.Format("2006-01-02"), l.Start)
+		}
+		last = end
+	}
+	if got := view.Lanes[len(view.Lanes)-1].Sprint; got != far {
+		t.Errorf("the last lane is %s, want %s", got, far)
 	}
 }
