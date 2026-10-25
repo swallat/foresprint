@@ -11,7 +11,7 @@
   "A ticket it depends on is not planned early enough": "Ein Ticket, von dem es abhängt, ist nicht früh genug eingeplant",
   "A ticket it depends on is not planned early enough. Earmark that one first or in the same sprint.": "Ein Ticket, von dem es abhängt, ist nicht früh genug eingeplant. Merke jenes zuerst oder im selben Sprint vor.",
   "A value set by hand always wins.": "Ein von Hand gesetzter Wert geht immer vor.",
-  "Above the Forecast PLAN: {used} of {plan}. This is a warning, not a stop.": "Über dem Forecast PLAN: {used} von {plan}. Das ist eine Warnung, kein Stopp.",
+  "Above the Forecast PLAN: {used} of {plan}.": "Über dem Forecast PLAN: {used} von {plan}.",
   "Absences announced": "Abwesenheiten angekündigt",
   "Absences are not confirmed yet, the forecast can still change.": "Die Abwesenheiten sind noch nicht bestätigt, der Forecast kann sich ändern.",
   "Absences confirmed": "Abwesenheiten bestätigt",
