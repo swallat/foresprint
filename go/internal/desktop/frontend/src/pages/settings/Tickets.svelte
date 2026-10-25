@@ -415,6 +415,17 @@
           </Switch>
         </div>
 
+        {#if draft.kind === 'jira'}
+          <div class="card">
+            <h2>{t('Jira board')}</h2>
+            <div class="field" style="max-width:240px">
+              <label for="t-board">{t('Board number')}</label>
+              <input id="t-board" class="input data" type="number" min="1" step="1" bind:value={draft.boardId} />
+              <p class="small muted">{t('The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.')}</p>
+            </div>
+          </div>
+        {/if}
+
         <div class="card" data-tour="settings-writeback">
           <div class="row head">
             <h2>{t('Write to {tracker}', { tracker })}</h2>
@@ -434,11 +445,6 @@
                 <option value="pro_forma">{t('in a pro-forma sprint')}</option>
                 <option value="next">{t('in the next sprint')}</option>
               </select>
-            </div>
-            <div class="field" style="max-width:240px" class:off={!draft.writeSprint}>
-              <label for="t-board">{t('Board number')}</label>
-              <input id="t-board" class="input data" type="number" min="1" step="1" disabled={!draft.writeSprint} bind:value={draft.boardId} />
-              <p class="small muted">{t('The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.')}</p>
             </div>
             <Switch bind:checked={draft.writeLabels} title={t('Propose the label planned_for_<sprint> when freezing')}>
               {t('The only other write action: after freezing the plan, as before.')}
