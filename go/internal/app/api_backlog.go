@@ -508,13 +508,15 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.Sprint
 			ids = append(ids, id)
 		}
 	}
-	// Sprints of the board, also those without a ticket: through the same name matching as the import.
+	// Sprints of the board, also those without a ticket. A board is often shared with other teams:
+	// only a name that is a known id, is mapped in the settings or holds one yearly id counts, never
+	// the looser guesses of the import (a bare number after "Sprint").
 	unmatched := []string{}
 	for _, s := range board {
 		if strings.EqualFold(s.State, "closed") {
 			continue
 		}
-		id := ticketimport.ResolveSprint(s.Name, data.Team.Tracker, knownSprints{data})
+		id := ticketimport.ResolveSprintExact(s.Name, data.Team.Tracker, knownSprints{data})
 		switch {
 		case id == nil:
 			unmatched = append(unmatched, s.Name)
