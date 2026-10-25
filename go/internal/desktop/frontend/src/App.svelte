@@ -82,7 +82,7 @@
       <Topbar />
       <Rail />
       <main class="main" id="main" tabindex="-1">
-        <div class="page">
+        <div class="page" class:wide={found?.def.wide}>
           {#if app.demo}
             <div class="demo-banner">
               <Banner tone="info">
