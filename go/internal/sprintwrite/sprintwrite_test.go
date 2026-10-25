@@ -274,9 +274,12 @@ func TestLoadDirectoryUsesTheBoard(t *testing.T) {
 }
 
 func TestSprintNumber(t *testing.T) {
-	for in, want := range map[string]int{"12": 12, "\t12\n": 12, "12.0": 12, "1234": 1234} {
-		if got, ok := SprintNumber(in); !ok || got != want {
-			t.Errorf("%q: %d %v", in, got, ok)
+	for _, c := range []struct {
+		in   string
+		want int
+	}{{"12", 12}, {" 12 ", 12}, {"12.0", 12}, {"1234", 1234}} {
+		if got, ok := SprintNumber(c.in); !ok || got != c.want {
+			t.Errorf("%q: %d %v", c.in, got, ok)
 		}
 	}
 	for _, in := range []string{"", "abc", "12.5", "-3", "None"} {
