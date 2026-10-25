@@ -109,6 +109,33 @@ func TestSavePeopleRefusesToRemoveSomeoneWithHistory(t *testing.T) {
 	}
 }
 
+func TestSavePeopleRemovesNewPersonDespiteOpenSprints(t *testing.T) {
+	api, team := demoCopy(t)
+	view, _ := api.People(team)
+	today := api.day().Format(isoDay)
+	added := append(append([]PersonDTO{}, view.People...), PersonDTO{Name: "Neue Person", Kind: "member", Memberships: []MembershipDTO{{From: today, FTE: 1}}})
+	view, err := api.SavePeople(team, added)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rest []PersonDTO
+	for _, p := range view.People {
+		if p.Name == "Neue Person" {
+			if p.Used {
+				t.Fatal("a person added today must not count as used")
+			}
+			continue
+		}
+		rest = append(rest, p)
+	}
+	if len(rest) != len(view.People)-1 {
+		t.Fatal("new person not found")
+	}
+	if _, err := api.SavePeople(team, rest); err != nil {
+		t.Fatalf("a mistaken person must be removable: %v", err)
+	}
+}
+
 func TestAbsencePeriods(t *testing.T) {
 	api, team := demoCopy(t)
 	view, _ := api.People(team)
@@ -222,5 +249,72 @@ func TestNewMemberJoinsAtTheStartOfTheFirstSprint(t *testing.T) {
 	later := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
 	if got := at(2026, 11, 10).peopleNewMemberDay(data); !got.Equal(later) {
 		t.Errorf("after the first sprint: %v, want today", got)
+	}
+}
+
+func TestSavePeopleRemovalCleansOpenSprintsAndKeepsPlannedOnes(t *testing.T) {
+	api, team := demoCopy(t)
+	repo := storage.NewRepository(api.DataDir())
+	view, _ := api.People(team)
+	today := api.day().Format(isoDay)
+	added := append(append([]PersonDTO{}, view.People...), PersonDTO{Name: "Neue Person", Kind: "member", Memberships: []MembershipDTO{{From: today, FTE: 1}}})
+	view, err := api.SavePeople(team, added)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var id string
+	var rest []PersonDTO
+	for _, p := range view.People {
+		if p.Name == "Neue Person" {
+			id = p.ID
+			continue
+		}
+		rest = append(rest, p)
+	}
+	start := api.day().AddDate(0, 0, 14)
+	open := &model.Sprint{ID: "zz-open", Start: start, End: start.AddDate(0, 0, 13), Absences: map[string]float64{id: 2}, ExpectedAbsences: map[string]float64{id: 1}}
+	if _, err := repo.SaveSprint(team, open); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.SavePeople(team, rest); err != nil {
+		t.Fatalf("removal with entries in an open sprint: %v", err)
+	}
+	data, err := api.loadTeam(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range data.People {
+		if p.ID == id {
+			t.Fatal("person still there")
+		}
+	}
+	for _, s := range data.Sprints {
+		if _, ok := s.Absences[id]; ok {
+			t.Errorf("absence left in %s", s.ID)
+		}
+		if _, ok := s.ExpectedAbsences[id]; ok {
+			t.Errorf("announced absence left in %s", s.ID)
+		}
+	}
+
+	// A sprint that is already planned keeps its people.
+	api2, team2 := demoCopy(t)
+	repo2 := storage.NewRepository(api2.DataDir())
+	v2, _ := api2.People(team2)
+	today2 := api2.day()
+	cur := today2.AddDate(0, 0, -3)
+	c := 10.0
+	planned := &model.Sprint{ID: "zz-planned", Start: cur, End: cur.AddDate(0, 0, 13), Commitment: &c}
+	if _, err := repo2.SaveSprint(team2, planned); err != nil {
+		t.Fatal(err)
+	}
+	v2, err = api2.SavePeople(team2, append(append([]PersonDTO{}, v2.People...), PersonDTO{Name: "Neu", Kind: "member", Memberships: []MembershipDTO{{From: cur.Format(isoDay), FTE: 1}}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range v2.People {
+		if p.Name == "Neu" && !p.Used {
+			t.Error("a person in a planned sprint must count as used")
+		}
 	}
 }
