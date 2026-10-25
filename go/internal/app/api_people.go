@@ -115,13 +115,13 @@ func personUsed(data *storage.TeamData, p model.Person, today time.Time) bool {
 	for _, s := range data.Sprints {
 		switch {
 		case peopleSprintIsHistory(s, today):
-			if p.ActiveBetween(s.Start, s.End.AddDate(0, 0, 1)) {
-				return true
+			// Whoever joined today cannot be part of results recorded before today, even if the
+			// sprint was closed early and its end lies ahead.
+			end := s.End.AddDate(0, 0, 1)
+			if end.After(today) {
+				end = today
 			}
-			if _, ok := s.Absences[p.ID]; ok {
-				return true
-			}
-			if _, ok := s.ExpectedAbsences[p.ID]; ok {
+			if p.ActiveBetween(s.Start, end) {
 				return true
 			}
 		case peopleSprintIsPlanned(s) && s.Start.Before(today):
@@ -182,13 +182,11 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 	}
 	a.forget(team)
 	repo := storage.NewRepository(a.DataDir())
-	// Entries of removed people in open and future sprints go with them. The sprints are written
+	// Entries of removed people go with them, in every sprint: whoever passed personUsed was not in
+	// any sprint with results, so what is left there is a plan or a leftover of an earlier namesake. The sprints are written
 	// first and all or nothing, so a failure leaves the people as they were.
 	var changedSprints []*model.Sprint
 	for _, sp := range data.Sprints {
-		if peopleSprintIsHistory(sp, today) {
-			continue
-		}
 		s := sp
 		changed := false
 		for _, p := range data.People {
