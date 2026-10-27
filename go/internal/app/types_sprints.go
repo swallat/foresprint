@@ -40,6 +40,8 @@ type AbsenceCell struct {
 	State  string  `json:"state"`  // CellConfirmed, CellAnnounced or CellEmpty
 	Max    float64 `json:"max"`    // working days of the person in the sprint (holidays deducted)
 	Active bool    `json:"active"` // the person is in the team during the sprint
+	// FromPeriod: the days come from a planned absence period, nothing is typed in the sprint.
+	FromPeriod bool `json:"fromPeriod"`
 }
 
 // AbsenceRow is one person with a cell per column.

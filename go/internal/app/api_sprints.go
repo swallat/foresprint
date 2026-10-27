@@ -126,7 +126,9 @@ func planSpan(fc *forecast.Forecast, id string) (low, high *float64) {
 	return nil, nil
 }
 
-func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) AbsenceColumn {
+func column(data *storage.TeamData, fc *forecast.Forecast, stored model.Sprint) AbsenceColumn {
+	// The column shows what the forecast counts: typed days plus the days of the planned periods.
+	s := forecast.EffectiveSprint(data, stored)
 	col := AbsenceColumn{
 		ID:       s.ID,
 		Name:     displayName(data, fc, s),
@@ -189,8 +191,9 @@ func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, e
 			row.FTE = p.Memberships[len(p.Memberships)-1].FTE
 		}
 		any := false
-		for _, s := range sprints {
-			cell := AbsenceCell{Days: s.CellDays(p.ID), State: cellState(s, p.ID)}
+		for _, stored := range sprints {
+			s := forecast.EffectiveSprint(data, stored)
+			cell := AbsenceCell{Days: s.CellDays(p.ID), State: cellState(s, p.ID), FromPeriod: stored.CellState(p.ID) == model.AbsencesUnknown && s.CellDays(p.ID) > 0}
 			if pc, ok := capacity.PersonOf(&data.Team, p, s, 0); ok {
 				cell.Active = true
 				cell.Max = float64(pc.Workdays - pc.Holidays)
@@ -283,8 +286,11 @@ func (a *API) SetAbsence(team, sprintID, person string, days float64) (AbsenceCo
 // SetAbsenceConfirmed locks or unlocks one cell: a confirmed cell is final for that person, an
 // announced one is still a plan. In a frozen sprint all cells are confirmed and stay so.
 func (a *API) SetAbsenceConfirmed(team, sprintID, person string, confirmed bool) (AbsenceColumn, error) {
-	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
-		days := s.CellDays(person)
+	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
+		days := forecast.EffectiveSprint(data, *s).CellDays(person) // a day from a period can be locked too
+		if days != 0 && s.CellDays(person) == 0 && s.AbsenceStatus() != model.AbsencesConfirmed {
+			s.SetCell(person, days, model.AbsencesExpected)
+		}
 		if days == 0 {
 			return nil // an empty cell has no state of its own
 		}
@@ -300,7 +306,8 @@ func (a *API) SetAbsenceConfirmed(team, sprintID, person string, confirmed bool)
 // FreezeAbsences confirms the whole allocation of a sprint: all entries count as confirmed and
 // every empty cell as 0 days, so "nobody is absent" needs no extra step.
 func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
-	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
+	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
+		*s = forecast.EffectiveSprint(data, *s) // the days of the planned periods are frozen with it
 		s.Freeze()
 		return nil
 	})
