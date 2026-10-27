@@ -3,7 +3,7 @@
   // Only dates are stored, never a reason or kind of absence (data protection).
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { changed, isLocked, touchesFinished } from '../../lib/team/absences';
+  import { changed, isFixedStart, isLocked, touchesFinished } from '../../lib/team/absences';
   import type { AbsencePeriod } from '../../lib/types.team';
 
   interface Props {
@@ -24,7 +24,8 @@
   let to = $state(period.to);
   // svelte-ignore state_referenced_locally
   let confirmed = $state(period.confirmed);
-  let first = $state<HTMLInputElement>();
+  let dialog = $state<HTMLDivElement>();
+  const fixed = $derived(!isNew && isFixedStart(period, openFrom));
 
   const locked = $derived(!isNew && isLocked(period, openFrom));
   // A first day inside finished sprints is only refused when it was changed here.
@@ -40,7 +41,7 @@
   );
 
   $effect(() => {
-    first?.focus();
+    dialog?.focus();
   });
 
   function keys(e: KeyboardEvent): void {
@@ -51,18 +52,20 @@
   }
 </script>
 
+<svelte:window onkeydowncapture={keys} />
+
 <div class="scrim" role="presentation" onclick={onclose}></div>
-<div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="ad-title" tabindex="-1" onkeydown={keys}>
+<div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="ad-title" tabindex="-1" bind:this={dialog}>
   <h2 id="ad-title">{isNew ? t('New absence: {name}', { name }) : t('Absence: {name}', { name })}</h2>
   {#if locked}
     <p class="small muted"><Icon name="history" size={14} /> {t('Lies in finished sprints. They stay as they are.')}</p>
   {:else if !isNew && touchesFinished(period, openFrom)}
-    <p class="small muted"><Icon name="info" size={14} /> {t('Days in finished sprints stay as they are; a change only reaches the open sprints.')}</p>
+    <p class="small muted"><Icon name="info" size={14} /> {t('Days in finished sprints stay as they are; only the last day and the status can change.')}</p>
   {/if}
   <div class="fields">
     <label>
       <span class="small muted">{t('First day')}</span>
-      <input class="input data" type="date" bind:value={from} disabled={locked} bind:this={first} />
+      <input class="input data" type="date" bind:value={from} disabled={locked || fixed} />
     </label>
     <label>
       <span class="small muted">{t('Last day')}</span>
@@ -76,7 +79,7 @@
   {#if problem}<p class="small bad">{problem}</p>{/if}
   <div class="row end">
     {#if !isNew}
-      <button class="btn danger" type="button" disabled={locked} onclick={onremove}><Icon name="delete" />{t('Delete')}</button>
+      <button class="btn danger" type="button" disabled={locked || fixed} onclick={onremove}><Icon name="delete" />{t('Delete')}</button>
     {/if}
     <span class="grow"></span>
     <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>
