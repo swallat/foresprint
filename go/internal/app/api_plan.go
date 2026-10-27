@@ -363,6 +363,10 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 		if b, ok := analysis.BandOf(c.fc, c.entry); ok {
 			v.Low, v.High = &b.Low, &b.High
 		}
+		if t := c.entry.Result.NormalizedVelocity.Trend; t != nil && v.PlanSource == "" && tm.Forecast.ReferenceCapacity > 0 {
+			r := *t / tm.Forecast.ReferenceCapacity
+			v.TrendRate = &r
+		}
 		if v.Plan != nil && v.Capacity != nil && *v.Capacity > 0 && inSP {
 			r := *v.Plan / *v.Capacity
 			v.Rate = &r
@@ -397,6 +401,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 			}
 			if w != nil && w.Touched {
 				v.Plan, v.Low, v.High = w.Plan, w.Low, w.High
+				v.TrendRate = nil
 				carryIn, carryLater = w.Rest, w.Later
 			} else {
 				carryIn, carryLater = c.savedCarry(&cur.Sprint)

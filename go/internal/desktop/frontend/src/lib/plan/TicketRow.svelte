@@ -6,7 +6,7 @@
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { PlanSprint, PlanTicket } from '../types.plan';
-  import { fmt } from './model.svelte';
+  import { fmt, fmtVal } from './model.svelte';
 
   interface Props {
     ticket: PlanTicket;
@@ -52,11 +52,11 @@
     {#if showProduct && d.multiProduct && product}<span class="chip">{product.name}</span>{/if}
     {#if showProject && project}<span class="chip"><Icon name="flag" size={14} />{project.name}</span>{/if}
     {#if d.production && ticket.prodPct > 0}
-      <span class="chip" title={t('Production share')}>{t('Prod {pct} %', { pct: fmt(ticket.prodPct) })}</span>
+      <span class="chip" title={t('Production share')}>{t('Prod {pct} %', { pct: fmt(ticket.prodPct, 1) })}</span>
     {/if}
   </span>
   <span class="end">
-    <span class="est">{ticket.size == null ? '–' : fmt(ticket.size, 1)}</span>
+    <span class="est">{ticket.size == null ? '–' : fmtVal(ticket.size)}</span>
     {#if onmove}
       <button class="btn icon ghost" type="button" aria-label={moveLabel} onclick={onmove}>
         <Icon name={moveIcon} />

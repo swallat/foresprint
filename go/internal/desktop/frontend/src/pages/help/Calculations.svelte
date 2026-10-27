@@ -2,7 +2,7 @@
   import { tick } from 'svelte';
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
-  import { fmt, formatDate, pct } from '../../lib/format';
+  import { fmt, fmtCap, fmtRate, formatDate, pct } from '../../lib/format';
   import Icon from '../../lib/Icon.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { current } from '../../lib/router.svelte';
@@ -132,7 +132,7 @@
       <li>{t('Story points to person days when the unit conversion is “from velocity”. A fixed factor replaces the rate only for that conversion.')}</li>
     </ul>
     <p class="small muted">{t('Planned work uses the forecast rate of its sprint; done work uses the actual rate. Every converted value is an estimate and is labelled so.')}</p>
-    {#if view?.rate != null}{@render example(t('Rate {rate} points per person day; reference capacity {ref} PD', { rate: fmt(view.rate, 2), ref: fmt(ref, 0) }))}{/if}
+    {#if view?.rate != null}{@render example(t('Rate {rate} points per person day; reference capacity {ref} PD', { rate: fmtRate(view.rate), ref: fmt(ref, 0) }))}{/if}
   {/snippet}
   {@render section('rate', t('Rate'), t('Points the team finishes per person day.'), rateBody)}
 
@@ -144,7 +144,7 @@
       <li>{t('For a sprint that is already planned, the recorded commitment replaces the projection and is marked as actual.')}</li>
     </ul>
     {#if next?.trend != null && next.capacity != null && next.plan != null}
-      {@render example(`${next.id}: ${fmt(next.trend)} ÷ ${fmt(ref, 0)} × ${fmt(next.capacity)} = ${fmt((next.trend / ref) * next.capacity, 2)} → ${fmt(next.plan, 0)}`)}
+      {@render example(`${next.id}: ${fmt(next.trend)} ÷ ${fmt(ref, 0)} × ${fmtCap(next.capacity)} = ${fmt((next.trend / ref) * next.capacity, 4)} → ${fmt(next.plan)}`)}
     {/if}
   {/snippet}
   {@render section('forecast', t('Forecast PLAN and range'), t('How many points a coming sprint can take.'), forecastBody)}
@@ -167,7 +167,7 @@
       <li>{t('It is a suggestion: pre-planned and planned may differ, the balance shows it.')}</li>
     </ul>
     {#if standards.length > 0 && products}
-      {@render example(t('{sprint}: {parts} = {sum} points', { sprint: products.current, parts: standards.map((r) => `${r.name} ${pct(r.share)} → ${fmt(r.value, 1)}`).join(', '), sum: fmt(standardsTotal, 1) }))}
+      {@render example(t('{sprint}: {parts} = {sum} points', { sprint: products.current, parts: standards.map((r) => `${r.name} ${pct(r.share)} → ${fmt(r.value)}`).join(', '), sum: fmt(standardsTotal) }))}
     {/if}
   {/snippet}
   {#if products?.enabled}
@@ -184,9 +184,9 @@
     {#if projects?.rate}
       {#if pointsProject}
         {@const planned = pointsProject.plannedPoints > 0}
-        {@render example(`${pointsProject.name}: ${fmt(planned ? pointsProject.plannedPoints : pointsProject.donePoints, 1)} ${t('points')} → ${fmt((planned ? pointsProject.planned : pointsProject.done) ?? 0, 1)} ${t('PD')} ${planned ? t('(planned)') : t('(done)')}`)}
+        {@render example(`${pointsProject.name}: ${fmt(planned ? pointsProject.plannedPoints : pointsProject.donePoints)} ${t('points')} → ${fmt((planned ? pointsProject.planned : pointsProject.done) ?? 0)} ${t('PD')} ${planned ? t('(planned)') : t('(done)')}`)}
       {:else}
-        {@render example(`10 ${t('points')} ÷ ${fmt(projects.rate, 2)} = ${fmt(10 / projects.rate, 1)} ${t('PD')}`)}
+        {@render example(`10 ${t('points')} ÷ ${fmtRate(projects.rate)} = ${fmt(10 / projects.rate)} ${t('PD')}`)}
       {/if}
     {/if}
   {/snippet}
@@ -259,7 +259,7 @@
           </thead>
           <tbody>
             {#each products.lines as l (l.id)}
-              <tr><td>{l.name}</td><td class="num">{fmt(l.done, 1)}</td><td class="num">{fmt(l.standard, 1)}</td><td class="num">{signed(l.difference)}</td></tr>
+              <tr><td>{l.name}</td><td class="num">{fmt(l.done)}</td><td class="num">{fmt(l.standard)}</td><td class="num">{signed(l.difference)}</td></tr>
             {/each}
           </tbody>
         </table>

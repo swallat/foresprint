@@ -1,5 +1,6 @@
 // Formatting of dates and counts for the current language.
 
+import { capacityDigits, planDigits } from './digits.svelte';
 import { language } from './i18n.svelte';
 
 /** "2026-10-22" as a local date, without a time zone shift. */
@@ -14,10 +15,27 @@ export function formatDay(day: string, style: 'long' | 'short' = 'short'): strin
   return new Intl.DateTimeFormat(language(), style === 'long' ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short' }).format(d);
 }
 
-/** A number in the language of the window; `digits` is the largest number of decimals shown. */
-export function fmt(value: number | null | undefined, digits = 1): string {
+/** A number in the language of the window; `digits` is the largest number of decimals shown, by default
+ * the team's rounding. Pass it only for what the rounding does not decide (a rate, a count). */
+export function fmt(value: number | null | undefined, digits: number = planDigits()): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '–';
   return new Intl.NumberFormat(language(), { maximumFractionDigits: digits }).format(value);
+}
+
+/** An amount somebody typed or an estimate, and sums of them: at least one decimal even when the PLAN is rounded to
+ * whole points, so 2,5 is never shown (or written back into a field) as 3. */
+export function fmtVal(value: number | null | undefined): string {
+  return fmt(value, Math.max(1, planDigits()));
+}
+
+/** A rate or factor (points per person day) with enough decimals to reproduce the calculation: 0,31 hides 0,3099. */
+export function fmtRate(value: number | null | undefined): string {
+  return fmt(value, 4);
+}
+
+/** A capacity (person days) with the capacity rounding of the team. */
+export function fmtCap(value: number | null | undefined): string {
+  return fmt(value, capacityDigits());
 }
 
 /** A share (0.8) as "80 %". */

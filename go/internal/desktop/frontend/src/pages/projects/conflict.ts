@@ -13,19 +13,19 @@ function lines(view: ProjectsView): { products: string[]; short: string[] } {
   const short = view.fit
     .filter((f) => f.status === 'over')
     .map((f) => `- ${view.projects.find((p) => p.id === f.project)?.name ?? f.project}: ${t('contingent short by {n} PD (left {rest} PD, need {need} PD)', {
-      n: num(f.missing, 1),
-      rest: num(f.remaining, 1),
-      need: num(f.need, 1),
+      n: num(f.missing),
+      rest: num(f.remaining),
+      need: num(f.need),
     })}`);
   const products = view.conflict
     .filter((r) => r.light !== 'ok')
     .map((r) => {
-      const demand = r.demand.map((d) => `${view.projects.find((p) => p.id === d.project)?.name ?? d.project} ${num(d.points, 1)}`).join(', ');
+      const demand = r.demand.map((d) => `${view.projects.find((p) => p.id === d.project)?.name ?? d.project} ${num(d.points)}`).join(', ');
       return `- ${r.product ? name(r.product) : t('Team')}: ${t('budget {budget} {unit}, projects ask {demand}, left {rest} {unit}', {
-        budget: num(r.budget, 1),
+        budget: num(r.budget),
         unit: view.unit,
         demand: demand || '–',
-        rest: num(r.rest, 1),
+        rest: num(r.rest),
       })}`;
     });
   return { products, short };

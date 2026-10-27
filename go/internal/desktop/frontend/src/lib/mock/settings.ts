@@ -196,6 +196,8 @@ const settingsMock: SettingsApi = {
       po: team.po,
       production: team.production,
       projects: team.projects || tracker.source !== 'none',
+      rounding: team.forecast.rounding,
+      capacityRounding: 1,
     };
   },
   async TokenInfo(): Promise<TokenState> {

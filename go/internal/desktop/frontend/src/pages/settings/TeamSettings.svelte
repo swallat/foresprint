@@ -194,6 +194,7 @@
               <option value={0}>{t('whole points')}</option>
               <option value={1}>{t('one decimal')}</option>
               <option value={2}>{t('two decimals')}</option>
+              <option value={3}>{t('three decimals')}</option>
             </select>
           </div>
           <div class="field">

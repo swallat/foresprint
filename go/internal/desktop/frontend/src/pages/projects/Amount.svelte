@@ -10,7 +10,7 @@
     /** In running text the sign stays in the line instead of hanging to the left. */
     inline?: boolean;
   }
-  let { value, est = false, digits = 1, inline = false }: Props = $props();
+  let { value, est = false, digits = undefined, inline = false }: Props = $props();
 </script>
 
 <span class="amt data" class:est={est && value !== null && !inline}>{est && inline && value !== null ? '≈ ' : ''}{num(value, digits)}</span>
