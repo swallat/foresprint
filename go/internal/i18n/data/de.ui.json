@@ -715,6 +715,16 @@
   "Filled: planned amount.": "Gefüllt: geplanter Betrag.",
   "{used} of {plan} {unit}, range {low} to {high}": "{used} von {plan} {unit}, Spanne {low} bis {high}",
   "{used} {unit}": "{used} {unit}",
-  "“also refined if”": "„auch refined, wenn“"
+  "“also refined if”": "„auch refined, wenn“",
+  "All absences": "Alle Abwesenheiten",
+  "Every planned period of every person. Change, confirm or delete them here; only the dates are stored, never a reason.": "Jeder geplante Zeitraum jeder Person. Hier änderst, bestätigst oder löschst du ihn; gespeichert werden nur die Daten, nie ein Grund.",
+  "First day {name}": "Erster Tag {name}",
+  "Last day {name}": "Letzter Tag {name}",
+  "Lies in finished sprints. They stay as they are.": "Liegt in beendeten Sprints. Sie bleiben unverändert.",
+  "Days in finished sprints stay as they are; a change only reaches the open sprints.": "Tage in beendeten Sprints bleiben unverändert; eine Änderung wirkt nur auf offene Sprints.",
+  "partly finished": "teils beendet",
+  "Add period for…": "Zeitraum anlegen für …",
+  "From a planned absence period. A click confirms it.": "Aus einem geplanten Abwesenheitszeitraum. Ein Klick bestätigt es.",
+  "These days come from a planned absence period. Change the period on People and absences.": "Diese Tage kommen aus einem geplanten Abwesenheitszeitraum. Ändere den Zeitraum unter Personen und Abwesenheiten."
  }
 }
