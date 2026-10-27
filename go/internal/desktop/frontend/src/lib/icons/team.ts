@@ -5,6 +5,8 @@
 //   import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
 //   const icons = { add: i_add } as const;
 
-const icons = {} as const;
+import i_view_timeline from '@material-symbols/svg-400/outlined/view_timeline.svg?raw';
+
+const icons = { view_timeline: i_view_timeline } as const;
 
 export default icons;
