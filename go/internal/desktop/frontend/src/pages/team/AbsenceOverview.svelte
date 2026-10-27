@@ -4,7 +4,7 @@
   // Only dates are stored, never a reason or kind of absence (data protection).
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { changed, created, isLocked as locked, touchesFinished } from '../../lib/team/absences';
+  import { changed, created, isFixedStart, isLocked as locked, touchesFinished } from '../../lib/team/absences';
   import { fmtDay } from '../../lib/team/format';
   import type { AbsencePeriod, Person } from '../../lib/types.team';
 
@@ -73,7 +73,7 @@
           {@const lock = locked(a, openFrom)}
           <tr class:past={a.to < today}>
             {#if !only}<td>{names.get(a.person)}</td>{/if}
-            <td><input class="input data date" type="date" value={a.from} min={openFrom || undefined} disabled={lock} aria-label={t('First day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
+            <td><input class="input data date" type="date" value={a.from} min={openFrom || undefined} disabled={lock || isFixedStart(a, openFrom)} aria-label={t('First day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
             <td><input class="input data date" type="date" value={a.to} disabled={lock} aria-label={t('Last day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { to: e.currentTarget.value }, e.currentTarget)} /></td>
             <td>
               <button
@@ -89,14 +89,14 @@
               {#if lock}
                 <span class="chip filter small" title={t('Lies in finished sprints. They stay as they are.')}><Icon name="history" size={14} />{t('finished')}</span>
               {:else if touchesFinished(a, openFrom)}
-                <span class="chip filter small" title={t('Days in finished sprints stay as they are; a change only reaches the open sprints.')}><Icon name="info" size={14} />{t('partly finished')}</span>
+                <span class="chip filter small" title={t('Days in finished sprints stay as they are; only the last day and the status can change.')}><Icon name="info" size={14} />{t('partly finished')}</span>
               {/if}
             </td>
             <td class="actions">
               <button
                 class="btn icon ghost"
                 type="button"
-                disabled={lock}
+                disabled={lock || isFixedStart(a, openFrom)}
                 aria-label={t('Delete absence {from} to {to}', { from: fmtDay(a.from), to: fmtDay(a.to) })}
                 title={t('Delete')}
                 onclick={() => onchange(absences.filter((x) => x !== a))}

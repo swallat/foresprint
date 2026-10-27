@@ -3,7 +3,7 @@
   // bar opens the dialog for that period; "+" starts a new one. Only dates, never a reason.
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import { created, isLocked } from '../../lib/team/absences';
+  import { created, isLocked, same } from '../../lib/team/absences';
   import { fmtDay, fmtShort } from '../../lib/team/format';
   import type { AbsencePeriod, CalendarRow, Person } from '../../lib/types.team';
   import AbsenceDialog from './AbsenceDialog.svelte';
@@ -49,13 +49,13 @@
     const e = editing;
     editing = null;
     if (!e) return;
-    await onchange(e.orig ? absences.map((x) => (x === e.orig ? next : x)) : [...absences, next]);
+    await onchange(e.orig ? absences.map((x) => (same(x, e.orig!) ? next : x)) : [...absences, next]);
   }
 
   async function remove() {
     const e = editing;
     editing = null;
-    if (e?.orig) await onchange(absences.filter((x) => x !== e.orig));
+    if (e?.orig) await onchange(absences.filter((x) => !same(x, e.orig!)));
   }
 </script>
 
