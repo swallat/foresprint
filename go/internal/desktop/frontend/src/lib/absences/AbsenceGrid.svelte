@@ -91,6 +91,11 @@
       return;
     }
     const shown = Math.min(cell.max, Math.round(value * 2) / 2);
+    if (shown === 0 && cell.fromPeriod) {
+      toast(t('These days come from a planned absence period. Change the period on People and absences.'), 'bad');
+      input.value = days(cell.days);
+      return;
+    }
     if (shown === cell.days) {
       input.value = cell.days ? days(cell.days) : '';
       return;

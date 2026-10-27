@@ -32,6 +32,10 @@
 
   function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input: HTMLInputElement | null = null) {
     const next = { ...a, ...patch };
+    if (patch.from && openFrom && patch.from < openFrom) {
+      if (input) input.value = a.from; // days in finished sprints stay as they are
+      return;
+    }
     if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
     if (next.from === '' || next.to === '' || next.to < next.from) {
       if (input) input.value = patch.from !== undefined ? a.from : a.to; // keep the field as saved
@@ -46,7 +50,8 @@
     const mine = absences.filter((a) => a.person === person).sort((a, b) => a.from.localeCompare(b.from));
     const day = new Date(`${(mine.length ? mine[mine.length - 1]!.to : today)}T00:00:00Z`);
     day.setUTCDate(day.getUTCDate() + (mine.length ? 7 : 0));
-    const iso = day.toISOString().slice(0, 10);
+    const earliest = openFrom > today ? openFrom : today;
+    const iso = day.toISOString().slice(0, 10) < earliest ? earliest : day.toISOString().slice(0, 10);
     return onchange([...absences, { person, from: iso, to: iso, confirmed: false }]);
   }
 </script>
@@ -68,7 +73,7 @@
           {@const lock = locked(a)}
           <tr class:past={a.to < today}>
             <td>{names.get(a.person)}</td>
-            <td><input class="input data date" type="date" value={a.from} disabled={lock} aria-label={t('First day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
+            <td><input class="input data date" type="date" value={a.from} min={openFrom || undefined} disabled={lock} aria-label={t('First day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
             <td><input class="input data date" type="date" value={a.to} disabled={lock} aria-label={t('Last day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { to: e.currentTarget.value }, e.currentTarget)} /></td>
             <td>
               <button

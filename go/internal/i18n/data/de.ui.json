@@ -724,6 +724,7 @@
   "Days in finished sprints stay as they are; a change only reaches the open sprints.": "Tage in beendeten Sprints bleiben unverändert; eine Änderung wirkt nur auf offene Sprints.",
   "partly finished": "teils beendet",
   "Add period for…": "Zeitraum anlegen für …",
-  "From a planned absence period. A click confirms it.": "Aus einem geplanten Abwesenheitszeitraum. Ein Klick bestätigt es."
+  "From a planned absence period. A click confirms it.": "Aus einem geplanten Abwesenheitszeitraum. Ein Klick bestätigt es.",
+  "These days come from a planned absence period. Change the period on People and absences.": "Diese Tage kommen aus einem geplanten Abwesenheitszeitraum. Ändere den Zeitraum unter Personen und Abwesenheiten."
  }
 }
