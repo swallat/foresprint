@@ -1,8 +1,10 @@
 <script lang="ts">
-  // All planned absences of the team as periods, one row each, past ones included.
+  // The planned absences as periods, one row each, past ones included. With `only` it lists one person
+  // (inside the times panel), otherwise the whole team with a filter by person.
   // Only dates are stored, never a reason or kind of absence (data protection).
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import { changed, created, isLocked as locked, touchesFinished } from '../../lib/team/absences';
   import { fmtDay } from '../../lib/team/format';
   import type { AbsencePeriod, Person } from '../../lib/types.team';
 
@@ -13,31 +15,26 @@
     absences: AbsencePeriod[];
     /** First day of the first sprint that has not ended; earlier days belong to finished sprints. */
     openFrom: string;
+    /** Id of the one person to show, null for the whole team. */
+    only?: string | null;
     /** Saves the whole list of the team. */
     onchange: (list: AbsencePeriod[]) => void | Promise<void>;
   }
-  let { people, today, absences, openFrom, onchange }: Props = $props();
+  let { people, today, absences, openFrom, only = null, onchange }: Props = $props();
 
   const names = $derived(new Map(people.map((p) => [p.id, p.name])));
+  let who = $state('');
+  const shown = $derived(only ?? who);
   const rows = $derived(
     absences
-      .filter((a) => names.has(a.person))
+      .filter((a) => names.has(a.person) && (shown === '' || a.person === shown))
       .sort((a, b) => (names.get(a.person) ?? '').localeCompare(names.get(b.person) ?? '') || a.from.localeCompare(b.from)),
   );
   let adding = $state('');
 
-  /** Days in finished sprints stay as they were: the period shows it, whole finished ones are locked. */
-  const locked = (a: AbsencePeriod) => openFrom !== '' && a.to < openFrom;
-  const touchesFinished = (a: AbsencePeriod) => openFrom !== '' && a.from < openFrom && a.to >= openFrom;
-
   function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input: HTMLInputElement | null = null) {
-    const next = { ...a, ...patch };
-    if (patch.from && openFrom && patch.from < openFrom) {
-      if (input) input.value = a.from; // days in finished sprints stay as they are
-      return;
-    }
-    if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
-    if (next.from === '' || next.to === '' || next.to < next.from) {
+    const next = changed(a, patch, openFrom);
+    if (!next) {
       if (input) input.value = patch.from !== undefined ? a.from : a.to; // keep the field as saved
       return;
     }
@@ -47,21 +44,24 @@
   function add(person: string) {
     adding = '';
     if (!person) return;
-    const mine = absences.filter((a) => a.person === person).sort((a, b) => a.from.localeCompare(b.from));
-    const day = new Date(`${(mine.length ? mine[mine.length - 1]!.to : today)}T00:00:00Z`);
-    day.setUTCDate(day.getUTCDate() + (mine.length ? 7 : 0));
-    const earliest = openFrom > today ? openFrom : today;
-    const iso = day.toISOString().slice(0, 10) < earliest ? earliest : day.toISOString().slice(0, 10);
-    return onchange([...absences, { person, from: iso, to: iso, confirmed: false }]);
+    return onchange([...absences, created(absences, person, today, openFrom)]);
   }
 </script>
 
+{#if !only}
+  <div class="row filter">
+    <select class="input" aria-label={t('Show person')} bind:value={who}>
+      <option value="">{t('All people')}</option>
+      {#each people as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+    </select>
+  </div>
+{/if}
 {#if rows.length}
   <div class="tw">
     <table class="t">
       <thead>
         <tr>
-          <th>{t('Name')}</th>
+          {#if !only}<th>{t('Name')}</th>{/if}
           <th>{t('From')}</th>
           <th>{t('To')}</th>
           <th>{t('Status')}</th>
@@ -70,9 +70,9 @@
       </thead>
       <tbody>
         {#each rows as a (a)}
-          {@const lock = locked(a)}
+          {@const lock = locked(a, openFrom)}
           <tr class:past={a.to < today}>
-            <td>{names.get(a.person)}</td>
+            {#if !only}<td>{names.get(a.person)}</td>{/if}
             <td><input class="input data date" type="date" value={a.from} min={openFrom || undefined} disabled={lock} aria-label={t('First day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
             <td><input class="input data date" type="date" value={a.to} disabled={lock} aria-label={t('Last day {name}', { name: names.get(a.person) ?? '' })} onchange={(e) => edit(a, { to: e.currentTarget.value }, e.currentTarget)} /></td>
             <td>
@@ -88,7 +88,7 @@
               </button>
               {#if lock}
                 <span class="chip filter small" title={t('Lies in finished sprints. They stay as they are.')}><Icon name="history" size={14} />{t('finished')}</span>
-              {:else if touchesFinished(a)}
+              {:else if touchesFinished(a, openFrom)}
                 <span class="chip filter small" title={t('Days in finished sprints stay as they are; a change only reaches the open sprints.')}><Icon name="info" size={14} />{t('partly finished')}</span>
               {/if}
             </td>
@@ -113,10 +113,14 @@
   <p class="muted">{t('No absences planned.')}</p>
 {/if}
 <div class="row add">
-  <select class="input" aria-label={t('Person')} bind:value={adding} onchange={() => add(adding)}>
-    <option value="">{t('Add period for…')}</option>
-    {#each people as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-  </select>
+  {#if only}
+    <button class="btn" type="button" onclick={() => add(only)}><Icon name="add" />{t('Add period')}</button>
+  {:else}
+    <select class="input" aria-label={t('Person')} bind:value={adding} onchange={() => add(adding)}>
+      <option value="">{t('Add period for…')}</option>
+      {#each people as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+    </select>
+  {/if}
 </div>
 
 <style>
@@ -125,6 +129,9 @@
   }
   .past {
     opacity: 0.6;
+  }
+  .filter {
+    margin-bottom: 8px;
   }
   .add {
     margin-top: 8px;
