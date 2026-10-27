@@ -10,18 +10,24 @@
   import { api } from '../../lib/api';
   import { onMount } from 'svelte';
   import type { Region } from '../../lib/types.setup';
-  import type { Person } from '../../lib/types.team';
+  import type { AbsencePeriod, Person } from '../../lib/types.team';
+  import AbsenceOverview from './AbsenceOverview.svelte';
 
   interface Props {
     person: Person;
     today: string;
     /** Country of the team, the default of a person without an own one. */
     teamCountry: string;
+    /** All planned absences of the team; the panel edits the ones of this person. */
+    absences: AbsencePeriod[];
+    openFrom: string;
+    /** Saves the whole absence list of the team (at once, not with "Apply"). */
+    onabsences: (list: AbsencePeriod[]) => void | Promise<void>;
     onclose: () => void;
     onsave: (next: Person, message: string) => void | Promise<void>;
     onremove: () => void | Promise<void>;
   }
-  let { person, today, teamCountry, onclose, onsave, onremove }: Props = $props();
+  let { person, today, teamCountry, absences, openFrom, onabsences, onclose, onsave, onremove }: Props = $props();
 
   // svelte-ignore state_referenced_locally
   let draft = $state<Person>(structuredClone($state.snapshot(person)));
@@ -134,6 +140,10 @@
     </button>
     <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>
   </div>
+
+  <h3>{t('Absence periods')}</h3>
+  <p class="small muted">{t('Planned absences as periods, first to last day. They are saved right away. Only the dates are stored, never a reason.')}</p>
+  <AbsenceOverview people={[person]} {today} {absences} {openFrom} only={person.id} onchange={onabsences} />
 
   <h3>{t('Remove')}</h3>
   <p class="small muted">
