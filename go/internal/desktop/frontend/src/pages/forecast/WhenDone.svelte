@@ -2,7 +2,7 @@
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { fmt, formatDate, formatPeriod, pct } from '../../lib/format';
+  import { fmt, fmtVal, formatDate, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { current } from '../../lib/router.svelte';
@@ -129,7 +129,7 @@
       {#if chosen.openScope === null}
         {t('The project has no open scope yet. Enter the remaining work by hand.')}
       {:else}
-        {t('Open scope of the project: {n} points in {tickets} open tickets. The share is the usual roadmap share; change it if the project gets more or less.', { n: fmt(chosen.openScope), tickets: chosen.open })}
+        {t('Open scope of the project: {n} points in {tickets} open tickets. The share is the usual roadmap share; change it if the project gets more or less.', { n: fmtVal(chosen.openScope), tickets: chosen.open })}
       {/if}
     </p>
   {/if}
@@ -187,7 +187,7 @@
           <p class="small muted">{t('From sprint {id} on there is no people list; the average capacity of the last sprints is used.', { id: done.trendCapacity[0] ?? '' })}</p>
         {/if}
         <p class="small muted">
-          {t('Expected per sprint: {n} points ({runs} runs, {samples} sprints as basis).', { n: fmt(done.perSprint), runs: fmt(done.runs, 0), samples: done.samples })}
+          {t('Expected per sprint: {n} points ({runs} runs, {samples} sprints as basis).', { n: fmtVal(done.perSprint), runs: fmt(done.runs, 0), samples: done.samples })}
           <Calc label={t('When is it done?')} topic="whendone">
             <div class="muted">{t('For each coming sprint a normalized velocity of the last sprints is drawn at random, scaled to the sprint capacity and multiplied by the share. The sprint in which the sum reaches the remaining work is counted over all runs.')}</div>
           </Calc>

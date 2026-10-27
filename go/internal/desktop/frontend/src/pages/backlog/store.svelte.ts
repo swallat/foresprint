@@ -3,7 +3,7 @@
 // use the same state, so a change in one shows in the others.
 
 import { api } from '../../lib/api';
-import { fmt } from '../../lib/format';
+import { fmt, fmtVal } from '../../lib/format';
 import { app, refreshStatus, toast } from '../../lib/app.svelte';
 import { language, t as translate } from '../../lib/i18n.svelte';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
@@ -174,7 +174,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
         : t('{count} tickets are back in the backlog.', { count: moved.length });
   const used = lane && lane.plan != null ? usedAfter(lane.sprint, moved) : 0;
   const over = lane && lane.plan != null && used > lane.plan;
-  toast(over ? `${text} ${t('Over the Forecast PLAN: {used} of {plan}.', { used: fmt(used), plan: fmt(lane.plan ?? 0) })}` : text, over ? 'info' : 'ok', {
+  toast(over ? `${text} ${t('Over the Forecast PLAN: {used} of {plan}.', { used: fmtVal(used), plan: fmt(lane.plan ?? 0) })}` : text, over ? 'info' : 'ok', {
     label: t('Undo'),
     run: async () => {
       try {

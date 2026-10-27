@@ -11,7 +11,7 @@
   import Amount from './Amount.svelte';
   import CloseProject from './CloseProject.svelte';
   import ConflictView from './ConflictView.svelte';
-  import { date, num, productColor } from './format';
+  import { date, num, rateNum, productColor } from './format';
   import LightChip from './LightChip.svelte';
   import Meter from './Meter.svelte';
   import ProjectCalc from './ProjectCalc.svelte';
@@ -206,7 +206,7 @@
               {/if}
               <td class="data">{date(p.end)}</td>
               <td><LightChip light={p.light} /></td>
-              <td class="num"><Amount value={p.booked} digits={1} /></td>
+              <td class="num"><Amount value={p.booked} /></td>
               <td class="num"><Amount value={p.done} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="done" /></td>
               <td class="num"><Amount value={p.planned} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="planned" /></td>
               <td><Meter booked={p.booked} done={p.done} planned={p.planned} /></td>
@@ -244,7 +244,7 @@
     </div>
     {#if estimated}
       <p class="small muted" style="margin:8px 0 0">
-        {t('Values with ≈ are estimates: points converted with the rate of each sprint (mean {rate} points per person day). Booked amounts are entered values.', { rate: num(view.rate, 2) })}
+        {t('Values with ≈ are estimates: points converted with the rate of each sprint (mean {rate} points per person day). Booked amounts are entered values.', { rate: rateNum(view.rate) })}
       </p>
     {/if}
   {/if}

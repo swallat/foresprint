@@ -81,7 +81,7 @@
     {/if}
     {#if project.booked !== null}
       <p class="small muted" style="margin:0">
-        {t('The remaining contingent of {n} PD is reported, not planned further.', { n: num(Math.max(0, rest), 1) })}
+        {t('The remaining contingent of {n} PD is reported, not planned further.', { n: num(Math.max(0, rest)) })}
       </p>
     {/if}
   {:else}

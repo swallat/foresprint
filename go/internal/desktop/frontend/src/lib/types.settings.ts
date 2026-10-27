@@ -150,6 +150,10 @@ export interface Features {
   po: boolean;
   production: boolean;
   projects: boolean;
+  /** Decimals of the Forecast PLAN and the amounts planned from it. */
+  rounding: number;
+  /** Decimals of the capacity. */
+  capacityRounding: number;
 }
 
 export interface PackageImportChange {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { shortNames } from '../../lib/axis';
-  import { fmt } from '../../lib/format';
+  import { fmt, fmtVal } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { ForecastRow, WhatIfRow } from '../../lib/types.forecast';
 
@@ -126,14 +126,14 @@
 
   {#if showNv}
     {#each trendPts as p (p.r.id)}
-      <circle cx={p.x} cy={p.y} r="3.5" class="o nv"><title>{t('{id}: trend of the normalized velocity {n}', { id: p.r.id, n: fmt(p.r.trend) })}</title></circle>
+      <circle cx={p.x} cy={p.y} r="3.5" class="o nv"><title>{t('{id}: trend of the normalized velocity {n}', { id: p.r.id, n: fmtVal(p.r.trend) })}</title></circle>
     {/each}
   {/if}
   {#each showNv ? nvPts : [] as p (p.r.id)}
-    <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmt(p.r.normalizedVelocity) })}</title></rect>
+    <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmtVal(p.r.normalizedVelocity) })}</title></rect>
   {/each}
   {#each velocityPts as p (p.r.id)}
-    <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{t('{id}: velocity {n}', { id: p.r.id, n: fmt(p.r.velocity) })}</title></circle>
+    <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{t('{id}: velocity {n}', { id: p.r.id, n: fmtVal(p.r.velocity) })}</title></circle>
   {/each}
 
   {#each planPts as p (p.r.id)}

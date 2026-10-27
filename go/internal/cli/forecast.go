@@ -67,12 +67,12 @@ func printForecast(env *Env, fc *forecast.Forecast, teamKey string, history int)
 			nVel = r.NormalizedVelocity.Trend
 			capacity = report.CapacityLabel(e)
 			bandRange = report.BandRange(fc, e)
-			roadmap = report.Fmt(r.Roadmap, 2, "")
-			small = report.Fmt(r.SmallStuff, 2, "")
+			roadmap = report.Fmt(r.Roadmap, report.SplitDigits(fc), "")
+			small = report.Fmt(r.SmallStuff, report.SplitDigits(fc), "")
 		}
 		t.Add(e.Sprint.ID, report.Period(e), strings.ReplaceAll(report.Status(fc, e), "**", ""),
 			capacity, report.Fmt(r.Velocity.Value, 2, ""), report.Fmt(nVel, 2, ""),
-			report.Fmt(r.Plan, 1, ""), bandRange, roadmap, small)
+			report.Fmt(r.Plan, report.PlanDigits(fc), ""), bandRange, roadmap, small)
 	}
 	t.Render(env.Out)
 	for _, e := range fc.Upcoming() {

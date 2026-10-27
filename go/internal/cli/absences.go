@@ -171,7 +171,7 @@ func (e *Env) showSprintForecast(key, id string) error {
 	e.Println(i18n.P("Forecast sprint {id}", "id", id))
 	e.Println(fmt.Sprintf("  %s: %s PT", i18n.P("Capacity"), report.CapacityLabel(entry)))
 	e.Println(fmt.Sprintf("  %s: %s", i18n.P("norm. velocity trend"), report.Fmt(r.NormalizedVelocity.Trend, 2, "")))
-	e.Println(fmt.Sprintf("  Forecast PLAN: %s %s  (%s %s · %s %s)", report.Fmt(r.Plan, 1, ""), cliUnitAt(data, entry.Sprint.Start),
-		i18n.P("Plannable"), report.Fmt(r.Roadmap, 2, ""), i18n.P("Small items"), report.Fmt(r.SmallStuff, 2, "")))
+	e.Println(fmt.Sprintf("  Forecast PLAN: %s %s  (%s %s · %s %s)", report.Fmt(r.Plan, report.PlanDigits(fc), ""), cliUnitAt(data, entry.Sprint.Start),
+		i18n.P("Plannable"), report.Fmt(r.Roadmap, report.SplitDigits(fc), ""), i18n.P("Small items"), report.Fmt(r.SmallStuff, report.SplitDigits(fc), "")))
 	return nil
 }

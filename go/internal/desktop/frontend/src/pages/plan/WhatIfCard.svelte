@@ -9,7 +9,7 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import ExpectSeg from '../../lib/plan/ExpectSeg.svelte';
-  import { assumptions, fmt, itemWord, parseAmount, touched, type PlanModel } from '../../lib/plan/model.svelte';
+  import { assumptions, fmt, itemWord, parseAmount, touched, type PlanModel, fmtVal } from '../../lib/plan/model.svelte';
   import type { Assumption, CarryInput, PlanSprint, RunningHint, RunningTicket, WhatIf } from '../../lib/types.plan';
 
   interface Props {
@@ -130,7 +130,7 @@
         <div class="row nums">
           {@render num('wi-commit', t('Commitment {sprint} ({unit})', { sprint: d.running, unit: t('points') }), r?.commitment ?? null, 'commitment', '')}
           {@render num('wi-nd', t('Expected not finished ({unit})', { unit: t('points') }), a.notDone, 'notDone', '0')}
-          {@render num('wi-rest', t('of which rest in {sprint} ({unit})', { sprint: d.sprint, unit: t('points') }), a.restNext, 'restNext', fmt(a.notDone ?? 0), !a.notDone)}
+          {@render num('wi-rest', t('of which rest in {sprint} ({unit})', { sprint: d.sprint, unit: t('points') }), a.restNext, 'restNext', fmtVal(a.notDone ?? 0), !a.notDone)}
           {@render num('wi-extra', t('Additionally finished ({unit})', { unit: t('points') }), a.extra, 'extra', '0')}
         </div>
       {:else if tickets.length === 0}
@@ -172,8 +172,8 @@
         <div class="res">
           <div>
             <div class="small muted">{t('Expected velocity {sprint}', { sprint: d.running })}</div>
-            <div class="data big">{fmt(r.velocity, 1)}</div>
-            <div class="small muted">{fmt(r.commitment, 1)} − {fmt(r.notDone, 1)} {t('not finished')} + {fmt(r.extra, 1)} {noT ? t('additionally') : t('pulled in')}</div>
+            <div class="data big">{fmtVal(r.velocity)}</div>
+            <div class="small muted">{fmtVal(r.commitment)} − {fmtVal(r.notDone)} {t('not finished')} + {fmtVal(r.extra)} {noT ? t('additionally') : t('pulled in')}</div>
           </div>
           <div>
             <div class="small muted">{t('Forecast PLAN {sprint}', { sprint: d.sprint })}</div>
@@ -186,15 +186,15 @@
           </div>
           <div>
             <div class="small muted">{t('Carry-over to {sprint} (rest)', { sprint: d.sprint })}</div>
-            <div class="data big">{fmt(r.rest, 1)}</div>
+            <div class="data big">{fmtVal(r.rest)}</div>
             <div class="small muted">
-              {#if r.later}<span class="data">{fmt(r.later, 1)}</span> {t('later or back to the backlog')}{:else if carriedCount}{t('{n} {items}', { n: carriedCount, items: itemWord(d) })}{:else}{noT ? t('points') : t('nothing marked')}{/if}
+              {#if r.later}<span class="data">{fmtVal(r.later)}</span> {t('later or back to the backlog')}{:else if carriedCount}{t('{n} {items}', { n: carriedCount, items: itemWord(d) })}{:else}{noT ? t('points') : t('nothing marked')}{/if}
             </div>
           </div>
           <div>
             <div class="small muted">{t('Plannable in {sprint}', { sprint: d.sprint })}</div>
             <div class="data big">{fmt(r.plannable)}</div>
-            <div class="small muted">{t('(PLAN − rest) × {pct} % · small stuff', { pct: fmt(d.share * 100) })} <span class="data">{fmt(r.smallStuff)}</span></div>
+            <div class="small muted">{t('(PLAN − rest) × {pct} % · small stuff', { pct: fmt(d.share * 100, 1) })} <span class="data">{fmt(r.smallStuff)}</span></div>
           </div>
         </div>
       {/if}
@@ -225,7 +225,7 @@
       <button class="linkbtn data" type="button" onclick={() => openTicket(x.key)}>{x.key}</button> {x.title}
     </td>
     <td><span class="chip">{x.status}</span></td>
-    <td class="num">{fmt(x.size, 1)}</td>
+    <td class="num">{fmtVal(x.size)}</td>
     <td>
       {#if x.done}
         <span class="chip ok"><Icon name="check" size={14} />{t('done')}</span>

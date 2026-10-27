@@ -158,6 +158,8 @@ export interface PlanSprint {
   low: number | null;
   high: number | null;
   rate: number | null;
+  /** Unrounded trend per person day (the factor of the formula); null without a trend or with an assumption. */
+  trendRate: number | null;
   otherUnit: string;
   share: number;
   split: PlanSplit | null;

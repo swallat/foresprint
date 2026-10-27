@@ -44,6 +44,9 @@ type PlanSprint struct {
 	Low        *float64 `json:"low"`
 	High       *float64 `json:"high"`
 	Rate       *float64 `json:"rate"`
+	// TrendRate is the unrounded trend of the normalized velocity per person day (the factor the
+	// capacity is multiplied with), nil without a trend or when an assumption changes the PLAN.
+	TrendRate *float64 `json:"trendRate"`
 	// RateKnown: the other unit (PD for points) can be shown; false for a team planning in PD.
 	OtherUnit string `json:"otherUnit"`
 	// Share is the plannable share; Split the PLAN split into carry-over, plannable and small
