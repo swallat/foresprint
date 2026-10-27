@@ -24,16 +24,16 @@
     <div
       class="meter"
       role="img"
-      aria-label={t('Done {done} PD, planned {planned} PD of {booked} PD', { done: num(d, 1), planned: num(p, 1), booked: num(booked, 1) })}
+      aria-label={t('Done {done} PD, planned {planned} PD of {booked} PD', { done: num(d), planned: num(p), booked: num(booked) })}
     >
       <i class="u" style:width="{pct(d)}%"></i>
       <i class="p" class:over={over > 0} style:left="{pct(d)}%" style:width="{pct(p)}%"></i>
-      <b class="t" style:left="{pct(booked)}%" title={t('Booked {booked} PD', { booked: num(booked, 1) })}></b>
+      <b class="t" style:left="{pct(booked)}%" title={t('Booked {booked} PD', { booked: num(booked) })}></b>
     </div>
     {#if over > 0}
-      <span class="small over-txt"><Icon name="warning" size={14} />{t('{n} PD over the contingent', { n: num(over, 1) })}</span>
+      <span class="small over-txt"><Icon name="warning" size={14} />{t('{n} PD over the contingent', { n: num(over) })}</span>
     {:else}
-      <span class="small muted">{t('{n} PD free', { n: num(-over, 1) })}</span>
+      <span class="small muted">{t('{n} PD free', { n: num(-over) })}</span>
     {/if}
   </div>
 {/if}

@@ -11,13 +11,13 @@ const lightText = (m: MilestoneView) =>
 export function reportMarkdown(d: ProjectDetail): string {
   const p = d.project;
   const est = d.unit === 'SP' ? '≈ ' : '';
-  const cell = (v: number | null) => (v === null ? '–' : `${est}${num(v, 1)}`);
+  const cell = (v: number | null) => (v === null ? '–' : `${est}${num(v)}`);
   const out: string[] = [`# ${t('Report: {name}', { name: p.name })}`, ''];
   out.push(
     t('As of {date}: {done} of {booked} PD done, another {planned} PD planned (estimate).', {
       date: date(d.today),
       done: cell(p.done),
-      booked: p.booked === null ? '–' : num(p.booked, 1),
+      booked: p.booked === null ? '–' : num(p.booked),
       planned: cell(p.planned),
     }),
     '',
@@ -29,7 +29,7 @@ export function reportMarkdown(d: ProjectDetail): string {
   }
   if (d.report.length > 0) {
     out.push(`| ${t('Sprint')} | ${t('booked (PD)')} | ${t('planned (PD)')} | ${t('done (PD)')} |`, '| --- | ---: | ---: | ---: |');
-    for (const r of d.report) out.push(`| ${r.sprint} | ${num(r.booked, 1)} | ${cell(r.planned)} | ${cell(r.done)} |`);
+    for (const r of d.report) out.push(`| ${r.sprint} | ${num(r.booked)} | ${cell(r.planned)} | ${cell(r.done)} |`);
     out.push('');
   }
   if (est) out.push(t('Values with ≈ are estimates: points converted with the rate of each sprint.'), '');

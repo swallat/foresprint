@@ -62,12 +62,12 @@
         {#each view.conflict as r (r.product)}
           <tr>
             <td>{r.product ? productName(r.product) : app.teams.find((x) => x.key === app.team)?.name}</td>
-            <td class="num">{num(r.budget, 1)}</td>
+            <td class="num">{num(r.budget)}</td>
             {#each view.projects as p (p.id)}
               {@const points = r.demand.find((d) => d.project === p.id)?.points ?? 0}
-              <td class="num">{points > 0 ? num(points, 1) : '–'}</td>
+              <td class="num">{points > 0 ? num(points) : '–'}</td>
             {/each}
-            <td class="num"><strong>{num(r.rest, 1)}</strong></td>
+            <td class="num"><strong>{num(r.rest)}</strong></td>
             <td><LightChip light={r.light} label={rating(r)} /></td>
             <td class="advice small">
               {#if r.suggest.kind === 'none'}
@@ -77,7 +77,7 @@
                 {t('({project}, {light}) one sprint later makes room for {n} {unit}.', {
                   project: r.suggest.projectName,
                   light: lightText(r.suggest.light),
-                  n: num(r.suggest.points, 1),
+                  n: num(r.suggest.points),
                   unit: view.unit,
                 })}
               {:else}
@@ -112,7 +112,7 @@
               <td>
                 {#if f.status === 'ok'}<LightChip light="ok" label={t('enough')} />
                 {:else if f.status === 'tight'}<LightChip light="warn" label={t('barely enough')} />
-                {:else if f.status === 'over'}<LightChip light="bad" label={t('{n} PD short', { n: num(f.missing, 1) })} />
+                {:else if f.status === 'over'}<LightChip light="bad" label={t('{n} PD short', { n: num(f.missing) })} />
                 {:else}<span class="muted">–</span>{/if}
               </td>
             </tr>

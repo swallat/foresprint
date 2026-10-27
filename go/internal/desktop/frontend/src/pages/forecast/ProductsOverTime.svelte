@@ -70,7 +70,7 @@
           <tr>
             <th scope="row" class="rowh">{line.name}</th>
             {#each line.cells as cell, i (i)}
-              {#each measures as m (m.key)}<td class="num">{fmt(cell[m.key], 1)}</td>{/each}
+              {#each measures as m (m.key)}<td class="num">{fmt(cell[m.key])}</td>{/each}
             {/each}
             <td class="num" class:neg={line.difference < 0}><strong>{line.sprints > 0 ? signed(line.difference) : '–'}</strong></td>
             <td class="num">

@@ -1,11 +1,18 @@
 // Number and date formats of the projects pages, in the language of the window.
 
+import { planDigits } from '../../lib/digits.svelte';
 import { language } from '../../lib/i18n.svelte';
 
-/** A number with at most `digits` decimals in the language's format (1,5 or 1.5). */
-export function num(value: number | null | undefined, digits = 0): string {
+/** A number with at most `digits` decimals in the language's format (1,5 or 1.5); by default the team's
+ * rounding, at least one decimal (person days and estimates are not whole numbers). */
+export function num(value: number | null | undefined, digits: number = Math.max(1, planDigits())): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '–';
   return new Intl.NumberFormat(language(), { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(value);
+}
+
+/** A rate (points per person day) with enough decimals to reproduce the calculation. */
+export function rateNum(value: number | null | undefined): string {
+  return num(value, 4);
 }
 
 /** 2026-11-20 as 20.11.2026 (de) or 20/11/2026 (en). */

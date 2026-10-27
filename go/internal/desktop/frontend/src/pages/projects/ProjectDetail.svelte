@@ -9,7 +9,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import Amount from './Amount.svelte';
   import CloseProject from './CloseProject.svelte';
-  import { date, month, num, productColor } from './format';
+  import { date, month, num, rateNum, productColor } from './format';
   import { inputOf } from './input';
   import LightChip from './LightChip.svelte';
   import Meter from './Meter.svelte';
@@ -56,7 +56,7 @@
   const spentEst = $derived(estimated && p?.used === null);
   const useLight = (s: string): 'ok' | 'warn' | 'bad' => (s === 'over' ? 'bad' : s === 'tight' ? 'warn' : 'ok');
   const hasUsedMonths = $derived(p?.months.some((m) => m.used !== null) ?? false);
-  const rate = $derived(d?.rate === null || d?.rate === undefined ? '' : num(d.rate, 2));
+  const rate = $derived(d?.rate === null || d?.rate === undefined ? '' : rateNum(d.rate));
 
   // Tickets grouped by the sprint of the tracker or the earmark; tickets without one come last.
   const sum = (list: (number | null)[]) => list.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -177,12 +177,12 @@
       </div>
       <div class="big">
         <Amount value={spent === null && p.planned === null ? null : (spent ?? 0) + (p.planned ?? 0)} est={spentEst || (estimated && p.planned !== null)} inline />
-        {#if p.booked !== null}<span class="muted" style="font-size:14px">{t('of {n}', { n: num(p.booked, 1) })}</span>{/if}
+        {#if p.booked !== null}<span class="muted" style="font-size:14px">{t('of {n}', { n: num(p.booked) })}</span>{/if}
       </div>
       <Meter booked={p.booked} done={spent} planned={p.planned} />
       {#if p.used !== null && p.booked !== null}
         <div class="small" style="margin-top:8px">
-          {t('Used {used} PD', { used: num(p.used, 1) })}{#if p.remaining !== null}, {t('{n} PD left', { n: num(p.remaining, 1) })}{/if}
+          {t('Used {used} PD', { used: num(p.used) })}{#if p.remaining !== null}, {t('{n} PD left', { n: num(p.remaining) })}{/if}
           <LightChip light={useLight(p.usedStatus)} label={p.usedStatus === 'over' ? t('over the contingent') : p.usedStatus === 'tight' ? t('nearly used up') : t('within the contingent')} />
         </div>
       {/if}
@@ -301,7 +301,7 @@
         </p>
       {:else}
         <Banner>
-          {#if p.booked !== null}{t('Only a total of {n} PD is booked, with no split per month. That is fine.', { n: num(p.booked, 1) })}{:else}{t('No contingent booked yet.')}{/if}
+          {#if p.booked !== null}{t('Only a total of {n} PD is booked, with no split per month. That is fine.', { n: num(p.booked) })}{:else}{t('No contingent booked yet.')}{/if}
         </Banner>
         {#if !closed}<button class="btn" type="button" onclick={() => (panel = 'edit')}><Icon name="add" />{t('Add a split per month')}</button>{/if}
       {/if}
@@ -347,7 +347,7 @@
                   {#if !tk.refined && !tk.done}<span class="chip warn">{t('not refined')}</span>{/if}
                   <span class="chip">{tk.status || '–'}</span>
                 </span>
-                <span class="est">{num(tk.estimate, 1)}{#if estimated && tk.estimatePD !== null}<span class="muted"> ≈ {num(tk.estimatePD, 1)} {t('PD')}</span>{/if}</span>
+                <span class="est">{num(tk.estimate)}{#if estimated && tk.estimatePD !== null}<span class="muted"> ≈ {num(tk.estimatePD)} {t('PD')}</span>{/if}</span>
               </div>
             {/each}
           </div>
@@ -364,9 +364,9 @@
     <p style="margin:8px 0 12px">
       {t('As of {date}: {done} of {booked} PD done, another {planned} PD planned (estimate).', {
         date: date(d.today),
-        done: num(p.done, 1),
-        booked: p.booked === null ? '–' : num(p.booked, 1),
-        planned: num(p.planned, 1),
+        done: num(p.done),
+        booked: p.booked === null ? '–' : num(p.booked),
+        planned: num(p.planned),
       })}
       {#if nextMilestone}{t('Next milestone "{name}" on {date}.', { name: nextMilestone.name, date: date(nextMilestone.date) })}{/if}
     </p>
@@ -392,8 +392,8 @@
                 <td class="num"><Amount value={r.done} est={estimated} /></td>
                 <td>
                   {#if r.booked + used === 0}<span class="muted">{t('nothing')}</span>
-                  {:else if used > r.booked + 0.05}<span class="over"><Icon name="warning" size={14} />{t('{n} PD overbooked', { n: num(used - r.booked, 1) })}</span>
-                  {:else}<span class="muted">{t('{n} PD free', { n: num(r.booked - used, 1) })}</span>{/if}
+                  {:else if used > r.booked + 0.05}<span class="over"><Icon name="warning" size={14} />{t('{n} PD overbooked', { n: num(used - r.booked) })}</span>
+                  {:else}<span class="muted">{t('{n} PD free', { n: num(r.booked - used) })}</span>{/if}
                 </td>
               </tr>
             {/each}

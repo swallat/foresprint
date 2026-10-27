@@ -4,7 +4,7 @@
   // production share and the earmark. A work package is edited completely in a form. The key NEW
   // opens the form for a new work package (flows.md section 5, "ticket panel"; decision 15).
   import { untrack } from 'svelte';
-  import { fmt } from '../../lib/format';
+  import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
@@ -189,7 +189,7 @@
   const titleOf = (key: string) => allTickets(view).find((tk) => tk.key === key)?.title ?? '';
 
   const when = (iso: string) => (iso ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso)) : '');
-  const size = (n: number) => (n >= 1048576 ? `${fmt(n / 1048576)} MB` : `${fmt(Math.max(1, Math.round(n / 1024)))} kB`);
+  const size = (n: number) => (n >= 1048576 ? `${fmt(n / 1048576, 1)} MB` : `${fmt(Math.max(1, Math.round(n / 1024)), 0)} kB`);
   const subDone = $derived(tracker?.subtasks.filter((x) => x.done).length ?? 0);
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
@@ -376,7 +376,7 @@
         <dt><label for="tp-est">{t('Estimate')}</label></dt>
         <dd>
           {#if detail.estimate != null || detail.remaining != null}
-            <span class="data">{fmt(detail.size)} {unit}</span> <span class="muted small">{t('from {tracker}', { tracker: view?.tracker ?? '' })}</span>
+            <span class="data">{fmtVal(detail.size)} {unit}</span> <span class="muted small">{t('from {tracker}', { tracker: view?.tracker ?? '' })}</span>
           {:else}
             <span class="row nowrap">
               <input class="input data short" id="tp-est" inputmode="decimal" value={detail.size ?? ''} placeholder="–" aria-describedby="tp-est-hint" onchange={(e) => run(() => api.SetEstimate(app.team, detail!.key, number(e.currentTarget.value)))} />

@@ -3,6 +3,7 @@
 // keep their own copy of these.
 
 import { api, inProgram, setDemo } from './api';
+import { setDigits } from './digits.svelte';
 import { t, useLanguage } from './i18n.svelte';
 import { go } from './router.svelte';
 import { applyDensity, applyFeatures, applyTheme } from './theme';
@@ -127,6 +128,7 @@ export async function setDensity(code: string): Promise<void> {
 export async function loadFeatures(): Promise<void> {
   app.features = app.team ? await api.TeamFeatures(app.team).catch(() => undefined) : undefined;
   applyFeatures(app.features);
+  setDigits(app.features?.rounding, app.features?.capacityRounding);
 }
 
 /** Reads the teams of the data folder and keeps (or picks) the selected team and sprint. */

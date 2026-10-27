@@ -296,5 +296,8 @@ func (a *API) TeamFeatures(team string) (Features, error) {
 		PO:         f.PO,
 		Production: f.Production,
 		Projects:   f.Projects || f.Tickets,
+
+		Rounding:         data.Team.Forecast.Rounding,
+		CapacityRounding: data.Team.Capacity.Rounding,
 	}, nil
 }

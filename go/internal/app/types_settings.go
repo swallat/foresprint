@@ -152,6 +152,10 @@ type Features struct {
 	PO         bool   `json:"po"`
 	Production bool   `json:"production"`
 	Projects   bool   `json:"projects"`
+	// Rounding is the decimals of the Forecast PLAN and the amounts planned from it,
+	// CapacityRounding those of the capacity; the window shows every number with them.
+	Rounding         int `json:"rounding"`
+	CapacityRounding int `json:"capacityRounding"`
 }
 
 // PackageImportChange is one work package an import would add or replace.

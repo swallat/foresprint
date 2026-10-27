@@ -8,7 +8,7 @@
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
   import type { PlanSprint } from '../types.plan';
-  import { fmt, parseAmount, unitName, type PlanModel } from './model.svelte';
+  import { parseAmount, unitName, type PlanModel, fmtVal } from './model.svelte';
 
   interface Props {
     d: PlanSprint;
@@ -70,14 +70,14 @@
                 </td>
               {/each}
               <td class="num">
-                {#if over(p.id, p.pre ?? p.default)}<span class="chip warn">{t('{n} over the amount', { n: fmt(-rest, 1) })}</span>{:else}{fmt(rest, 1)}{/if}
+                {#if over(p.id, p.pre ?? p.default)}<span class="chip warn">{t('{n} over the amount', { n: fmtVal(-rest) })}</span>{:else}{fmtVal(rest)}{/if}
               </td>
             </tr>
           {/each}
           <tr class="sum">
             <th scope="row">{t('Total')}</th>
-            {#each matrix.projects as pr (pr.id)}<td class="num">{fmt(colSum(pr.id), 1)}</td>{/each}
-            <td class="num">{fmt(total, 1)}</td>
+            {#each matrix.projects as pr (pr.id)}<td class="num">{fmtVal(colSum(pr.id))}</td>{/each}
+            <td class="num">{fmtVal(total)}</td>
           </tr>
         </tbody>
       </table>
