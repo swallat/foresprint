@@ -69,6 +69,7 @@ let people: Person[] = [
 
 let absences: AbsencePeriod[] = [
   { person: 'mira', from: '2026-11-16', to: '2026-11-20', confirmed: false },
+  { person: 'felix', from: '2026-08-10', to: '2026-08-14', confirmed: true },
   { person: 'felix', from: '2026-11-02', to: '2026-11-03', confirmed: true },
   { person: 'paula', from: '2026-12-14', to: '2027-01-08', confirmed: false },
 ];

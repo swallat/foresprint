@@ -273,3 +273,39 @@ func TestSprintOverview(t *testing.T) {
 		t.Errorf("past -1 should list all finished sprints: %d vs %d", len(all.Rows), len(o.Rows))
 	}
 }
+
+func TestAbsenceGridShowsPeriodsAndFreezeKeepsThem(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	grid, err := api.AbsenceGrid(team, "", 40)
+	if err != nil {
+		t.Fatal(err)
+	}
+	col := grid.Columns[len(grid.Columns)-1]
+	person := grid.Rows[0].Person
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	grid, err = api.AbsenceGrid(team, col.ID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cell := grid.Rows[0].Cells[0]
+	if cell.Days == 0 || !cell.FromPeriod || cell.State != CellAnnounced {
+		t.Fatalf("the period should show as announced days: %+v", cell)
+	}
+	if c := grid.Columns[0]; c.State != AbsenceAnnounced || c.Entries != 1 {
+		t.Fatalf("column does not count the period: %+v", c)
+	}
+	// Freezing keeps the days of the period; changing the period later leaves the frozen sprint alone.
+	if _, err := api.FreezeAbsences(team, col.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, col.ID, 1)
+	if cell := grid.Rows[0].Cells[0]; cell.Days == 0 || cell.FromPeriod || cell.State != CellConfirmed {
+		t.Fatalf("frozen days lost: %+v", cell)
+	}
+}
