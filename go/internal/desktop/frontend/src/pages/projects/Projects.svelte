@@ -206,7 +206,7 @@
               {/if}
               <td class="data">{date(p.end)}</td>
               <td><LightChip light={p.light} /></td>
-              <td class="num"><Amount value={p.booked} digits={1} /></td>
+              <td class="num"><Amount value={p.booked} /></td>
               <td class="num"><Amount value={p.done} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="done" /></td>
               <td class="num"><Amount value={p.planned} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="planned" /></td>
               <td><Meter booked={p.booked} done={p.done} planned={p.planned} /></td>

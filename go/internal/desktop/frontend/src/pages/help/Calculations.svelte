@@ -111,7 +111,7 @@
       <li>{t('Absences are periods only. Announced ones count as soon as they are entered; for later sprints the average of the last sprints is expected.')}</li>
       <li>{t('Without a people list, the capacity follows the trend of the last sprints and is marked as unsure.')}</li>
     </ul>
-    {#if last?.capacity != null}{@render example(t('{id}: {n} PD', { id: last.id, n: fmt(last.capacity) }))}{/if}
+    {#if last?.capacity != null}{@render example(t('{id}: {n} PD', { id: last.id, n: fmtCap(last.capacity) }))}{/if}
   {/snippet}
   {@render section('capacity', t('Capacity'), t('Person days available in a sprint.'), capacityBody)}
 

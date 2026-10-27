@@ -307,8 +307,8 @@ func Render(fc *forecast.Forecast, history int) (string, error) {
 	if current := fc.Current(); current != nil && current.Result.PlanningTotal != nil {
 		r := current.Result
 		lines = append(lines, "", t("**Planning {id}:** total {total} {unit}, delta to the Forecast PLAN "+
-			"{delta} {unit}", "id", current.Sprint.ID, "total", Fmt(r.PlanningTotal, 2, ""),
-			"delta", Fmt(r.PlanningDelta, 2, ""), "unit", unit))
+			"{delta} {unit}", "id", current.Sprint.ID, "total", Fmt(r.PlanningTotal, SplitDigits(fc), ""),
+			"delta", Fmt(r.PlanningDelta, SplitDigits(fc), ""), "unit", unit))
 	}
 
 	past := fc.HistoryLast(history)

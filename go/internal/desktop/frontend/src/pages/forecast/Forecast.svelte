@@ -2,7 +2,7 @@
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { fmt, formatPeriod, pct } from '../../lib/format';
+  import { fmt, fmtCap, fmtRate, fmtVal, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { ForecastAssumption, ForecastView, WhatIfRow } from '../../lib/types.forecast';
@@ -200,9 +200,9 @@
       <p class="small muted rate">{t('The normalized velocity exists only for completed sprints. For coming sprints it is carried on as a trend; Forecast PLAN = rate × capacity of the sprint.')}</p>
         <p class="small muted rate">
           {#if view.rateFixed}
-            {t('Fixed factor of the team: {rate} points per person day.', { rate: fmt(view.rate, 2) })}
+            {t('Fixed factor of the team: {rate} points per person day.', { rate: fmtRate(view.rate) })}
           {:else}
-            {t('Team rate: {rate} points per person day (estimate from the last sprints).', { rate: fmt(view.rate, 2) })}
+            {t('Team rate: {rate} points per person day (estimate from the last sprints).', { rate: fmtRate(view.rate) })}
           {/if}
           <a href="#/help/calculations?topic=rate">{t('How the rate is measured')}</a>
         </p>
@@ -236,15 +236,15 @@
                   <span class="small muted data">{formatPeriod(r.start, r.end)}</span>
                   {#if r.state === 'current'}<span class="chip ok">{t('in progress')}</span>{/if}
                 </td>
-                <td class="num">{fmt(r.capacity)}</td>
+                <td class="num">{fmtCap(r.capacity)}</td>
                 <td>
                   {capSource(r.capacitySource)}
                   {#if r.unsure}<span class="chip warn">{t('unsure')}</span>{/if}
                 </td>
-                <td class="num">{fmt(r.trend)}</td>
+                <td class="num">{fmtVal(r.trend)}</td>
                 <td class="num"><strong>{fmt(r.plan, view.rounding)}</strong></td>
                 <td class="num">{r.low !== null ? `${fmt(r.low, view.rounding)} – ${fmt(r.high, view.rounding)}` : '–'}</td>
-                <td class="num" title={r.carryIn > 0 ? t('After {n} points of carry-over.', { n: fmt(r.carryIn) }) : undefined}>
+                <td class="num" title={r.carryIn > 0 ? t('After {n} points of carry-over.', { n: fmtVal(r.carryIn) }) : undefined}>
                   {fmt(r.plannable, view.rounding)}{r.carryIn > 0 ? '*' : ''}
                 </td>
                 <td class="num">{fmt(r.small, view.rounding)}</td>
@@ -261,7 +261,7 @@
                     <Calc label={t('Forecast PLAN of {id}', { id: r.id })} topic="forecast">
                       {#if r.planSource === 'projection' && r.trend !== null && r.capacity !== null}
                         <div class="data">
-                          {fmt(r.trend)} ÷ {fmt(view.referenceCapacity, 0)} × {fmt(r.capacity)} = {fmt((r.trend / view.referenceCapacity) * r.capacity, 2)}
+                          {fmtVal(r.trend)} ÷ {fmt(view.referenceCapacity, 0)} × {fmtCap(r.capacity)} = {fmt((r.trend / view.referenceCapacity) * r.capacity, 4)}
                           → {fmt(r.plan, view.rounding)}
                         </div>
                         <div class="muted">
@@ -274,11 +274,11 @@
                         <div class="muted">{t('The recorded commitment of the sprint, rounded down.')}</div>
                       {/if}
                       <div class="data">
-                        {t('Plannable: ({plan} − {carry}) × {share}', { plan: fmt(r.plan, view.rounding), carry: fmt(r.carryIn), share: pct(view.roadmapShare) })} → {fmt(r.plannable, view.rounding)}
+                        {t('Plannable: ({plan} − {carry}) × {share}', { plan: fmt(r.plan, view.rounding), carry: fmtVal(r.carryIn), share: pct(view.roadmapShare) })} → {fmt(r.plannable, view.rounding)}
                       </div>
                       {#if r.carryIn > 0}
                         <div class="muted">
-                          {r.carryAssumed ? t('Carry-over of {n} points is an assumption of the running sprint.', { n: fmt(r.carryIn) }) : t('Carry-over of {n} points continues in this sprint.', { n: fmt(r.carryIn) })}
+                          {r.carryAssumed ? t('Carry-over of {n} points is an assumption of the running sprint.', { n: fmtVal(r.carryIn) }) : t('Carry-over of {n} points continues in this sprint.', { n: fmtVal(r.carryIn) })}
                         </div>
                       {/if}
                       {#if r.overbooked}<div class="muted">{t('The carry-over alone exceeds the plan; nothing is plannable.')}</div>{/if}
@@ -290,7 +290,7 @@
             {#if view.upcoming.length > 1}
               <tr class="sum">
                 <td>{t('Sum of {n} sprints', { n: view.upcoming.length })}</td>
-                <td class="num">{fmt(sum(view.upcoming.map((r) => r.capacity)))}</td>
+                <td class="num">{fmtCap(sum(view.upcoming.map((r) => r.capacity)))}</td>
                 <td></td>
                 <td></td>
                 <td class="num">{total(view.upcoming.map((r) => r.plan), view.rounding)}</td>
@@ -398,11 +398,11 @@
               {#each pastShown as r (r.id)}
                 <tr>
                   <td><span class="data">{r.id}</span> <span class="small muted data">{formatPeriod(r.start, r.end)}</span></td>
-                  <td class="num">{fmt(r.capacity)}</td>
-                  <td class="num">{fmt(r.commitment)}</td>
-                  <td class="num">{fmt(r.velocity)}</td>
+                  <td class="num">{fmtCap(r.capacity)}</td>
+                  <td class="num">{fmtVal(r.commitment)}</td>
+                  <td class="num">{fmtVal(r.velocity)}</td>
                   <td class="num">{pct(r.fulfillment)}</td>
-                  <td class="num">{fmt(r.normalizedVelocity)}</td>
+                  <td class="num">{fmtVal(r.normalizedVelocity)}</td>
                 </tr>
               {/each}
             </tbody>
