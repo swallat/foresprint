@@ -12,9 +12,9 @@
   import { fmtDay, fmtNum, fmtShort, parseNum } from '../../lib/team/format';
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
   import { inverse, type Inverse } from '../../lib/team/undo';
-  import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
+  import type { AbsencePeriod, CalendarRow, PeopleView, Person, PersonKind } from '../../lib/types.team';
   import AbsenceOverview from './AbsenceOverview.svelte';
-  import AbsencePanel from './AbsencePanel.svelte';
+  import AbsenceTimeline from './AbsenceTimeline.svelte';
   import OwnersCard from './OwnersCard.svelte';
   import TimesPanel from './TimesPanel.svelte';
 
@@ -24,10 +24,12 @@
   let view = $state<PeopleView>();
   let absences = $state<AbsencePeriod[]>([]);
   let filter = $state<'now' | 'former' | 'all'>('now');
-  let panel = $state<{ kind: 'times' | 'absences'; id: string } | null>(null);
+  let panel = $state<{ kind: 'times'; id: string } | null>(null);
   let focusId = $state('');
   let failed = $state('');
   let openFrom = $state('');
+  let calendar = $state<CalendarRow[]>([]);
+  let absenceView = $state<'list' | 'timeline'>('list');
   // The absence grid reads the people and the periods itself; it starts over when they changed.
   let gridKey = $state(0);
 
@@ -42,8 +44,9 @@
   async function load() {
     const team = app.team;
     try {
-      const [v, a, cal] = await Promise.all([api.People(team), api.AbsencePeriods(team), api.Calendar(team, 1)]);
+      const [v, a, cal] = await Promise.all([api.People(team), api.AbsencePeriods(team), api.Calendar(team, 6)]);
       view = v;
+      calendar = cal.rows;
       openFrom = cal.rows.find((r) => r.state !== 'finished')?.start ?? '';
       loadedTeam = team;
       absences = a;
@@ -240,7 +243,7 @@
                 type="button"
                 class="chip {next.length ? (next.every((a) => a.confirmed) ? 'ok' : 'warn') : 'filter'}"
                 aria-label={t('Planned absences of {name}: {count}', { name: p.name, count: next.length })}
-                onclick={() => (panel = { kind: 'absences', id: p.id })}
+                onclick={() => (panel = { kind: 'times', id: p.id })}
               >
                 {#if next.length}
                   <Icon name={next.every((a) => a.confirmed) ? 'lock' : 'lock_open'} size={14} />
@@ -309,8 +312,16 @@
     <div class="row head">
       <h2 id="all-h">{t('All absences')}</h2>
     </div>
-    <p class="small muted">{t('Every planned period of every person. Change, confirm or delete them here; only the dates are stored, never a reason.')}</p>
-    <AbsenceOverview people={view.people} today={view.today} {absences} {openFrom} onchange={saveAbsences} />
+    <p class="small muted">{t('Every planned period of every person. Change, confirm or delete them here or in the times of a person; only the dates are stored, never a reason.')}</p>
+    <div class="row filter" role="group" aria-label={t('View')}>
+      <button type="button" class="chip filter" class:on={absenceView === 'list'} aria-pressed={absenceView === 'list'} onclick={() => (absenceView = 'list')}><Icon name="view_list" size={16} />{t('List')}</button>
+      <button type="button" class="chip filter" class:on={absenceView === 'timeline'} aria-pressed={absenceView === 'timeline'} onclick={() => (absenceView = 'timeline')}><Icon name="view_timeline" size={16} />{t('Timeline')}</button>
+    </div>
+    {#if absenceView === 'list'}
+      <AbsenceOverview people={view.people} today={view.today} {absences} {openFrom} onchange={saveAbsences} />
+    {:else}
+      <AbsenceTimeline people={view.people} sprints={calendar} today={view.today} {absences} {openFrom} onchange={saveAbsences} />
+    {/if}
   </section>
 
   <section class="grid-sec" aria-labelledby="abs-h">
@@ -331,6 +342,9 @@
       {person}
       today={view.today}
       teamCountry={view.country}
+      {absences}
+      {openFrom}
+      onabsences={saveAbsences}
       onclose={() => (panel = null)}
       onsave={(next, message) => {
         // Read before the panel closes: `person` is derived from the open panel and is gone afterwards.
@@ -349,14 +363,6 @@
       }}
     />
     {/key}
-  {:else if person && shown?.kind === 'absences'}
-    <AbsencePanel
-      {person}
-      today={view.today}
-      {absences}
-      onclose={() => (panel = null)}
-      onchange={saveAbsences}
-    />
   {/if}
 {/if}
 
