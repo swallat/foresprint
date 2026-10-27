@@ -124,12 +124,12 @@ export class PlanModel {
 
 // --- Formatting ---------------------------------------------------------------------------
 
-import { fmt } from '../format';
+import { fmtVal } from '../format';
 export { fmt, fmtCap, fmtRate, fmtVal } from '../format';
 
 export function signed(v: number): string {
-  if (v > 0) return `+${fmt(v)}`;
-  if (v < 0) return `−${fmt(-v)}`;
+  if (v > 0) return `+${fmtVal(v)}`;
+  if (v < 0) return `−${fmtVal(-v)}`;
   return '0';
 }
 

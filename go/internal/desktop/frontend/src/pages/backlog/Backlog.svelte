@@ -603,7 +603,7 @@
                   <span class="data">{t('Without estimate (count 0): {count}', { count: l.tickets.filter((tk) => tk.size == null).length })}</span><br />
                   {#if l.plan != null}
                     <span class="data">{t('Forecast PLAN of the sprint: {plan} {unit}', { plan: fmt(l.plan), unit })}</span><br />
-                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: fmt(l.plan - used), unit })}</span>
+                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: fmtVal(l.plan - used), unit })}</span>
                   {:else}
                     <span class="data">{t('No Forecast PLAN yet for this sprint.')}</span>
                   {/if}

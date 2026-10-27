@@ -323,13 +323,13 @@
                 {#if estimated && lane.tickets.some((x) => x.estimatePD !== null)}
                   {t('{n} tickets, {points} points, about {pd} PD', {
                     n: lane.tickets.length,
-                    points: num(sum(lane.tickets.map((x) => x.estimate)), 1),
-                    pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1),
+                    points: num(sum(lane.tickets.map((x) => x.estimate))),
+                    pd: num(sum(lane.tickets.map((x) => x.estimatePD))),
                   })}
                 {:else if estimated}
-                  {t('{n} tickets, {points} points', { n: lane.tickets.length, points: num(sum(lane.tickets.map((x) => x.estimate)), 1) })}
+                  {t('{n} tickets, {points} points', { n: lane.tickets.length, points: num(sum(lane.tickets.map((x) => x.estimate))) })}
                 {:else}
-                  {t('{n} tickets, {pd} PD', { n: lane.tickets.length, pd: num(sum(lane.tickets.map((x) => x.estimatePD)), 1) })}
+                  {t('{n} tickets, {pd} PD', { n: lane.tickets.length, pd: num(sum(lane.tickets.map((x) => x.estimatePD))) })}
                 {/if}
               </span>
             </div>

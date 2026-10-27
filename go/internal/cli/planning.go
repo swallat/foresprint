@@ -277,8 +277,8 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 		}
 		env.Println(i18n.P("Planning total {total} {unit} · Forecast PLAN {plan} {unit} · "+
 			"[{colour}]delta {delta} {unit}[/{colour}]",
-			"total", report.Fmt(e.Result.PlanningTotal, 2, ""), "plan", report.Fmt(e.Result.Plan, report.PlanDigits(fc), ""),
-			"delta", report.Fmt(&delta, 2, ""), "unit", unit, "colour", "green"))
+			"total", report.Fmt(e.Result.PlanningTotal, report.SplitDigits(fc), ""), "plan", report.Fmt(e.Result.Plan, report.PlanDigits(fc), ""),
+			"delta", report.Fmt(&delta, report.SplitDigits(fc), ""), "unit", unit, "colour", "green"))
 	}
 	return env.maybeCommit(key, []string{path}, i18n.T("{team} {id}: planning recorded", "team", data.Team.Name, "id", s.ID), "", doCommit)
 }

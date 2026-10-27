@@ -432,8 +432,8 @@
           </div>
           <CapacityBar used={laneSum} plan={d.plan} low={d.low} high={d.high} unit={unitName(d)} />
           <div class="row small">
-            {#if d.high != null && laneSum > d.high}<span class="chip bad">{t('{n} over the range', { n: fmt(laneSum - d.high) })}</span>
-            {:else if d.low != null && laneSum < d.low}<span class="chip fc">{t('{n} to the range', { n: fmt(d.low - laneSum) })}</span>
+            {#if d.high != null && laneSum > d.high}<span class="chip bad">{t('{n} over the range', { n: fmtVal(laneSum - d.high) })}</span>
+            {:else if d.low != null && laneSum < d.low}<span class="chip fc">{t('{n} to the range', { n: fmtVal(d.low - laneSum) })}</span>
             {:else}<span class="chip ok">{t('within the range')}</span>{/if}
             {#if unrefined}<span class="chip warn">{t('{n} not refined', { n: unrefined })}</span>{/if}
             {#if noEstimate}<span class="chip warn">{t('{n} without estimate (count 0)', { n: noEstimate })}</span>{/if}

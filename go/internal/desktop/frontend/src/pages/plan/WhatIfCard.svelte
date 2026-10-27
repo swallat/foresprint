@@ -172,7 +172,7 @@
         <div class="res">
           <div>
             <div class="small muted">{t('Expected velocity {sprint}', { sprint: d.running })}</div>
-            <div class="data big">{fmt(r.velocity)}</div>
+            <div class="data big">{fmtVal(r.velocity)}</div>
             <div class="small muted">{fmtVal(r.commitment)} − {fmtVal(r.notDone)} {t('not finished')} + {fmtVal(r.extra)} {noT ? t('additionally') : t('pulled in')}</div>
           </div>
           <div>

@@ -119,7 +119,7 @@
                     />
                   </td>
                   {#if d.source === 'tracker'}<td class="small">{source(x.prodSource)}</td>{/if}
-                  <td class="num">{fmt(((x.size ?? 0) * x.prodPct) / 100)}</td>
+                  <td class="num">{fmtVal(((x.size ?? 0) * x.prodPct) / 100)}</td>
                 </tr>
               {/each}
               <tr class="sum">

@@ -61,7 +61,7 @@
       </Calc>
     </div>
     <div class="small muted">
-      {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmtCap(d.absenceDays), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
+      {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmtVal(d.absenceDays), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
     </div>
     {#if prod}
       <div class="small muted">{t('with production access about {n} PD', { n: fmtCap(prod.time) })}</div>
@@ -135,7 +135,7 @@
     <CapacityBar {used} plan={d.plan} low={d.low} high={d.high} {unit} />
     <div class="small muted">
       {#if freeLeft != null}
-        {#if freeLeft >= 0}{t('still free')} <span class="data">{fmt(freeLeft)}</span>{:else}<span class="data">{fmt(-freeLeft)}</span> {t('over plannable')}{/if}
+        {#if freeLeft >= 0}{t('still free')} <span class="data">{fmtVal(freeLeft)}</span>{:else}<span class="data">{fmtVal(-freeLeft)}</span> {t('over plannable')}{/if}
         ·
       {/if}
       {#if d.source !== 'none' && d.preplanned > 0}{t('pre-planned')} <span class="data">{fmtVal(d.preplanned)}</span> · {/if}
