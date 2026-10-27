@@ -26,6 +26,8 @@ export interface AbsenceCell {
   state: CellState;
   max: number;
   active: boolean;
+  /** The days come from a planned absence period, nothing is typed in the sprint. */
+  fromPeriod?: boolean;
 }
 
 export interface AbsenceRow {

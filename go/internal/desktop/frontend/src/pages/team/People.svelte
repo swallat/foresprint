@@ -13,6 +13,7 @@
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
   import { inverse, type Inverse } from '../../lib/team/undo';
   import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
+  import AbsenceOverview from './AbsenceOverview.svelte';
   import AbsencePanel from './AbsencePanel.svelte';
   import OwnersCard from './OwnersCard.svelte';
   import TimesPanel from './TimesPanel.svelte';
@@ -26,6 +27,7 @@
   let panel = $state<{ kind: 'times' | 'absences'; id: string } | null>(null);
   let focusId = $state('');
   let failed = $state('');
+  let openFrom = $state('');
   // The absence grid reads the people and the periods itself; it starts over when they changed.
   let gridKey = $state(0);
 
@@ -40,8 +42,9 @@
   async function load() {
     const team = app.team;
     try {
-      const [v, a] = await Promise.all([api.People(team), api.AbsencePeriods(team)]);
+      const [v, a, cal] = await Promise.all([api.People(team), api.AbsencePeriods(team), api.Calendar(team, 1)]);
       view = v;
+      openFrom = cal.rows.find((r) => r.state !== 'finished')?.start ?? '';
       loadedTeam = team;
       absences = a;
       gridKey++;
@@ -151,6 +154,16 @@
   /** The next absences of a person that have not ended. */
   function nextAbsences(p: Person): AbsencePeriod[] {
     return absences.filter((a) => a.person === p.id && a.to >= today).sort((a, b) => a.from.localeCompare(b.from));
+  }
+
+  async function saveAbsences(list: AbsencePeriod[]) {
+    try {
+      absences = await api.SaveAbsencePeriods(app.team, list);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), 'bad');
+      absences = await api.AbsencePeriods(app.team);
+    }
+    gridKey++;
   }
 
   const shown = $derived(filter === 'former' ? [] : current);
@@ -292,6 +305,14 @@
 <OwnersCard people={view} onchange={poStep} />
 
 {#if view}
+  <section class="grid-sec" aria-labelledby="all-h">
+    <div class="row head">
+      <h2 id="all-h">{t('All absences')}</h2>
+    </div>
+    <p class="small muted">{t('Every planned period of every person. Change, confirm or delete them here; only the dates are stored, never a reason.')}</p>
+    <AbsenceOverview people={view.people} today={view.today} {absences} {openFrom} onchange={saveAbsences} />
+  </section>
+
   <section class="grid-sec" aria-labelledby="abs-h">
     <div class="row head">
       <h2 id="abs-h">{t('Absences over several sprints')}</h2>
@@ -334,16 +355,7 @@
       today={view.today}
       {absences}
       onclose={() => (panel = null)}
-      onchange={async (list) => {
-        try {
-          absences = await api.SaveAbsencePeriods(app.team, list);
-          gridKey++;
-        } catch (e) {
-          toast(e instanceof Error ? e.message : String(e), 'bad');
-          absences = await api.AbsencePeriods(app.team);
-          gridKey++;
-        }
-      }}
+      onchange={saveAbsences}
     />
   {/if}
 {/if}

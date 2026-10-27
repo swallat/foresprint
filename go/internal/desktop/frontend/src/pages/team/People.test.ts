@@ -45,3 +45,16 @@ describe('People times panel', () => {
     expect(errors).toEqual([]);
   });
 });
+
+describe('All absences', () => {
+  it('lists every period of the team and deletes one', async () => {
+    host = document.createElement('div');
+    document.body.append(host);
+    cmp = mount(People, { target: host, props: { params: {} } });
+    const rows = () => host.querySelectorAll('section[aria-labelledby="all-h"] tbody tr');
+    await vi.waitFor(() => expect(rows().length).toBeGreaterThan(0), { timeout: 3000 });
+    const before = rows().length;
+    host.querySelector<HTMLButtonElement>('section[aria-labelledby="all-h"] button[aria-label^="Delete absence"]:not([disabled])')!.click();
+    await vi.waitFor(() => expect(rows().length).toBe(before - 1), { timeout: 3000 });
+  });
+});

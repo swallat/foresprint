@@ -98,6 +98,7 @@
     if (shown === 0) ghosts[key] = cell.days;
     else delete ghosts[key];
     cell.days = shown;
+    cell.fromPeriod = false;
     if (shown === 0 && cell.state !== 'confirmed') cell.state = 'empty';
     else if (cell.state === 'empty') cell.state = 'announced';
     input.value = shown ? days(shown) : '';
@@ -233,7 +234,9 @@
                         ? t('Frozen with the sprint. Open the sprint to change the lock.')
                         : cell.state === 'confirmed'
                           ? t('Confirmed. A click makes it announced again.')
-                          : t('Announced. A click confirms it.')}
+                          : cell.fromPeriod
+                            ? t('From a planned absence period. A click confirms it.')
+                            : t('Announced. A click confirms it.')}
                       <button
                         class="btn icon ghost lock"
                         type="button"
