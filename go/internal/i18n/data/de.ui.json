@@ -727,7 +727,6 @@
   "Show person": "Person anzeigen",
   "All people": "Alle Personen",
   "Planned absences as periods, first to last day. They are saved right away. Only the dates are stored, never a reason.": "Geplante Abwesenheiten als Zeiträume, vom ersten bis zum letzten Tag. Sie werden sofort gespeichert. Gespeichert werden nur die Daten, nie ein Grund.",
-  "Absences": "Abwesenheiten",
   "View": "Ansicht",
   "List": "Liste",
   "Timeline": "Zeitleiste",
@@ -741,6 +740,7 @@
   "The first day lies in a finished sprint. Finished sprints stay as they are.": "Der erste Tag liegt in einem beendeten Sprint. Beendete Sprints bleiben unverändert.",
   "Confirmed (otherwise announced)": "Bestätigt (sonst angekündigt)",
   "Every planned period of every person. Change, confirm or delete them here or in the times of a person; only the dates are stored, never a reason.": "Jeder geplante Zeitraum jeder Person. Hier oder in den Zeiten einer Person änderst, bestätigst oder löschst du ihn; gespeichert werden nur die Daten, nie ein Grund.",
-  "Days in finished sprints stay as they are; only the last day and the status can change.": "Tage in beendeten Sprints bleiben unverändert; nur der letzte Tag und der Status lassen sich ändern."
+  "Days in finished sprints stay as they are; only the last day and the status can change.": "Tage in beendeten Sprints bleiben unverändert; nur der letzte Tag und der Status lassen sich ändern.",
+  "Absence periods": "Abwesenheiten"
  }
 }

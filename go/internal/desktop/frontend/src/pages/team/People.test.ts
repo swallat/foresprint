@@ -99,7 +99,7 @@ describe('All absences', () => {
     host.querySelector<HTMLButtonElement>('button[aria-label^="Times and leaving"]')!.click();
     await settle();
     const panel = host.querySelector('aside')!;
-    expect(panel.textContent).toMatch(/Absences/);
+    expect(panel.textContent).toMatch(/Absence periods/);
     expect(panel.querySelector('button.btn')).toBeTruthy();
   });
 });
