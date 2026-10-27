@@ -124,14 +124,12 @@ export class PlanModel {
 
 // --- Formatting ---------------------------------------------------------------------------
 
-export function fmt(v: number | null | undefined, digits = 0): string {
-  if (v == null || Number.isNaN(v)) return '–';
-  return new Intl.NumberFormat(language(), { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(v);
-}
+import { fmtVal } from '../format';
+export { fmt, fmtCap, fmtRate, fmtVal } from '../format';
 
 export function signed(v: number): string {
-  if (v > 0) return `+${fmt(v)}`;
-  if (v < 0) return `−${fmt(-v)}`;
+  if (v > 0) return `+${fmtVal(v)}`;
+  if (v < 0) return `−${fmtVal(-v)}`;
   return '0';
 }
 

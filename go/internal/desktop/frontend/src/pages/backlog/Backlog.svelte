@@ -9,7 +9,7 @@
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { BacklogTicket } from '../../lib/types.backlog';
-  import { fmt, formatPeriod } from '../../lib/format';
+  import { fmt, formatPeriod, fmtVal } from '../../lib/format';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
@@ -475,10 +475,10 @@
             <div class="row">
               <strong>{t('Backlog')}</strong>
               <span class="chip data">{items.length}</span>
-              <span class="muted small data">{fmt(sum(items))} {unit}</span>
+              <span class="muted small data">{fmtVal(sum(items))} {unit}</span>
               <Calc label={t('Backlog')} topic="sums">
                 <span class="data">{t('{count} tickets in the list', { count: items.length })}</span><br />
-                <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: fmt(sum(items)), unit })}</span><br />
+                <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: fmtVal(sum(items)), unit })}</span><br />
                 <span class="data">{t('Without estimate (count 0): {count}', { count: items.filter((tk) => tk.size == null).length })}</span><br />
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
@@ -509,7 +509,7 @@
                 <div class="gh">
                   {#if s.kind === 'product'}<span class="dot"></span>{:else}<Icon name={s.id ? 'flag' : 'inventory_2'} size={16} />{/if}
                   {s.name || (s.kind === 'project' ? t('Daily business') : t('No product'))}
-                  <span class="muted data count">{fmt(sum(s.items))} {unit}, {s.items.length}</span>
+                  <span class="muted data count">{fmtVal(sum(s.items))} {unit}, {s.items.length}</span>
                 </div>
                 {#each s.items as tk (tk.key)}
                   {@render row(tk, s.kind !== 'product', s.kind !== 'project')}
@@ -544,7 +544,7 @@
                 <strong>{pf.name}</strong>
                 <span class="chip"><Icon name="inventory_2" size={14} />{t('Pro forma')}</span>
                 <span class="chip data">{pf.tickets.length}</span>
-                <span class="muted small data">{fmt(sprintTotal(pf.tickets))} {unit}</span>
+                <span class="muted small data">{fmtVal(sprintTotal(pf.tickets))} {unit}</span>
               </div>
               <span class="small muted">{t('Not a real sprint: it never counts for capacity or forecast.')}</span>
             </div>
@@ -589,21 +589,21 @@
                 {/if}
                 <a class="small" href={link('/sprint/preplan')}>{t('Pre-plan')}</a>
               </div>
-              <div class="cap" role="img" aria-label={l.plan != null ? t('{used} of {plan} {unit}', { used: fmt(used), plan: fmt(l.plan), unit }) : t('{used} {unit}', { used: fmt(used), unit })}>
+              <div class="cap" role="img" aria-label={l.plan != null ? t('{used} of {plan} {unit}', { used: fmtVal(used), plan: fmt(l.plan), unit }) : t('{used} {unit}', { used: fmtVal(used), unit })}>
                 <div class="used" class:over style:width={`${l.plan ? Math.min(100, (used / l.plan) * 100) : 0}%`}></div>
               </div>
               <div class="row small">
                 {#if l.plan != null}
-                  <span class="data"><strong>{fmt(used)}</strong> {t('earmarked, Forecast PLAN {plan}', { plan: fmt(l.plan) })}</span>
+                  <span class="data"><strong>{fmtVal(used)}</strong> {t('earmarked, Forecast PLAN {plan}', { plan: fmt(l.plan) })}</span>
                 {:else}
-                  <span class="data"><strong>{fmt(used)}</strong> {t('earmarked, no forecast yet')}</span>
+                  <span class="data"><strong>{fmtVal(used)}</strong> {t('earmarked, no forecast yet')}</span>
                 {/if}
                 <Calc label={t('Earmarked in {sprint}', { sprint: l.sprint })} topic="sums">
-                  <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: fmt(used), unit })}</span><br />
+                  <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: fmtVal(used), unit })}</span><br />
                   <span class="data">{t('Without estimate (count 0): {count}', { count: l.tickets.filter((tk) => tk.size == null).length })}</span><br />
                   {#if l.plan != null}
                     <span class="data">{t('Forecast PLAN of the sprint: {plan} {unit}', { plan: fmt(l.plan), unit })}</span><br />
-                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: fmt(l.plan - used), unit })}</span>
+                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: fmtVal(l.plan - used), unit })}</span>
                   {:else}
                     <span class="data">{t('No Forecast PLAN yet for this sprint.')}</span>
                   {/if}
@@ -611,7 +611,7 @@
                 </Calc>
               </div>
               {#if over}
-                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}.', { used: fmt(used), plan: fmt(l.plan ?? 0) })}</div></div>
+                <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}.', { used: fmtVal(used), plan: fmt(l.plan ?? 0) })}</div></div>
               {/if}
               {#if l.tickets.some((tk) => !tk.refined || tk.size == null)}
                 <div class="row small muted">

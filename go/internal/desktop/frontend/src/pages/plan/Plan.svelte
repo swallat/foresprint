@@ -10,7 +10,7 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { assumptions, fmt, itemWord, parseAmount, PlanModel, signed, touched, unitName } from '../../lib/plan/model.svelte';
+  import { assumptions, fmt, fmtRate, itemWord, parseAmount, PlanModel, signed, touched, unitName, fmtVal } from '../../lib/plan/model.svelte';
   import Production from '../../lib/plan/Production.svelte';
   import SprintHead from '../../lib/plan/SprintHead.svelte';
   import Summary from '../../lib/plan/Summary.svelte';
@@ -299,7 +299,7 @@
         <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
         {t('Capacity and Forecast PLAN can still change.')}
         {#if announced.length}
-          <div class="small">{t('Announced days:')} {announced.map((x) => `${x.name} (${fmt(x.days, 1)})`).join(', ')}</div>
+          <div class="small">{t('Announced days:')} {announced.map((x) => `${x.name} (${fmtVal(x.days)})`).join(', ')}</div>
         {/if}
         <div class="row gap">
           {#if d.stage !== 'past'}
@@ -316,7 +316,7 @@
       <Icon name="lock" />
       <div class="grow">
         {noT ? t('Frozen: commitment') : t('Frozen: {n} {items}, commitment', { n: d.frozen.tickets, items: itemWord(d) })}
-        <span class="data">{fmt(d.frozen.commitment)}</span> {unitName(d)}. {t('The planning minutes are written.')}
+        <span class="data">{fmtVal(d.frozen.commitment)}</span> {unitName(d)}. {t('The planning minutes are written.')}
         <div class="row gap">
           {#if d.stage === 'planned' || d.stage === 'open'}
             <button class="btn" type="button" id="reopen" onclick={reopen}><Icon name="lock_open" />{t('Open the plan again')}</button>
@@ -343,11 +343,11 @@
               {#each productRows as r (r.p.id)}
                 <tr>
                   <td>{r.p.name}</td>
-                  <td class="num">{fmt(r.p.pre)}</td>
+                  <td class="num">{fmtVal(r.p.pre)}</td>
                   <td class="num edit"><input inputmode="decimal" value={r.usedP} disabled={frozen} aria-label={t('Amount {product}', { product: r.p.name })} onchange={(e) => setAmount(r.p.id, e.currentTarget, r.usedP)} /></td>
                 </tr>
               {/each}
-              <tr class="sum"><td>{t('Sum')}</td><td class="num">{fmt(d.preplanned)}</td><td class="num">{fmt(amountSum)}</td></tr>
+              <tr class="sum"><td>{t('Sum')}</td><td class="num">{fmtVal(d.preplanned)}</td><td class="num">{fmtVal(amountSum)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -377,7 +377,7 @@
         onkeydown={(e) => laneKey(e, 'candidates')}
       >
         <div class="lane-head">
-          <div class="row"><strong class="grow">{t('Candidates')}</strong><span class="small muted data">{candidates.length} {itemWord(d)} · {fmt(sizeSum(candidates), 1)} {unitName(d)}</span></div>
+          <div class="row"><strong class="grow">{t('Candidates')}</strong><span class="small muted data">{candidates.length} {itemWord(d)} · {fmtVal(sizeSum(candidates))} {unitName(d)}</span></div>
           <span class="small muted">{t('Backlog and earmarked for later sprints')}</span>
           <div class="row cand-filter" role="group" aria-label={t('Filter candidates')}>
             {#if d.running}
@@ -428,12 +428,12 @@
         <div class="lane-head">
           <div class="row">
             <strong class="grow">{t('Sprint {sprint}', { sprint: d.sprint })}</strong>
-            <span class="data"><strong>{fmt(laneSum, 1)}</strong> {t('of')} {fmt(d.plan)} <span class="muted small">({fmt(d.low)} – {fmt(d.high)})</span></span>
+            <span class="data"><strong>{fmtVal(laneSum)}</strong> {t('of')} {fmt(d.plan)} <span class="muted small">({fmt(d.low)} – {fmt(d.high)})</span></span>
           </div>
           <CapacityBar used={laneSum} plan={d.plan} low={d.low} high={d.high} unit={unitName(d)} />
           <div class="row small">
-            {#if d.high != null && laneSum > d.high}<span class="chip bad">{t('{n} over the range', { n: fmt(laneSum - d.high, 1) })}</span>
-            {:else if d.low != null && laneSum < d.low}<span class="chip fc">{t('{n} to the range', { n: fmt(d.low - laneSum, 1) })}</span>
+            {#if d.high != null && laneSum > d.high}<span class="chip bad">{t('{n} over the range', { n: fmtVal(laneSum - d.high) })}</span>
+            {:else if d.low != null && laneSum < d.low}<span class="chip fc">{t('{n} to the range', { n: fmtVal(d.low - laneSum) })}</span>
             {:else}<span class="chip ok">{t('within the range')}</span>{/if}
             {#if unrefined}<span class="chip warn">{t('{n} not refined', { n: unrefined })}</span>{/if}
             {#if noEstimate}<span class="chip warn">{t('{n} without estimate (count 0)', { n: noEstimate })}</span>{/if}
@@ -461,11 +461,11 @@
             <tbody>
               {#each productRows as r (r.p.id)}
                 <tr>
-                  <td>{r.p.name}</td><td class="num">{fmt(r.budget)}</td><td class="num">{fmt(r.usedP, 1)}</td>
-                  <td class="num">{#if r.diff > 0}<span class="chip warn">+{fmt(r.diff, 1)}</span>{:else if r.diff < 0}<span class="muted">{signed(r.diff)} {t('free')}</span>{:else}<span class="chip ok">{t('fits')}</span>{/if}</td>
+                  <td>{r.p.name}</td><td class="num">{fmtVal(r.budget)}</td><td class="num">{fmtVal(r.usedP)}</td>
+                  <td class="num">{#if r.diff > 0}<span class="chip warn">+{fmtVal(r.diff)}</span>{:else if r.diff < 0}<span class="muted">{signed(r.diff)} {t('free')}</span>{:else}<span class="chip ok">{t('fits')}</span>{/if}</td>
                 </tr>
               {/each}
-              <tr class="sum"><td>{t('Total')}</td><td class="num">{fmt(productRows.reduce((a, r) => a + r.budget, 0))}</td><td class="num">{fmt(productRows.reduce((a, r) => a + r.usedP, 0), 1)}</td><td></td></tr>
+              <tr class="sum"><td>{t('Total')}</td><td class="num">{fmtVal(productRows.reduce((a, r) => a + r.budget, 0))}</td><td class="num">{fmtVal(productRows.reduce((a, r) => a + r.usedP, 0))}</td><td></td></tr>
             </tbody>
           </table>
         </div>
@@ -481,10 +481,10 @@
             <tbody>
               {#each projectRows as r (r.p.id)}
                 <tr>
-                  <td>{r.p.name}</td><td class="num">{fmt(r.amount, 1)}</td><td class="num">≈ {fmt(r.need, 1)}</td><td class="num">{fmt(r.rest, 1)}</td>
+                  <td>{r.p.name}</td><td class="num">{fmtVal(r.amount)}</td><td class="num">≈ {fmtVal(r.need)}</td><td class="num">{fmtVal(r.rest)}</td>
                   <td>
-                    {#if r.rest != null && r.rest < 0}<span class="chip bad"><Icon name="cancel" size={14} />{t('{n} PD over contingent', { n: fmt(Math.max(-r.rest, 0.1), 1) })}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn"><Icon name="error" size={14} />{t('tight, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{:else if r.rest != null}<span class="chip ok"><Icon name="check_circle" size={14} />{t('on plan, rest {n} PD', { n: fmt(r.rest, 1) })}</span>{/if}
-                    <Calc label={r.p.name} topic="units"><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></Calc>
+                    {#if r.rest != null && r.rest < 0}<span class="chip bad"><Icon name="cancel" size={14} />{t('{n} PD over contingent', { n: fmtVal(Math.max(-r.rest, 0.1)) })}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn"><Icon name="error" size={14} />{t('tight, rest {n} PD', { n: fmtVal(r.rest) })}</span>{:else if r.rest != null}<span class="chip ok"><Icon name="check_circle" size={14} />{t('on plan, rest {n} PD', { n: fmtVal(r.rest) })}</span>{/if}
+                    <Calc label={r.p.name} topic="units"><div class="data">{fmtVal(r.amount)} ÷ {fmtRate(d.rate)} = {fmtVal(r.need)} {t('PD')}</div></Calc>
                   </td>
                 </tr>
               {/each}
@@ -494,7 +494,7 @@
       {:else}
         <p class="muted">{noT ? t('No project amounts in the sprint.') : t('No project tickets in the sprint.')}</p>
       {/if}
-      <p class="small muted">{t('Daily business without a project: {n} {unit}. Conversion with the rate {rate} per PD.', { n: fmt(noT ? 0 : sizeSum(lane.filter((x) => !x.project)), 1), unit: unitName(d), rate: fmt(d.rate, 2) })}</p>
+      <p class="small muted">{t('Daily business without a project: {n} {unit}. Conversion with the rate {rate} per PD.', { n: fmtVal(noT ? 0 : sizeSum(lane.filter((x) => !x.project))), unit: unitName(d), rate: fmtRate(d.rate) })}</p>
     </div>
   </div>
 

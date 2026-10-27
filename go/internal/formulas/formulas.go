@@ -48,6 +48,17 @@ func (f Formatter) nd(v float64, digits int) string { return textfmt.Fmt(f.Lang,
 
 func (f Formatter) np(v *float64) string { return textfmt.FmtPtr(f.Lang, v, 2) }
 
+// plan is an amount calculated from the Forecast PLAN (plannable, small items, rest): two decimals
+// as everywhere, or the team's rounding if that has more, so a rounding of three digits is not
+// cut to two in the calculation path.
+func (f Formatter) plan(v float64, rounding int) string {
+	return textfmt.Fmt(f.Lang, v, max(2, rounding), "")
+}
+
+func (f Formatter) planPtr(v *float64, rounding int) string {
+	return textfmt.FmtPtr(f.Lang, v, max(2, rounding))
+}
+
 // g is short, with the decimal separator of the language: 0.5 → "0,5" (German), 3.0 → "3".
 func (f Formatter) g(v float64) string {
 	text := pymath.General(v)
@@ -513,15 +524,15 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 			free := math.Max(*r.Plan-e.CarryIn, 0)
 			steps = append(steps,
 				Step{"roadmap", f.t("Plannable"), f.t("Plannable = rounded down((Forecast PLAN − carry-over) × plannable share, {digits} digit(s))", "digits", fs.Rounding),
-					fmt.Sprintf("(%s − %s → %s) × %s = %s", plan, f.nd(e.CarryIn, 2), f.nd(free, 2), textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
+					fmt.Sprintf("(%s − %s → %s) × %s = %s", plan, f.plan(e.CarryIn, fs.Rounding), f.plan(free, fs.Rounding), textfmt.Pct(f.Lang, fs.RoadmapShare), f.planPtr(r.Roadmap, fs.Rounding))},
 				Step{"small_stuff", f.t("Small items"), f.t("Small items = Forecast PLAN − carry-over − plannable"),
-					fmt.Sprintf("%s − %s = %s", f.nd(free, 2), f.np(r.Roadmap), f.np(r.SmallStuff))})
+					fmt.Sprintf("%s − %s = %s", f.plan(free, fs.Rounding), f.planPtr(r.Roadmap, fs.Rounding), f.planPtr(r.SmallStuff, fs.Rounding))})
 		} else {
 			steps = append(steps,
 				Step{"roadmap", f.t("Plannable"), f.General("roadmap"),
-					fmt.Sprintf("%s × %s = %s", plan, textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
+					fmt.Sprintf("%s × %s = %s", plan, textfmt.Pct(f.Lang, fs.RoadmapShare), f.planPtr(r.Roadmap, fs.Rounding))},
 				Step{"small_stuff", f.t("Small items"), f.General("small_stuff"),
-					fmt.Sprintf("%s − %s = %s", plan, f.np(r.Roadmap), f.np(r.SmallStuff))})
+					fmt.Sprintf("%s − %s = %s", plan, f.planPtr(r.Roadmap, fs.Rounding), f.planPtr(r.SmallStuff, fs.Rounding))})
 		}
 	}
 	if r.Fulfillment.Value != nil {

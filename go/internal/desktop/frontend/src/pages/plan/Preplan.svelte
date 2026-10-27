@@ -7,7 +7,7 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { assumptions, fmt, itemWord, parseAmount, PlanModel, signed, touched, unitName } from '../../lib/plan/model.svelte';
+  import { assumptions, fmt, fmtRate, itemWord, parseAmount, PlanModel, signed, touched, unitName, fmtVal } from '../../lib/plan/model.svelte';
   import Matrix from '../../lib/plan/Matrix.svelte';
   import Production from '../../lib/plan/Production.svelte';
   import SprintHead from '../../lib/plan/SprintHead.svelte';
@@ -107,7 +107,7 @@
     <div class="banner warn" id="overcap">
       <Icon name="warning" />
       <div class="grow">
-        {t('Pre-planned {pre} and earmarked {ear} are above the upper end {high} of the Forecast PLAN ({plan}).', { pre: fmt(d.preplanned), ear: fmt(d.earmarked), high: fmt(d.high), plan: fmt(d.plan) })}
+        {t('Pre-planned {pre} and earmarked {ear} are above the upper end {high} of the Forecast PLAN ({plan}).', { pre: fmtVal(d.preplanned), ear: fmtVal(d.earmarked), high: fmt(d.high), plan: fmt(d.plan) })}
       </div>
     </div>
   {/if}
@@ -139,34 +139,34 @@
                   <input aria-label={t('Pre-planned {product}', { product: p.name })} inputmode="decimal" value={p.pre ?? ''} placeholder="–" onchange={(e) => setPre(p, e.currentTarget)} />
                 </td>
                 {#if !noT}
-                  <td class="num">{fmt(p.earmark, 1)}</td>
+                  <td class="num">{fmtVal(p.earmark)}</td>
                   <td class="num">{#if dev == null}–{:else}<span class:chip={dev < 0} class:warn={dev < 0}>{signed(dev)}</span>{/if}</td>
                 {/if}
-                <td class="num">{fmt(p.planned)}</td>
-                {#if d.production}<td class="num">{fmt(p.prodPlanned)}</td>{/if}
-                <td class="num">{fmt(p.done)}</td>
+                <td class="num">{fmtVal(p.planned)}</td>
+                {#if d.production}<td class="num">{fmtVal(p.prodPlanned)}</td>{/if}
+                <td class="num">{fmtVal(p.done)}</td>
               </tr>
             {/each}
             {#if d.multiPO}
               <tr class="sum">
                 <td>{t('Sum {po}', { po: g.po })}</td>
                 <td class="num">{fmt(total(g.rows, (p) => p.default))}</td>
-                <td class="num">{g.rows.some((p) => p.pre != null) ? fmt(total(g.rows, (p) => p.pre)) : '–'}</td>
-                {#if !noT}<td class="num">{fmt(total(g.rows, (p) => p.earmark), 1)}</td><td class="num">{g.rows.some((p) => p.pre != null) ? signed(total(g.rows, (p) => p.pre) - total(g.rows, (p) => p.earmark)) : '–'}</td>{/if}
-                <td class="num">{fmt(total(g.rows, (p) => p.planned))}</td>
-                {#if d.production}<td class="num">{fmt(total(g.rows, (p) => p.prodPlanned))}</td>{/if}
-                <td class="num">{fmt(total(g.rows, (p) => p.done))}</td>
+                <td class="num">{g.rows.some((p) => p.pre != null) ? fmtVal(total(g.rows, (p) => p.pre)) : '–'}</td>
+                {#if !noT}<td class="num">{fmtVal(total(g.rows, (p) => p.earmark))}</td><td class="num">{g.rows.some((p) => p.pre != null) ? signed(total(g.rows, (p) => p.pre) - total(g.rows, (p) => p.earmark)) : '–'}</td>{/if}
+                <td class="num">{fmtVal(total(g.rows, (p) => p.planned))}</td>
+                {#if d.production}<td class="num">{fmtVal(total(g.rows, (p) => p.prodPlanned))}</td>{/if}
+                <td class="num">{fmtVal(total(g.rows, (p) => p.done))}</td>
               </tr>
             {/if}
           {/each}
           <tr class="sum">
             <td>{t('Total')}</td>
             <td class="num">{fmt(total(all, (p) => p.default))}</td>
-            <td class="num">{anyPre ? fmt(total(all, (p) => p.pre)) : '–'}</td>
-            {#if !noT}<td class="num">{fmt(total(all, (p) => p.earmark), 1)}</td><td class="num">{anyPre ? signed(total(all, (p) => p.pre) - total(all, (p) => p.earmark)) : '–'}</td>{/if}
-            <td class="num">{fmt(total(all, (p) => p.planned))}</td>
-            {#if d.production}<td class="num">{fmt(total(all, (p) => p.prodPlanned))}</td>{/if}
-            <td class="num">{fmt(total(all, (p) => p.done))}</td>
+            <td class="num">{anyPre ? fmtVal(total(all, (p) => p.pre)) : '–'}</td>
+            {#if !noT}<td class="num">{fmtVal(total(all, (p) => p.earmark))}</td><td class="num">{anyPre ? signed(total(all, (p) => p.pre) - total(all, (p) => p.earmark)) : '–'}</td>{/if}
+            <td class="num">{fmtVal(total(all, (p) => p.planned))}</td>
+            {#if d.production}<td class="num">{fmtVal(total(all, (p) => p.prodPlanned))}</td>{/if}
+            <td class="num">{fmtVal(total(all, (p) => p.done))}</td>
           </tr>
         </tbody>
       </table>
@@ -213,11 +213,11 @@
                 <td class="num edit">
                   <input inputmode="decimal" value={p.amount || ''} placeholder="–" aria-label={t('{project} in {unit}', { project: p.name, unit: unitName(d) })} onchange={(e) => setProject(p.id, e.currentTarget)} />
                 </td>
-                <td class="num">{p.needPD == null ? '–' : fmt(p.needPD, 1)}</td>
-                <td class="num">{p.bookedPD == null ? '–' : `${fmt(p.bookedPD)} ${t('PD')}`}</td>
+                <td class="num">{p.needPD == null ? '–' : fmtVal(p.needPD)}</td>
+                <td class="num">{p.bookedPD == null ? '–' : `${fmtVal(p.bookedPD)} ${t('PD')}`}</td>
               </tr>
             {/each}
-            <tr class="sum"><td>{t('Daily business')}</td><td class="num">{fmt(Math.max(0, d.preplanned - d.projects.reduce((a, p) => a + p.amount, 0)))}</td><td></td><td></td></tr>
+            <tr class="sum"><td>{t('Daily business')}</td><td class="num">{fmtVal(Math.max(0, d.preplanned - d.projects.reduce((a, p) => a + p.amount, 0)))}</td><td></td><td></td></tr>
           </tbody>
         </table>
       </div>
@@ -247,16 +247,16 @@
             <div class="card flush">
               <div class="row group-head">
                 <span class="chip"><Icon name="flag" size={14} />{g.project?.name ?? t('Daily business')}</span>
-                <span class="small muted">{g.list.length} {itemWord(d, g.list.length !== 1)} · <span class="data">{fmt(sumOf(g.list), 1)}</span> {unitName(d)}</span>
+                <span class="small muted">{g.list.length} {itemWord(d, g.list.length !== 1)} · <span class="data">{fmtVal(sumOf(g.list))}</span> {unitName(d)}</span>
                 <span class="spacer"></span>
                 {#if g.project}
                   <span class="small">
-                    {g.project.needPD == null ? '' : `≈ ${fmt(g.project.needPD, 1)} ${t('PD')}`}
+                    {g.project.needPD == null ? '' : `≈ ${fmtVal(g.project.needPD)} ${t('PD')}`}
                     <span class="chip">{t('estimate')}</span>
-                    {g.project.bookedPD == null ? t('no contingent') : t('of {n} PD booked', { n: fmt(g.project.bookedPD) })}
+                    {g.project.bookedPD == null ? t('no contingent') : t('of {n} PD booked', { n: fmtVal(g.project.bookedPD) })}
                   </span>
                   <Calc label={g.project.name} topic="units">
-                    <div class="data">{fmt(g.project.amount, 1)} {unitName(d)} ÷ {fmt(d.rate, 2)} = {fmt(g.project.needPD, 1)} {t('PD')}</div>
+                    <div class="data">{fmtVal(g.project.amount)} {unitName(d)} ÷ {fmtRate(d.rate)} = {fmtVal(g.project.needPD)} {t('PD')}</div>
                   </Calc>
                 {:else}
                   <span class="small muted">{t('Daily business: no contingent, runs through the product amounts')}</span>

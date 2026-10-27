@@ -7,7 +7,7 @@
   import type { PlanSprint, WhatIf } from '../types.plan';
   import CapacityBar from '../ui/CapacityBar.svelte';
   import Calc from '../calc/Calc.svelte';
-  import { fmt, itemWord, other, parseAmount, unitName, type PlanModel } from './model.svelte';
+  import { fmt, fmtCap, fmtRate, itemWord, other, parseAmount, unitName, type PlanModel, fmtVal } from './model.svelte';
 
   interface Props {
     d: PlanSprint;
@@ -44,7 +44,7 @@
   const prodNote = $derived(
     prod && prod.status !== 'ok'
       ? prod.status === 'over'
-        ? t('{n} PD too much', { n: fmt(prod.demand - prod.available, 1) })
+        ? t('{n} PD too much', { n: fmtVal(prod.demand - prod.available) })
         : t('tight')
       : t('fits'),
   );
@@ -54,17 +54,17 @@
   <div class="tile">
     <h2>{t('Capacity')}</h2>
     <div class="row">
-      <span class="big">{d.capacity == null ? '–' : fmt(d.capacity, 1)} {t('PD')}</span>
+      <span class="big">{d.capacity == null ? '–' : fmtCap(d.capacity)} {t('PD')}</span>
       <Calc label={t('Capacity')} topic="capacity">
         <div>{t('Person days after calendar, FTE and overhead, minus absences.')}</div>
-        <div class="data">{fmt(d.capacity, 1)} {t('PD')}</div>
+        <div class="data">{fmtCap(d.capacity)} {t('PD')}</div>
       </Calc>
     </div>
     <div class="small muted">
-      {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmt(d.absenceDays, 1), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
+      {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmtVal(d.absenceDays), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
     </div>
     {#if prod}
-      <div class="small muted">{t('with production access about {n} PD', { n: fmt(prod.time, 1) })}</div>
+      <div class="small muted">{t('with production access about {n} PD', { n: fmtCap(prod.time) })}</div>
     {/if}
   </div>
 
@@ -75,13 +75,13 @@
       {#if fromStart}<span class="chip warn">{t('start rate')}</span>{/if}
     </h2>
     <div class="row">
-      <span class="big fc">{fmt(d.plan, 0)} {unit}</span>
+      <span class="big fc">{fmt(d.plan)} {unit}</span>
       <Calc label={t('Forecast PLAN')} topic="forecast">
         <div>{t('Capacity times the rate (trend of the normalized velocity).')}</div>
         {#if fromStart}
           <div>{t('No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.')}</div>
         {/if}
-        <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(fromStart ? d.startRate : ratio, 2)} = {fmt(d.plan, 0)}</div>
+        <div class="data">{fmtCap(d.capacity)} {t('PD')} × {fmtRate(fromStart ? d.startRate : (d.trendRate ?? ratio))} = {fmt(d.plan)}</div>
       </Calc>
     </div>
     <div class="small muted">
@@ -89,7 +89,7 @@
         {t('range')} <span class="data">{fmt(d.low)} – {fmt(d.high)}</span>
         {#if assumption && whatIf?.planOriginal != null}· {t('without assumption')} <span class="data">{fmt(whatIf.planOriginal)}</span>{/if}
       {:else if fromStart}
-        {t('Estimate from the start rate {rate}, no range yet', { rate: fmt(d.startRate, 2) })}
+        {t('Estimate from the start rate {rate}, no range yet', { rate: fmtRate(d.startRate) })}
       {:else if askStart}
         <label class="start">
           {t('Start rate per PD')}
@@ -115,11 +115,11 @@
         <span class="big">{fmt(free)} {unit}</span>
         <Calc label={t('Plannable')} topic="plannable">
           <div>{t('(Forecast PLAN − carried-over rest) × plannable share, rounded down.')}</div>
-          <div class="data">({fmt(split?.plan)} − {fmt(split?.carryIn)}) × {fmt(d.share * 100)} % = {fmt(free)}</div>
+          <div class="data">({fmt(split?.plan)} − {fmt(split?.carryIn)}) × {fmt(d.share * 100, 1)} % = {fmt(free)}</div>
         </Calc>
       </div>
       <div class="small muted">
-        {#if other(d, free) != null}≈ <span class="data">{fmt(other(d, free), 1)}</span> {t('PD')} ·{' '}{/if}{t('small stuff')}
+        {#if other(d, free) != null}≈ <span class="data">{fmt(other(d, free))}</span> {t('PD')} ·{' '}{/if}{t('small stuff')}
         <span class="data">{fmt(smallStuff)}</span>
       </div>
       {#if split?.carryIn}
@@ -131,15 +131,15 @@
 
   <div class="tile grow">
     <h2>{d.source === 'none' ? t('Pre-planned') : t('Planned')}</h2>
-    <div class="row"><span class="big">{fmt(used, 1)} {unit}</span></div>
+    <div class="row"><span class="big">{fmtVal(used)} {unit}</span></div>
     <CapacityBar {used} plan={d.plan} low={d.low} high={d.high} {unit} />
     <div class="small muted">
       {#if freeLeft != null}
-        {#if freeLeft >= 0}{t('still free')} <span class="data">{fmt(freeLeft, 1)}</span>{:else}<span class="data">{fmt(-freeLeft, 1)}</span> {t('over plannable')}{/if}
+        {#if freeLeft >= 0}{t('still free')} <span class="data">{fmtVal(freeLeft)}</span>{:else}<span class="data">{fmtVal(-freeLeft)}</span> {t('over plannable')}{/if}
         ·
       {/if}
-      {#if d.source !== 'none' && d.preplanned > 0}{t('pre-planned')} <span class="data">{fmt(d.preplanned)}</span> · {/if}
-      {#if commitment != null}{t('commitment')} <span class="data">{fmt(commitment)}</span> · {/if}
+      {#if d.source !== 'none' && d.preplanned > 0}{t('pre-planned')} <span class="data">{fmtVal(d.preplanned)}</span> · {/if}
+      {#if commitment != null}{t('commitment')} <span class="data">{fmtVal(commitment)}</span> · {/if}
       {d.source === 'none' ? t('sum of the amounts per product') : `${n} ${itemWord(d, n !== 1)}`}
     </div>
     {#if d.high != null && used > d.high}<div class="small"><span class="chip bad">{t('above the range')}</span></div>{/if}
@@ -149,15 +149,15 @@
     <div class="tile">
       <h2>{t('Production')}</h2>
       <div class="row">
-        <span class="big">{prod.demandSet ? fmt(prod.demand, 1) : '–'} {t('of')} {fmt(prod.available, 1)} {t('PD')}</span>
+        <span class="big">{prod.demandSet ? fmtVal(prod.demand) : '–'} {t('of')} {fmtCap(prod.available)} {t('PD')}</span>
         <Calc label={t('Production')} topic="units">
           {#if prod.scaled}
             <div>{t('The plannable amount times the share of the capacity that has production access, times the cap.')}</div>
-            <div class="data">{fmt(prod.time, 1)} ÷ {fmt(d.capacity, 1)} {t('PD')} = {fmt(prod.share * 100)} %</div>
-            <div class="data">{fmt(prod.basis, 1)} {t('PD')} × {fmt(prod.share * 100)} % × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+            <div class="data">{fmtCap(prod.time)} ÷ {fmtCap(d.capacity)} {t('PD')} = {fmt(prod.share * 100, 1)} %</div>
+            <div class="data">{fmtCap(prod.basis)} {t('PD')} × {fmt(prod.share * 100, 1)} % × {fmt(prod.capPercent, 1)} % = {fmtCap(prod.available)} {t('PD')}</div>
           {:else}
             <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
-            <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+            <div class="data">{fmtCap(prod.time)} {t('PD')} × {fmt(prod.capPercent, 1)} % = {fmtCap(prod.available)} {t('PD')}</div>
           {/if}
         </Calc>
       </div>
@@ -178,8 +178,8 @@
       <div class="projs">
         {#each d.projects as p (p.id)}
           <span class="chip"><span class="name">{p.name}</span></span>
-          <span class="data small">{p.needPD == null ? '–' : `≈ ${fmt(p.needPD, 1)} ${t('PD')}`}</span>
-          <span class="small muted">{p.bookedPD == null ? t('no contingent') : p.usedPD == null ? t('of {n} PD booked', { n: fmt(p.bookedPD) }) : t('of {n} PD booked, {u} used', { n: fmt(p.bookedPD), u: fmt(p.usedPD) })}</span>
+          <span class="data small">{p.needPD == null ? '–' : `≈ ${fmtVal(p.needPD)} ${t('PD')}`}</span>
+          <span class="small muted">{p.bookedPD == null ? t('no contingent') : p.usedPD == null ? t('of {n} PD booked', { n: fmtVal(p.bookedPD) }) : t('of {n} PD booked, {u} used', { n: fmtVal(p.bookedPD), u: fmtVal(p.usedPD) })}</span>
         {/each}
       </div>
     </div>

@@ -136,6 +136,7 @@ func todayExtraFindings(data *storage.TeamData, day time.Time) []TodayFinding {
 				continue
 			}
 			v := c.projectView(p)
+			pd := max(1, data.Team.Forecast.Rounding)
 			var parts []string
 			if v.Light == "warn" || v.Light == "bad" {
 				if v.Reason != "" {
@@ -147,9 +148,9 @@ func todayExtraFindings(data *storage.TeamData, day time.Time) []TodayFinding {
 			if v.Booked != nil && v.Remaining != nil {
 				switch v.UsedStatus {
 				case string(planning.StatusOver):
-					parts = append(parts, i18n.T("the contingent is used up ({used} of {booked} PD)", "used", report.FmtValue(*v.Used, 1), "booked", report.FmtValue(*v.Booked, 1)))
+					parts = append(parts, i18n.T("the contingent is used up ({used} of {booked} PD)", "used", report.FmtValue(*v.Used, pd), "booked", report.FmtValue(*v.Booked, pd)))
 				case string(planning.StatusTight):
-					parts = append(parts, i18n.T("the contingent is nearly used up ({remaining} of {booked} PD left)", "remaining", report.FmtValue(*v.Remaining, 1), "booked", report.FmtValue(*v.Booked, 1)))
+					parts = append(parts, i18n.T("the contingent is nearly used up ({remaining} of {booked} PD left)", "remaining", report.FmtValue(*v.Remaining, pd), "booked", report.FmtValue(*v.Booked, pd)))
 				}
 			}
 			if len(parts) > 0 {

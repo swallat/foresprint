@@ -65,9 +65,9 @@ func printBand(env *Env, fc *forecast.Forecast) {
 		Right:  []bool{false, true, true, true, true},
 	}
 	for _, e := range fc.Upcoming() {
-		row := []string{e.Sprint.ID, report.Fmt(e.Result.Plan, 1, ""), "–", "–", "–"}
+		row := []string{e.Sprint.ID, report.Fmt(e.Result.Plan, report.PlanDigits(fc), ""), "–", "–", "–"}
 		if b, ok := analysis.BandOf(fc, e); ok {
-			row[2], row[3], row[4] = report.Fmt(&b.Low, 1, ""), report.Fmt(&b.Mid, 1, ""), report.Fmt(&b.High, 1, "")
+			row[2], row[3], row[4] = report.Fmt(&b.Low, report.PlanDigits(fc), ""), report.Fmt(&b.Mid, report.PlanDigits(fc), ""), report.Fmt(&b.High, report.PlanDigits(fc), "")
 		}
 		t.Add(row...)
 	}
@@ -147,9 +147,9 @@ func printCompletion(env *Env, fc *forecast.Forecast, remaining float64, total b
 		"the simulations by {p50}, in 85 % by {p85} "+
 		"(model-dependent frequency, sample of {samples} sprints; ≈ {per_sprint} "+
 		"{unit} per sprint).",
-		"rest", report.Fmt(&remaining, 1, ""), "unit", string(team.Unit), "basis", basis,
+		"rest", report.Fmt(&remaining, report.PlanDigits(fc), ""), "unit", string(team.Unit), "basis", basis,
 		"p50", pick(result.P50), "p85", pick(result.P85), "samples", result.Samples,
-		"per_sprint", report.Fmt(&result.PerSprint, 1, "")))
+		"per_sprint", report.Fmt(&result.PerSprint, report.PlanDigits(fc), "")))
 	if n := len(result.TrendCapacitySprints); n > 0 {
 		listed := strings.Join(result.TrendCapacitySprints[:min(n, 4)], ", ")
 		if n > 4 {

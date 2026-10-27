@@ -32,6 +32,14 @@ func FmtCapacity(value *float64, digits int) string {
 
 func num(v float64, digits int) string { return FmtValue(v, digits) }
 
+// PlanDigits is the decimals of the Forecast PLAN and of amounts like its range in tables and on the
+// command line: one as always, or the team's rounding if that has more. The two ways of rounding
+// below that (whole points, one decimal) keep the one decimal of the reports.
+func PlanDigits(fc *forecast.Forecast) int { return max(1, fc.Data.Team.Forecast.Rounding) }
+
+// SplitDigits is the decimals of plannable and small items: two, or the team's rounding if that has more.
+func SplitDigits(fc *forecast.Forecast) int { return max(2, fc.Data.Team.Forecast.Rounding) }
+
 // Period is the period of a sprint as "dd.mm. – dd.mm.yyyy".
 func Period(e *forecast.TimelineEntry) string {
 	return e.Sprint.Start.Format("02.01.") + " – " + e.Sprint.End.Format("02.01.2006")
@@ -84,7 +92,7 @@ func BandRange(fc *forecast.Forecast, e *forecast.TimelineEntry) string {
 	if !ok {
 		return "–"
 	}
-	return num(b.Low, 1) + "–" + num(b.High, 1)
+	return num(b.Low, PlanDigits(fc)) + "–" + num(b.High, PlanDigits(fc))
 }
 
 // BandNote is the range with the sample size as a sentence right at a forecast tile; with a hint
@@ -97,7 +105,7 @@ func BandNote(fc *forecast.Forecast, e *forecast.TimelineEntry, withoutAssumptio
 		return ""
 	}
 	note := t("Range {low}–{high} from the last {samples} sprints",
-		"low", num(b.Low, 1), "high", num(b.High, 1), "samples", b.Samples)
+		"low", num(b.Low, PlanDigits(fc)), "high", num(b.High, PlanDigits(fc)), "samples", b.Samples)
 	if withoutAssumption {
 		note = note + " (" + t("without the assumption") + ")"
 	}
@@ -281,8 +289,8 @@ func Render(fc *forecast.Forecast, history int) (string, error) {
 	for _, e := range upcoming {
 		r := e.Result
 		lines = append(lines, "| "+e.Sprint.ID+" | "+Period(e)+" | "+Status(fc, e)+" | "+CapacityLabel(e)+
-			" | "+Fmt(r.NormalizedVelocity.Trend, 2, "")+" | **"+Fmt(r.Plan, 1, "")+"**"+
-			" | "+BandRange(fc, e)+" | "+Fmt(r.Roadmap, 2, "")+" | "+Fmt(r.SmallStuff, 2, "")+" |")
+			" | "+Fmt(r.NormalizedVelocity.Trend, 2, "")+" | **"+Fmt(r.Plan, PlanDigits(fc), "")+"**"+
+			" | "+BandRange(fc, e)+" | "+Fmt(r.Roadmap, SplitDigits(fc), "")+" | "+Fmt(r.SmallStuff, SplitDigits(fc), "")+" |")
 		if s := r.PlanCapacitySource; s != nil && s.Unsure() {
 			unsure = true
 		}
@@ -299,8 +307,8 @@ func Render(fc *forecast.Forecast, history int) (string, error) {
 	if current := fc.Current(); current != nil && current.Result.PlanningTotal != nil {
 		r := current.Result
 		lines = append(lines, "", t("**Planning {id}:** total {total} {unit}, delta to the Forecast PLAN "+
-			"{delta} {unit}", "id", current.Sprint.ID, "total", Fmt(r.PlanningTotal, 2, ""),
-			"delta", Fmt(r.PlanningDelta, 2, ""), "unit", unit))
+			"{delta} {unit}", "id", current.Sprint.ID, "total", Fmt(r.PlanningTotal, SplitDigits(fc), ""),
+			"delta", Fmt(r.PlanningDelta, SplitDigits(fc), ""), "unit", unit))
 	}
 
 	past := fc.HistoryLast(history)
@@ -394,7 +402,7 @@ func ticketsSection(fc *forecast.Forecast, sprints int) ([]string, error) {
 				}
 			}
 			base, used := pymath.Sum(bases), pymath.Sum(useds)
-			lines = append(lines, "| "+id+" | "+num(base, 1)+" | "+num(used, 1)+" | "+num(base-used, 1)+
+			lines = append(lines, "| "+id+" | "+num(base, PlanDigits(fc))+" | "+num(used, PlanDigits(fc))+" | "+num(base-used, PlanDigits(fc))+
 				" | "+strconv.Itoa(len(dist.InSprint(id)))+" |")
 		}
 	}
@@ -434,8 +442,8 @@ func analysisSection(fc *forecast.Forecast) []string {
 			t("| Sprint | Forecast PLAN ({unit}) | conservative | median | optimistic |", "unit", unit),
 			"|---|---|---|---|---|")
 		for _, r := range rows {
-			lines = append(lines, "| "+r.e.Sprint.ID+" | "+Fmt(r.e.Result.Plan, 1, "")+" | "+num(r.b.Low, 1)+
-				" | "+num(r.b.Mid, 1)+" | "+num(r.b.High, 1)+" |")
+			lines = append(lines, "| "+r.e.Sprint.ID+" | "+Fmt(r.e.Result.Plan, PlanDigits(fc), "")+" | "+num(r.b.Low, PlanDigits(fc))+
+				" | "+num(r.b.Mid, PlanDigits(fc))+" | "+num(r.b.High, PlanDigits(fc))+" |")
 		}
 	}
 	var facts []string

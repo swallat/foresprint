@@ -249,7 +249,7 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 	refreeze := false
 	if frozen, current, offer := forecast.RefreezeOffer(s, fc.Entry(s.ID)); offer {
 		refreeze, err = env.Confirm(i18n.P("The frozen Forecast PLAN ({frozen}) differs from the current one "+
-			"({current}). Freeze again?", "frozen", report.Fmt(&frozen, 1, ""), "current", report.Fmt(&current, 1, "")), false)
+			"({current}). Freeze again?", "frozen", report.Fmt(&frozen, report.PlanDigits(fc), ""), "current", report.Fmt(&current, report.PlanDigits(fc), "")), false)
 		if err != nil {
 			return err
 		}
@@ -277,8 +277,8 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 		}
 		env.Println(i18n.P("Planning total {total} {unit} · Forecast PLAN {plan} {unit} · "+
 			"[{colour}]delta {delta} {unit}[/{colour}]",
-			"total", report.Fmt(e.Result.PlanningTotal, 2, ""), "plan", report.Fmt(e.Result.Plan, 1, ""),
-			"delta", report.Fmt(&delta, 2, ""), "unit", unit, "colour", "green"))
+			"total", report.Fmt(e.Result.PlanningTotal, report.SplitDigits(fc), ""), "plan", report.Fmt(e.Result.Plan, report.PlanDigits(fc), ""),
+			"delta", report.Fmt(&delta, report.SplitDigits(fc), ""), "unit", unit, "colour", "green"))
 	}
 	return env.maybeCommit(key, []string{path}, i18n.T("{team} {id}: planning recorded", "team", data.Team.Name, "id", s.ID), "", doCommit)
 }

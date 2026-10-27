@@ -62,8 +62,8 @@ describe('Pre-plan page', () => {
     expect(input('Billing').value).toBe('');
     await enter(input('Billing'), '6,5');
     await settled(() => expect(input('Billing').value).toBe('6.5'));
-    // The totals are rounded to whole points.
-    expect(total()[2]).toBe('19');
+    // The totals keep the decimals of the amounts: 18,5, not 19.
+    expect(total()[2]).toBe('18.5');
   });
 
   it('the deviation is the pre-planned amount minus the earmarks', async () => {

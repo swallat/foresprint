@@ -8,7 +8,7 @@
   import { t } from '../i18n.svelte';
   import type { PlanSprint } from '../types.plan';
   import Calc from '../calc/Calc.svelte';
-  import { fmt, itemWord, parseAmount, type PlanModel } from './model.svelte';
+  import { fmt, fmtCap, itemWord, parseAmount, type PlanModel, fmtVal } from './model.svelte';
 
   interface Props {
     d: PlanSprint;
@@ -44,7 +44,7 @@
       {#if prod.demandSet}
         <span class="chip {prod.status === 'over' ? 'bad' : prod.status === 'tight' ? 'warn' : 'ok'}">
           {prod.status === 'over'
-            ? t('{n} PD more than available', { n: fmt(prod.demand - prod.available, 1) })
+            ? t('{n} PD more than available', { n: fmtVal(prod.demand - prod.available) })
             : prod.status === 'tight'
               ? t('tight')
               : t('fits')}
@@ -52,22 +52,22 @@
       {/if}
       <Calc label={t('Production')} topic="units">
         {#each prod.people as p (p.name)}
-          <div>{p.name}: <span class="data">{fmt(p.capacity, 1)} {t('PD')}</span></div>
+          <div>{p.name}: <span class="data">{fmtCap(p.capacity)} {t('PD')}</span></div>
         {/each}
         {#if prod.scaled}
           <div>{t('The plannable amount times the share of the capacity that has production access, times the cap.')}</div>
-          <div class="data">{fmt(prod.time, 1)} ÷ {fmt(d.capacity, 1)} {t('PD')} = {fmt(prod.share * 100)} %</div>
-          <div class="data">{fmt(prod.basis, 1)} {t('PD')} × {fmt(prod.share * 100)} % × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+          <div class="data">{fmtCap(prod.time)} ÷ {fmtCap(d.capacity)} {t('PD')} = {fmt(prod.share * 100, 1)} %</div>
+          <div class="data">{fmtCap(prod.basis)} {t('PD')} × {fmt(prod.share * 100, 1)} % × {fmt(prod.capPercent, 1)} % = {fmtCap(prod.available)} {t('PD')}</div>
         {:else}
-          <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
+          <div class="data">{fmtCap(prod.time)} {t('PD')} × {fmt(prod.capPercent, 1)} % = {fmtCap(prod.available)} {t('PD')}</div>
         {/if}
       </Calc>
     </div>
     <p class="small muted lead">
-      {t('Available: {n} PD', { n: fmt(prod.available, 1) })}{prod.scaled
-        ? `, ${t('that is {pct} % of the plannable {basis} PD (share of the people with access in the capacity)', { pct: fmt(prod.share * 100), basis: fmt(prod.basis, 1) })}${prod.capPercent < 100 ? `, ${t('cap {pct} %', { pct: fmt(prod.capPercent) })}` : ''}`
+      {t('Available: {n} PD', { n: fmtCap(prod.available) })}{prod.scaled
+        ? `, ${t('that is {pct} % of the plannable {basis} PD (share of the people with access in the capacity)', { pct: fmt(prod.share * 100, 1), basis: fmtCap(prod.basis) })}${prod.capPercent < 100 ? `, ${t('cap {pct} %', { pct: fmt(prod.capPercent, 1) })}` : ''}`
         : prod.capPercent < 100
-          ? `, ${t('that is {pct} % (cap) of {time} PD', { pct: fmt(prod.capPercent), time: fmt(prod.time, 1) })}`
+          ? `, ${t('that is {pct} % (cap) of {time} PD', { pct: fmt(prod.capPercent, 1), time: fmtCap(prod.time) })}`
           : ''}
       {t('with {count} people with production access ({names}), after absences.', {
         count: prod.people.length,
@@ -108,7 +108,7 @@
               {#each withProd as x (x.key)}
                 <tr>
                   <td><span class="data">{x.key}</span> {x.title}</td>
-                  <td class="num">{fmt(x.size, 1)}</td>
+                  <td class="num">{fmtVal(x.size)}</td>
                   <td class="num edit">
                     <input
                       inputmode="numeric"
@@ -119,16 +119,16 @@
                     />
                   </td>
                   {#if d.source === 'tracker'}<td class="small">{source(x.prodSource)}</td>{/if}
-                  <td class="num">{fmt(((x.size ?? 0) * x.prodPct) / 100, 1)}</td>
+                  <td class="num">{fmtVal(((x.size ?? 0) * x.prodPct) / 100)}</td>
                 </tr>
               {/each}
               <tr class="sum">
                 <td>{t('Sum')}</td><td></td><td></td>{#if d.source === 'tracker'}<td></td>{/if}
-                <td class="num">{fmt(prod.demandAmount, 1)}</td>
+                <td class="num">{fmtVal(prod.demandAmount)}</td>
               </tr>
               <tr class="sum">
                 <td>{t('in person days')}</td><td></td><td></td>{#if d.source === 'tracker'}<td></td>{/if}
-                <td class="num">{fmt(prod.demand, 1)}</td>
+                <td class="num">{fmtVal(prod.demand)}</td>
               </tr>
             </tbody>
           </table>
