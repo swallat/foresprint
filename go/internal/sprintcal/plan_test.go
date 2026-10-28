@@ -7,7 +7,7 @@ import (
 
 func TestKeepLaterSwallowsAFullyCoveredSprint(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 4)
+	shown := window(data.Sprints, 4)
 	got, err := KeepLater(data, shown, 0, shown[1].End.Add(-dayLength))
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func TestKeepLaterSwallowsAFullyCoveredSprint(t *testing.T) {
 
 func TestKeepLaterCutsThePartlyCoveredSprint(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	got, err := KeepLater(data, shown, 0, shown[0].End.Add(dayLength))
 	if err != nil || len(got.Dropped) != 0 || len(got.Save) != 2 {
 		t.Fatalf("%+v, %v", got, err)
@@ -40,7 +40,7 @@ func TestKeepLaterCutsThePartlyCoveredSprint(t *testing.T) {
 
 func TestKeepLaterShorterSprintLetsTheNextOneStartEarlier(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	got, err := KeepLater(data, shown, 0, shown[0].End.Add(-3*dayLength))
 	if err != nil || len(got.Dropped) != 0 || len(got.Save) != 2 {
 		t.Fatalf("%+v, %v", got, err)
@@ -52,7 +52,7 @@ func TestKeepLaterShorterSprintLetsTheNextOneStartEarlier(t *testing.T) {
 
 func TestKeepLaterRejectsALastDayBeforeTheStart(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	if _, err := KeepLater(data, shown, 0, shown[0].Start.Add(-2*dayLength)); err == nil {
 		t.Fatal("expected an error")
 	}
@@ -60,7 +60,7 @@ func TestKeepLaterRejectsALastDayBeforeTheStart(t *testing.T) {
 
 func TestShiftLaterWithANewStartMovesTheSprintAndTheFollowing(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	start := shown[0].Start.Add(2 * dayLength)
 	got, err := ShiftLater(data, shown, 0, time.Time{}, &start)
 	if err != nil {
@@ -75,7 +75,7 @@ func TestShiftLaterWithANewStartMovesTheSprintAndTheFollowing(t *testing.T) {
 
 func TestRegularGivesEverySprintTheRegularLength(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	odd := shown[0].Clone()
 	odd.End = odd.End.Add(5 * dayLength) // a long sprint that breaks the rhythm
 	shown[0] = odd
@@ -94,5 +94,21 @@ func TestRegularGivesEverySprintTheRegularLength(t *testing.T) {
 	}
 	if !got.Rows[0].Sprint.Start.Equal(shown[0].Start) {
 		t.Error("the first sprint moved its start")
+	}
+}
+
+func TestRegularRestoresALengthThatAKeepChangeCut(t *testing.T) {
+	_, data := demoCopy(t)
+	shown := window(data.Sprints, 3)
+	cut := shown[1].Clone()
+	cut.Start = cut.Start.Add(3 * dayLength) // starts later, ends where it did
+	shown[1] = cut
+	got, err := Regular(data, shown, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	length := time.Duration(data.Team.Sprint.LengthDays) * dayLength
+	if r := got.Rows[1].Sprint; !r.Start.Equal(shown[0].End) || r.End.Sub(r.Start) != length {
+		t.Errorf("cut sprint %v–%v", r.Start, r.End)
 	}
 }

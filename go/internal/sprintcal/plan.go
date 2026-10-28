@@ -154,30 +154,34 @@ func historyBefore(data *storage.TeamData, before []model.Sprint, last model.Spr
 
 // Regular puts the sprints from window[idx] on back into the team's rhythm: the sprint keeps its
 // start, and it and every later sprint (saved ones after the shown part included) get the
-// regular length and follow each other without a gap.
+// regular length and follow each other without a gap. Sprints without a file are named by the
+// chain again.
 func Regular(data *storage.TeamData, window []model.Sprint, idx int) (Plan, error) {
 	var out Plan
 	if idx < 0 || idx >= len(window) {
 		return out, nil
 	}
 	shown := append(append([]model.Sprint(nil), window[idx:]...), beyond(data, window)...)
-	rows := Table(data, shown, time.Time{})
 	length := time.Duration(data.Team.Sprint.LengthDays) * day
+	counted := historyBefore(data, window[:idx], shown[0])
+	counted = counted[:len(counted)-1]
 	start := shown[0].Start
-	for i := range rows {
-		rows[i].Last = start.Add(length - day)
-		start = start.Add(length)
+	for _, old := range shown {
+		s := old.Clone()
+		s.Start, s.End = start, start.Add(length)
+		start = s.End
+		if data.SprintByID(old.ID) == nil && len(counted) > 0 {
+			named, err := calendar.NewChain(&data.Team, counted).After(&counted[len(counted)-1])
+			if err != nil {
+				return out, err
+			}
+			s.ID = named.ID
+		}
+		counted = append(counted, s)
+		if !s.Start.Equal(old.Start) || !s.End.Equal(old.End) {
+			out.Save = append(out.Save, s)
+		}
+		out.Rows = append(out.Rows, Placed{Sprint: s, Old: old.ID, OldStart: old.Start, OldEnd: old.End})
 	}
-	after, problems, err := Apply(data, shown, rows)
-	if err != nil {
-		return out, err
-	}
-	if len(problems) > 0 {
-		return out, &storage.DataError{Msg: problems[0]}
-	}
-	for i, old := range shown {
-		out.Rows = append(out.Rows, Placed{Sprint: after[i], Old: old.ID, OldStart: old.Start, OldEnd: old.End})
-	}
-	out.Save = ToSave(data, shown, after, false)
 	return out, nil
 }

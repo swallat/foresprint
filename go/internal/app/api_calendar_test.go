@@ -520,3 +520,37 @@ func TestCalendarChangeRhythmRestoresTheRegularLength(t *testing.T) {
 		t.Errorf("the next sprint is not back in the rhythm: %+v", after)
 	}
 }
+
+func TestCalendarChangeWithASavedSprintBeyondTheShownPart(t *testing.T) {
+	api, team := demoCopy(t)
+	running, _, _ := calendarRowsAround(t, api, team)
+	// A shift writes files for every sprint it moves, so sprints with a file reach far ahead.
+	if _, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeLast, ID: running.ID, Date: calendarDay(t, running.Last, 1), Mode: calendarChangeShift}, 9); err != nil {
+		t.Fatal(err)
+	}
+	for _, kind := range []string{calendarChangeRhythm, calendarChangeRemove} {
+		_, later, _ := calendarRowsAround(t, api, team)
+		id := running.ID
+		if kind == calendarChangeRemove {
+			id = later[0].ID
+		}
+		before, _ := api.Calendar(team, 9)
+		res, err := api.ApplyCalendarChange(team, CalendarChange{Kind: kind, ID: id, Naming: calendarNamingKeep}, 3)
+		if err != nil {
+			t.Fatalf("%s: %v", kind, err)
+		}
+		rows := res.View.Rows
+		for i := 1; i < len(rows); i++ {
+			if rows[i].Start != calendarDay(t, rows[i-1].Last, 1) {
+				t.Errorf("%s: %s does not follow %s", kind, rows[i].ID, rows[i-1].ID)
+			}
+		}
+		// the calendar still reaches as far as before: nothing was pulled forward
+		if after, _ := api.Calendar(team, 9); kind == calendarChangeRhythm {
+			end, was := after.Rows[len(after.Rows)-1].Last, before.Rows[len(before.Rows)-1].Last
+			if end < calendarDay(t, was, -3) {
+				t.Errorf("%s: nine sprints end %s, they ended %s", kind, end, was)
+			}
+		}
+	}
+}
