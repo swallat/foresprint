@@ -37,13 +37,33 @@ type Forecast struct {
 	// Absences is the absence history used to estimate unknown absences (nil = without a
 	// people list).
 	Absences *capacity.AbsenceHistory
+	// ByDate makes the phases follow the dates alone (as the Python original did) instead of the
+	// official start and the Review; the parity tests use it.
+	ByDate bool
 }
 
-// Current is the running sprint, nil if none runs today.
+// Phase is the phase of a sprint of the timeline (see model.PhaseOf).
+func (f *Forecast) Phase(s model.Sprint) model.Phase {
+	if f.ByDate {
+		switch {
+		case !s.End.After(f.Today):
+			return model.PhasePast
+		case !s.Start.After(f.Today):
+			return model.PhaseRunning
+		}
+		return model.PhaseOpen
+	}
+	all := make([]model.Sprint, len(f.Entries))
+	for i := range f.Entries {
+		all[i] = f.Entries[i].Sprint
+	}
+	return model.PhaseOf(all, s, f.Today)
+}
+
+// Current is the running sprint (started, Review not closed), nil if none runs.
 func (f *Forecast) Current() *TimelineEntry {
 	for i := range f.Entries {
-		s := f.Entries[i].Sprint
-		if !s.Start.After(f.Today) && f.Today.Before(s.End) {
+		if f.Phase(f.Entries[i].Sprint) == model.PhaseRunning {
 			return &f.Entries[i]
 		}
 	}
@@ -54,7 +74,7 @@ func (f *Forecast) Current() *TimelineEntry {
 func (f *Forecast) Upcoming() []*TimelineEntry {
 	var future []*TimelineEntry
 	for i := range f.Entries {
-		if f.Entries[i].Sprint.End.After(f.Today) {
+		if f.Phase(f.Entries[i].Sprint) != model.PhasePast {
 			future = append(future, &f.Entries[i])
 		}
 	}
@@ -68,7 +88,7 @@ func (f *Forecast) Upcoming() []*TimelineEntry {
 func (f *Forecast) History() []*TimelineEntry {
 	var past []*TimelineEntry
 	for i := range f.Entries {
-		if !f.Entries[i].Sprint.End.After(f.Today) {
+		if f.Phase(f.Entries[i].Sprint) == model.PhasePast {
 			past = append(past, &f.Entries[i])
 		}
 	}
@@ -129,19 +149,25 @@ func (f *Forecast) DefaultEntry(purpose Purpose) (*TimelineEntry, error) {
 		return nil, nil
 	case PurposeNext:
 		for i := range f.Entries {
-			if f.Entries[i].Sprint.Start.After(f.Today) {
+			if f.Phase(f.Entries[i].Sprint) == model.PhaseOpen {
 				return &f.Entries[i], nil
 			}
 		}
 		return nil, nil
 	case PurposeReview:
+		cur := f.Current()
+		// A running sprint whose last day is over is the one to review; during a sprint, the
+		// latest completed one without a velocity comes first.
+		if cur != nil && !cur.Sprint.End.After(f.Today) {
+			return cur, nil
+		}
 		past := f.History()
 		for i := len(past) - 1; i >= 0; i-- {
 			if past[i].Sprint.Velocity == nil {
 				return past[i], nil
 			}
 		}
-		return f.Current(), nil
+		return cur, nil
 	}
 	return nil, fmt.Errorf("unknown purpose %q", purpose)
 }
@@ -394,7 +420,7 @@ func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 		}
 	}
 	applyCarryIn(data, entries)
-	return &Forecast{Data: data, Today: today, Entries: entries, Absences: history}, nil
+	return &Forecast{Data: data, Today: today, Entries: entries, Absences: history, ByDate: data.PhasesByDate}, nil
 }
 
 // applyCarryIn splits the PLAN of every sprint that takes over a rest from earlier sprints:

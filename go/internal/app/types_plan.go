@@ -12,6 +12,10 @@ type PlanSprint struct {
 	Days   int    `json:"days"`
 	// Stage is "past", "current", "planned" (plan frozen) or "open".
 	Stage string `json:"stage"`
+	// StartedOn is the day the sprint counts as started from ("" before the start); StartDue:
+	// the sprint is not started, but its first day has come.
+	StartedOn string `json:"startedOn"`
+	StartDue  bool   `json:"startDue"`
 	// Unit is the estimation unit of the team ("SP" or "PT").
 	Unit string `json:"unit"`
 	// Source is where the work comes from: "tracker", "packages" or "none" (no tickets).

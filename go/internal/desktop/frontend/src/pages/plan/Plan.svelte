@@ -279,7 +279,7 @@
 {#if model.error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{model.error}</div></div>
 {:else if d}
-  <SprintHead {d} stage="plan">
+  <SprintHead {d} stage="plan" onchange={() => model.reload()}>
     {#snippet actions()}
       {#if !noT}
         <a class="btn" href="#/present" id="present" data-tour="plan-present"><Icon name="fit_screen" />{t('Presentation view')}</a>

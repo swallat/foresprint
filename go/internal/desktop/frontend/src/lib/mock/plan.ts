@@ -189,6 +189,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const st = sp?.state === 'past' ? 'past' : sp?.state === 'current' ? 'current' : frozen[sid] ? 'planned' : 'open';
   return {
     team: 'atlas', sprint: sid, start: sp?.start ?? '', end: sp?.end ?? '', days: 10, stage: st,
+    startedOn: st === 'current' || st === 'past' ? sp?.start ?? '' : '', startDue: false,
     unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
     absences: absencesFrozen.has(sid) || idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
@@ -284,6 +285,12 @@ export const planMock: PlanApi = {
     x.prodSet = percent != null;
   },
   async SetStartRate() {},
+  async StartSprint(_t, sprint, day) {
+    return { sprint, stage: 'current', startedOn: day || sprintsOf().find((x) => x.id === sprint)?.start || '' };
+  },
+  async WithdrawSprintStart(_t, sprint) {
+    return { sprint, stage: 'open', startedOn: '' };
+  },
   async FreezePlan(_t, sprint, input: FreezeInput) {
     const noT = mode() === 'none';
     const lane = tickets.filter((x) => input.tickets.includes(x.key));

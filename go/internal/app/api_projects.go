@@ -457,10 +457,10 @@ func (c *projectCtx) view() ProjectsView {
 	}
 	for _, s := range data.Sprints {
 		state := "future"
-		switch {
-		case !s.End.After(c.today):
+		switch c.phaseOf(s) {
+		case model.PhasePast:
 			state = "past"
-		case !s.Start.After(c.today):
+		case model.PhaseRunning:
 			state = "current"
 		}
 		v.Sprints = append(v.Sprints, SprintInfo{ID: s.ID, Start: s.Start.Format(dateLayout), End: lastDay(s).Format(dateLayout), State: state})
@@ -564,13 +564,22 @@ func (c *projectCtx) pdOf(points float64, sprint string, planned bool) *float64 
 // ended reports whether a known sprint is over.
 func (c *projectCtx) ended(id string) bool {
 	s, ok := c.sprint[id]
-	return ok && !s.End.After(c.today)
+	return ok && c.phaseOf(s) == model.PhasePast
+}
+
+// phaseOf is the phase of a sprint among the sprints known to the context.
+func (c *projectCtx) phaseOf(s model.Sprint) model.Phase {
+	all := make([]model.Sprint, 0, len(c.sprint))
+	for _, o := range c.sprint {
+		all = append(all, o)
+	}
+	return model.PhaseOf(all, s, c.today)
 }
 
 // currentSprint is the id of the sprint that runs today, "" if none does.
 func (c *projectCtx) currentSprint() string {
 	for _, s := range c.sprint {
-		if !s.Start.After(c.today) && s.End.After(c.today) {
+		if c.phaseOf(s) == model.PhaseRunning {
 			return s.ID
 		}
 	}
@@ -744,7 +753,7 @@ func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
 	rows := []ProjectSprintRow{}
 	var ids []string
 	for id, s := range c.sprint {
-		if s.End.After(c.today) {
+		if c.phaseOf(s) != model.PhasePast {
 			ids = append(ids, id)
 		}
 	}
@@ -756,7 +765,7 @@ func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
 		}
 		var cut []string
 		for _, id := range ids {
-			if keep[id] || (!c.sprint[id].Start.After(c.today)) {
+			if keep[id] || c.phaseOf(c.sprint[id]) == model.PhaseRunning {
 				cut = append(cut, id)
 			}
 		}
@@ -790,7 +799,7 @@ func (c *projectCtx) report(p model.Project) []ProjectSprintRow {
 	for _, id := range ids {
 		s := c.sprint[id]
 		state := "future"
-		if !s.Start.After(c.today) {
+		if c.phaseOf(s) == model.PhaseRunning {
 			state = "current"
 		}
 		r := ProjectSprintRow{Sprint: id, State: state}

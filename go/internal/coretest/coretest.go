@@ -24,6 +24,7 @@ func Load(tb testing.TB, c golden.Case) *storage.TeamData {
 	if err != nil {
 		tb.Fatalf("%s: %v", dir, err)
 	}
+	data.PhasesByDate = true
 	return data
 }
 
@@ -130,7 +131,7 @@ func snake(name string) string {
 // unmodelled are the fields of the Python sprint that the calculation types do not have.
 var unmodelled = []string{"products", "note", "production_planned", "production_done", "not_done", "additional_done", "prognoses",
 	// 1.0 additions without a Python counterpart
-	"name", "committed_tickets", "carry", "rest_next", "projects", "preplanned", "matrix", "removed"}
+	"name", "committed_tickets", "carry", "rest_next", "projects", "preplanned", "matrix", "removed", "started_on", "start_pending"}
 
 var unmodelledKey = func() map[string]bool {
 	m := map[string]bool{}

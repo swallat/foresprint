@@ -244,6 +244,17 @@
   "No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.": "Noch kein abgeschlossener Sprint: Kapazität mal Startwert des Teams. Sobald drei Sprints eine Velocity haben, übernimmt die Historie.",
   "Estimate from the start rate {rate}, no range yet": "Schätzung aus dem Startwert {rate}, noch keine Spanne",
   "Start rate per PD": "Startwert je PT",
-  "Expected amount per capacity PD until three sprints are finished, e.g. 0,7.": "Erwartete Menge je Kapazitäts-PT bis drei Sprints abgeschlossen sind, z. B. 0,7."
+  "Expected amount per capacity PD until three sprints are finished, e.g. 0,7.": "Erwartete Menge je Kapazitäts-PT bis drei Sprints abgeschlossen sind, z. B. 0,7.",
+  "Sprint {id} started.": "Sprint {id} gestartet.",
+  "The start of sprint {id} is taken back.": "Der Start von Sprint {id} ist zurückgenommen.",
+  "Sprint {id} runs since {day}.": "Sprint {id} läuft seit {day}.",
+  "It stays running until its Review is closed.": "Er läuft weiter, bis sein Review abgeschlossen ist.",
+  "Sprint {id} is not started yet.": "Sprint {id} ist noch nicht gestartet.",
+  "Planning and Review can go on. Start the sprint when you are ready; it then counts from the day you choose.": "Planen und Review gehen weiter. Starte den Sprint, wenn ihr so weit seid; er zählt dann ab dem gewählten Tag.",
+  "Started on": "Gestartet am",
+  "Change start day": "Starttag ändern",
+  "Start sprint": "Sprint starten",
+  "The start day lies between the first day of the sprint and today.": "Der Starttag liegt zwischen dem ersten Tag des Sprints und heute.",
+  "Take start back": "Start zurücknehmen"
  }
 }

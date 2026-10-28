@@ -113,3 +113,26 @@ func TestTodayFindsProjectAtRiskAndTicketsWithoutEstimate(t *testing.T) {
 		t.Errorf("ticket finding = %q", tickets)
 	}
 }
+
+// A sprint that was skipped (never started, over) is not offered a second time, and not for a
+// start that would be refused.
+func TestTodaySprintsDoNotListASkippedSprintTwice(t *testing.T) {
+	d := func(day int) time.Time { return model.Date(2026, 10, day) }
+	data := &storage.TeamData{Sprints: []model.Sprint{
+		{ID: "S20", Start: d(1), End: d(10), CommittedTickets: []string{"X-1"}},
+		{ID: "S21", Start: d(10), End: d(20), CommittedTickets: []string{"X-2"}, StartPending: true},
+		{ID: "S22", Start: d(20), End: d(30)},
+	}}
+	seen := map[string]int{}
+	for _, s := range todaySprints(data, d(22)) {
+		seen[s.ID]++
+		if s.ID == "S21" && s.StartDue {
+			t.Error("a finished sprint offers a start")
+		}
+	}
+	for id, n := range seen {
+		if n > 1 {
+			t.Errorf("%s listed %d times", id, n)
+		}
+	}
+}

@@ -136,7 +136,7 @@ func column(data *storage.TeamData, fc *forecast.Forecast, stored model.Sprint) 
 		End:      s.End.Add(-24 * time.Hour).Format("2006-01-02"), // the stored end is exclusive
 		State:    absenceState(s),
 		Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
-		Past:     !s.End.After(fc.Today),
+		Past:     fc.Phase(s) == model.PhasePast,
 	}
 	for _, d := range allAbsences(s) {
 		if d > 0 {
@@ -229,7 +229,7 @@ func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamDa
 	if found == nil {
 		return AbsenceColumn{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
 	}
-	if !found.End.After(fc.Today) {
+	if fc.Phase(*found) == model.PhasePast {
 		return AbsenceColumn{}, fmt.Errorf("%s", i18n.T("Sprint {id} is finished; its absences cannot be changed.", "id", sprintID))
 	}
 	s := found.Clone()
@@ -412,7 +412,8 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 	for i := range fc.Entries {
 		e := &fc.Entries[i]
 		s := e.Sprint
-		isPast := !s.End.After(fc.Today)
+		phase := fc.Phase(s)
+		isPast := phase == model.PhasePast
 		if isPast {
 			pastSeen++
 			if pastSeen <= firstPast {
@@ -437,7 +438,7 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 		switch {
 		case isPast:
 			row.State = SprintPast
-		case !s.Start.After(fc.Today):
+		case phase == model.PhaseRunning:
 			row.State = SprintCurrent
 		case s.Commitment != nil || s.Planning != nil || len(s.CommittedTickets) > 0:
 			row.State = SprintPlanned

@@ -86,7 +86,7 @@
 {#if model.error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{model.error}</div></div>
 {:else if d}
-  <SprintHead {d} stage="preplan">
+  <SprintHead {d} stage="preplan" onchange={() => model.reload()}>
     {#snippet actions()}
       {#if d.stage === 'open' || d.stage === 'planned'}
         <button class="btn" type="button" id="minutes" onclick={writeMinutes}><Icon name="description" />{t('Write minutes')}</button>

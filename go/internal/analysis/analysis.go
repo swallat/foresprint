@@ -48,7 +48,7 @@ func recent(values []*float64, window int) []float64 {
 func PlanBasis(fc *forecast.Forecast) []*forecast.TimelineEntry {
 	var out []*forecast.TimelineEntry
 	for i := range fc.Entries {
-		if !fc.Entries[i].Sprint.Start.After(fc.Today) {
+		if fc.Phase(fc.Entries[i].Sprint) != model.PhaseOpen {
 			out = append(out, &fc.Entries[i])
 		}
 	}
@@ -275,7 +275,7 @@ func HorizonEntries(fc *forecast.Forecast, maxSprints int) []HorizonEntry {
 	var out []HorizonEntry
 	for i := range fc.Entries {
 		e := &fc.Entries[i]
-		if !e.Sprint.Start.After(fc.Today) {
+		if fc.Phase(e.Sprint) != model.PhaseOpen {
 			continue
 		}
 		if len(out) == maxSprints {

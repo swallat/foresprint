@@ -315,6 +315,8 @@ preplanned: 12
 matrix:
   web: {p1: 3, p2: 2}
 removed_tickets: [AP-7]
+started_on: 2026-07-06
+start_pending: true
 prognoses:
 - at: 2026-07-01T09:00:00
   label: A
@@ -330,7 +332,8 @@ prognoses:
 	if *s.Name != "Summer sprint" || len(s.CommittedTickets) != 2 || len(s.Carry) != 2 || s.Carry[0].Target != model.CarryBacklog ||
 		*s.RestNext != 3 || *s.Projects["p1"].Planned != 5 || *s.Prognoses[0].Label != "A" ||
 		s.Prognoses[0].Carry[0].Target != "2026.10" || *s.Prognoses[0].RestNext != 1 || s.Prognoses[0].Finish[0] != "AP-1" ||
-		*s.Preplanned != 12 || s.Matrix["web"]["p2"] != 2 || len(s.Removed) != 1 {
+		*s.Preplanned != 12 || s.Matrix["web"]["p2"] != 2 || len(s.Removed) != 1 ||
+		s.StartedOn == nil || !s.StartedOn.Equal(model.Date(2026, 7, 6)) || !s.StartPending {
 		t.Fatalf("%+v", s)
 	}
 	idempotent(t, "sprint", text)

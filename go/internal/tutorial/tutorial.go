@@ -181,7 +181,8 @@ func sprintYAML(i int, id string, start time.Time) string {
 		return b.String()
 	}
 	if i == len(history) {
-		// The current sprint: absences announced and confirmed per person, nothing frozen.
+		// The current sprint: started, absences announced and confirmed per person, nothing frozen.
+		b.WriteString("started_on: " + start.Format("2006-01-02") + "\n")
 		b.WriteString("absence_state: open\nabsences:\n  cem: 3\nexpected_absences:\n  ben: 2\n")
 		b.WriteString("products:\n  portal: {preplanned: 10}\n  mobile: {preplanned: 6}\n  billing: {preplanned: 7}\n  platform: {preplanned: 6}\n")
 		b.WriteString("preplanned: 29\n")

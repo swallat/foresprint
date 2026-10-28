@@ -150,6 +150,12 @@ type Sprint struct {
 	// Removed are tickets the team took out of the sprint in the planning that the tracker still
 	// has in it ("adjust in the tracker"); kept until the plan is frozen.
 	Removed []string
+	// StartedOn is the day the sprint was officially started ("Start sprint"); nil = not started
+	// explicitly, see Started. StartPending: the sprint waits for its explicit start (it was
+	// planned or its start was taken back), so the derivation for older files (frozen plan on
+	// an earlier day) does not apply.
+	StartedOn    *time.Time
+	StartPending bool
 }
 
 // legacyKnown: in older files without a stored state, absences counted as known if the sprint

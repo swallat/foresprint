@@ -136,6 +136,10 @@ export interface PlanSprint {
   end: string;
   days: number;
   stage: Stage;
+  /** The day the sprint counts as started from (YYYY-MM-DD); empty before the start. */
+  startedOn: string;
+  /** The first day has come but the sprint is not started yet. */
+  startDue: boolean;
   unit: 'SP' | 'PT';
   source: Source;
   trackerName: string;
@@ -195,6 +199,13 @@ export interface FreezeInput {
   removed: string[];
 }
 
+/** The official start of a sprint (go/internal/app/api_start.go). */
+export interface SprintStart {
+  sprint: string;
+  stage: Stage;
+  startedOn: string;
+}
+
 /** The methods of the Pre-plan and Plan pages (go/internal/app/api_plan.go). */
 export interface PlanApi {
   PlanSprint(team: string, sprint: string, assume: Assumption | null): Promise<PlanSprint>;
@@ -211,6 +222,8 @@ export interface PlanApi {
   SetProductionPT(team: string, sprint: string, value: number | null): Promise<void>;
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
   SetStartRate(team: string, rate: number | null): Promise<void>;
+  StartSprint(team: string, sprint: string, day: string): Promise<SprintStart>;
+  WithdrawSprintStart(team: string, sprint: string): Promise<SprintStart>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
   SavePreplanMinutes(team: string, sprint: string): Promise<string>;

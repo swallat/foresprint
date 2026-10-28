@@ -133,6 +133,7 @@ func load(t *testing.T, root, team string) *storage.TeamData {
 	if err != nil {
 		t.Fatal(err)
 	}
+	data.PhasesByDate = true
 	return data
 }
 

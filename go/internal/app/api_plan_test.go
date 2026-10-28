@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
 )
@@ -45,6 +46,23 @@ func planTeam(t *testing.T) (*API, string) {
 	}
 	if _, err := repo.SaveTickets("demo", storage.TicketsFile{Tickets: tickets}); err != nil {
 		t.Fatal(err)
+	}
+	// The sprint whose dates cover today runs once it is started; the demo data starts none.
+	data, err = repo.Load("demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fc, err := forecast.Build(data, today())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range fc.Entries {
+		if fc.Phase(e.Sprint) == model.PhaseOpen && !e.Sprint.Start.After(fc.Today) {
+			if _, err := api.StartSprint("demo", e.Sprint.ID, ""); err != nil {
+				t.Fatal(err)
+			}
+			break
+		}
 	}
 	return api, "demo"
 }

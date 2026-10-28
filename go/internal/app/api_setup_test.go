@@ -45,7 +45,8 @@ func TestSetupCreateTeamForEverySource(t *testing.T) {
 			}
 			// The start page works for a team that was just created.
 			today, err := api.todayAt(got.Key, time.Date(2026, 10, 29, 0, 0, 0, 0, time.UTC))
-			if err != nil || len(today.Sprints) == 0 || today.Sprints[0].State != "running" {
+			// Nothing is running before the first sprint is started.
+			if err != nil || len(today.Sprints) == 0 || today.Sprints[0].State != "next" || !today.Sprints[0].StartDue {
 				t.Fatalf("today = %+v, %v", today, err)
 			}
 		})

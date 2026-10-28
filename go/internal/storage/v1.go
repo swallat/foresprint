@@ -774,6 +774,14 @@ func sprintExtrasFrom(d *yamlx.Map, s *model.Sprint, where string) error {
 	if s.Removed, err = texts(get(d, "removed_tickets"), where, "removed_tickets"); err != nil {
 		return err
 	}
+	if truthy(get(d, "started_on")) {
+		t, err := dateOf(get(d, "started_on"), where+": started_on")
+		if err != nil {
+			return err
+		}
+		s.StartedOn = &t
+	}
+	s.StartPending = truthy(get(d, "start_pending"))
 	matrix, err := mapping(get(d, "matrix"), where, "matrix")
 	if err != nil {
 		return err
@@ -837,6 +845,12 @@ func sprintExtrasTo(d *yamlx.Map, s model.Sprint) {
 	}
 	if s.RestNext != nil {
 		put(d, "rest_next", clean(*s.RestNext))
+	}
+	if s.StartedOn != nil {
+		put(d, "started_on", yamlx.Date(*s.StartedOn))
+	}
+	if s.StartPending {
+		put(d, "start_pending", true)
 	}
 }
 
