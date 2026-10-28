@@ -162,7 +162,7 @@ func runTickets(env *Env, cmd *cobra.Command, key string, o ticketOptions) error
 		if err != nil {
 			return err
 		}
-		plan := ticketimport.PlanImport(ticketEnv(data, env.Today), raws, &name, true)
+		plan := ticketimport.PlanImport(ticketEnv(data, env.TodayFor(data)), raws, &name, true)
 		env.ticketPreview(plan, 15)
 		switch {
 		case plan.Unchanged(data.Tickets, data.TicketsSource):

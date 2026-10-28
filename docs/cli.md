@@ -66,7 +66,7 @@ English in both languages. The YAML files are English regardless of the language
   TEAM` or the *Settings > Team* page; every key is explained in [Data format](data-format.md)
   and `foresprint help team`.
 - **Environment variables:** `FORESPRINT_DATA` (data directory), `FORESPRINT_AS_OF`
-  (date that counts as today), `FORESPRINT_LANG` (`en` or `de`), `FORESPRINT_AUTOUPDATE`
+  (date that counts as today; a team's own `as_of` in `team.yaml` applies when it is not set, see [Data format](data-format.md#teamyaml)), `FORESPRINT_LANG` (`en` or `de`), `FORESPRINT_AUTOUPDATE`
   (`on`, `notice` or `off`), `FORESPRINT_JIRA_TOKEN` (see [Jira import](jira.md)),
   `FORESPRINT_NO_BACKGROUND_FETCH` (`1` switches off the background fetch of the window).
 

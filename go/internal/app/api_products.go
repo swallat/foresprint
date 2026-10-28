@@ -15,7 +15,7 @@ import (
 )
 
 func (a *API) productsView(data *storage.TeamData) ProductsView {
-	today := a.day()
+	today := a.dayOf(data)
 	view := ProductsView{
 		Source:   string(data.Team.Source()),
 		Today:    today.Format(isoDay),
@@ -277,7 +277,7 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 	}
 	var rest []int
 	for i, p := range data.Products {
-		if i != idx && (p.End == nil || !p.End.Before(a.day())) { // the same ones the window offers: not ended yet
+		if i != idx && (p.End == nil || !p.End.Before(a.dayOf(data))) { // the same ones the window offers: not ended yet
 			rest = append(rest, i)
 		}
 	}

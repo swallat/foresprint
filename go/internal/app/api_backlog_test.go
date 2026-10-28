@@ -657,3 +657,9 @@ func TestBacklogHasNoGapsBeforeTheLastUsedSprint(t *testing.T) {
 		t.Errorf("the last lane is %s, want %s", got, far)
 	}
 }
+
+// today is the day of the test clock.
+func today() time.Time {
+	y, m, d := now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}

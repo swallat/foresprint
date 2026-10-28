@@ -45,7 +45,7 @@ func runExcelImport(env *Env, key, file string, apply bool) error {
 		_, _ = fmt.Fprintln(env.Err, i18n.P("The workbook names no team (older Excel export); it is not checked whether it "+
 			"belongs to {team}.", "team", yamlx.PyRepr(key)))
 	}
-	plan, err := excel.Plan(env.Repo(), data, env.Today)
+	plan, err := excel.Plan(env.Repo(), data, env.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}

@@ -47,7 +47,7 @@ func settingsUnitAt(data *storage.TeamData, start time.Time) string {
 }
 
 // settingsUnitNow is the estimation unit valid today; every view that shows an amount labels it so.
-func settingsUnitNow(data *storage.TeamData) string { return settingsUnitAt(data, now()) }
+func settingsUnitNow(data *storage.TeamData) string { return settingsUnitAt(data, todayOf(data)) }
 
 // TeamSettings returns the settings of Settings > Team.
 func (a *API) TeamSettings(team string) (TeamSettings, error) {
@@ -56,7 +56,7 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 		return TeamSettings{}, err
 	}
 	t := data.Team
-	unit, from := effectiveUnit(data, now())
+	unit, from := effectiveUnit(data, todayOf(data))
 	basis := "plan"
 	if t.Forecast.ProductBasis == model.BasisRoadmap {
 		basis = "share"
@@ -213,7 +213,7 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	}
 	t.Estimation.Factor = in.Factor
 
-	if current, _ := effectiveUnit(data, now()); string(current) != in.Unit {
+	if current, _ := effectiveUnit(data, todayOf(data)); string(current) != in.Unit {
 		unit := model.Unit(in.Unit)
 		switch {
 		case in.UnitFrom != "":

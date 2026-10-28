@@ -94,7 +94,7 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 	if err != nil {
 		return TodayData{}, err
 	}
-	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	day := data.Team.TodayOf(now)
 	out := TodayData{
 		Date:     day.Format("2006-01-02"),
 		Team:     team,

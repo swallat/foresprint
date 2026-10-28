@@ -35,7 +35,7 @@ func analysisCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fc, err := forecast.Build(data, env.Today)
+			fc, err := forecast.Build(data, env.TodayFor(data))
 			if err != nil {
 				return asFail(err)
 			}
@@ -116,7 +116,7 @@ func printCompletion(env *Env, fc *forecast.Forecast, remaining float64, total b
 		basisShare = 1
 	}
 	share := basisShare * sharePercent / 100
-	result, err := analysis.Simulate(fc.Data, env.Today, remaining, share, analysis.DefaultMaxSprints, 10_000, 1)
+	result, err := analysis.Simulate(fc.Data, env.TodayFor(fc.Data), remaining, share, analysis.DefaultMaxSprints, 10_000, 1)
 	if err != nil {
 		return asFail(err)
 	}

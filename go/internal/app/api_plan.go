@@ -44,18 +44,13 @@ type planCtx struct {
 	ranks map[string]int
 }
 
-func planToday() time.Time {
-	y, m, d := now().Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
-}
-
 func (a *API) planContext(team, sprintID string) (*planCtx, error) {
 	repo := storage.NewRepository(a.DataDir())
 	data, err := repo.Load(team)
 	if err != nil {
 		return nil, err
 	}
-	c := &planCtx{data: data, today: planToday(), repo: repo}
+	c := &planCtx{data: data, today: todayOf(data), repo: repo}
 	if c.fc, err = forecast.Build(data, c.today); err != nil {
 		return nil, err
 	}
@@ -877,7 +872,7 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 	if label == "" {
 		label = "A"
 	}
-	p := model.Prognosis{At: time.Date(now().Year(), now().Month(), now().Day(), now().Hour(), now().Minute(), now().Second(), 0, time.UTC),
+	p := model.Prognosis{At: time.Date(nowOf(c.data).Year(), nowOf(c.data).Month(), nowOf(c.data).Day(), nowOf(c.data).Hour(), nowOf(c.data).Minute(), nowOf(c.data).Second(), 0, time.UTC),
 		Commitment: &w.Commitment, ExpectedDone: &w.Velocity, Target: &sprintID, Plan: w.Plan, Label: &label,
 		RestNext: restNext}
 	if w.NotDone > 0 {
@@ -1199,7 +1194,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	forecast.FreezePlan(&s, c.entry, c.today, true)
 
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
-	text := protocol.Render(protocol.Planning, c.data.Team.Name, sprintID, now(), c.planFacts(view, commit, in), nil, c.planNotes(in, byKey), "", false)
+	text := protocol.Render(protocol.Planning, c.data.Team.Name, sprintID, nowOf(c.data), c.planFacts(view, commit, in), nil, c.planNotes(in, byKey), "", false)
 	// The old minutes are marked obsolete and the new ones written together with the sprint: if
 	// the sprint cannot be saved, the minutes are as they were.
 	path, err := store.ReplaceWithSave(sprintID, protocol.Planning, text, func() error {
@@ -1353,7 +1348,7 @@ func (a *API) SavePreplanMinutes(team, sprintID string) (string, error) {
 			d.Rows = append(d.Rows, protocol.Row{Name: p.Name, PO: p.POName, Active: true, Standard: p.Default, Preplanned: p.Pre})
 		}
 	}
-	text := protocol.Render(protocol.Preplanning, c.data.Team.Name, sprintID, now(), facts, d, notes, "", view.MultiPO)
+	text := protocol.Render(protocol.Preplanning, c.data.Team.Name, sprintID, nowOf(c.data), facts, d, notes, "", view.MultiPO)
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
 	path, err := store.ReplaceWithSave(sprintID, protocol.Preplanning, text, func() error { return nil })
 	if err != nil {
