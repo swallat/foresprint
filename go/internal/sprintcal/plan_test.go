@@ -1,10 +1,11 @@
 package sprintcal
 
 import (
-	"github.com/swallat/foresprint/internal/calendar"
-	"github.com/swallat/foresprint/internal/model"
 	"testing"
 	"time"
+
+	"github.com/swallat/foresprint/internal/calendar"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 func TestKeepLaterSwallowsAFullyCoveredSprint(t *testing.T) {
