@@ -206,7 +206,7 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 		}
 	}
 	var out []TodaySprint
-	add := func(s model.Sprint, state string) {
+	add := func(s model.Sprint, state string, open bool) {
 		ts := TodaySprint{
 			ID: s.ID, Start: s.Start.Format("2006-01-02"), End: s.End.Format("2006-01-02"), State: state,
 			Steps: stepsOf(s, state),
@@ -215,7 +215,7 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 			ts.DaysLeft = max(int(s.End.Sub(day).Hours()/24), 0)
 		} else if state != "past" {
 			ts.DaysToStart = max(int(s.Start.Sub(day).Hours()/24), 0)
-			ts.StartDue = !s.Start.After(day)
+			ts.StartDue = open && !s.Start.After(day)
 		}
 		out = append(out, ts)
 	}
@@ -223,7 +223,7 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 	for i := len(list) - 1; i >= 0; i-- {
 		if phases[i] == model.PhasePast {
 			if list[i].Velocity == nil {
-				add(list[i], "past")
+				add(list[i], "past", false)
 			}
 			break
 		}
@@ -240,6 +240,9 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 		from = running
 	}
 	for i := from; i < len(list) && i < from+3; i++ {
+		if phases[i] == model.PhasePast && i != running {
+			continue // shown above when its Review is missing
+		}
 		state := "later"
 		switch i {
 		case running:
@@ -247,7 +250,7 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 		case next:
 			state = "next"
 		}
-		add(list[i], state)
+		add(list[i], state, phases[i] == model.PhaseOpen)
 	}
 	return out
 }

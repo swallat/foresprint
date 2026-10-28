@@ -25,7 +25,7 @@
   let { sprint, start, end, startedOn, due, running, onchange }: Props = $props();
 
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const today = iso(new Date());
+  let today = $state(iso(new Date()));
 
   let asking = $state(false);
   let day = $state('');
@@ -37,6 +37,7 @@
   const valid = $derived(day >= start && day <= today);
 
   function ask(): void {
+    today = iso(new Date()); // the page may have been open past midnight
     day = startedOn || start;
     failed = '';
     asking = true;

@@ -25,7 +25,7 @@ func startInfo(s model.Sprint, phase model.Phase, today time.Time) (startedOn st
 	switch {
 	case phase == model.PhaseRunning || (phase == model.PhasePast && s.Started(today)):
 		startedOn = s.Start.Format(isoDay)
-		if s.StartedOn != nil {
+		if s.StartedOn != nil && !s.StartedOn.Before(s.Start) { // the calendar may have moved the first day past it
 			startedOn = s.StartedOn.Format(isoDay)
 		}
 	case phase == model.PhaseOpen:

@@ -294,7 +294,7 @@ func (a *API) calendarPlanNaming(data *storage.TeamData, window []model.Sprint, 
 	default:
 		p.fromIdx = len(list)
 		for i, s := range list {
-			if s.Start.After(today) {
+			if st := calendarState(data, s, today); st != CalRunning && st != CalFinished {
 				p.fromIdx = i
 				break
 			}
