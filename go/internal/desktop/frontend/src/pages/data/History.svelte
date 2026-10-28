@@ -63,15 +63,18 @@
     void load();
   });
 
-  async function after(done: Done, message: string): Promise<void> {
+  async function after(done: Done, message: string, filesChanged = false): Promise<void> {
     asking = undefined;
     await refreshStatus();
     if (done.problem) {
       toast(done.problem.hint ? `${done.problem.message} ${done.problem.hint}` : done.problem.message, 'bad');
     } else {
       toast(done.warning ? `${message} ${done.warning}` : message, 'ok');
-      app.rev++;
-      await showNewData(); // the files changed under the open pages: they read their data anew
+      if (filesChanged) {
+        // the files changed under the open pages: they read their data anew (this page too)
+        await showNewData();
+        return;
+      }
     }
     await load();
   }
@@ -88,9 +91,9 @@
   }
 
   const restore = (v: Version, wholeTeam = false) =>
-    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Brought back and saved on this computer. Save shares it.')));
+    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Brought back and saved on this computer. Save shares it.'), true));
   const revert = (v: Version) =>
-    guarded(async () => after(await api.Revert(v.id), t('Change taken back and saved on this computer. Save shares it.')));
+    guarded(async () => after(await api.Revert(v.id), t('Change taken back and saved on this computer. Save shares it.'), true));
   const setLabel = () =>
     guarded(async () => {
       const name = newLabel.trim();
@@ -159,7 +162,7 @@
           <td class="data muted wrap">{files(v)}</td>
           <td>
             <div class="actions">
-              <button class="btn" type="button" disabled={v.merge || working || !!app.busy} title={v.merge ? t('A merge cannot be taken back.') : ''} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
+              <button class="btn" type="button" disabled={v.merge || working || !!app.busy || unsaved > 0} title={v.merge ? t('A merge cannot be taken back.') : needSaved} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
                 <Icon name="undo" />{t('Take back this change')}
               </button>
               <button class="btn" type="button" disabled={working || !!app.busy || unsaved > 0} title={needSaved} onclick={() => (asking = { id: v.id, kind: 'restore' })}>
