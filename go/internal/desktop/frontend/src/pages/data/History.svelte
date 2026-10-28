@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api } from '../../lib/api';
-  import { app, refreshStatus, toast } from '../../lib/app.svelte';
+  import { app, refreshStatus, showNewData, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { link } from '../../lib/router.svelte';
@@ -63,13 +63,18 @@
     void load();
   });
 
-  async function after(done: Done, message: string): Promise<void> {
+  async function after(done: Done, message: string, filesChanged = false): Promise<void> {
     asking = undefined;
     await refreshStatus();
     if (done.problem) {
       toast(done.problem.hint ? `${done.problem.message} ${done.problem.hint}` : done.problem.message, 'bad');
     } else {
       toast(done.warning ? `${message} ${done.warning}` : message, 'ok');
+      if (filesChanged) {
+        // the files changed under the open pages: they read their data anew (this page too)
+        await showNewData();
+        return;
+      }
     }
     await load();
   }
@@ -86,9 +91,9 @@
   }
 
   const restore = (v: Version, wholeTeam = false) =>
-    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Brought back and saved on this computer. Save shares it.')));
+    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Brought back and saved on this computer. Save shares it.'), true));
   const revert = (v: Version) =>
-    guarded(async () => after(await api.Revert(v.id), t('Change taken back and saved on this computer. Save shares it.')));
+    guarded(async () => after(await api.Revert(v.id), t('Change taken back and saved on this computer. Save shares it.'), true));
   const setLabel = () =>
     guarded(async () => {
       const name = newLabel.trim();
@@ -101,6 +106,7 @@
 
   const files = (v: Version) => v.files.map((f) => shortFile(f, team)).join(', ');
   const unsaved = $derived(app.status.data?.unsaved ?? 0);
+  const needSaved = $derived(unsaved > 0 ? t('Save or discard the unsaved changes first.') : '');
 </script>
 
 <PageHead
@@ -156,10 +162,10 @@
           <td class="data muted wrap">{files(v)}</td>
           <td>
             <div class="actions">
-              <button class="btn" type="button" disabled={v.merge || working || !!app.busy} title={v.merge ? t('A merge cannot be taken back.') : ''} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
+              <button class="btn" type="button" disabled={v.merge || working || !!app.busy || unsaved > 0} title={v.merge ? t('A merge cannot be taken back.') : needSaved} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
                 <Icon name="undo" />{t('Take back this change')}
               </button>
-              <button class="btn" type="button" disabled={working || !!app.busy} onclick={() => (asking = { id: v.id, kind: 'restore' })}>
+              <button class="btn" type="button" disabled={working || !!app.busy || unsaved > 0} title={needSaved} onclick={() => (asking = { id: v.id, kind: 'restore' })}>
                 <Icon name="settings_backup_restore" />{t('Restore this state')}
               </button>
             </div>
@@ -234,7 +240,7 @@
               {#if l.onServer === false}
                 <button class="btn" type="button" disabled={working} onclick={() => shareLabel(l)}><Icon name="cloud_upload" />{t('Share')}</button>
               {/if}
-              <button class="btn" type="button" disabled={working || !!app.busy} onclick={() => (asking = { id: l.name, kind: 'label' })}>
+              <button class="btn" type="button" disabled={working || !!app.busy || unsaved > 0} title={needSaved} onclick={() => (asking = { id: l.name, kind: 'label' })}>
                 <Icon name="settings_backup_restore" />{t('Restore this state')}
               </button>
               <button class="btn icon ghost" type="button" disabled={working} aria-label={t('Delete tag {name}', { name: l.name })} title={t('Delete tag')} onclick={() => (asking = { id: l.name, kind: 'delete' })}>

@@ -237,7 +237,7 @@ async function run(kind: 'save' | 'refresh' | 'sync', call: () => Promise<Result
 
 /** The page reads its data anew (like after a change from the other view). Sprints may have
  * come with a fetch, so the list is read again first. */
-async function showNewData(): Promise<void> {
+export async function showNewData(): Promise<void> {
   await refreshSprints();
   app.changed++;
 }
