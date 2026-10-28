@@ -6,6 +6,7 @@
   import { fmtDay } from '../team/format';
   import type { CalendarChange, CalendarPreview, CalendarResult, ChangeNote, ChangeKind, ChangeMode, ChangeNaming } from '../types.team';
   import Banner from '../ui/Banner.svelte';
+  import { timeline } from './timeline';
 
   // Change of the sprint calendar (start, last day or removal): shows before writing what moves,
   // what falls away and what the sprints with a file are called afterwards.
@@ -64,6 +65,7 @@
         : kind === 'start' ? t('Change the start of {id}', { id }) : t('Change the last day of {id}', { id }),
   );
   const asksMode = $derived(kind !== 'remove' && kind !== 'rhythm' && !!preview && !preview.forced && !preview.problem);
+  const lanes = $derived(preview ? timeline(preview.rows) : { before: [], after: [] });
   const ok = $derived(!!preview && !preview.problem && !busy);
 
   function note(n: ChangeNote): string {
@@ -174,6 +176,16 @@
         </fieldset>
         {#if naming === 'renumber'}<Banner tone="warn">{t('In the tracker these sprints keep their old names, so matching by name no longer finds them.')}</Banner>{/if}
       {/if}
+      <div class="timeline" aria-hidden="true">
+        {#each [{ label: t('Before'), bars: lanes.before }, { label: t('After'), bars: lanes.after }] as lane (lane.label)}
+          <div class="lane">
+            <span class="small muted">{lane.label}</span>
+            <div class="track">
+              {#each lane.bars as b, i (i)}<div class="seg" style="left: {b.left}%; width: {b.width}%">{b.id}</div>{/each}
+            </div>
+          </div>
+        {/each}
+      </div>
       <div class="tw">
         <table class="t">
           <thead><tr><th>{t('Sprint')}</th><th>{t('Start')}</th><th>{t('Last day')}</th><th class="num">{t('Working days')}</th><th>{t('Result')}</th></tr></thead>
@@ -257,6 +269,38 @@
   }
   .opt input {
     margin-top: 3px;
+  }
+  .timeline {
+    display: grid;
+    gap: 4px;
+  }
+  .lane {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+  .track {
+    position: relative;
+    height: 26px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .seg {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 11px;
+    overflow: hidden;
+    white-space: nowrap;
+    background: var(--primary-weak);
+    color: var(--text);
+    border-left: 2px solid var(--primary);
+    border-radius: 3px;
   }
   tr.gone td {
     text-decoration: line-through;

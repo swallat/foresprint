@@ -327,7 +327,7 @@ function planCalChange(ch: CalendarChange): { rows: ChangeRow[]; next: CalRow[];
     else if (ds !== 0 && ds === de) notes.push({ kind: 'moved', days: ds, from: '' });
     else if (ds !== 0) notes.push({ kind: ds > 0 ? 'starts-later' : 'starts-earlier', days: Math.abs(ds), from: '' });
     else if (de !== 0) notes.push({ kind: de > 0 ? 'longer' : 'shorter', days: Math.abs(de), from: '' });
-    return { id: r.id, old: r.id, start: r.start, last: r.last, workdays: workdays(r.start, r.last), gone: gone.has(r.id), saved: r.saved, notes };
+    return { id: r.id, old: r.id, oldStart: o.start, oldLast: o.last, start: r.start, last: r.last, workdays: workdays(r.start, r.last), gone: gone.has(r.id), saved: r.saved, notes };
   });
   return { rows, next: next.filter((r) => !gone.has(r.id)), preview: { rows, lost, free, target, via, forced, mode, namingChoice: false, problem: '' } };
 }
