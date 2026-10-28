@@ -11,6 +11,8 @@
 
   const NEW_TEAM = '\u0000new-team'; // not a team key
 
+  const asOf = $derived(app.teams.find((x) => x.key === app.team)?.asOf);
+
   const readyTags = $derived(app.pendingTags.filter((x) => x.ready).map((x) => x.name));
 
   const next: Record<string, string> = { system: 'light', light: 'dark', dark: 'system' };
@@ -68,6 +70,11 @@
   {#if app.update}
     <a class="chip-status ok" href={link('/settings/updates')} title={t('Version {latest} is available (installed: {version}).', { latest: app.update.latest, version: app.update.version })}>
       <Icon name="cloud_download" /><span class="hide-narrow hide-mid">{t('Update {latest}', { latest: app.update.latest })}</span>
+    </a>
+  {/if}
+  {#if asOf}
+    <a class="chip-status warn" href={link('/settings/team')} title={t('This team counts {date} as today (as_of in team.yaml), not the date of the computer.', { date: asOf })}>
+      <Icon name="event_busy" /><span class="hide-narrow hide-mid">{t('Simulated date: {date}', { date: asOf })}</span>
     </a>
   {/if}
   <TrackerChip />

@@ -88,7 +88,7 @@ func (a *API) projectContext(team string) (*projectCtx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildProjectCtx(data, a.today()), nil
+	return buildProjectCtx(data, a.dayOf(data)), nil
 }
 
 func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
@@ -1120,7 +1120,7 @@ func (a *API) CloseProject(team string, in CloseInput) error {
 			return err
 		}
 		if end == nil {
-			now := a.today()
+			now := a.dayOf(data)
 			end = &now
 		}
 		if in.MoveTo != "" {
@@ -1183,7 +1183,7 @@ func (a *API) DeleteProject(team, id string) error {
 		if p == nil {
 			return errors.New(i18n.T("The project {id} does not exist.", "id", id))
 		}
-		c := buildProjectCtx(data, a.today())
+		c := buildProjectCtx(data, a.dayOf(data))
 		if c.projectView(*p).History {
 			return errors.New(i18n.T("{name} has history and can only be closed.", "name", p.Name))
 		}

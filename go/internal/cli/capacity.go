@@ -62,7 +62,7 @@ func capacityCommand(env *Env) *cobra.Command {
 // no ID, the default sprint of the purpose.
 func findOrCreateSprint(data *storage.TeamData, env *Env, id string, purpose forecast.Purpose) (*model.Sprint, error) {
 	if id == "" {
-		fc, err := forecast.Build(data, env.Today)
+		fc, err := forecast.Build(data, env.TodayFor(data))
 		if err != nil {
 			return nil, asFail(err)
 		}

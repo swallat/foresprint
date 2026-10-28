@@ -1,6 +1,7 @@
 {
   "code": "de",
   "texts": {
+    "as_of is set: {date} counts as today instead of the date of the computer (remove it for real use)": "as_of ist gesetzt: {date} gilt als heute statt des Datums des Rechners (für den echten Einsatz entfernen)",
     "closed project without an end date": "Abgeschlossenes Projekt ohne Enddatum",
     "milestone id is duplicated": "Meilenstein-ID doppelt vergeben",
     "milestone {date} lies outside the project period": "Meilenstein {date} liegt außerhalb des Projektzeitraums",

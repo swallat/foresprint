@@ -162,7 +162,7 @@ func runTickets(env *Env, cmd *cobra.Command, key string, o ticketOptions) error
 		if err != nil {
 			return err
 		}
-		plan := ticketimport.PlanImport(ticketEnv(data, env.Today), raws, &name, true)
+		plan := ticketimport.PlanImport(ticketEnv(data, env.TodayFor(data)), raws, &name, true)
 		env.ticketPreview(plan, 15)
 		switch {
 		case plan.Unchanged(data.Tickets, data.TicketsSource):
@@ -525,7 +525,7 @@ func (e *Env) ticketReport(data *storage.TeamData, sprintCount int, printed []va
 		return nil
 	}
 	e.printTicketIssues(data, printed)
-	variants, err := preplan.DistributeVariants(data, e.Today, preplan.DefaultMaxSprints)
+	variants, err := preplan.DistributeVariants(data, e.TodayFor(data), preplan.DefaultMaxSprints)
 	if err != nil {
 		return asFail(err)
 	}
@@ -662,7 +662,7 @@ func (e *Env) ticketHandover(data *storage.TeamData, key string, sprintCount int
 		return nil
 	}
 	e.printTicketIssues(data, nil)
-	dist, err := preplan.Distribute(data, e.Today, preplan.DefaultMaxSprints, preplan.Median)
+	dist, err := preplan.Distribute(data, e.TodayFor(data), preplan.DefaultMaxSprints, preplan.Median)
 	if err != nil {
 		return asFail(err)
 	}
@@ -810,7 +810,7 @@ func (e *Env) ticketWriteLabels(data *storage.TeamData, apply bool) error {
 		return Failf("The query returned no tickets – nothing written. Check the JQL " +
 			"(tracker.query) and the permissions of the token.")
 	}
-	plan := ticketimport.PlanImport(ticketEnv(data, e.Today), raws, nil, false)
+	plan := ticketimport.PlanImport(ticketEnv(data, e.TodayFor(data)), raws, nil, false)
 	labels := ticketimport.PlanLabelWrites(plan.Tickets, plan.Preplan)
 	for _, w := range labels.Warnings {
 		e.Println(textfmt.BlankControls(w))

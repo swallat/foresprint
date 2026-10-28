@@ -63,7 +63,7 @@ func calendarNamingDTO(rules []model.NamingRule) []NamingRuleDTO {
 }
 
 func (a *API) calendarWindow(data *storage.TeamData, count int) ([]model.Sprint, error) {
-	fc, err := forecast.Build(data, a.day())
+	fc, err := forecast.Build(data, a.dayOf(data))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (a *API) calendarWindow(data *storage.TeamData, count int) ([]model.Sprint,
 }
 
 func (a *API) calendarView(data *storage.TeamData, sprints []model.Sprint) CalendarView {
-	today := a.day()
+	today := a.dayOf(data)
 	view := CalendarView{
 		Today:        today.Format(isoDay),
 		Country:      data.Team.Capacity.Country,
@@ -128,7 +128,7 @@ func (a *API) SaveLastDays(team string, changes []LastDay, count int) (CalendarR
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	today := a.day()
+	today := a.dayOf(data)
 	rows := sprintcal.Table(data, sprints, today)
 	for _, c := range changes {
 		last, perr := time.Parse(isoDay, c.Last)
@@ -276,7 +276,7 @@ func (a *API) calendarPlanNaming(data *storage.TeamData, window []model.Sprint, 
 	if err != nil {
 		return nil, err
 	}
-	today := a.day()
+	today := a.dayOf(data)
 	p := &calendarNamingPlan{list: list, names: names, changes: make([]bool, len(list))}
 	switch {
 	case all:
@@ -340,7 +340,7 @@ func (a *API) NamingPreview(team, pattern, from string, all bool, count int) (Na
 	if err != nil {
 		return prev, err
 	}
-	today := a.day()
+	today := a.dayOf(data)
 	final := map[string]bool{}
 	for i, s := range plan.list {
 		name := s.ID
@@ -383,7 +383,7 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	if !all && plan.fromIdx < len(plan.list) && calendarState(data, plan.list[plan.fromIdx], a.day()) == CalFinished {
+	if !all && plan.fromIdx < len(plan.list) && calendarState(data, plan.list[plan.fromIdx], a.dayOf(data)) == CalFinished {
 		return CalendarResult{}, errors.New(i18n.T("A finished sprint is locked."))
 	}
 	final := map[string]bool{}
@@ -469,7 +469,7 @@ func (a *API) RenameSprint(team, sprintID, newID string, count int) (CalendarRes
 	if problem := storage.FileNameProblem(newID, false); problem != "" {
 		return CalendarResult{}, fmt.Errorf("%s", i18n.T("ID not allowed as a file name ({problem}).", "problem", problem))
 	}
-	if old := data.SprintByID(sprintID); old != nil && calendarState(data, *old, a.day()) == CalFinished {
+	if old := data.SprintByID(sprintID); old != nil && calendarState(data, *old, a.dayOf(data)) == CalFinished {
 		return CalendarResult{}, errors.New(i18n.T("A finished sprint is locked."))
 	}
 	token := 0
@@ -593,7 +593,7 @@ func calendarRenumber(data *storage.TeamData, from time.Time, today time.Time) (
 }
 
 func (a *API) calendarPlanChange(data *storage.TeamData, window []model.Sprint, ch CalendarChange) (*calendarChangePlan, error) {
-	today := a.day()
+	today := a.dayOf(data)
 	idx := -1
 	for i, s := range window {
 		if s.ID == ch.ID {
@@ -851,7 +851,7 @@ func (a *API) ApplyCalendarChange(team string, ch CalendarChange, count int) (Ca
 		}
 		return CalendarResult{}, err
 	}
-	today := a.day()
+	today := a.dayOf(data)
 	for _, s := range p.plan.Save {
 		if _, err := storage.NewRepository(a.DataDir()).SprintPath(team, s.ID); err != nil {
 			return CalendarResult{}, err

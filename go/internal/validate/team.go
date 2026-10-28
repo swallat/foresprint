@@ -383,6 +383,10 @@ func CheckTeam(data *storage.TeamData, today time.Time) []Issue {
 	r := &reporter{}
 	team := data.Team
 
+	if team.AsOf != nil {
+		r.warn("team.yaml", msg("as_of is set: {date} counts as today instead of the date of the computer (remove it for real use)",
+			"date", team.AsOf.Format("2006-01-02")))
+	}
 	f := team.Forecast
 	if !(f.ReferenceCapacity > 0) {
 		r.error("team.yaml", msg("forecast.reference_capacity must be > 0"))

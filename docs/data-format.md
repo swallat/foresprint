@@ -42,6 +42,7 @@ with guidance:
 ```yaml
 name: Team A
 unit: PT                    # PT or SP (capacity is always PT)
+as_of: 2026-10-14           # only for test data: this day counts as today (see below)
 features:                   # optional features, all false for new teams
   products: false           # product distribution
   po: false                 # PO assignment
@@ -76,6 +77,12 @@ tracker:                    # only with features.tickets, see "Ticket pre-planni
 ```
 
 `PT` is the German abbreviation for person days (PD) and is the value stored in the files.
+
+**Test data with a fixed "today".** `as_of: YYYY-MM-DD` makes the window and the command line
+treat that day as today for this team, so that a scenario (sprint change, review due, absences)
+does not need its dates moved every day. Opening the folder is enough; the top bar shows
+*Simulated date* and `foresprint check` warns while it is set. The option `--as-of` (or
+`FORESPRINT_AS_OF`) wins over it on the command line. Remove the line for real teams.
 
 ## `people.yaml`
 

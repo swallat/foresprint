@@ -47,7 +47,7 @@ func (a *API) StartSprint(team, sprintID, day string) (SprintStart, error) {
 	if err != nil {
 		return SprintStart{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return SprintStart{}, err
 	}
@@ -93,7 +93,7 @@ func (a *API) WithdrawSprintStart(team, sprintID string) (SprintStart, error) {
 	if err != nil {
 		return SprintStart{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return SprintStart{}, err
 	}
@@ -119,7 +119,7 @@ func (a *API) startState(team, sprintID string) (SprintStart, error) {
 	if err != nil {
 		return SprintStart{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return SprintStart{}, err
 	}

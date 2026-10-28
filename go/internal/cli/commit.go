@@ -28,7 +28,7 @@ func (e *Env) saved(path string) {
 // issuesFor are the findings of the data that concern one of the named files.
 func issuesFor(data *storage.TeamData, e *Env, files []string) []validate.Issue {
 	var out []validate.Issue
-	for _, i := range validate.CheckTeam(data, e.Today) {
+	for _, i := range validate.CheckTeam(data, e.TodayFor(data)) {
 		for _, name := range files {
 			if strings.Contains(i.Where, name) {
 				out = append(out, i)
@@ -121,11 +121,11 @@ func cloneData(d *storage.TeamData) *storage.TeamData {
 // reports whether there were any.
 func (e *Env) reportNewErrors(before, after *storage.TeamData, where string) bool {
 	known := map[[2]string]bool{}
-	for _, i := range validate.CheckTeam(before, e.Today) {
+	for _, i := range validate.CheckTeam(before, e.TodayFor(before)) {
 		known[[2]string{i.Where, i.Message}] = true
 	}
 	found := false
-	for _, i := range validate.CheckTeam(after, e.Today) {
+	for _, i := range validate.CheckTeam(after, e.TodayFor(after)) {
 		if i.Level == validate.Error && strings.HasPrefix(i.Where, where) && !known[[2]string{i.Where, i.Message}] {
 			e.Warnf("%s: %s", textfmt.BlankControls(i.Where), textfmt.BlankControls(i.Message))
 			found = true

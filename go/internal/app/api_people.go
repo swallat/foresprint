@@ -68,7 +68,7 @@ func personDTO(p model.Person, used bool) PersonDTO {
 // first sprint, that is the start of that sprint (even if it lies in the past when the team is
 // created), so the capacity of the first sprint counts in full; later it is today.
 func (a *API) peopleNewMemberDay(data *storage.TeamData) time.Time {
-	today := a.day()
+	today := a.dayOf(data)
 	line, err := forecast.Timeline(data, today)
 	if err != nil || len(line) == 0 {
 		return today
@@ -82,7 +82,7 @@ func (a *API) peopleNewMemberDay(data *storage.TeamData) time.Time {
 
 // peopleView builds the page from the data of a team.
 func (a *API) peopleView(data *storage.TeamData) PeopleView {
-	today := a.day()
+	today := a.dayOf(data)
 	view := PeopleView{
 		Today:      today.Format(isoDay),
 		NewFrom:    a.peopleNewMemberDay(data).Format(isoDay),
@@ -151,7 +151,7 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 	if err != nil {
 		return PeopleView{}, err
 	}
-	today := a.day()
+	today := a.dayOf(data)
 	old := map[string]model.Person{}
 	taken := map[string]bool{}
 	for _, p := range data.People {

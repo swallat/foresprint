@@ -333,6 +333,7 @@ func normalize(name string, raw *yamlx.Map, key string) (*yamlx.Map, error) {
 // hand-given name and pre-planning details of each sprint (matching ids). Values the workbook
 // does hold (a cell can be cleared) are never carried over.
 func carryOver(data, existing *storage.TeamData) {
+	data.Team.AsOf = existing.Team.AsOf
 	data.Team.ProductOwners = existing.Team.ProductOwners
 	data.Team.Estimation = existing.Team.Estimation
 	data.Team.Sprint.Naming = existing.Team.Sprint.Naming

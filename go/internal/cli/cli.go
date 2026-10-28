@@ -205,3 +205,12 @@ func localize(root *cobra.Command) {
 ` + more + `{{end}}
 `)
 }
+
+// TodayFor is the day that counts as today for the team of data: --as-of wins, then the team's
+// as_of from team.yaml, otherwise the clock.
+func (e *Env) TodayFor(data *storage.TeamData) time.Time {
+	if e.AsOf != "" || data == nil {
+		return e.Today
+	}
+	return data.Team.TodayOf(e.Today)
+}

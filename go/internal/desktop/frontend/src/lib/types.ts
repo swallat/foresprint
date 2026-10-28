@@ -35,6 +35,8 @@ export interface TeamSummary {
   problem?: string;
   tickets: boolean;
   products: number;
+  /** Simulated day of the team (as_of in team.yaml, YYYY-MM-DD); absent = the clock. */
+  asOf?: string;
 }
 
 export interface SprintInfo {

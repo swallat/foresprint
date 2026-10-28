@@ -54,6 +54,6 @@ func checkTeam(repo *storage.Repository, key string, env *Env) []validate.Issue 
 	if err != nil {
 		return []validate.Issue{{Level: validate.Error, Where: key, Message: err.Error()}}
 	}
-	issues := validate.CheckTeam(data, env.Today)
+	issues := validate.CheckTeam(data, env.TodayFor(data))
 	return append(issues, validate.CheckFiles(repo.TeamDir(key), data.Team.Features)...)
 }

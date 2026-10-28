@@ -25,7 +25,9 @@
   let { sprint, start, end, startedOn, due, running, onchange }: Props = $props();
 
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  let today = $state(iso(new Date()));
+  // The team's simulated day (as_of in team.yaml) counts as today, as it does on the server.
+  const clock = () => app.teams.find((x) => x.key === app.team)?.asOf || iso(new Date());
+  let today = $state(clock());
 
   let asking = $state(false);
   let day = $state('');
@@ -37,7 +39,7 @@
   const valid = $derived(day >= start && day <= today);
 
   function ask(): void {
-    today = iso(new Date()); // the page may have been open past midnight
+    today = clock(); // the page may have been open past midnight
     day = startedOn || start;
     failed = '';
     asking = true;

@@ -70,7 +70,7 @@ func runProducts(env *Env, key, sprintID string, preplanning bool, history int, 
 		return err
 	}
 	s := found.Clone()
-	fc, err := forecast.Build(data, env.Today)
+	fc, err := forecast.Build(data, env.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}
@@ -93,7 +93,7 @@ func runProducts(env *Env, key, sprintID string, preplanning bool, history int, 
 			if data, err = env.LoadTeam(key); err != nil {
 				return err
 			}
-			if fc, err = forecast.Build(data, env.Today); err != nil {
+			if fc, err = forecast.Build(data, env.TodayFor(data)); err != nil {
 				return asFail(err)
 			}
 		}

@@ -152,6 +152,25 @@ type Team struct {
 	// TrackerRaw is the raw tracker section (a YAML value) that could not be read while
 	// Features.Tickets is off; kept so that writing team.yaml does not drop it. Nil if none.
 	TrackerRaw any
+	// AsOf is the day that counts as "today" for this team (as_of in team.yaml); nil = the
+	// clock. Meant for test data and scenarios, so that their dates need not move with the day.
+	AsOf *time.Time
+}
+
+// TodayOf returns the day that counts as today for the team: AsOf, otherwise the day of real.
+func (t Team) TodayOf(real time.Time) time.Time {
+	if t.AsOf != nil {
+		return Date(t.AsOf.Year(), t.AsOf.Month(), t.AsOf.Day())
+	}
+	return Date(real.Year(), real.Month(), real.Day())
+}
+
+// NowOf returns real, except for the date when AsOf is set: that day with the time of real.
+func (t Team) NowOf(real time.Time) time.Time {
+	if t.AsOf == nil {
+		return real
+	}
+	return time.Date(t.AsOf.Year(), t.AsOf.Month(), t.AsOf.Day(), real.Hour(), real.Minute(), real.Second(), 0, time.UTC)
 }
 
 // NewTeam returns a team with the defaults of a new team file.
