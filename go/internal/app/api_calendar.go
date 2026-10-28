@@ -520,11 +520,47 @@ type calendarChangePlan struct {
 	after   *storage.TeamData
 }
 
+// calendarChangeWindow is the calendar window of a change: it reaches at least to the last saved
+// sprint (and, within reason, to the last earmarked one), so that no saved sprint lies beyond it
+// with generated ones in between.
+func (a *API) calendarChangeWindow(data *storage.TeamData, count int) ([]model.Sprint, error) {
+	earmarked := map[string]bool{}
+	for _, e := range data.Preplan.Earmarks {
+		earmarked[e.Sprint] = true
+	}
+	for {
+		w, err := a.calendarWindow(data, count)
+		if err != nil || len(w) == 0 {
+			return w, err
+		}
+		last := w[len(w)-1]
+		covered := true
+		for _, s := range data.Sprints {
+			if s.End.After(last.End) {
+				covered = false
+			}
+		}
+		if covered && count < 120 {
+			for _, s := range w {
+				delete(earmarked, s.ID)
+			}
+			covered = len(earmarked) == 0
+		}
+		if covered || count >= 400 {
+			return w, nil
+		}
+		count += max(8, count)
+	}
+}
+
 func calendarCopyWithout(data *storage.TeamData, plan sprintcal.Plan) *storage.TeamData {
 	after := sprintcal.WithSprints(data, plan.Save)
 	dropped := map[string]bool{}
 	for _, s := range plan.Dropped {
 		dropped[s.ID] = true
+	}
+	for _, s := range plan.Save { // a sprint that reuses the ID of a dropped one stays
+		delete(dropped, s.ID)
 	}
 	kept := after.Sprints[:0:0]
 	for _, s := range after.Sprints {
@@ -640,17 +676,67 @@ func (a *API) calendarPlanChange(data *storage.TeamData, window []model.Sprint, 
 	}
 	out.from = from
 	out.choice = len(renames) > 0
-	if ch.Naming == calendarNamingRenumber {
+	if ch.Naming == calendarNamingRenumber && len(renames) > 0 {
 		out.renames = renames
+		if err := calendarRenumberRows(data, &out.plan, renames); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
 
-func (a *API) calendarChangeRows(data *storage.TeamData, p *calendarChangePlan, first string) []ChangeRow {
+// calendarRenumberRows puts the IDs that the renumbering gives into the rows of the plan: sprints
+// with a file are renamed, the ones without count on from their predecessor. The earmarks move by
+// these rows too.
+func calendarRenumberRows(data *storage.TeamData, plan *sprintcal.Plan, renames []sprintcal.Rename) error {
 	renamed := map[string]string{}
-	for _, r := range p.renames {
+	for _, r := range renames {
 		renamed[r.Old] = r.New
 	}
+	saves := map[string]bool{}
+	for _, s := range plan.Save {
+		saves[s.ID] = true
+	}
+	var counted []model.Sprint
+	if len(plan.Rows) > 0 {
+		for _, s := range data.Sprints {
+			if s.Start.Before(plan.Rows[0].OldStart) {
+				if n, ok := renamed[s.ID]; ok {
+					s.ID = n
+				}
+				counted = append(counted, s)
+			}
+		}
+	}
+	targetAt := -1
+	for i := range plan.Rows {
+		pl := &plan.Rows[i]
+		if pl.Gone {
+			continue
+		}
+		if targetAt < 0 && pl.Sprint.ID == plan.Target {
+			targetAt = i
+		}
+		if data.SprintByID(pl.Old) != nil || saves[pl.Sprint.ID] {
+			if n, ok := renamed[pl.Sprint.ID]; ok {
+				pl.Sprint.ID = n
+			}
+		} else if len(counted) > 0 {
+			named, err := calendar.NewChain(&data.Team, counted).After(&counted[len(counted)-1])
+			if err != nil {
+				return err
+			}
+			pl.Sprint.ID = named.ID
+		}
+		counted = append(counted, pl.Sprint)
+	}
+	if targetAt >= 0 {
+		plan.Target = plan.Rows[targetAt].Sprint.ID
+	}
+	return nil
+}
+
+func (a *API) calendarChangeRows(data *storage.TeamData, p *calendarChangePlan, first string) []ChangeRow {
 	rows := []ChangeRow{}
 	started := false
 	for _, pl := range p.plan.Rows {
@@ -662,12 +748,13 @@ func (a *API) calendarChangeRows(data *storage.TeamData, p *calendarChangePlan, 
 		}
 		s := pl.Sprint
 		id := s.ID
-		if n, ok := renamed[id]; ok {
-			id = n
+		saved := data.SprintByID(pl.Old) != nil
+		for _, w := range p.plan.Save {
+			saved = saved || w.ID == s.ID
 		}
 		row := ChangeRow{
 			ID: id, Old: pl.Old, Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
-			Gone: pl.Gone, Saved: data.SprintByID(pl.Old) != nil, Notes: []ChangeNote{},
+			Gone: pl.Gone, Saved: saved, Notes: []ChangeNote{},
 		}
 		if !pl.Gone {
 			row.Workdays = len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)) - len(calendarHolidaysIn(data, s))
@@ -710,21 +797,22 @@ func (a *API) PreviewCalendarChange(team string, ch CalendarChange, count int) (
 	if err != nil {
 		return prev, err
 	}
-	window, err := a.calendarWindow(data, count)
+	window, err := a.calendarChangeWindow(data, count)
 	if err != nil {
 		return prev, err
 	}
 	p, err := a.calendarPlanChange(data, window, ch)
 	if err != nil {
 		var problem calendarProblem
-		if e, ok := err.(calendarProblem); ok {
-			problem = e
-		} else if e, ok := err.(*storage.DataError); ok {
-			problem = calendarProblem(e.Msg)
-		} else {
+		var dataErr *storage.DataError
+		switch {
+		case errors.As(err, &problem):
+			prev.Problem = string(problem)
+		case errors.As(err, &dataErr):
+			prev.Problem = dataErr.Msg
+		default:
 			return prev, err
 		}
-		prev.Problem = string(problem)
 		return prev, nil
 	}
 	first := ch.ID
@@ -751,14 +839,15 @@ func (a *API) ApplyCalendarChange(team string, ch CalendarChange, count int) (Ca
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	window, err := a.calendarWindow(data, count)
+	window, err := a.calendarChangeWindow(data, count)
 	if err != nil {
 		return CalendarResult{}, err
 	}
 	p, err := a.calendarPlanChange(data, window, ch)
 	if err != nil {
-		if e, ok := err.(*storage.DataError); ok {
-			return CalendarResult{}, calendarProblem(e.Msg)
+		var dataErr *storage.DataError
+		if errors.As(err, &dataErr) {
+			return CalendarResult{}, calendarProblem(dataErr.Msg)
 		}
 		return CalendarResult{}, err
 	}
