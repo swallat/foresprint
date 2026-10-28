@@ -109,6 +109,8 @@ type ChangeNote struct {
 type ChangeRow struct {
 	ID       string       `json:"id"`
 	Old      string       `json:"old"`
+	OldStart string       `json:"oldStart"`
+	OldLast  string       `json:"oldLast"`
 	Start    string       `json:"start"`
 	Last     string       `json:"last"`
 	Workdays int          `json:"workdays"`
