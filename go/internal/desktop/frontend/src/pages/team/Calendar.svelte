@@ -124,15 +124,24 @@
 
   // The dialog that shows a change before it is written (start, last day or removal).
   let change = $state<{ kind: ChangeKind; id: string; date: string }>();
+  // Puts the edited field back; the stored value does not change, so Svelte would leave the typed one in place.
+  let restore: (() => void) | undefined;
 
-  function ask(kind: ChangeKind, row: CalendarRow, value: string) {
-    if (kind !== 'remove' && kind !== 'rhythm' && (!value || value === (kind === 'start' ? row.start : row.last))) return load();
+  function ask(kind: ChangeKind, row: CalendarRow, value: string, field?: HTMLInputElement) {
+    const stored = kind === 'start' ? row.start : row.last;
+    restore = field ? () => (field.value = stored) : undefined;
+    if (kind !== 'remove' && kind !== 'rhythm' && (!value || value === stored)) {
+      restore?.();
+      return load();
+    }
     change = { kind, id: row.id, date: value };
   }
 
   async function closeChange() {
     change = undefined;
-    await load(); // the date field goes back to what is stored
+    restore?.(); // the date field goes back to what is stored
+    restore = undefined;
+    await load();
   }
 
   async function changed(result: CalendarResult, message: string) {
@@ -296,14 +305,14 @@
               {#if r.locked}
                 <span class="data">{fmtDay(r.start)}</span> <Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>
               {:else}
-                <input class="input data" type="date" value={r.start} aria-label={t('Start of {id}', { id: r.id })} onchange={(e) => ask('start', r, e.currentTarget.value)} />
+                <input class="input data" type="date" value={r.start} aria-label={t('Start of {id}', { id: r.id })} onchange={(e) => ask('start', r, e.currentTarget.value, e.currentTarget)} />
               {/if}
             </td>
             <td>
               {#if r.locked}
                 <span class="data">{fmtDay(r.last)}</span> <Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>
               {:else}
-                <input class="input data" type="date" min={r.start} value={r.last} aria-label={t('Last day of {id}', { id: r.id })} onchange={(e) => ask('last', r, e.currentTarget.value)} />
+                <input class="input data" type="date" min={r.start} value={r.last} aria-label={t('Last day of {id}', { id: r.id })} onchange={(e) => ask('last', r, e.currentTarget.value, e.currentTarget)} />
               {/if}
             </td>
             <td class="num data">
@@ -395,7 +404,9 @@
     margin-top: 12px;
   }
   .name {
-    width: 140px;
+    width: 22ch;
+    min-width: 17rem;
+    max-width: 100%;
   }
   .below {
     margin-top: 16px;
