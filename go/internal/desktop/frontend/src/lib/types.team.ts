@@ -176,6 +176,51 @@ export interface CalendarResult {
   undo: number;
 }
 
+export type ChangeKind = 'last' | 'start' | 'remove' | 'rhythm';
+export type ChangeMode = 'shift' | 'keep';
+export type ChangeNaming = 'keep' | 'renumber';
+
+export interface CalendarChange {
+  kind: ChangeKind;
+  id: string;
+  date: string;
+  mode: ChangeMode;
+  naming: ChangeNaming;
+}
+
+export interface ChangeNote {
+  kind: 'moved' | 'longer' | 'shorter' | 'starts-later' | 'starts-earlier' | 'gone' | 'renamed';
+  days: number;
+  from: string;
+}
+
+export interface ChangeRow {
+  id: string;
+  old: string;
+  start: string;
+  last: string;
+  workdays: number;
+  gone: boolean;
+  saved: boolean;
+  notes: ChangeNote[];
+}
+
+export interface CalendarPreview {
+  rows: ChangeRow[];
+  /** Sprints with a file that fall away. */
+  lost: string[];
+  /** Sprints without a file that fall away. */
+  free: string[];
+  target: string;
+  /** The sprint whose last day really changes (new start or removal). */
+  via: string;
+  /** The later sprints have to move along. */
+  forced: boolean;
+  mode: ChangeMode;
+  namingChoice: boolean;
+  problem: string;
+}
+
 export interface NamePreview {
   index: number;
   start: string;
@@ -197,6 +242,8 @@ export interface NamingPreview {
 export interface TeamApi {
   Calendar(team: string, count: number): Promise<CalendarView>;
   SaveLastDays(team: string, changes: LastDay[], count: number): Promise<CalendarResult>;
+  PreviewCalendarChange(team: string, change: CalendarChange, count: number): Promise<CalendarPreview>;
+  ApplyCalendarChange(team: string, change: CalendarChange, count: number): Promise<CalendarResult>;
   NamingPreview(team: string, pattern: string, from: string, all: boolean, count: number): Promise<NamingPreview>;
   ApplyNaming(team: string, pattern: string, from: string, all: boolean, count: number): Promise<CalendarResult>;
   RenameSprint(team: string, sprintId: string, newId: string, count: number): Promise<CalendarResult>;

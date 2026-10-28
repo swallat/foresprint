@@ -490,3 +490,363 @@ func (a *API) RenameSprint(team, sprintID, newID string, count int) (CalendarRes
 	}
 	return CalendarResult{View: a.calendarView(fresh, shown), Undo: token}, nil
 }
+
+const (
+	calendarChangeLast   = "last"
+	calendarChangeStart  = "start"
+	calendarChangeRemove = "remove"
+	calendarChangeRhythm = "rhythm"
+
+	calendarChangeShift = "shift"
+	calendarChangeKeep  = "keep"
+
+	calendarNamingKeep     = "keep"
+	calendarNamingRenumber = "renumber"
+)
+
+// calendarProblem is a change that cannot be made; the text goes to the person.
+type calendarProblem string
+
+func (p calendarProblem) Error() string { return string(p) }
+
+type calendarChangePlan struct {
+	plan    sprintcal.Plan
+	via     string
+	forced  bool
+	mode    string
+	renames []sprintcal.Rename
+	choice  bool
+	from    time.Time
+	after   *storage.TeamData
+}
+
+func calendarCopyWithout(data *storage.TeamData, plan sprintcal.Plan) *storage.TeamData {
+	after := sprintcal.WithSprints(data, plan.Save)
+	dropped := map[string]bool{}
+	for _, s := range plan.Dropped {
+		dropped[s.ID] = true
+	}
+	kept := after.Sprints[:0:0]
+	for _, s := range after.Sprints {
+		if !dropped[s.ID] {
+			kept = append(kept, s)
+		}
+	}
+	after.Sprints = kept
+	return after
+}
+
+// calendarRenumber are the renames that make the saved sprints from the day on follow the
+// count: the first saved sprint whose name differs from what the chain gives is renamed, and the
+// saved ones after it count on (see sprintcal.PlanRenames).
+func calendarRenumber(data *storage.TeamData, from time.Time, today time.Time) ([]sprintcal.Rename, error) {
+	saved := data.Sprints
+	for k := 1; k < len(saved); k++ {
+		s := saved[k]
+		if s.Start.Before(from) || !s.End.After(today) {
+			continue
+		}
+		prev := saved[k-1]
+		next, err := calendar.NewChain(&data.Team, saved[:k]).After(&prev)
+		if err != nil || next.ID == s.ID || !next.Start.Equal(s.Start) {
+			continue
+		}
+		return sprintcal.PlanRenames(data, s.ID, next.ID)
+	}
+	return nil, nil
+}
+
+func (a *API) calendarPlanChange(data *storage.TeamData, window []model.Sprint, ch CalendarChange) (*calendarChangePlan, error) {
+	today := a.day()
+	idx := -1
+	for i, s := range window {
+		if s.ID == ch.ID {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		return nil, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", ch.ID))
+	}
+	locked := calendarProblem(i18n.T("A finished sprint is locked."))
+	if calendarState(data, window[idx], today) == CalFinished {
+		return nil, locked
+	}
+	out := &calendarChangePlan{mode: ch.Mode}
+	if out.mode != calendarChangeKeep {
+		out.mode = calendarChangeShift
+	}
+	var date time.Time
+	if ch.Kind != calendarChangeRemove && ch.Kind != calendarChangeRhythm {
+		d, err := time.Parse(isoDay, ch.Date)
+		if err != nil {
+			return nil, calendarProblem(i18n.T("Enter a valid last day."))
+		}
+		date = d
+	}
+	var err error
+	switch ch.Kind {
+	case calendarChangeRemove:
+		state := calendarState(data, window[idx], today)
+		if state == CalRunning {
+			return nil, calendarProblem(i18n.T("The running sprint cannot be removed."))
+		}
+		if idx == 0 || calendarState(data, window[idx-1], today) == CalFinished {
+			return nil, calendarProblem(i18n.T("The sprint before is finished and locked, so it cannot take over the days."))
+		}
+		out.mode, out.via = calendarChangeKeep, window[idx-1].ID
+		out.plan, err = sprintcal.KeepLater(data, window, idx-1, calendarLastDayOf(window[idx]))
+	case calendarChangeRhythm:
+		out.mode = calendarChangeShift
+		out.plan, err = sprintcal.Regular(data, window, idx)
+	case calendarChangeStart:
+		if idx > 0 && calendarState(data, window[idx-1], today) != CalFinished {
+			out.via = window[idx-1].ID
+			last := date.Add(-24 * time.Hour)
+			if out.mode == calendarChangeKeep {
+				out.plan, err = sprintcal.KeepLater(data, window, idx-1, last)
+			} else {
+				out.plan, err = sprintcal.ShiftLater(data, window, idx-1, last, nil)
+			}
+			break
+		}
+		if idx > 0 && date.Before(window[idx-1].End) {
+			return nil, calendarProblem(i18n.T("The start is before the end of the finished sprint {id}.", "id", window[idx-1].ID))
+		}
+		out.forced, out.mode = true, calendarChangeShift
+		out.plan, err = sprintcal.ShiftLater(data, window, idx, time.Time{}, &date)
+	case calendarChangeLast:
+		if date.Before(window[idx].Start) {
+			return nil, calendarProblem(i18n.T("Sprint {id}: last day is before the start {start}", "id", window[idx].ID, "start", window[idx].Start.Format(isoDay)))
+		}
+		if out.mode == calendarChangeKeep {
+			out.plan, err = sprintcal.KeepLater(data, window, idx, date)
+		} else {
+			out.plan, err = sprintcal.ShiftLater(data, window, idx, date, nil)
+		}
+	default:
+		return nil, calendarProblem(i18n.T("Enter a valid last day."))
+	}
+	if err != nil {
+		return nil, err
+	}
+	out.after = calendarCopyWithout(data, out.plan)
+	from := window[idx].Start
+	if out.via != "" {
+		from = window[idx-1].Start
+	}
+	renames, err := calendarRenumber(out.after, from, today)
+	if err != nil {
+		return nil, err
+	}
+	out.from = from
+	out.choice = len(renames) > 0
+	if ch.Naming == calendarNamingRenumber {
+		out.renames = renames
+	}
+	return out, nil
+}
+
+func (a *API) calendarChangeRows(data *storage.TeamData, p *calendarChangePlan, first string) []ChangeRow {
+	renamed := map[string]string{}
+	for _, r := range p.renames {
+		renamed[r.Old] = r.New
+	}
+	rows := []ChangeRow{}
+	started := false
+	for _, pl := range p.plan.Rows {
+		if pl.Old == first {
+			started = true
+		}
+		if !started {
+			continue
+		}
+		s := pl.Sprint
+		id := s.ID
+		if n, ok := renamed[id]; ok {
+			id = n
+		}
+		row := ChangeRow{
+			ID: id, Old: pl.Old, Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
+			Gone: pl.Gone, Saved: data.SprintByID(pl.Old) != nil, Notes: []ChangeNote{},
+		}
+		if !pl.Gone {
+			row.Workdays = len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)) - len(calendarHolidaysIn(data, s))
+		}
+		days := func(a, b time.Time) int { return int(b.Sub(a).Hours() / 24) }
+		switch {
+		case pl.Gone:
+			row.Notes = append(row.Notes, ChangeNote{Kind: "gone"})
+		default:
+			ds, de := days(pl.OldStart, s.Start), days(pl.OldEnd, s.End)
+			switch {
+			case ds != 0 && ds == de:
+				row.Notes = append(row.Notes, ChangeNote{Kind: "moved", Days: ds})
+			case ds != 0:
+				kind := "starts-later"
+				if ds < 0 {
+					kind, ds = "starts-earlier", -ds
+				}
+				row.Notes = append(row.Notes, ChangeNote{Kind: kind, Days: ds})
+			case de != 0:
+				kind := "longer"
+				if de < 0 {
+					kind, de = "shorter", -de
+				}
+				row.Notes = append(row.Notes, ChangeNote{Kind: kind, Days: de})
+			}
+			if id != pl.Old {
+				row.Notes = append(row.Notes, ChangeNote{Kind: "renamed", From: pl.Old})
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+// PreviewCalendarChange shows what the change would do; nothing is written.
+func (a *API) PreviewCalendarChange(team string, ch CalendarChange, count int) (CalendarPreview, error) {
+	prev := CalendarPreview{Rows: []ChangeRow{}, Lost: []string{}, Free: []string{}}
+	data, err := a.loadTeam(team)
+	if err != nil {
+		return prev, err
+	}
+	window, err := a.calendarWindow(data, count)
+	if err != nil {
+		return prev, err
+	}
+	p, err := a.calendarPlanChange(data, window, ch)
+	if err != nil {
+		var problem calendarProblem
+		if e, ok := err.(calendarProblem); ok {
+			problem = e
+		} else if e, ok := err.(*storage.DataError); ok {
+			problem = calendarProblem(e.Msg)
+		} else {
+			return prev, err
+		}
+		prev.Problem = string(problem)
+		return prev, nil
+	}
+	first := ch.ID
+	if p.via != "" {
+		first = p.via
+	}
+	prev.Rows = a.calendarChangeRows(data, p, first)
+	for _, s := range p.plan.Dropped {
+		prev.Lost = append(prev.Lost, s.ID)
+	}
+	for _, r := range p.plan.Rows {
+		if r.Gone && data.SprintByID(r.Old) == nil {
+			prev.Free = append(prev.Free, r.Old)
+		}
+	}
+	prev.Target, prev.Via, prev.Forced, prev.Mode, prev.NamingChoice = p.plan.Target, p.via, p.forced, p.mode, p.choice
+	return prev, nil
+}
+
+// ApplyCalendarChange writes the change: sprint files, earmarks of sprints that fall away, and
+// (if asked) the new numbering. One undo step covers all of it.
+func (a *API) ApplyCalendarChange(team string, ch CalendarChange, count int) (CalendarResult, error) {
+	data, err := a.loadTeam(team)
+	if err != nil {
+		return CalendarResult{}, err
+	}
+	window, err := a.calendarWindow(data, count)
+	if err != nil {
+		return CalendarResult{}, err
+	}
+	p, err := a.calendarPlanChange(data, window, ch)
+	if err != nil {
+		if e, ok := err.(*storage.DataError); ok {
+			return CalendarResult{}, calendarProblem(e.Msg)
+		}
+		return CalendarResult{}, err
+	}
+	today := a.day()
+	for _, s := range p.plan.Save {
+		if _, err := storage.NewRepository(a.DataDir()).SprintPath(team, s.ID); err != nil {
+			return CalendarResult{}, err
+		}
+	}
+	for _, r := range p.renames {
+		if problem := storage.FileNameProblem(r.New, false); problem != "" {
+			return CalendarResult{}, fmt.Errorf("%s", i18n.T("ID not allowed as a file name ({problem}).", "problem", problem))
+		}
+	}
+	for _, i := range validate.CheckTeam(p.after, today) {
+		if i.Level == validate.Error && strings.HasPrefix(i.Where, "sprints/") {
+			return CalendarResult{}, calendarProblem(i.Message)
+		}
+	}
+	repo := storage.NewRepository(a.DataDir())
+	token := a.rememberTree(team)
+	fail := func(err error) (CalendarResult, error) {
+		_ = a.Undo(team, token)
+		return CalendarResult{}, err
+	}
+	for _, s := range p.plan.Dropped {
+		if err := repo.DeleteSprint(team, s.ID); err != nil {
+			return fail(err)
+		}
+	}
+	for i := range p.plan.Save {
+		if _, err := repo.SaveSprint(team, &p.plan.Save[i]); err != nil {
+			return fail(err)
+		}
+	}
+	// Earmarks of sprints that fall away (or whose generated name changed) follow the sprint that
+	// takes over.
+	moves := map[string]string{}
+	for _, s := range p.plan.Dropped {
+		if p.plan.Target != "" {
+			moves[s.ID] = p.plan.Target
+		}
+	}
+	for _, r := range p.plan.Rows {
+		if !r.Gone && r.Old != r.Sprint.ID {
+			moves[r.Old] = r.Sprint.ID
+		}
+	}
+	if len(moves) > 0 {
+		pp, changed := data.Preplan, false
+		pp.Earmarks = append([]model.Earmark(nil), pp.Earmarks...)
+		for i, e := range pp.Earmarks {
+			if to, ok := moves[e.Sprint]; ok {
+				pp.Earmarks[i].Sprint, changed = to, true
+			}
+		}
+		if changed {
+			if _, err := repo.SavePreplan(team, pp); err != nil {
+				return fail(err)
+			}
+		}
+	}
+	if ch.Naming == calendarNamingRenumber {
+		fresh, err := a.loadTeam(team)
+		if err != nil {
+			return fail(err)
+		}
+		renames, err := calendarRenumber(fresh, p.from, today)
+		if err != nil {
+			return fail(err)
+		}
+		if _, err := sprintcal.ApplyRenames(repo, fresh, renames); err != nil {
+			return fail(err)
+		}
+	}
+	fresh, err := a.loadTeam(team)
+	if err != nil {
+		return CalendarResult{}, err
+	}
+	shown, err := a.calendarWindow(fresh, count)
+	if err != nil {
+		return CalendarResult{}, err
+	}
+	moved := 0
+	for _, r := range p.plan.Rows {
+		if r.Gone || !r.Sprint.Start.Equal(r.OldStart) || !r.Sprint.End.Equal(r.OldEnd) {
+			moved++
+		}
+	}
+	return CalendarResult{View: a.calendarView(fresh, shown), Moved: moved, Undo: token}, nil
+}

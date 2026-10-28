@@ -1,9 +1,11 @@
 package app
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/swallat/foresprint/internal/calendar"
 )
@@ -322,5 +324,199 @@ func TestCalendarWorkdaysExcludeHolidaysOnWorkdays(t *testing.T) {
 	}
 	if withHoliday == 0 {
 		t.Error("no sprint with a holiday in 40 sprints")
+	}
+}
+
+func calendarRowsAround(t *testing.T, api *API, team string) (running CalendarRow, later []CalendarRow, all []CalendarRow) {
+	t.Helper()
+	view, err := api.Calendar(team, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range view.Rows {
+		if r.State == CalRunning {
+			return r, view.Rows[i+1:], view.Rows
+		}
+	}
+	t.Fatal("no running sprint")
+	return
+}
+
+func calendarDay(t *testing.T, s string, add int) string {
+	t.Helper()
+	d, err := time.Parse(isoDay, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d.AddDate(0, 0, add).Format(isoDay)
+}
+
+func calendarRowStarting(rows []CalendarRow, start string) *CalendarRow {
+	for i := range rows {
+		if rows[i].Start == start {
+			return &rows[i]
+		}
+	}
+	return nil
+}
+
+func calendarRow(rows []CalendarRow, id string) *CalendarRow {
+	for i := range rows {
+		if rows[i].ID == id {
+			return &rows[i]
+		}
+	}
+	return nil
+}
+
+func TestCalendarChangeKeepLetsACoveredSprintFallAway(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	next, after := later[0], later[1]
+	ch := CalendarChange{Kind: calendarChangeLast, ID: running.ID, Date: next.Last, Mode: calendarChangeKeep, Naming: calendarNamingKeep}
+	prev, err := api.PreviewCalendarChange(team, ch, 6)
+	if err != nil || prev.Problem != "" {
+		t.Fatalf("preview %+v, %v", prev, err)
+	}
+	if raw, _ := json.Marshal(prev); strings.Contains(string(raw), "null") {
+		t.Errorf("the preview holds a nil list: %s", raw)
+	}
+	gone := 0
+	for _, r := range prev.Rows {
+		if r.Gone {
+			gone++
+			if r.Old != next.ID {
+				t.Errorf("%s falls away, want %s", r.Old, next.ID)
+			}
+		}
+	}
+	if gone != 1 {
+		t.Fatalf("rows %+v", prev.Rows)
+	}
+	res, err := api.ApplyCalendarChange(team, ch, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Undo == 0 || calendarRowStarting(res.View.Rows, next.Start) != nil {
+		t.Fatalf("%s is still there: %+v", next.ID, res.View.Rows)
+	}
+	if got := calendarRowStarting(res.View.Rows, after.Start); got == nil || got.Last != after.Last {
+		t.Errorf("the sprint after moved: %+v, want %s to %s", got, after.Start, after.Last)
+	}
+	if got := calendarRow(res.View.Rows, running.ID); got.Last != next.Last {
+		t.Errorf("running sprint ends %s, want %s", got.Last, next.Last)
+	}
+	if _, err := os.Stat(api.teamFile(team, "sprints/"+next.ID+".yaml")); !os.IsNotExist(err) && next.Saved {
+		t.Errorf("file of %s is still there (%v)", next.ID, err)
+	}
+	if err := api.Undo(team, res.Undo); err != nil {
+		t.Fatal(err)
+	}
+	_, _, back := calendarRowsAround(t, api, team)
+	if calendarRowStarting(back, next.Start) == nil {
+		t.Error("undo did not bring the sprint back")
+	}
+}
+
+func TestCalendarChangeShiftMovesTheFollowingSprints(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	ch := CalendarChange{Kind: calendarChangeLast, ID: running.ID, Date: calendarDay(t, running.Last, 3), Mode: calendarChangeShift, Naming: calendarNamingKeep}
+	res, err := api.ApplyCalendarChange(team, ch, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range later {
+		got := calendarRow(res.View.Rows, l.ID)
+		if got == nil || got.Start != calendarDay(t, l.Start, 3) {
+			t.Errorf("%s: %+v, want start %s", l.ID, got, calendarDay(t, l.Start, 3))
+		}
+	}
+}
+
+func TestCalendarChangeRemoveGivesTheDaysToTheSprintBefore(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	if _, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeRemove, ID: running.ID}, 6); err == nil {
+		t.Error("the running sprint was removed")
+	}
+	next := later[0]
+	res, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeRemove, ID: next.ID, Naming: calendarNamingKeep}, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calendarRowStarting(res.View.Rows, next.Start) != nil {
+		t.Error("sprint still there")
+	}
+	if got := calendarRow(res.View.Rows, running.ID); got.Last != next.Last {
+		t.Errorf("running sprint ends %s, want %s", got.Last, next.Last)
+	}
+}
+
+func TestCalendarChangeStartOfTheFirstOpenSprintMovesAllFollowing(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	early := CalendarChange{Kind: calendarChangeStart, ID: running.ID, Date: calendarDay(t, running.Start, -1)}
+	if prev, _ := api.PreviewCalendarChange(team, early, 6); prev.Problem == "" {
+		t.Error("a start before the end of the finished sprint was accepted")
+	}
+	res, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeStart, ID: running.ID, Date: calendarDay(t, running.Start, 1)}, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := calendarRow(res.View.Rows, running.ID); got.Start != calendarDay(t, running.Start, 1) {
+		t.Errorf("start %s", got.Start)
+	}
+	for _, l := range later {
+		if got := calendarRow(res.View.Rows, l.ID); got == nil || got.Start != calendarDay(t, l.Start, 1) {
+			t.Errorf("%s: %+v", l.ID, got)
+		}
+	}
+}
+
+func TestCalendarChangeStartOfALaterSprintChangesTheSprintBefore(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	next := later[0]
+	ch := CalendarChange{Kind: calendarChangeStart, ID: next.ID, Date: calendarDay(t, next.Start, 2), Mode: calendarChangeShift}
+	prev, err := api.PreviewCalendarChange(team, ch, 6)
+	if err != nil || prev.Problem != "" || prev.Via != running.ID {
+		t.Fatalf("preview %+v, %v", prev, err)
+	}
+	res, err := api.ApplyCalendarChange(team, ch, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := calendarRow(res.View.Rows, running.ID); got.Last != calendarDay(t, running.Last, 2) {
+		t.Errorf("running last %s", got.Last)
+	}
+}
+
+func TestCalendarChangeRefusesAFinishedSprint(t *testing.T) {
+	api, team := demoCopy(t)
+	_, _, all := calendarRowsAround(t, api, team)
+	if _, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeLast, ID: all[0].ID, Date: all[0].Last}, 6); err == nil {
+		t.Error("finished sprint accepted")
+	}
+}
+
+func TestCalendarChangeRhythmRestoresTheRegularLength(t *testing.T) {
+	api, team := demoCopy(t)
+	running, later, _ := calendarRowsAround(t, api, team)
+	// A long running sprint breaks the rhythm; the following ones move along.
+	if _, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeLast, ID: running.ID, Date: calendarDay(t, running.Last, 5), Mode: calendarChangeShift}, 6); err != nil {
+		t.Fatal(err)
+	}
+	next := later[0]
+	res, err := api.ApplyCalendarChange(team, CalendarChange{Kind: calendarChangeRhythm, ID: running.ID, Naming: calendarNamingKeep}, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := calendarRow(res.View.Rows, running.ID)
+	if got.Start != running.Start || got.Last != running.Last {
+		t.Errorf("running sprint %s–%s, want %s–%s", got.Start, got.Last, running.Start, running.Last)
+	}
+	if after := calendarRowStarting(res.View.Rows, next.Start); after == nil || after.Last != next.Last {
+		t.Errorf("the next sprint is not back in the rhythm: %+v", after)
 	}
 }
