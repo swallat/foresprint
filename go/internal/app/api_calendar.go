@@ -753,7 +753,7 @@ func (a *API) calendarChangeRows(data *storage.TeamData, p *calendarChangePlan, 
 			saved = saved || w.ID == s.ID
 		}
 		row := ChangeRow{
-			ID: id, Old: pl.Old, Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
+			ID: id, Old: pl.Old, OldStart: pl.OldStart.Format(isoDay), OldLast: pl.OldEnd.Add(-24 * time.Hour).Format(isoDay), Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
 			Gone: pl.Gone, Saved: saved, Notes: []ChangeNote{},
 		}
 		if !pl.Gone {
