@@ -22,10 +22,10 @@ const calendarPastShown = 3
 func calendarLastDayOf(s model.Sprint) time.Time { return s.End.Add(-24 * time.Hour) }
 
 func calendarState(data *storage.TeamData, s model.Sprint, today time.Time) string {
-	switch {
-	case !s.End.After(today):
+	switch phase := model.PhaseOf(data.Sprints, s, today); {
+	case phase == model.PhasePast:
 		return CalFinished
-	case !s.Start.After(today):
+	case phase == model.PhaseRunning:
 		return CalRunning
 	case data.SprintByID(s.ID) == nil:
 		return CalPlanned

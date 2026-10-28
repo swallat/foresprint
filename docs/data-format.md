@@ -328,6 +328,8 @@ absence_state: confirmed   # absence state: unknown | expected | confirmed. "con
                            # entries, absences_confirmed: true or an already planned or reviewed
                            # sprint count as confirmed).
 absences_confirmed: true   # only for older program versions; written together with "confirmed"
+started_on: 2026-10-14      # the day the sprint was started ("Start sprint"), optional; see Sprint workflow
+start_pending: true         # optional: waits for its start (plan frozen early, or the start was taken back)
 expected_absences: {anna: 2}   # PO pre-planning: announced absences (forecast); affect capacity
                            # and Forecast PLAN until the absences are confirmed
 not_done: 1.5              # review, optional: amount that was not finished

@@ -54,9 +54,11 @@ type TodaySprint struct {
 	State string `json:"state"`
 	// DaysLeft is the number of days until the end of a running sprint, DaysToStart the number
 	// of days until the start of a coming one; the other is 0.
-	DaysLeft    int         `json:"daysLeft"`
-	DaysToStart int         `json:"daysToStart"`
-	Steps       []TodayStep `json:"steps"`
+	DaysLeft    int `json:"daysLeft"`
+	DaysToStart int `json:"daysToStart"`
+	// StartDue: the first day of a coming sprint has come, but it is not started yet.
+	StartDue bool        `json:"startDue"`
+	Steps    []TodayStep `json:"steps"`
 }
 
 // TodayFinding is one finding of the data check, with the page that can fix it.
@@ -190,13 +192,16 @@ func sourceOf(t model.Team) string {
 }
 
 // todaySprints picks the sprints worth showing: the last past sprint without review, the
-// running one and the two after it.
+// running one and the two after it. Running means started officially and not reviewed yet,
+// whatever the dates say (see model.PhaseOf).
 func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 	list := append([]model.Sprint(nil), data.Sprints...)
 	sort.SliceStable(list, func(i, j int) bool { return list[i].Start.Before(list[j].Start) })
+	phases := make([]model.Phase, len(list))
 	running := -1
 	for i, s := range list {
-		if !s.Start.After(day) && !s.End.Before(day) {
+		phases[i] = model.PhaseOf(list, s, day)
+		if phases[i] == model.PhaseRunning {
 			running = i
 		}
 	}
@@ -207,30 +212,27 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 			Steps: stepsOf(s, state),
 		}
 		if state == "running" {
-			ts.DaysLeft = int(s.End.Sub(day).Hours() / 24)
+			ts.DaysLeft = max(int(s.End.Sub(day).Hours()/24), 0)
 		} else if state != "past" {
-			ts.DaysToStart = int(s.Start.Sub(day).Hours() / 24)
+			ts.DaysToStart = max(int(s.Start.Sub(day).Hours()/24), 0)
+			ts.StartDue = !s.Start.After(day)
 		}
 		out = append(out, ts)
 	}
 	// A finished sprint without velocity still needs its review.
 	for i := len(list) - 1; i >= 0; i-- {
-		s := list[i]
-		if s.End.Before(day) {
-			if s.Velocity == nil {
-				add(s, "past")
+		if phases[i] == model.PhasePast {
+			if list[i].Velocity == nil {
+				add(list[i], "past")
 			}
 			break
 		}
 	}
-	next := running + 1 // the sprint that starts next
-	if running < 0 {
-		next = len(list)
-		for i, s := range list {
-			if s.Start.After(day) {
-				next = i
-				break
-			}
+	next := len(list) // the sprint that is started next: the first open one
+	for i := range list {
+		if phases[i] == model.PhaseOpen {
+			next = i
+			break
 		}
 	}
 	from := next

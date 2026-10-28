@@ -20,6 +20,7 @@ func TestRenderGolden(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
+		data.PhasesByDate = true
 		fc, err := forecast.Build(data, coretest.Today(t, c))
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)

@@ -417,8 +417,7 @@ func backlogDrift(data *storage.TeamData, now time.Time) *BacklogDrift {
 		return nil
 	}
 	for _, s := range data.Sprints {
-		// The stored end is exclusive: on the day a sprint ends, the next one is the running one.
-		if s.Start.After(now) || !now.Before(s.End) {
+		if model.PhaseOf(data.Sprints, s, now) != model.PhaseRunning {
 			continue
 		}
 		d := ticketimport.DetectDrift(s.CommittedTickets, data.Tickets, s.ID)
@@ -458,14 +457,14 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 	if fc, err := forecast.Build(data, now); err == nil {
 		for i := range fc.Entries {
 			e := fc.Entries[i]
-			if e.Sprint.Start.After(now) {
+			if fc.Phase(e.Sprint) == model.PhaseOpen {
 				upcoming = append(upcoming, e.Sprint)
 				plans[e.Sprint.ID] = e.Result.Plan
 			}
 		}
 	} else {
 		for _, s := range data.Sprints {
-			if s.Start.After(now) {
+			if model.PhaseOf(data.Sprints, s, now) == model.PhaseOpen {
 				upcoming = append(upcoming, s)
 			}
 		}

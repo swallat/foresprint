@@ -52,6 +52,7 @@ Fresh machine or fresh user account, no earlier Foresprint.
 | B4 | Command palette (Ctrl/Cmd+K), Ctrl/Cmd+S (save and share), Ctrl+Shift+R (refresh). | Pages and tickets are searchable; the shortcuts do what the help says. |
 | B5 | Personal > language German/English. | All visible text changes; no `{placeholder}` or leftover English in German mode. |
 | B6 | Create a new team from scratch. | Name, first sprint id and start date accepted; Today explains what is still missing (for example people). |
+| B7 | On the first day of a sprint: open Plan of that sprint, freeze it, then press *Start sprint* with an earlier start day. | The page is not locked by the date; the sprint is "running" only after the start, from the day entered; the old sprint stays running until then or until its Review is closed; *Take start back* reopens it. |
 
 ## C. Existing 0.8 team (P1)
 

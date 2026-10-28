@@ -79,7 +79,7 @@ func CapacityLabel(e *forecast.TimelineEntry) string {
 }
 
 func bandOf(fc *forecast.Forecast, e *forecast.TimelineEntry) (analysis.Band, bool) {
-	if !e.Sprint.End.After(fc.Today) {
+	if fc.Phase(e.Sprint) == model.PhasePast {
 		return analysis.Band{}, false
 	}
 	return analysis.BandOf(fc, e)
@@ -232,10 +232,10 @@ func ReliabilityNotes(fc *forecast.Forecast, code bool) []string {
 
 // Status is the state of a sprint in words ("running" in bold).
 func Status(fc *forecast.Forecast, e *forecast.TimelineEntry) string {
-	switch {
-	case !e.Sprint.End.After(fc.Today):
+	switch fc.Phase(e.Sprint) {
+	case model.PhasePast:
 		return t("finished")
-	case !e.Sprint.Start.After(fc.Today):
+	case model.PhaseRunning:
 		return "**" + t("running") + "**"
 	}
 	return t("planned")

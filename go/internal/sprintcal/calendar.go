@@ -128,10 +128,10 @@ func Table(data *storage.TeamData, sprints []model.Sprint, today time.Time) []Ro
 	rows := make([]Row, 0, len(sprints))
 	for _, s := range sprints {
 		state := "planned"
-		switch {
-		case !s.End.After(today):
+		switch phase := model.PhaseOf(data.Sprints, s, today); {
+		case phase == model.PhasePast:
 			state = "finished"
-		case !s.Start.After(today):
+		case phase == model.PhaseRunning:
 			state = "running"
 		case data.SprintByID(s.ID) == nil:
 			state = "no file yet"
