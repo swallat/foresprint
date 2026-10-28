@@ -197,6 +197,8 @@ export interface ChangeNote {
 export interface ChangeRow {
   id: string;
   old: string;
+  oldStart: string;
+  oldLast: string;
   start: string;
   last: string;
   workdays: number;
