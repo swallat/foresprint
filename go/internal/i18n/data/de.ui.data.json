@@ -108,6 +108,7 @@
   "You deleted this file.": "Du hast diese Datei gelöscht.",
   "You have unsaved changes. Save shares them with the team.": "Du hast ungespeicherte Änderungen. Speichern gibt sie ans Team.",
   "You have {n} unsaved changes. Bringing back a state needs them saved or discarded first.": "Du hast {n} ungespeicherte Änderungen. Um einen Stand zu holen, speichere sie zuerst oder verwirf sie.",
+  "Save or discard the unsaved changes first.": "Speichere oder verwirf zuerst die ungespeicherten Änderungen.",
   "You keep working with the last state. Save keeps your changes on this computer; they go to the team when the connection is back.": "Du arbeitest mit dem letzten Stand. Speichern sichert deine Änderungen auf diesem Rechner, sie gehen ans Team, sobald die Verbindung wieder da ist.",
   "Your unsaved changes stay.": "Deine ungespeicherten Änderungen bleiben erhalten.",
   "changed": "geändert",

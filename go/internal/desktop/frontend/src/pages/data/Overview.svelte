@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api } from '../../lib/api';
-  import { app, refresh, refreshStatus, save, toast } from '../../lib/app.svelte';
+  import { app, refresh, refreshStatus, save, showNewData, toast } from '../../lib/app.svelte';
   import { openExternal } from '../../lib/external';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -70,6 +70,8 @@
     try {
       const done = await api.DiscardValues([{ file, path: v.path }]);
       await refreshStatus();
+      app.rev++;
+      await showNewData();
       await load();
       if (done.problem) toast(done.problem.message, 'bad');
       else toast(done.warning ?? t('Put back.'), 'ok');
@@ -84,6 +86,8 @@
     const done = await api.Discard(files);
     discarding = undefined;
     await refreshStatus();
+    app.rev++;
+    await showNewData();
     await load();
     if (done.problem) toast(done.problem.message, 'bad');
     else toast(done.warning ?? t('Discarded.'), 'ok');
