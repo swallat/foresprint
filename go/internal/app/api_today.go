@@ -85,7 +85,7 @@ type TodayData struct {
 const MaxFindings = 8
 
 // Today returns the next steps per sprint and the findings of the data check for a team.
-func (a *API) Today(team string) (TodayData, error) { return a.todayAt(team, time.Now()) }
+func (a *API) Today(team string) (TodayData, error) { return a.todayAt(team, now()) }
 
 func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 	data, err := storage.NewRepository(a.DataDir()).Load(team)

@@ -43,7 +43,7 @@ func parseDay(text, what string) (*time.Time, error) {
 }
 
 func (a *API) today() time.Time {
-	n := time.Now()
+	n := now()
 	if a.Now != nil {
 		n = a.Now()
 	}

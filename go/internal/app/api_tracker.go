@@ -181,7 +181,7 @@ func (a *API) trackerReresolve(repo *storage.Repository, team string, t model.Te
 		return err
 	}
 	data.Team = t
-	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data}, Today: time.Now()}
+	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data}, Today: now()}
 	tickets, preplan, changed := ticketimport.Reresolve(data.Tickets, data.Preplan, env)
 	if !changed {
 		return nil
@@ -576,7 +576,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	}
 	name := jira.Name()
 	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Tickets: data.Tickets,
-		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: time.Now(), KeepOrder: keepOrder}
+		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: now(), KeepOrder: keepOrder}
 	plan := ticketimport.PlanImport(env, raws, &name, true)
 	a.mu.Lock()
 	if a.run.mapped == nil {
@@ -587,7 +587,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	if plan.Unchanged(data.Tickets, data.TicketsSource) {
 		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
 	}
-	if _, err := plan.Apply(planSaver{repo}, team, time.Now()); err != nil {
+	if _, err := plan.Apply(planSaver{repo}, team, now()); err != nil {
 		return Result{}, err
 	}
 	storage.ClearTeamCache()

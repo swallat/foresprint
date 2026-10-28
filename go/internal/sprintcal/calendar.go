@@ -149,6 +149,12 @@ func Table(data *storage.TeamData, sprints []model.Sprint, today time.Time) []Ro
 // Saved sprints after the shown period shift by the same difference. It returns the sprints and
 // the messages about wrong input.
 func Apply(data *storage.TeamData, sprints []model.Sprint, rows []Row) ([]model.Sprint, []string, error) {
+	return ApplyFrom(data, sprints, rows, nil)
+}
+
+// ApplyFrom is Apply with a new start for the first sprint: it and all following sprints move
+// by the difference unless a last day was changed.
+func ApplyFrom(data *storage.TeamData, sprints []model.Sprint, rows []Row, firstStart *time.Time) ([]model.Sprint, []string, error) {
 	var errs []string
 	var result []model.Sprint
 	persisted := map[string]bool{}
@@ -157,6 +163,9 @@ func Apply(data *storage.TeamData, sprints []model.Sprint, rows []Row) ([]model.
 	}
 	for i, original := range sprints {
 		sprint := original.Clone()
+		if i == 0 && firstStart != nil {
+			sprint.Start = *firstStart
+		}
 		if len(result) > 0 {
 			previous := result[len(result)-1]
 			sprint.Start = previous.End

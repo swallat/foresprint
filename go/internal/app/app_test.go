@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func demoDir(t *testing.T) string {
@@ -24,6 +25,12 @@ func newAPI(t *testing.T, dataDir string) *API {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
 	t.Setenv("FORESPRINT_LANG", "")
+	// The demo data is dated: a clock of its own keeps the tests from depending on the day they run.
+	// A test that needs another day sets the clock after this call.
+	fixed := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	old := now
+	now = func() time.Time { return fixed }
+	t.Cleanup(func() { now = old })
 	return New("test", dataDir)
 }
 

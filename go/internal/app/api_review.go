@@ -538,7 +538,7 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 	}
 
 	done := buildReview(team, withSprint(data, s), fc, s)
-	text := reviewMinutes(data, done, time.Now())
+	text := reviewMinutes(data, done, now())
 	_, err = a.minutes(team).SaveWithProtocol(sprintID, protocol.Review, text, nil, func() ([]string, error) {
 		path, serr := repo.SaveSprint(team, &s)
 		return []string{path}, serr
