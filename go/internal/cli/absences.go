@@ -138,7 +138,7 @@ func (e *Env) askAbsences(data *storage.TeamData, s *model.Sprint) (string, erro
 	if s.Capacity != nil {
 		ok, err := e.Confirm(i18n.P("A fixed capacity ({capacity}) is recorded for the sprint. Remove it so it is "+
 			"calculated from the absences?", "capacity", textfmt.FmtCapacity(i18n.Language(), s.Capacity, data.Team.Capacity.Rounding)),
-			s.End.After(e.Today))
+			s.End.After(e.TodayFor(data)))
 		if err != nil {
 			return "", err
 		}
@@ -159,7 +159,7 @@ func (e *Env) showSprintForecast(key, id string) error {
 	if err != nil {
 		return err
 	}
-	fc, err := forecast.Build(data, e.Today)
+	fc, err := forecast.Build(data, e.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}

@@ -587,7 +587,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	if plan.Unchanged(data.Tickets, data.TicketsSource) {
 		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
 	}
-	if _, err := plan.Apply(planSaver{repo}, team, nowOf(data)); err != nil {
+	if _, err := plan.Apply(planSaver{repo}, team, now()); err != nil {
 		return Result{}, err
 	}
 	storage.ClearTeamCache()
