@@ -1,9 +1,9 @@
 # Toolchain for developing Foresprint: `mise install` fetches everything below.
-# Go is pinned to what go/go.mod needs (Wails v2.12 does not build with Go 1.25 or newer).
+# Go is pinned to what go/go.mod needs.
 # Tasks: `mise tasks`; the program version comes from $FORESPRINT_VERSION (default "dev").
 # The Wails CLI is not needed: the window is built with plain `go build` (see scripts/build.mjs).
 [tools]
-go = "1.24.7"
+go = "1.26.0"
 node = "22"
 # uv runs scripts/gen_holidays.py (public holiday data), which fetches its own Python.
 uv = "0.13.1"

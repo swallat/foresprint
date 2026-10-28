@@ -16,8 +16,8 @@ mise tasks           # list the tasks
 ```
 
 Building the window needs cgo and a C compiler. On Linux also
-`sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev`. Go stays below 1.25 because Wails v2.12
-does not build with newer versions. Without mise, install Go and Node yourself and run
+`sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev`. Go 1.26 is required (the current
+security fixes of x/net and x/crypto need it). Without mise, install Go and Node yourself and run
 `node scripts/build.mjs <task>`; the mise tasks are thin wrappers around it.
 
 ## Build and run
