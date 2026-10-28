@@ -181,7 +181,7 @@
           <div class="lane">
             <span class="small muted">{lane.label}</span>
             <div class="track">
-              {#each lane.bars as b, i (i)}<div class="seg" style="left: {b.left}%; width: {b.width}%">{b.id}</div>{/each}
+              {#each lane.bars as b, i (i)}<div class="seg" class:gone={b.gone} style="left: {b.left}%; width: {b.width}%">{b.id}</div>{/each}
             </div>
           </div>
         {/each}
@@ -301,6 +301,11 @@
     color: var(--text);
     border-left: 2px solid var(--primary);
     border-radius: 3px;
+  }
+  .seg.gone {
+    background: var(--bad-weak);
+    border-left-color: var(--bad);
+    text-decoration: line-through;
   }
   tr.gone td {
     text-decoration: line-through;

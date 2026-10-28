@@ -378,6 +378,11 @@ func TestCalendarChangeKeepLetsACoveredSprintFallAway(t *testing.T) {
 	if err != nil || prev.Problem != "" {
 		t.Fatalf("preview %+v, %v", prev, err)
 	}
+	for _, r := range prev.Rows {
+		if r.Old == running.ID && (r.OldStart != running.Start || r.OldLast != running.Last) {
+			t.Errorf("old dates of %s: %s to %s, want %s to %s", r.Old, r.OldStart, r.OldLast, running.Start, running.Last)
+		}
+	}
 	if raw, _ := json.Marshal(prev); strings.Contains(string(raw), "null") {
 		t.Errorf("the preview holds a nil list: %s", raw)
 	}
