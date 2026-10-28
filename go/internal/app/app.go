@@ -218,6 +218,8 @@ type TeamSummary struct {
 	Problem  string `json:"problem,omitempty"`
 	Tickets  bool   `json:"tickets"`
 	Products int    `json:"products"`
+	// AsOf is the simulated day of the team (as_of in team.yaml, YYYY-MM-DD); "" = the clock.
+	AsOf string `json:"asOf,omitempty"`
 }
 
 // Teams lists the teams in the data folder. A team that cannot be read is listed with its
@@ -240,6 +242,7 @@ func (a *API) Teams() []TeamSummary {
 			Sprints:  len(data.Sprints),
 			Products: len(data.Products),
 			Tickets:  data.Team.Features.Tickets,
+			AsOf:     asOfText(data.Team),
 		})
 	}
 	return out
@@ -259,7 +262,7 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	today := now().Format("2006-01-02")
+	today := todayOf(data).Format("2006-01-02")
 	out := make([]SprintInfo, 0, len(data.Sprints))
 	for _, s := range data.Sprints {
 		start, end := s.Start.Format("2006-01-02"), s.End.Format("2006-01-02")
@@ -337,3 +340,20 @@ func nonNilList[T any](s []T) []T {
 	}
 	return s
 }
+
+// asOfText is the as_of day of the team as YYYY-MM-DD, "" without one.
+func asOfText(t model.Team) string {
+	if t.AsOf == nil {
+		return ""
+	}
+	return t.AsOf.Format("2006-01-02")
+}
+
+// todayOf is the day that counts as today for the team of data: its as_of, otherwise the clock.
+func todayOf(data *storage.TeamData) time.Time { return data.Team.TodayOf(now()) }
+
+// nowOf is the clock for the team of data: the time of the clock on the day of its as_of.
+func nowOf(data *storage.TeamData) time.Time { return data.Team.NowOf(now()) }
+
+// dayOf is todayOf with the clock of the API (tests set a.Now).
+func (a *API) dayOf(data *storage.TeamData) time.Time { return data.Team.TodayOf(a.now()) }

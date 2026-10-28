@@ -28,7 +28,7 @@ func excelCommand(env *Env) *cobra.Command {
 			for _, w := range excel.ImportUnsafeSprintIDs(data) {
 				_, _ = fmt.Fprintln(env.Err, w)
 			}
-			fc, err := forecast.Build(data, env.Today)
+			fc, err := forecast.Build(data, env.TodayFor(data))
 			if err != nil {
 				return asFail(err)
 			}

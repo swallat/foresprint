@@ -189,7 +189,7 @@ func (a *API) planImport(team, path string) (*excel.ImportPlan, bool, string, er
 	if err != nil {
 		return nil, false, "", err
 	}
-	plan, err := excel.Plan(storage.NewRepository(a.DataDir()), data, today())
+	plan, err := excel.Plan(storage.NewRepository(a.DataDir()), data, todayOf(data))
 	if err != nil {
 		return nil, false, "", err
 	}

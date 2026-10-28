@@ -29,7 +29,7 @@ func forecastCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fc, err := forecast.Build(data, env.Today)
+			fc, err := forecast.Build(data, env.TodayFor(data))
 			if err != nil {
 				return asFail(err)
 			}

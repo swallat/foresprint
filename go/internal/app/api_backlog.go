@@ -313,7 +313,7 @@ func (c *backlogContext) blocked(tk model.Ticket, earmark string) bool {
 func namedProducts(data *storage.TeamData) []Named {
 	out := make([]Named, 0, len(data.Products))
 	for _, p := range data.Products {
-		out = append(out, Named{ID: p.ID, Name: p.Name, Closed: p.End != nil && p.End.Before(today())})
+		out = append(out, Named{ID: p.ID, Name: p.Name, Closed: p.End != nil && p.End.Before(todayOf(data))})
 	}
 	return out
 }
@@ -375,7 +375,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	for i := range view.ProForma {
 		pro[view.ProForma[i].Name] = &view.ProForma[i]
 	}
-	now := today()
+	now := todayOf(data)
 	for _, tk := range all {
 		r := c.row(tk)
 		if name := c.proFormaName(tk); name != "" {
@@ -451,7 +451,7 @@ func cycles(left []model.Ticket) [][]string {
 // lanes returns every coming sprint of the timeline as a lane with its Forecast PLAN (the same
 // list as the second return value).
 func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
-	now := today()
+	now := todayOf(data)
 	plans := map[string]*float64{}
 	var upcoming []model.Sprint
 	if fc, err := forecast.Build(data, now); err == nil {
@@ -496,7 +496,7 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 // board lists, also when it is empty, so that no sprint of the tracker is missing from the
 // backlog. Board sprints that match no sprint of the calendar come back by name.
 func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.SprintValue, all []model.Ticket, lanes []BacklogLane, upcoming []model.Sprint) ([]BacklogLane, []model.Sprint, []string) {
-	now := today()
+	now := todayOf(data)
 	have := map[string]bool{}
 	for _, l := range lanes {
 		have[l.Sprint] = true
@@ -731,7 +731,7 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 		}
 		s := data.SprintByID(sprint)
 		if s == nil {
-			fc, err := forecast.Build(data, today())
+			fc, err := forecast.Build(data, todayOf(data))
 			if err == nil {
 				if e := fc.Entry(sprint); e != nil {
 					s = &e.Sprint
@@ -744,7 +744,7 @@ func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 		if s == nil {
 			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is not known.", "id", sprint))
 		}
-		if !s.End.After(today()) {
+		if !s.End.After(todayOf(data)) {
 			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is over.", "id", sprint))
 		}
 		if c := newBacklogContext(data); c.proFormaName(*tk) != "" {

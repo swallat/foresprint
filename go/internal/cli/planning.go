@@ -177,7 +177,7 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 			return err
 		}
 	}
-	fc, err := forecast.Build(data, env.Today)
+	fc, err := forecast.Build(data, env.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}
@@ -254,7 +254,7 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 			return err
 		}
 	}
-	forecast.FreezePlan(s, fc.Entry(s.ID), env.Today, refreeze)
+	forecast.FreezePlan(s, fc.Entry(s.ID), env.TodayFor(data), refreeze)
 	if err := env.refuseInvalid(before, withSprint(data, s), "sprints/"); err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func runPlanning(env *Env, key, sprintID string, doCommit bool) error {
 	if err != nil {
 		return err
 	}
-	if fc, err = forecast.Build(fresh, env.Today); err != nil {
+	if fc, err = forecast.Build(fresh, env.TodayFor(data)); err != nil {
 		return asFail(err)
 	}
 	if e := fc.Entry(s.ID); e != nil && e.Result.PlanningTotal != nil {
@@ -311,7 +311,7 @@ func runReview(env *Env, key, sprintID string, doCommit bool) error {
 	if err != nil {
 		return err
 	}
-	fc, err := forecast.Build(data, env.Today)
+	fc, err := forecast.Build(data, env.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}

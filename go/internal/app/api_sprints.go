@@ -173,7 +173,7 @@ func (a *API) AbsenceGrid(team, from string, count int) (AbsenceGrid, error) {
 }
 
 func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, error) {
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return AbsenceGrid{}, err
 	}
@@ -186,7 +186,7 @@ func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, e
 		grid.Columns = append(grid.Columns, column(data, fc, s))
 	}
 	for _, p := range data.People {
-		row := AbsenceRow{Person: p.ID, Name: p.Name, FTE: p.FTEOn(today()), Cells: []AbsenceCell{}}
+		row := AbsenceRow{Person: p.ID, Name: p.Name, FTE: p.FTEOn(todayOf(data)), Cells: []AbsenceCell{}}
 		if row.FTE == 0 && len(p.Memberships) > 0 {
 			row.FTE = p.Memberships[len(p.Memberships)-1].FTE
 		}
@@ -218,7 +218,7 @@ func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamDa
 	if err != nil {
 		return AbsenceColumn{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return AbsenceColumn{}, err
 	}
@@ -243,7 +243,7 @@ func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamDa
 	if err != nil {
 		return AbsenceColumn{}, err
 	}
-	if fc, err = forecast.Build(data, today()); err != nil {
+	if fc, err = forecast.Build(data, todayOf(data)); err != nil {
 		return AbsenceColumn{}, err
 	}
 	saved := data.SprintByID(sprintID)
@@ -327,7 +327,7 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	if err != nil {
 		return SprintPrepare{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return SprintPrepare{}, err
 	}
@@ -399,7 +399,7 @@ func (a *API) SprintOverview(team string, past int) (SprintOverview, error) {
 	if err != nil {
 		return SprintOverview{}, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return SprintOverview{}, err
 	}

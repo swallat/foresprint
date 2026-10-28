@@ -52,7 +52,7 @@ func planTeam(t *testing.T) (*API, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		t.Fatal(err)
 	}

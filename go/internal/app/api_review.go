@@ -143,7 +143,7 @@ func (a *API) loadReviewSprint(team, sprintID string) (*storage.TeamData, *forec
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -538,7 +538,7 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 	}
 
 	done := buildReview(team, withSprint(data, s), fc, s)
-	text := reviewMinutes(data, done, now())
+	text := reviewMinutes(data, done, nowOf(data))
 	_, err = a.minutes(team).SaveWithProtocol(sprintID, protocol.Review, text, nil, func() ([]string, error) {
 		path, serr := repo.SaveSprint(team, &s)
 		return []string{path}, serr
@@ -639,7 +639,7 @@ func (a *API) ReopenReview(team, sprintID string) (ReviewClosed, error) {
 	if err != nil {
 		return ReviewClosed{}, err
 	}
-	if fc, err = forecast.Build(data, today()); err != nil {
+	if fc, err = forecast.Build(data, todayOf(data)); err != nil {
 		return ReviewClosed{}, err
 	}
 	saved := data.SprintByID(sprintID)

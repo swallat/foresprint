@@ -161,7 +161,7 @@ func runPeople(env *Env, key string, doCommit, former bool, opts newPerson) erro
 	people := data.People
 	changed := false
 	for {
-		peopleTable(people, env.Today, former).Render(env.Out)
+		peopleTable(people, env.TodayFor(data), former).Render(env.Out)
 		action, err := env.AskChoice(i18n.P("Action: n = new person, f = change FTE, a = leaves the team, q = done"),
 			[]string{"n", "f", "a", "q"}, "q")
 		if err != nil {

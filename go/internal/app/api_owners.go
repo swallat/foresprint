@@ -219,7 +219,7 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 		return Step{}, errors.New(i18n.T("Unknown PO '{id}'.", "id", id))
 	}
 	po := &data.Team.ProductOwners[idx]
-	today := a.day()
+	today := a.dayOf(data)
 	joined := a.peopleNewMemberDay(data)
 	gone := ""
 	personIdx := -1

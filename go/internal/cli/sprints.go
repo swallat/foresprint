@@ -51,7 +51,7 @@ func runSprints(env *Env, key string, count int, create bool, ends []string, doC
 	if err != nil {
 		return err
 	}
-	fc, err := forecast.Build(data, env.Today)
+	fc, err := forecast.Build(data, env.TodayFor(data))
 	if err != nil {
 		return asFail(err)
 	}
@@ -59,7 +59,7 @@ func runSprints(env *Env, key string, count int, create bool, ends []string, doC
 	if err != nil {
 		return asFail(err)
 	}
-	rows := sprintcal.Table(data, planned, env.Today)
+	rows := sprintcal.Table(data, planned, env.TodayFor(data))
 	for _, raw := range ends {
 		id, date, _ := strings.Cut(raw, "=")
 		last, perr := time.Parse("2006-01-02", strings.TrimSpace(date))
@@ -84,7 +84,7 @@ func runSprints(env *Env, key string, count int, create bool, ends []string, doC
 		}
 		return errExit1
 	}
-	shown := sprintcal.Table(data, after, env.Today)
+	shown := sprintcal.Table(data, after, env.TodayFor(data))
 	l := i18n.Language()
 	t := &Table{
 		Title:  i18n.P("Sprint calendar {team}", "team", textfmt.BlankControls(data.Team.Name)),
@@ -101,7 +101,7 @@ func runSprints(env *Env, key string, count int, create bool, ends []string, doC
 	t.Render(env.Out)
 	changed := sprintcal.ToSave(data, planned, after, create)
 	var blocking []validate.Issue
-	for _, i := range validate.CheckTeam(sprintcal.WithSprints(data, changed), env.Today) {
+	for _, i := range validate.CheckTeam(sprintcal.WithSprints(data, changed), env.TodayFor(data)) {
 		if i.Level == validate.Error && strings.HasPrefix(i.Where, "sprints/") {
 			blocking = append(blocking, i)
 		}

@@ -28,16 +28,11 @@ func (a *API) forecastOf(team string) (*storage.TeamData, *forecast.Forecast, er
 	if err != nil {
 		return nil, nil, err
 	}
-	fc, err := forecast.Build(data, today())
+	fc, err := forecast.Build(data, todayOf(data))
 	if err != nil {
 		return nil, nil, err
 	}
 	return data, fc, nil
-}
-
-func today() time.Time {
-	y, m, d := now().Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
 func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) ForecastRow {
@@ -267,7 +262,7 @@ func (a *API) ForecastSaveWhatIf(team string, as ForecastAssumption) error {
 	if label == "" {
 		label = forecastFreeLabel(cur.Prognoses, next)
 	}
-	n := now()
+	n := nowOf(data)
 	plan := rows[0].Forecast
 	p := model.Prognosis{At: time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), 0, time.UTC),
 		Target: &next, Plan: &plan, Label: &label, Commitment: &commitment, ExpectedDone: &expected}
@@ -361,7 +356,7 @@ func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64, pro
 	if err != nil {
 		return WhenDoneView{}, err
 	}
-	c, err := analysis.Simulate(data, today(), remaining, sharePercent/100, analysis.DefaultMaxSprints, simulationRuns, simulationSeed)
+	c, err := analysis.Simulate(data, todayOf(data), remaining, sharePercent/100, analysis.DefaultMaxSprints, simulationRuns, simulationSeed)
 	if err != nil {
 		return WhenDoneView{}, err
 	}
@@ -385,7 +380,7 @@ func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64, pro
 			break
 		}
 	}
-	fc, err := analysis.HorizonForecast(data, today(), analysis.DefaultMaxSprints)
+	fc, err := analysis.HorizonForecast(data, todayOf(data), analysis.DefaultMaxSprints)
 	if err != nil {
 		return WhenDoneView{}, err
 	}
