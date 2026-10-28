@@ -175,7 +175,6 @@
   "Features products product owners production access cap projects contingents": "Funktionen Produkte Product Owner Produktionszugang Deckel Prod-Zeit Projekte Kontingente",
   "Fetch changes of others": "Änderungen von anderen holen",
   "Fetch now": "Jetzt abrufen",
-  "as_of is set: {date} counts as today instead of the date of the computer (remove it for real use)": "as_of ist gesetzt: {date} gilt als heute statt des Datums des Rechners (für den echten Einsatz entfernen)",
   "Simulated date: {date}": "Simuliertes Datum: {date}",
   "This team counts {date} as today (as_of in team.yaml), not the date of the computer.": "Dieses Team rechnet mit {date} als heute (as_of in der team.yaml), nicht mit dem Datum des Rechners.",
   "Fetch tickets from {name} now": "Tickets jetzt aus {name} abrufen",
