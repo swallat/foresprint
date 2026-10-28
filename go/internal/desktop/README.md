@@ -18,8 +18,8 @@ frontend/             the web frontend (Vite, Svelte 5, TypeScript, Vitest)
   for the whole shell) and need no virtual DOM, which matters for the long ticket lists and the
   100 ms budget of `docs/redesign/plan.md`. A router and state are ~150 lines of our own, so the
   dependency list stays at Svelte and nothing else at run time.
-- **Wails v2.12.** The stable line that builds with the Go version of the core (v2.13+ needs Go
-  1.25, v3 is still beta). Moving to a newer Wails is a change in `go.mod` and `desktop.go`
+- **Wails v2.12.** The stable line (v3 is still beta; v2.13+ was not tried with the
+  window). Moving to a newer Wails is a change in `go.mod` and `desktop.go`
   only; the frontend does not know Wails except in `src/lib/api.ts`.
 - **Fonts and icons are bundled** (Iosevka, Iosevka Aile, Material Symbols as SVG): no web
   request at run time.

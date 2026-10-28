@@ -842,15 +842,15 @@ func trendSheet(b *book, wsT, ws *sheet, c map[string]int, entries []forecast.Ti
 				Categories: fmt.Sprintf("%s$A$2:$A$%d", tname, last+1),
 				Values:     fmt.Sprintf("%s%s:%s", tname, ref(1, col, true, true), ref(last, col, true, true)),
 				Marker:     excelize.ChartMarker{Symbol: "circle", Size: 5},
-				Line:       excelize.ChartLine{Width: 2},
+				Line:       excelize.LineOptions{Width: 2},
 			})
 		}
 		b.must(wsT, b.f.AddChart(wsT.name, anchor, &excelize.Chart{
 			Type:         excelize.Line,
 			Series:       series,
-			Title:        []excelize.RichTextRun{{Text: title}},
-			XAxis:        excelize.ChartAxis{Title: []excelize.RichTextRun{{Text: i18n.T("Sprint")}}},
-			YAxis:        excelize.ChartAxis{Title: []excelize.RichTextRun{{Text: ytitle}}, MajorGridLines: true},
+			Title:        excelize.ChartTitle{Paragraph: []excelize.RichTextRun{{Text: title}}},
+			XAxis:        excelize.ChartAxis{Title: excelize.ChartTitle{Paragraph: []excelize.RichTextRun{{Text: i18n.T("Sprint")}}}},
+			YAxis:        excelize.ChartAxis{Title: excelize.ChartTitle{Paragraph: []excelize.RichTextRun{{Text: ytitle}}}, MajorGridLines: true},
 			Legend:       excelize.ChartLegend{Position: "bottom"},
 			Dimension:    excelize.ChartDimension{Width: 760, Height: 340},
 			ShowBlanksAs: "gap",
