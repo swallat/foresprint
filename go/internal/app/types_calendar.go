@@ -83,3 +83,53 @@ type NamingPreview struct {
 	Problem   string        `json:"problem"`
 	Count     int           `json:"count"` // sprints that would be renamed
 }
+
+// CalendarChange is one change of the calendar: Kind "last" (new last day in Date), "start" (new
+// start in Date) or "remove" (the sprint ID falls away, its days go to the sprint before).
+// Mode says what happens to the later sprints: "shift" (they move along) or "keep" (they keep
+// their dates; covered ones fall away). Naming says what happens to sprints with a file whose
+// name no longer fits the count: "keep" their name or "renumber" them.
+type CalendarChange struct {
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Date   string `json:"date"`
+	Mode   string `json:"mode"`
+	Naming string `json:"naming"`
+}
+
+// ChangeNote says what happens to one sprint: Kind is "moved" (Days, signed), "longer" or
+// "shorter" (Days), "starts-later" or "starts-earlier" (Days), "gone" or "renamed" (From).
+type ChangeNote struct {
+	Kind string `json:"kind"`
+	Days int    `json:"days"`
+	From string `json:"from"`
+}
+
+// ChangeRow is one sprint in the preview of a change.
+type ChangeRow struct {
+	ID       string       `json:"id"`
+	Old      string       `json:"old"`
+	Start    string       `json:"start"`
+	Last     string       `json:"last"`
+	Workdays int          `json:"workdays"`
+	Gone     bool         `json:"gone"`
+	Saved    bool         `json:"saved"`
+	Notes    []ChangeNote `json:"notes"`
+}
+
+// CalendarPreview shows what a change does before it is written. Lost are the sprints with a
+// file that fall away, Free those without one. Via is the sprint whose last day is the one that
+// really changes (for a new start or a removal), Forced says that the later sprints have to move
+// along. NamingChoice is true when the naming question matters for this change. Problem is set
+// when the change is not possible.
+type CalendarPreview struct {
+	Rows         []ChangeRow `json:"rows"`
+	Lost         []string    `json:"lost"`
+	Free         []string    `json:"free"`
+	Target       string      `json:"target"`
+	Via          string      `json:"via"`
+	Forced       bool        `json:"forced"`
+	Mode         string      `json:"mode"`
+	NamingChoice bool        `json:"namingChoice"`
+	Problem      string      `json:"problem"`
+}

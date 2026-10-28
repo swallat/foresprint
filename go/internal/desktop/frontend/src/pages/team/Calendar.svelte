@@ -3,10 +3,11 @@
   import { api } from '../../lib/api';
   import { app, refreshSprints, toast } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
+  import ChangeDialog from '../../lib/calendar/ChangeDialog.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { fmtDay } from '../../lib/team/format';
-  import type { CalendarRow, CalendarView, NamingPreview } from '../../lib/types.team';
+  import type { CalendarRow, CalendarResult, CalendarView, ChangeKind, NamingPreview } from '../../lib/types.team';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
@@ -121,23 +122,22 @@
     await load();
   }
 
-  async function setLast(row: CalendarRow, value: string) {
-    if (!value || value === row.last) return load();
-    try {
-      const result = await api.SaveLastDays(app.team, [{ id: row.id, last: value }], count);
-      const now = result.view.rows.find((r) => r.id === row.id);
-      await afterChange(
-        result,
-        t('Last day {date}, {days} working days. {moved} following sprints moved.', {
-          date: fmtDay(value),
-          days: now?.workdays ?? 0,
-          moved: result.moved,
-        }),
-      );
-    } catch (e) {
-      toast(e instanceof Error ? e.message : String(e), 'bad');
-      await load();
-    }
+  // The dialog that shows a change before it is written (start, last day or removal).
+  let change = $state<{ kind: ChangeKind; id: string; date: string }>();
+
+  function ask(kind: ChangeKind, row: CalendarRow, value: string) {
+    if (kind !== 'remove' && kind !== 'rhythm' && (!value || value === (kind === 'start' ? row.start : row.last))) return load();
+    change = { kind, id: row.id, date: value };
+  }
+
+  async function closeChange() {
+    change = undefined;
+    await load(); // the date field goes back to what is stored
+  }
+
+  async function changed(result: CalendarResult, message: string) {
+    change = undefined;
+    await afterChange(result, message);
   }
 
   async function rename(row: CalendarRow, value: string) {
@@ -279,6 +279,7 @@
           <th class="num">{t('Working days')}</th>
           <th>{t('Days off')}</th>
           <th>{t('Status')}</th>
+          <th><span class="sr-only">{t('Actions')}</span></th>
         </tr>
       </thead>
       <tbody>
@@ -291,12 +292,18 @@
                 <input class="input data name" value={r.id} aria-label={t('Name of sprint {id}', { id: r.id })} onchange={(e) => rename(r, e.currentTarget.value)} />
               {/if}
             </td>
-            <td class="data">{fmtDay(r.start)}</td>
+            <td>
+              {#if r.locked}
+                <span class="data">{fmtDay(r.start)}</span> <Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>
+              {:else}
+                <input class="input data" type="date" value={r.start} aria-label={t('Start of {id}', { id: r.id })} onchange={(e) => ask('start', r, e.currentTarget.value)} />
+              {/if}
+            </td>
             <td>
               {#if r.locked}
                 <span class="data">{fmtDay(r.last)}</span> <Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>
               {:else}
-                <input class="input data" type="date" min={r.start} value={r.last} aria-label={t('Last day of {id}', { id: r.id })} onchange={(e) => setLast(r, e.currentTarget.value)} />
+                <input class="input data" type="date" min={r.start} value={r.last} aria-label={t('Last day of {id}', { id: r.id })} onchange={(e) => ask('last', r, e.currentTarget.value)} />
               {/if}
             </td>
             <td class="num data">
@@ -313,6 +320,14 @@
               {/if}
             </td>
             <td><span class="chip {stateClass(r)}">{stateLabel(r)}</span></td>
+            <td>
+              {#if r.state !== 'finished'}
+                <button class="btn ghost" type="button" title={t('Restore the rhythm')} aria-label={t('Restore the rhythm from {id}', { id: r.id })} onclick={() => ask('rhythm', r, '')}><Icon name="event_repeat" /></button>
+              {/if}
+              {#if r.state === 'open' || r.state === 'planned'}
+                <button class="btn ghost" type="button" title={t('Remove sprint')} aria-label={t('Remove sprint {id}', { id: r.id })} onclick={() => ask('remove', r, '')}><Icon name="delete" /></button>
+              {/if}
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -327,14 +342,18 @@
 
   <div class="grid cols-2 below">
     <div class="card">
-      <h2>{t('Change the last day')}</h2>
-      <p class="small muted">{t('A new last day moves start and end of all following sprints; their length stays. Working days are calculated again from weekends.')}</p>
+      <h2>{t('Change dates and remove sprints')}</h2>
+      <p class="small muted">{t('Change a start or a last day in the table. A dialog shows first what moves or falls away, and lets you choose: following sprints move along, or they keep their dates and covered sprints fall away. The rhythm button puts a sprint and all later ones back to the regular length.')}</p>
     </div>
     <div class="card">
       <h2>{t('Rename a single sprint')}</h2>
       <p class="small muted">{t('For exceptions directly in the table. The name shows in tickets, minutes and history; all references move along. It has to be unique, and the pattern above does not apply to this sprint.')}</p>
     </div>
   </div>
+{/if}
+
+{#if change}
+  <ChangeDialog kind={change.kind} id={change.id} date={change.date} {count} onclose={closeChange} ondone={changed} />
 {/if}
 
 <style>
