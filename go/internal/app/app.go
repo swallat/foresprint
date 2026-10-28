@@ -259,7 +259,7 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	today := time.Now().Format("2006-01-02")
+	today := now().Format("2006-01-02")
 	out := make([]SprintInfo, 0, len(data.Sprints))
 	for _, s := range data.Sprints {
 		start, end := s.Start.Format("2006-01-02"), s.End.Format("2006-01-02")

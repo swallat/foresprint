@@ -21,10 +21,10 @@ func planTeam(t *testing.T) (*API, string) {
 	if err := os.CopyFS(filepath.Join(dst, "demo"), os.DirFS(src)); err != nil {
 		t.Fatal(err)
 	}
+	api := newAPI(t, dst)
 	old := now
 	now = func() time.Time { return time.Date(2026, 10, 14, 9, 0, 0, 0, time.UTC) }
 	t.Cleanup(func() { now = old })
-	api := newAPI(t, dst)
 	repo := storage.NewRepository(dst)
 	data, err := repo.Load("demo")
 	if err != nil {
