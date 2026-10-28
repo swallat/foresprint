@@ -44,10 +44,10 @@ func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) Fo
 	r := e.Result
 	s := e.Sprint
 	state := "future"
-	switch {
-	case !s.End.After(fc.Today):
+	switch fc.Phase(s) {
+	case model.PhasePast:
 		state = "past"
-	case !s.Start.After(fc.Today):
+	case model.PhaseRunning:
 		state = "current"
 	}
 	out := ForecastRow{

@@ -339,6 +339,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	v.WriteBack = c.writeEnabled()
 	v.Days = workdays(c)
 	v.Stage = c.stage()
+	v.StartedOn, v.StartDue = startInfo(c.sprint, c.fc.Phase(c.sprint), c.today)
 	v.Absences = absenceName(s)
 	if len(s.Absences) > 0 {
 		v.AbsenceDays = sumPtr(s.Absences)
@@ -470,11 +471,13 @@ func workdays(c *planCtx) int {
 
 func (c *planCtx) stage() string {
 	s := c.sprint
-	switch {
-	case !s.End.After(c.today):
+	switch c.fc.Phase(s) {
+	case model.PhasePast:
 		return "past"
-	case !s.Start.After(c.today):
+	case model.PhaseRunning:
 		return "current"
+	}
+	switch {
 	case s.CommittedTickets != nil:
 		return "planned"
 	case c.data.Team.Source() == model.SourceNone && s.Commitment != nil:
@@ -1190,6 +1193,9 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	}
 	commit = math.Round(commit*100) / 100
 	s.Commitment = &commit
+	if s.StartedOn == nil {
+		s.StartPending = true // the sprint is started by hand, not by the frozen plan
+	}
 	forecast.FreezePlan(&s, c.entry, c.today, true)
 
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}

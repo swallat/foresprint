@@ -12,13 +12,14 @@ function today(): TodayData {
   const toStart = (s: SprintInfo) => Math.max(0, Math.round((Date.parse(s.start) - Date.now()) / 86400000));
   const [cur, nxt, later] = [sprints[at], sprints[at + 1], sprints[at + 2]];
   const out: TodaySprint[] = [];
-  if (cur) out.push({ ...cur, state: 'running', daysLeft: left(cur), daysToStart: 0, steps: [{ key: 'review', state: 'open', detail: '' }] });
+  if (cur) out.push({ ...cur, state: 'running', daysLeft: left(cur), daysToStart: 0, startDue: false, steps: [{ key: 'review', state: 'open', detail: '' }] });
   if (nxt)
     out.push({
       ...nxt,
       state: 'next',
       daysLeft: 0,
       daysToStart: toStart(nxt),
+      startDue: false,
       steps: [
         { key: 'absences', state: 'open', detail: 'announced only (3 people)' },
         { key: 'preplan', state: 'open', detail: '2 of 4 products' },
@@ -31,6 +32,7 @@ function today(): TodayData {
       state: 'later',
       daysLeft: 0,
       daysToStart: toStart(later),
+      startDue: false,
       steps: [
         { key: 'absences', state: 'open', detail: 'not entered yet' },
         { key: 'preplan', state: 'open', detail: '' },

@@ -10,6 +10,7 @@
   import type { StepKey, TodayData, TodaySprint, TodayStep } from '../../lib/types.today';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import StartSprint from '../../lib/plan/StartSprint.svelte';
 
   let { params }: PageProps = $props();
   void params;
@@ -145,6 +146,9 @@
               {t('Enter velocity, scope change and what was done per product.')}
             </span>
           </Banner>
+        {/if}
+        {#if s.startDue}
+          <StartSprint sprint={s.id} start={s.start} end={s.end} startedOn="" due={true} running={false} onchange={() => load(team)} />
         {/if}
         <ul class="steps">
           {#each s.steps.filter((x) => x.state !== 'none') as step (step.key)}

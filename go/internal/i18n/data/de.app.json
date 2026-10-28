@@ -203,6 +203,12 @@
   "No history yet: capacity {capacity} × start rate {rate} = {plan} {unit}, rounded down.": "Noch keine Historie: Kapazität {capacity} × Startwert {rate} = {plan} {unit}, abgerundet.",
   "Forecast PLAN = rounded down(capacity × start rate) – no history yet": "Forecast PLAN = abgerundet(Kapazität × Startwert) – noch keine Historie",
   "The deduction for Scrum events must be between 0 and 20 PT per person.": "Der Abzug für Scrum-Events muss zwischen 0 und 20 PT je Person liegen.",
-  "The deduction for Scrum events must be between 0 and 90 percent.": "Der Abzug für Scrum-Events muss zwischen 0 und 90 Prozent liegen."
+  "The deduction for Scrum events must be between 0 and 90 percent.": "Der Abzug für Scrum-Events muss zwischen 0 und 90 Prozent liegen.",
+  "Sprint {id} is finished; it cannot be started.": "Der Sprint {id} ist abgeschlossen und kann nicht gestartet werden.",
+  "The first day of sprint {id} has not come yet.": "Der erste Tag von Sprint {id} ist noch nicht erreicht.",
+  "Enter the start day as YYYY-MM-DD.": "Gib den Starttag als JJJJ-MM-TT ein.",
+  "The start day must lie between the first day of the sprint and today.": "Der Starttag muss zwischen dem ersten Tag des Sprints und heute liegen.",
+  "Only the running sprint can be taken back to open.": "Nur der laufende Sprint kann wieder auf offen gesetzt werden.",
+  "The last day of sprint {id} is over; close its Review instead.": "Der letzte Tag von Sprint {id} ist vorbei; schließe stattdessen das Review ab."
  }
 }

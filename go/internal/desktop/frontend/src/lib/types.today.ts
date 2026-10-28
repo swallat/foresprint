@@ -18,6 +18,8 @@ export interface TodaySprint {
   state: SprintPhase;
   daysLeft: number;
   daysToStart: number;
+  /** The first day has come, but the sprint is not started yet. */
+  startDue: boolean;
   steps: TodayStep[];
 }
 

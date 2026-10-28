@@ -36,6 +36,15 @@ example). Look things up with `foresprint help terms`, `foresprint help fields` 
   date on which a sprint was planned is no longer taken as evidence.
 - **Planned amounts from the pre-planning:** on the Plan page the planned amount per product is
   prefilled with the latest PO pre-planning (please check and save).
+- **Starting and closing a sprint:** a sprint does not run because its first day has come. The
+  team starts it (*Start sprint* on the Pre-plan and Plan pages and on *Today*), so Review of the
+  old sprint and Planning of the new one can happen on the changeover day. The sprint counts as
+  started from the day entered (from its planned first day up to today), so a late start or a
+  mistake can be put right; the start can be moved or taken back while the sprint runs. A
+  running sprint stays running after its last day until its Review is closed (or the next sprint
+  is started). The window writes `started_on` (and `start_pending` while a sprint waits for its
+  start) into the sprint file. Files of earlier versions count as started once their plan is
+  frozen and their first day is over; a sprint that was never started is closed by its last day.
 - **Freezing and reopening:** the Plan page freezes the allocation (the Forecast PLAN stays as
   planned); "Open the plan again" releases it. Tickets that are pulled in or taken out after the
   planning do not belong in the planning retroactively; they enter on the *Review* page (not done /

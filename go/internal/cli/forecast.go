@@ -8,6 +8,7 @@ import (
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/formulas"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/report"
 )
 
@@ -59,7 +60,7 @@ func printForecast(env *Env, fc *forecast.Forecast, teamKey string, history int)
 	entries := append(fc.HistoryLast(history), fc.Upcoming()...)
 	for _, e := range entries {
 		r := e.Result
-		future := e.Sprint.End.After(fc.Today)
+		future := fc.Phase(e.Sprint) != model.PhasePast
 		nVel := r.NormalizedVelocity.Average
 		capacity := report.FmtCapacity(r.Capacity.Value, e.CapacityDigits)
 		bandRange, roadmap, small := "", "", ""

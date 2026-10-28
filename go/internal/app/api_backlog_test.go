@@ -268,7 +268,7 @@ func TestBacklogDriftComparesFrozenListOfRunningSprint(t *testing.T) {
 	data.Team.Tracker.Kind = "jira"
 	data.Team.Features.Tickets = true
 	data.Sprints = []model.Sprint{
-		{ID: "S0", Start: now.AddDate(0, 0, -30), End: now.AddDate(0, 0, -20), CommittedTickets: []string{"X-9"}},
+		{ID: "S0", Start: now.AddDate(0, 0, -30), End: now.AddDate(0, 0, -20), CommittedTickets: []string{"X-9"}, Velocity: model.Ptr(1.0)},
 		{ID: "S1", Start: now.AddDate(0, 0, -5), End: now.AddDate(0, 0, 5), CommittedTickets: []string{"X-1", "X-2"}},
 	}
 	data.Tickets = []model.Ticket{
@@ -289,11 +289,17 @@ func TestBacklogDriftComparesFrozenListOfRunningSprint(t *testing.T) {
 	if backlogDrift(data, now) != nil {
 		t.Error("no difference, no drift")
 	}
-	// On the changeover day the finished sprint (exclusive end) is not the running one.
+	// On the changeover day the old sprint keeps running until its Review is closed or the next
+	// one is started.
 	data.Sprints = []model.Sprint{
 		{ID: "S0", Start: now.AddDate(0, 0, -14), End: now, CommittedTickets: []string{"X-9"}},
 		{ID: "S1", Start: now, End: now.AddDate(0, 0, 14), CommittedTickets: []string{"X-1"}},
 	}
+	data.Tickets = []model.Ticket{{Key: "X-1", InSprint: in("S1")}}
+	if d := backlogDrift(data, now); d == nil || d.Sprint != "S0" {
+		t.Errorf("S0 still runs before S1 is started, got %+v", d)
+	}
+	data.Sprints[1].StartedOn = &now
 	data.Tickets = []model.Ticket{{Key: "X-1", InSprint: in("S1")}}
 	if d := backlogDrift(data, now); d != nil {
 		t.Errorf("S1 has no drift, got %+v", d)

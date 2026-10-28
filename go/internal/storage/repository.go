@@ -220,6 +220,9 @@ type TeamData struct {
 	// last ticket import.
 	TicketsImported *time.Time
 	TicketsSource   *string
+	// PhasesByDate makes the forecast take the phases of the sprints from the dates alone (the
+	// rule of the Python original) instead of the official start; only the golden tests set it.
+	PhasesByDate bool
 }
 
 // SprintByID returns the sprint, or nil.

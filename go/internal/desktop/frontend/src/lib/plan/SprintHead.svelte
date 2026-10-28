@@ -9,13 +9,16 @@
   import SprintMeta from '../sprints/SprintMeta.svelte';
   import PageHead from '../ui/PageHead.svelte';
   import { itemWord } from './model.svelte';
+  import StartSprint from './StartSprint.svelte';
 
   interface Props {
     d: PlanSprint;
     stage: 'preplan' | 'plan';
     actions?: Snippet;
+    /** Called after the sprint was started or its start taken back, to read the page again. */
+    onchange?: () => void | Promise<void>;
   }
-  let { d, stage, actions }: Props = $props();
+  let { d, stage, actions, onchange }: Props = $props();
 
   const steps = $derived([
     { id: 'prepare', label: t('Prepare'), missing: d.absences !== 'confirmed' ? t('Absences are not confirmed.') : '' },
@@ -59,6 +62,9 @@
     {/if}
   {/snippet}
 </SprintMeta>
+{#if d.sprint === app.sprint}
+  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} due={d.startDue} running={d.stage === 'current'} {onchange} />
+{/if}
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}
     <a
