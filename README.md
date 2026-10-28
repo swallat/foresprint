@@ -205,7 +205,8 @@ configuration](docs/cli.md); the full sprint workflow is in [Sprint workflow](do
 
 ## Development
 
-The toolchain is managed by [mise](https://mise.jdx.dev): `mise install` fetches Go 1.26, Node 22 and uv (for the holiday data script).
+The toolchain is managed by [mise](https://mise.jdx.dev): `mise install` fetches Go 1.26, Node 22 and uv
+(for the holiday data script).
 Then:
 
 ```bash

@@ -3,7 +3,7 @@
 # Tasks: `mise tasks`; the program version comes from $FORESPRINT_VERSION (default "dev").
 # The Wails CLI is not needed: the window is built with plain `go build` (see scripts/build.mjs).
 [tools]
-go = "1.26.0"
+go = "1.26.10"
 node = "22"
 # uv runs scripts/gen_holidays.py (public holiday data), which fetches its own Python.
 uv = "0.13.1"

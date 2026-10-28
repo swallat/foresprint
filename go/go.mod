@@ -2,6 +2,8 @@ module github.com/swallat/foresprint
 
 go 1.26.0
 
+toolchain go1.26.10
+
 require (
 	github.com/spf13/cobra v1.9.1
 	github.com/wailsapp/wails/v2 v2.12.0
