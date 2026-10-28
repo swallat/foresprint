@@ -20,7 +20,7 @@ func (a *API) now() time.Time {
 	if a.Now != nil {
 		return a.Now()
 	}
-	return time.Now()
+	return now()
 }
 
 func (a *API) day() time.Time {

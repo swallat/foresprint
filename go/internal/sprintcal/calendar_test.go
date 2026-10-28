@@ -12,7 +12,7 @@ const dayLength = 24 * time.Hour
 
 // window is n saved sprints from index from, the part of the calendar the page shows; the saved
 // sprints after it are what a change shifts.
-func window(data []model.Sprint, from, n int) []model.Sprint { return data[from : from+n] }
+func window(data []model.Sprint, n int) []model.Sprint { return data[2 : 2+n] }
 
 func TestTableMarksFinishedRunningAndPlanned(t *testing.T) {
 	_, data := demoCopy(t)
@@ -32,7 +32,7 @@ func TestTableMarksFinishedRunningAndPlanned(t *testing.T) {
 
 func TestApplyUnchangedRowsChangeNothing(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 4)
+	shown := window(data.Sprints, 4)
 	rows := Table(data, shown, shown[0].Start)
 	after, problems, err := Apply(data, shown, rows)
 	if err != nil || len(problems) != 0 {
@@ -45,7 +45,7 @@ func TestApplyUnchangedRowsChangeNothing(t *testing.T) {
 
 func TestApplyALongerSprintShiftsEverythingAfterIt(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 3)
+	shown := window(data.Sprints, 3)
 	rows := Table(data, shown, shown[0].Start)
 	rows[0].Last = rows[0].Last.Add(3 * dayLength) // the first of the window ends three days later
 	after, problems, err := Apply(data, shown, rows)
@@ -78,7 +78,7 @@ func TestApplyALongerSprintShiftsEverythingAfterIt(t *testing.T) {
 
 func TestApplyReportsAMissingAndAnImpossibleLastDay(t *testing.T) {
 	_, data := demoCopy(t)
-	shown := window(data.Sprints, 2, 2)
+	shown := window(data.Sprints, 2)
 	rows := Table(data, shown, shown[0].Start)
 	rows[0].Last = time.Time{}
 	rows[1].Last = shown[1].Start.Add(-5 * dayLength) // before its own start

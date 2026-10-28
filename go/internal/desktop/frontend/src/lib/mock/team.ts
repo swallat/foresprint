@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { AbsencePeriod, CalendarResult, CalendarRow, CalendarView, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsDefault, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
+import type { AbsencePeriod, CalendarChange, CalendarPreview, CalendarResult, CalendarRow, CalendarView, ChangeNote, ChangeRow, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsDefault, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'title', 'in_sprint'];
 
@@ -241,9 +241,111 @@ function calResult(moved: number, undo: number): CalendarResult {
   return { view: calView(), moved, undo };
 }
 
+type CalRow = (typeof cal)[number];
+// The mock of a calendar change: the same rules as the Go code, without the numbering choice.
+function planCalChange(ch: CalendarChange): { rows: ChangeRow[]; next: CalRow[]; preview: CalendarPreview } {
+  const old = clone(cal);
+  const k = old.findIndex((r) => r.id === ch.id);
+  const row = old[k];
+  const empty = (problem: string) => ({ rows: [], next: old, preview: { rows: [], lost: [], free: [], target: '', via: '', forced: false, mode: ch.mode, namingChoice: false, problem } });
+  if (!row) return empty('Enter a valid last day.');
+  if (calState(row) === 'finished') return empty('A finished sprint is locked.');
+  let idx = k;
+  let last = ch.date;
+  let mode = ch.mode;
+  let via = '';
+  let forced = false;
+  let kind = ch.kind;
+  if (kind === 'remove') {
+    if (calState(row) === 'running') return empty('The running sprint cannot be removed.');
+    const prev = old[k - 1];
+    if (!prev || calState(prev) === 'finished') return empty('The sprint before is finished and locked, so it cannot take over the days.');
+    idx = k - 1;
+    last = row.last;
+    mode = 'keep';
+    via = prev.id;
+    kind = 'last';
+  } else if (kind === 'rhythm') {
+    forced = true;
+    mode = 'shift';
+  } else if (kind === 'start') {
+    const prev = old[k - 1];
+    if (prev && calState(prev) !== 'finished') {
+      idx = k - 1;
+      last = iso(ms(ch.date) - DAY);
+      via = prev.id;
+      kind = 'last';
+    } else {
+      if (prev && ch.date <= prev.last) return empty(`The start is before the end of the finished sprint ${prev.id}.`);
+      forced = true;
+      mode = 'shift';
+    }
+  }
+  const next = clone(old);
+  const lost: string[] = [];
+  const free: string[] = [];
+  let target = '';
+  const gone = new Set<string>();
+  if (kind === 'rhythm') {
+    let start = ms(next[idx]!.start);
+    for (let j = idx; j < next.length; j++) {
+      next[j]!.start = iso(start);
+      next[j]!.last = iso(start + 13 * DAY);
+      start += 14 * DAY;
+    }
+  } else if (forced) {
+    const delta = (ms(ch.date) - ms(next[idx]!.start)) / DAY;
+    for (let j = idx; j < next.length; j++) {
+      next[j]!.start = iso(ms(next[j]!.start) + delta * DAY);
+      next[j]!.last = iso(ms(next[j]!.last) + delta * DAY);
+    }
+  } else {
+    const base = next[idx]!;
+    if (last < base.start) return empty(`Sprint ${base.id}: last day is before the start ${base.start}`);
+    base.last = last;
+    for (let j = idx + 1; j < next.length; j++) {
+      const cur = next[j]!;
+      if (mode === 'shift') {
+        const len = ms(cur.last) - ms(cur.start);
+        cur.start = iso(ms(next[j - 1]!.last) + DAY);
+        cur.last = iso(ms(cur.start) + len);
+      } else if (cur.last <= last) {
+        gone.add(cur.id);
+        (cur.saved ? lost : free).push(cur.id);
+      } else if (!target) {
+        target = cur.id;
+        cur.start = iso(ms(last) + DAY);
+      }
+    }
+  }
+  const rows: ChangeRow[] = next.slice(idx).map((r) => {
+    const o = old.find((x) => x.id === r.id)!;
+    const notes: ChangeNote[] = [];
+    const ds = (ms(r.start) - ms(o.start)) / DAY;
+    const de = (ms(r.last) - ms(o.last)) / DAY;
+    if (gone.has(r.id)) notes.push({ kind: 'gone', days: 0, from: '' });
+    else if (ds !== 0 && ds === de) notes.push({ kind: 'moved', days: ds, from: '' });
+    else if (ds !== 0) notes.push({ kind: ds > 0 ? 'starts-later' : 'starts-earlier', days: Math.abs(ds), from: '' });
+    else if (de !== 0) notes.push({ kind: de > 0 ? 'longer' : 'shorter', days: Math.abs(de), from: '' });
+    return { id: r.id, old: r.id, start: r.start, last: r.last, workdays: workdays(r.start, r.last), gone: gone.has(r.id), saved: r.saved, notes };
+  });
+  return { rows, next: next.filter((r) => !gone.has(r.id)), preview: { rows, lost, free, target, via, forced, mode, namingChoice: false, problem: '' } };
+}
+
 export const teamMock: TeamApi = {
   async Calendar() {
     return calView();
+  },
+  async PreviewCalendarChange(_team: string, ch: CalendarChange) {
+    return planCalChange(ch).preview;
+  },
+  async ApplyCalendarChange(_team: string, ch: CalendarChange) {
+    const plan = planCalChange(ch);
+    if (plan.preview.problem) throw new Error(plan.preview.problem);
+    const before = clone(cal);
+    cal = plan.next;
+    calUndo = { token: ++tokens, cal: before };
+    return calResult(plan.rows.filter((r) => r.notes.length).length, calUndo.token);
   },
   async SaveLastDays(_team: string, changes: LastDay[]) {
     const before = clone(cal);

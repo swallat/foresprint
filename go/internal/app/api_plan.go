@@ -28,7 +28,8 @@ import (
 // change one thing and write the file at once; the page reads again afterwards. Saving to the
 // shared store is the job of the top bar (Save).
 
-// now is today's clock; tests replace it.
+// now is the clock of the whole package; tests replace it so that the dated demo data does not
+// depend on the day they run.
 var now = time.Now
 
 // planCtx is the team data of one call, with the forecast built on it.

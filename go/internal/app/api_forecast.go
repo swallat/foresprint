@@ -36,7 +36,7 @@ func (a *API) forecastOf(team string) (*storage.TeamData, *forecast.Forecast, er
 }
 
 func today() time.Time {
-	y, m, d := time.Now().Date()
+	y, m, d := now().Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
