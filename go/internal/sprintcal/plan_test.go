@@ -1,6 +1,8 @@
 package sprintcal
 
 import (
+	"github.com/swallat/foresprint/internal/calendar"
+	"github.com/swallat/foresprint/internal/model"
 	"testing"
 	"time"
 )
@@ -110,5 +112,38 @@ func TestRegularRestoresALengthThatAKeepChangeCut(t *testing.T) {
 	length := time.Duration(data.Team.Sprint.LengthDays) * dayLength
 	if r := got.Rows[1].Sprint; !r.Start.Equal(shown[0].End) || r.End.Sub(r.Start) != length {
 		t.Errorf("cut sprint %v–%v", r.Start, r.End)
+	}
+}
+
+// The sprints after the shown ones that have a file must not be counted when the shown ones
+// without a file are named: the names would jump ahead.
+func TestRegularNamesTheFirstSprintsFromTheEarlierHistoryOnly(t *testing.T) {
+	_, data := demoCopy(t)
+	saved := append([]model.Sprint(nil), data.Sprints...)
+	data.Sprints = saved[:2]
+	chain := calendar.NewChain(&data.Team, data.Sprints)
+	last := &data.Sprints[1]
+	var shown []model.Sprint
+	for range 3 {
+		next, err := chain.After(last)
+		if err != nil {
+			t.Fatal(err)
+		}
+		shown = append(shown, next)
+		last = &shown[len(shown)-1]
+	}
+	// a sprint with a file much later, as an earlier change can leave it
+	later := shown[2].Clone()
+	later.ID = "later"
+	later.Start, later.End = shown[2].End.Add(28*dayLength), shown[2].End.Add(42*dayLength)
+	data.Sprints = append(data.Sprints, later)
+	got, err := Regular(data, shown, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range shown {
+		if got.Rows[i].Sprint.ID != shown[i].ID {
+			t.Errorf("row %d named %q, want %q", i, got.Rows[i].Sprint.ID, shown[i].ID)
+		}
 	}
 }

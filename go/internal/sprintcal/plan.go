@@ -143,8 +143,12 @@ func KeepLater(data *storage.TeamData, window []model.Sprint, idx int, last time
 // sprint, and the changed sprint: the sprints the chain counts on from.
 func historyBefore(data *storage.TeamData, before []model.Sprint, last model.Sprint) []model.Sprint {
 	var history []model.Sprint
+	cutoff := last.Start
+	if len(before) > 0 {
+		cutoff = before[0].Start
+	}
 	for _, s := range data.Sprints {
-		if len(before) == 0 || s.Start.Before(before[0].Start) {
+		if s.Start.Before(cutoff) {
 			history = append(history, s)
 		}
 	}
