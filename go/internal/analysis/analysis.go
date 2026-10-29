@@ -122,6 +122,17 @@ func BandOf(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 	}, true
 }
 
+// BandAroundPlan is BandOf widened to hold the Forecast PLAN of the entry. The plan follows the
+// trend of the normalized velocity, which runs past the spread of the history when it rises or
+// falls; a range shown next to the plan must contain it.
+func BandAroundPlan(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
+	b, ok := BandOf(fc, entry)
+	if ok && entry.Result.Plan != nil {
+		b.Low, b.High = min(b.Low, *entry.Result.Plan), max(b.High, *entry.Result.Plan)
+	}
+	return b, ok
+}
+
 // --- Focus factor --------------------------------------------------------------------------
 
 // FocusFactor is velocity / capacity of an entry; nil if either is missing or the capacity is 0.

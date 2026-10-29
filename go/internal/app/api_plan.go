@@ -357,7 +357,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 		if src := c.entry.Result.PlanSource; src != nil && *src == engine.PlanStart {
 			v.PlanSource = "start"
 		}
-		if b, ok := analysis.BandOf(c.fc, c.entry); ok {
+		if b, ok := analysis.BandAroundPlan(c.fc, c.entry); ok {
 			v.Low, v.High = &b.Low, &b.High
 		}
 		if t := c.entry.Result.NormalizedVelocity.Trend; t != nil && v.PlanSource == "" && tm.Forecast.ReferenceCapacity > 0 {
@@ -765,7 +765,7 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 	w.Velocity = math.Max(w.Commitment-w.NotDone+w.Extra, 0)
 
 	plan, low, high := c.entry.Result.Plan, (*float64)(nil), (*float64)(nil)
-	if b, ok := analysis.BandOf(c.fc, c.entry); ok {
+	if b, ok := analysis.BandAroundPlan(c.fc, c.entry); ok {
 		low, high = &b.Low, &b.High
 	}
 	ent := c.entry
@@ -782,7 +782,7 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 			ent = e
 			plan = e.Result.Plan
 			low, high = nil, nil
-			if b, ok := analysis.BandOf(fc2, e); ok {
+			if b, ok := analysis.BandAroundPlan(fc2, e); ok {
 				low, high = &b.Low, &b.High
 			}
 		}

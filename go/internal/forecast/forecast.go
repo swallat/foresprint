@@ -497,7 +497,8 @@ func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Pr
 }
 
 // PlanSpan is the range of the Forecast PLAN of a sprint: the plan that the lowest and the
-// highest normalized velocity of the window would give with the same capacity.
+// highest normalized velocity of the window would give with the same capacity, widened to hold
+// the plan itself.
 type PlanSpan struct {
 	Low, High float64
 	// Samples is the number of sprints with a value inside the window.
@@ -541,6 +542,12 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 		return math.Max(engine.RoundDown(float64(norm/settings.ReferenceCapacity)*(*r.PlanCapacity), settings.Rounding), 0)
 	}
 	span.Low, span.High = plan(low), plan(high)
+	// The point value follows the trend of the normalized velocity, which runs past the lowest or
+	// highest value of the window when the trend rises or falls. The range always contains it.
+	if r.Plan != nil {
+		span.Low = math.Min(span.Low, *r.Plan)
+		span.High = math.Max(span.High, *r.Plan)
+	}
 	return span, true
 }
 
