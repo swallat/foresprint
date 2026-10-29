@@ -25,6 +25,8 @@
   let newName = $state('');
   let factorText = $state('');
   let regions = $state<Region[]>([]);
+  /** With tickets the Projects page is always on (TeamFeatures: projects or tickets), so the switch cannot turn it off. */
+  const projectsForced = $derived(app.features !== undefined && app.features.source !== 'none');
 
   async function load(team: string): Promise<void> {
     applied = draft = undefined;
@@ -240,9 +242,15 @@
               </span>
             </div>
           {/if}
-          <Switch bind:checked={draft.projects} title={t('Projects and contingents')}>
-            {t('Projects with milestones and a contingent in person days. They also work without a tracker. Only projects and their calculation change; tickets stay. Whether tickets are used is set under Settings, Tickets and tracker.')}
-          </Switch>
+          {#if projectsForced}
+            <Switch checked={true} disabled title={t('Projects and contingents')}>
+              {t('Always on while the team uses tickets, so the Projects page stays available. Whether tickets are used is set under Settings, Tickets and tracker.')}
+            </Switch>
+          {:else}
+            <Switch bind:checked={draft.projects} title={t('Projects and contingents')}>
+              {t('Projects with milestones and a contingent in person days. They also work without a tracker. Only projects and their calculation change; tickets stay. Whether tickets are used is set under Settings, Tickets and tracker.')}
+            </Switch>
+          {/if}
         </div>
       </div>
     {/if}
