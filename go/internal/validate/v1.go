@@ -228,7 +228,7 @@ func checkPlanDecisions(data *storage.TeamData, today time.Time, r *reporter, ti
 				r.warn(where, msg("Product '{id}' ended on {end}", "id", *o.Product, "end", day(*prod.End)))
 			}
 		}
-		if o.Project != nil {
+		if o.Project != nil && team.Features.Projects {
 			if pr, ok := projects[*o.Project]; !ok {
 				r.error(where, msg("unknown project '{id}'", "id", *o.Project))
 			} else if pr.Closed() {

@@ -96,7 +96,7 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 	for _, s := range data.Sprints {
 		c.sprint[s.ID] = s
 	}
-	if !data.Team.Features.Tickets && !data.Team.Features.Projects {
+	if !data.Team.Features.Projects {
 		return c
 	}
 	fc, err := analysis.HorizonForecast(data, now, analysis.DefaultMaxSprints)
@@ -442,7 +442,7 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 func (c *projectCtx) view() ProjectsView {
 	data := c.data
 	v := ProjectsView{
-		Today: c.today.Format(dateLayout), Enabled: data.Team.Features.Tickets || data.Team.Features.Projects,
+		Today: c.today.Format(dateLayout), Enabled: data.Team.Features.Projects,
 		Source: map[model.TicketSource]string{model.SourceNone: "none", model.SourcePackages: "packages", model.SourceTracker: "tracker"}[data.Team.Source()],
 		Unit:   settingsUnitAt(data, c.today), Products: []ProductRef{}, Projects: []ProjectView{}, Closed: []ProjectView{},
 		Sprints: []SprintInfo{}, SprintDays: data.Team.Sprint.LengthDays, Conflict: []ConflictRow{}, Problem: c.problem,
@@ -842,7 +842,7 @@ func (a *API) edit(team string, change func(data *storage.TeamData) error) error
 	if err != nil {
 		return err
 	}
-	if !data.Team.Features.Tickets && !data.Team.Features.Projects {
+	if !data.Team.Features.Projects {
 		return errors.New(i18n.T("This team keeps no projects. Switch them on under Settings > Team."))
 	}
 	snap := projectSnapshot{team: team, projects: cloneProjects(data.Projects), preplan: clonePreplan(data.Preplan), hasPlan: data.Team.Features.Tickets}

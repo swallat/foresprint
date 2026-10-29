@@ -410,7 +410,6 @@
   "Projects": "Projekte",
   "Projects and contingents": "Projekte und Kontingente",
   "Projects continue without this product.": "Projekte laufen ohne dieses Produkt weiter.",
-  "Always on while the team uses tickets, so the Projects page stays available. Whether tickets are used is set under Settings, Tickets and tracker.": "Immer an, solange das Team Tickets nutzt, damit die Seite „Projekte“ erreichbar bleibt. Ob Tickets genutzt werden, stellst du unter Einstellungen, Tickets und Tracker ein.",
   "Projects with milestones and a contingent in person days. They also work without a tracker. Only projects and their calculation change; tickets stay. Whether tickets are used is set under Settings, Tickets and tracker.": "Projekte mit Meilensteinen und einem Kontingent in Personentagen. Sie funktionieren auch ohne Tracker. Es ändern sich nur Projekte und ihre Berechnung; Tickets bleiben erhalten. Ob Tickets genutzt werden, stellst du unter Einstellungen, Tickets und Tracker ein.",
   "Propose the label planned_for_<sprint> when freezing": "Label planned_for_<Sprint> beim Einfrieren vorschlagen",
   "Put back": "Zurücksetzen",

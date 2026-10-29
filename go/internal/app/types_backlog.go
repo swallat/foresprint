@@ -83,13 +83,15 @@ type BacklogView struct {
 	// Source is "tracker", "packages" or "none".
 	Source string `json:"source"`
 	// Tracker is the name of the tracker ("Jira"), empty for work packages.
-	Tracker  string           `json:"tracker"`
-	Unit     string           `json:"unit"`
-	Products []Named          `json:"products"`
-	Projects []Named          `json:"projects"`
-	Tickets  []BacklogTicket  `json:"tickets"`
-	Lanes    []BacklogLane    `json:"lanes"`
-	ProForma []ProFormaSprint `json:"proForma"`
+	Tracker  string  `json:"tracker"`
+	Unit     string  `json:"unit"`
+	Products []Named `json:"products"`
+	Projects []Named `json:"projects"`
+	// ProjectsOn is false when the team keeps no projects: the window hides the project choice.
+	ProjectsOn bool             `json:"projectsOn"`
+	Tickets    []BacklogTicket  `json:"tickets"`
+	Lanes      []BacklogLane    `json:"lanes"`
+	ProForma   []ProFormaSprint `json:"proForma"`
 	// Imported is the time of the last tracker fetch (RFC 3339), empty if never.
 	Imported string `json:"imported"`
 	// Multi: the team works with several products.

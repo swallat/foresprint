@@ -32,7 +32,7 @@ func planTeam(t *testing.T) (*API, string) {
 		t.Fatal(err)
 	}
 	team := data.Team
-	team.Features.Tickets = true
+	team.Features.Tickets, team.Features.Projects = true, true
 	team.Tracker.Kind = "csv"
 	if _, err := repo.SaveTeam(team); err != nil {
 		t.Fatal(err)
@@ -758,4 +758,77 @@ func TestPreplanMinutes(t *testing.T) {
 // freezeOnly freezes a plan without starting the sprint (the window starts and freezes together).
 func freezeOnly(api *API, team, sprint string, in FreezeInput) (string, error) {
 	return api.planFreeze(team, sprint, in, nil)
+}
+
+// Tickets no longer imply projects: with the switch off the Projects page is off, the ticket
+// planning still loads, and the choice survives a save and load.
+func TestProjectsSwitchOffWithTickets(t *testing.T) {
+	api, team := planTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tm := data.Team
+	tm.Features.Projects = false
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	f, err := api.TeamFeatures(team)
+	if err != nil || f.Projects {
+		t.Fatalf("features = %+v, %v; want projects off", f, err)
+	}
+	pv, err := api.Projects(team)
+	if err != nil || pv.Enabled {
+		t.Fatalf("projects view enabled = %v, %v; want off", pv.Enabled, err)
+	}
+	sprints, _ := api.Sprints(team)
+	for _, sp := range sprints {
+		if sp.State == "future" {
+			if _, err := api.PlanSprint(team, sp.ID, nil); err != nil {
+				t.Fatalf("planning without projects: %v", err)
+			}
+			break
+		}
+	}
+}
+
+// With projects off a ticket can still be edited: the project it carries stays untouched.
+func TestBacklogEditsWithProjectsOffKeepTheProject(t *testing.T) {
+	api, team := planTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	alpha := "alpha"
+	data.Tickets[0].Project = &alpha
+	data.Preplan.Overrides = append(data.Preplan.Overrides, model.TicketOverride{Ticket: data.Tickets[0].Key, Project: &alpha})
+	tm := data.Team
+	tm.Features.Projects = false
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: data.Tickets}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.SavePreplan(team, data.Preplan); err != nil {
+		t.Fatal(err)
+	}
+	key := data.Tickets[0].Key
+	if err := api.SetAssignment(team, key, "", "alpha", false); err != nil {
+		t.Fatalf("SetAssignment with a project of the past: %v", err)
+	}
+	after, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range after.Preplan.Overrides {
+		if o.Ticket == key && (o.Project == nil || *o.Project != "alpha") {
+			t.Errorf("override project = %v, want alpha kept", o.Project)
+		}
+	}
+	if v, err := api.Backlog(team); err != nil || v.ProjectsOn {
+		t.Errorf("view projectsOn = %v, %v; want off", v.ProjectsOn, err)
+	}
 }
