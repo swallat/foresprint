@@ -89,7 +89,7 @@ export const flows: Flow[] = [
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), text: () => t('Candidates on the left, the sprint on the right, prefilled from the earmarks. Drag a ticket, or move it with Alt and the arrow keys.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-live'), text: () => t('Live: the sum against the range, products against their budget, projects against their contingent.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), trackerOnly: true, text: () => t('If the team does not want a ticket in the sprint, take it out. It then appears in the list "Adjust in the tracker".') },
-      { route: '/sprint/plan', sprint: 'next', target: tour('plan-freeze'), text: () => t('When everybody agrees, "Freeze the agreement" locks the plan. A planning minute is written and, if you wish, a label is set on the tracker ticket.') },
+      { route: '/sprint/plan', sprint: 'next', target: tour('plan-freeze'), text: () => t('When everybody agrees in the Planning, "Start sprint" freezes the plan and starts the sprint. A planning minute is written and, if you wish, a label is set on the tracker ticket.') },
     ],
   },
   {

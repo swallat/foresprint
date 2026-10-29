@@ -52,7 +52,7 @@ Fresh machine or fresh user account, no earlier Foresprint.
 | B4 | Command palette (Ctrl/Cmd+K), Ctrl/Cmd+S (save and share), Ctrl+Shift+R (refresh). | Pages and tickets are searchable; the shortcuts do what the help says. |
 | B5 | Personal > language German/English. | All visible text changes; no `{placeholder}` or leftover English in German mode. |
 | B6 | Create a new team from scratch. | Name, first sprint id and start date accepted; Today explains what is still missing (for example people). |
-| B7 | On the first day of a sprint: open Plan of that sprint, freeze it, then press *Start sprint* with an earlier start day. | The page is not locked by the date; the sprint is "running" only after the start, from the day entered; the old sprint stays running until then or until its Review is closed; *Take start back* reopens it. |
+| B7 | On the first day of a sprint: open Plan of that sprint, enter the agreement and press *Start sprint* with an earlier start day (this freezes the plan too). | The page is not locked by the date; the sprint is "running" only after the start, from the day entered; the old sprint stays running until then or until its Review is closed; *Take start back* reopens the sprint and its plan. |
 
 ## C. Existing 0.8 team (P1)
 
@@ -120,8 +120,8 @@ What the feature does (so a tester knows what a deviation is):
   planned sprint back). Source must be Jira.
 - It runs only on an explicit click, after a preview, with a per-ticket opt-out. Nothing is
   automatic.
-- It needs a frozen plan and a Foresprint sprint that has not started (by Foresprint's own sprint
-  dates, not the Jira sprint's state). An ACTIVE Jira sprint can still be the target; only a CLOSED
+- It needs an agreed plan (a started sprint) and a Foresprint sprint that is not finished (by
+  Foresprint's own sprint dates, not the Jira sprint's state). An ACTIVE Jira sprint can still be the target; only a CLOSED
   one is refused.
 - Two kinds of moves: committed tickets that are not yet in the Jira sprint go in; tickets in the
   Jira sprint that were taken out during planning go to `tracker.removed_target` (`backlog`, the
@@ -141,14 +141,14 @@ What the feature does (so a tester knows what a deviation is):
 |---|---|---|
 | F1 | Switch the option on, set the board (card "Jira board", field "Board number", `board_id`) and pick the removed-target choice explicitly, save. | The chip changes from "Read only" to "Writing back on"; `team.yaml` gains exactly these keys (an empty removed target means backlog and writes no key). |
 | F2 | Needs F1 (the empty future sprint is found only through the board number). Prepare Jira: a future sprint `<TEST-SPRINT>` on that board, 3 to 5 throw-away tickets on the same board. The Jira sprint must be named exactly like the Foresprint sprint id or be mapped through `tracker.sprint_names`; the Foresprint sprint must start in the future. Fetch the tickets. | Tickets show in the Backlog. |
-| F3 | Open the write-back card before freezing the plan. | Writing is not possible; the page says the plan must be frozen first. |
-| F4 | Freeze the plan with some of the tickets, open the preview. | One row per move with from and destination; single tickets can be unticked; nothing is written yet. |
+| F3 | Open the write-back card before starting the sprint. | Writing is not possible; the page says the sprint must be started first. |
+| F4 | Start the sprint with some of the tickets, open the preview. | One row per move with from and destination; single tickets can be unticked; nothing is written yet. |
 | F5 | Preview with no matching Jira sprint (wrong name/mapping) or a closed sprint. | A problem text explains it; no moves are offered. |
 | F6 | Write only one or two tickets. | In Jira only the sprint of those tickets changed. Rank, estimate, status, texts, labels unchanged; no sprint created, started or closed. Unticked tickets did not move. |
 | F7 | Undo. | Tickets are back in their earlier place in Jira. After an app restart Undo is no longer offered (expected). |
 | F8 | Mark a ticket as taken out in Foresprint that is still in the Jira sprint (before freezing, or unfreeze, take it out, freeze again; a ticket still on the frozen list is never offered as taken out); open the preview. | A move to the configured removed target is offered; after writing, Jira shows it there. |
 | F9 | Change a ticket in Jira by hand between preview and write. | The write uses the fresh state: no ticket is moved twice, no stale move is applied. |
-| F10 | A Foresprint sprint that has already started. | The write-back button is disabled and the card shows "Freeze the plan first." (known wording gap: the page does not say the sprint has started; report as NOTE). Undo is refused too. |
+| F10 | A Foresprint sprint that is finished (Review closed). | The write-back button is disabled; writing and Undo are refused. |
 | F11 | Token without the right to edit sprints. | Plain-language 403; the run stops; the card says what, if anything, was already written. |
 | F12 | Work-package or CSV team. | The option is not offered or says it works with Jira only. |
 

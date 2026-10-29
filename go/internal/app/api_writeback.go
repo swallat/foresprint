@@ -131,14 +131,18 @@ func (c *planCtx) writePlan(w writebackTracker) (sprintwrite.Plan, sprintwrite.D
 	return plan, dir, nil
 }
 
-// writeReady checks that the sprint can be written: the plan is frozen and the sprint has not
-// started.
+// writeReady checks that the sprint can be written: the plan is agreed (starting the sprint on
+// the Plan page agrees it) and the sprint is not finished.
 func (c *planCtx) writeReady() error {
 	switch c.stage() {
-	case "past", "current":
+	case "past":
 		return errors.New(i18n.T("The sprint {id} has started; its plan cannot be written to the tracker any more.", "id", c.sprint.ID))
 	case "open":
-		return errors.New(i18n.T("Freeze the plan first; only the agreed tickets are written to the tracker."))
+		return errors.New(i18n.T("Start the sprint first; only the agreed tickets are written to the tracker."))
+	case "current":
+		if c.sprint.CommittedTickets == nil {
+			return errors.New(i18n.T("This sprint was started without an agreed plan; take the start back and start it on the Plan page."))
+		}
 	}
 	return nil
 }
@@ -228,7 +232,7 @@ func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if st := c.stage(); st == "past" || st == "current" {
+	if c.stage() == "past" {
 		return nil, errors.New(i18n.T("The sprint {id} has started; its plan cannot be written to the tracker any more.", "id", sprintID))
 	}
 	done := a.writebackMoved(team, sprintID)

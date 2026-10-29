@@ -17,7 +17,7 @@
   import TicketRow from '../../lib/plan/TicketRow.svelte';
   import WriteBack from '../../lib/plan/WriteBack.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { PlanTicket } from '../../lib/types.plan';
+  import type { FreezeInput, PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
 
   let { params }: PageProps = $props();
@@ -247,19 +247,14 @@
       .filter((r) => r.amount > 0);
   });
 
-  // --- Freezing -----------------------------------------------------------------------------
-  async function freeze(): Promise<void> {
-    if (!d) return;
-    await model.change(async () => {
-      const file = await api.FreezePlan(app.team, d.sprint, {
-        tickets: lane.map((x) => x.key),
-        commitment: noT ? commit : null,
-        amounts: noT ? Object.fromEntries(d.products.filter((p) => p.active).map((p) => [p.id, amountOf(p.id, p.pre, p.default)])) : {},
-        removed: adjust.map((x) => x.key),
-      });
-      toast(t('Plan {sprint} frozen. Planning minutes written: {file}', { sprint: d.sprint, file }), 'ok');
-    });
-  }
+  // --- Starting ------------------------------------------------------------------------------
+  // The start of the sprint (in the head) freezes this agreement.
+  const agreement = (): FreezeInput => ({
+    tickets: lane.map((x) => x.key),
+    commitment: noT ? commit : null,
+    amounts: noT ? Object.fromEntries(d!.products.filter((p) => p.active).map((p) => [p.id, amountOf(p.id, p.pre, p.default)])) : {},
+    removed: adjust.map((x) => x.key),
+  });
   const reopen = () =>
     model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The planning minutes are marked as obsolete.'));
   // An invalid or empty entry keeps the stored value; the field shows it again, because the
@@ -279,14 +274,11 @@
 {#if model.error}
   <div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{model.error}</div></div>
 {:else if d}
-  <SprintHead {d} stage="plan" onchange={() => model.reload()}>
+  <SprintHead {d} stage="plan" plan={agreement} onchange={() => model.reload()}>
     {#snippet actions()}
       {#if !noT}
         <a class="btn" href="#/present" id="present" data-tour="plan-present"><Icon name="fit_screen" />{t('Presentation view')}</a>
       {/if}
-      <button class="btn primary" type="button" id="freeze" data-tour="plan-freeze" disabled={frozen || d.stage === 'past' || d.stage === 'current'} onclick={freeze}>
-        <Icon name="lock" />{t('Record the agreement and freeze')}
-      </button>
     {/snippet}
   </SprintHead>
 

@@ -23,6 +23,7 @@ afterEach(() => {
   cmp = undefined;
   host?.remove();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 async function show(): Promise<void> {
@@ -236,12 +237,16 @@ describe('Plan page', () => {
     });
   });
 
-  it('freezing the plan records the sprint tickets and then locks the lanes', async () => {
+  it('starting the sprint freezes the sprint tickets and then locks the lanes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] }); // the mock sprint starts on 2026-11-09: its first day has come
+    vi.setSystemTime(new Date(2026, 10, 12));
     await show();
-    const freeze = vi.spyOn(mockApi, 'FreezePlan');
+    const freeze = vi.spyOn(mockApi, 'StartSprintWithPlan');
     host.querySelector<HTMLButtonElement>('#freeze')!.click();
+    await tick();
+    host.querySelector<HTMLButtonElement>('[data-tour="sprint-start"] .row button.primary')!.click();
     await settled(() => expect(host.querySelector('#frozen')).not.toBeNull());
-    expect(freeze).toHaveBeenCalledWith('atlas', SPRINT, expect.objectContaining({ tickets: ['ATL-412', 'ATL-415', 'ATL-417', 'ATL-420', 'ATL-421', 'ATL-423'] }));
+    expect(freeze).toHaveBeenCalledWith('atlas', SPRINT, expect.any(String), expect.objectContaining({ tickets: ['ATL-412', 'ATL-415', 'ATL-417', 'ATL-420', 'ATL-421', 'ATL-423'] }));
     expect(host.querySelector('#frozen')!.textContent).toContain('34');
     expect(host.querySelector('button[aria-label^="Take"]')).toBeNull();
     expect(row('ATL-412').getAttribute('draggable')).toBe('false');

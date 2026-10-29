@@ -45,8 +45,11 @@ example). Look things up with `foresprint help terms`, `foresprint help fields` 
   is started). The window writes `started_on` (and `start_pending` while a sprint waits for its
   start) into the sprint file. Files of earlier versions count as started once their plan is
   frozen and their first day is over; a sprint that was never started is closed by its last day.
-- **Freezing and reopening:** the Plan page freezes the allocation (the Forecast PLAN stays as
-  planned); "Open the plan again" releases it. Tickets that are pulled in or taken out after the
+- **Starting agrees the plan:** *Start sprint* on the Plan page freezes the agreement (the
+  Forecast PLAN stays as planned) and starts the sprint in one step, because the Planning on the
+  first day is where the commitment is made. Before the first day the Plan page only keeps
+  earmarks. *Take start back* also reopens the plan. Only a sprint frozen by an earlier version
+  or by the CLI can still be reopened with "Open the plan again". Tickets that are pulled in or taken out after the
   planning do not belong in the planning retroactively; they enter on the *Review* page (not done /
   additionally done).
 

@@ -22,6 +22,7 @@ afterEach(() => {
   host?.remove();
   history.replaceState(null, '', '/');
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 async function show(): Promise<void> {
@@ -116,14 +117,18 @@ describe('Plan page without tickets', () => {
     expect(commitInput().value).toBe(String(sum));
   });
 
-  it('freezing records the typed amounts and commitment, and then locks the fields', async () => {
+  it('starting records the typed amounts and commitment, and then locks the fields', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] }); // the mock sprint starts on 2026-11-09: its first day has come
+    vi.setSystemTime(new Date(2026, 10, 12));
     await show();
-    const freeze = vi.spyOn(mockApi, 'FreezePlan');
+    const freeze = vi.spyOn(mockApi, 'StartSprintWithPlan');
     type(commitInput(), '30');
     await tick();
     host.querySelector<HTMLButtonElement>('#freeze')!.click();
+    await tick();
+    host.querySelector<HTMLButtonElement>('[data-tour="sprint-start"] .row button.primary')!.click();
     await vi.waitFor(() => expect(host.querySelector('#frozen')).not.toBeNull(), { timeout: 3000 });
-    expect(freeze).toHaveBeenCalledWith('atlas', '2026.21', expect.objectContaining({ tickets: [], commitment: 30 }));
+    expect(freeze).toHaveBeenCalledWith('atlas', '2026.21', expect.any(String), expect.objectContaining({ tickets: [], commitment: 30 }));
     expect(commitInput().disabled).toBe(true);
     expect(amountInputs().every((e) => e.disabled)).toBe(true);
   });

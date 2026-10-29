@@ -189,7 +189,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const st = sp?.state === 'past' ? 'past' : sp?.state === 'current' ? 'current' : frozen[sid] ? 'planned' : 'open';
   return {
     team: 'atlas', sprint: sid, start: sp?.start ?? '', end: sp?.end ?? '', days: 10, stage: st,
-    startedOn: st === 'current' || st === 'past' ? sp?.start ?? '' : '', startDue: false,
+    startedOn: st === 'current' || st === 'past' ? sp?.start ?? '' : '', startDue: st === 'open' || st === 'planned',
     unit: 'SP', source: noT ? 'none' : mode() === 'packages' ? 'packages' : 'tracker', trackerName: mode() === 'tracker' || mode() === 'simple' ? 'Jira' : '', writeBack: mode() === 'tracker', writeUndo: (writeDone[sid] ?? []).length > 0,
     multiProduct: multi, multiPO: multi, production: multi,
     absences: absencesFrozen.has(sid) || idx(sid) % 3 === 0 ? 'confirmed' : 'announced', absenceDays: 6, capacity: f.cap,
@@ -291,14 +291,14 @@ export const planMock: PlanApi = {
   async WithdrawSprintStart(_t, sprint) {
     return { sprint, stage: 'open', startedOn: '' };
   },
-  async FreezePlan(_t, sprint, input: FreezeInput) {
+  async StartSprintWithPlan(_t, sprint, day, input: FreezeInput) {
     const noT = mode() === 'none';
     const lane = tickets.filter((x) => input.tickets.includes(x.key));
     const commit = noT ? (input.commitment ?? Object.values(input.amounts).reduce((a, v) => a + v, 0)) : lane.reduce((a, x) => a + (x.est ?? 0), 0);
     frozen[sprint] = { keys: input.tickets, commitment: commit };
     planned[sprint] = noT ? input.amounts : {};
     if (!noT) for (const x of lane) planned[sprint]![x.product] = (planned[sprint]![x.product] ?? 0) + (x.est ?? 0);
-    return `${sprint}-planning-20261022-140500.md`;
+    return { sprint, stage: 'current', startedOn: day || sprintsOf().find((x) => x.id === sprint)?.start || '' };
   },
   async SavePreplanMinutes(_t, sprint) {
     return `${sprint}-vorplanung-20261022-140500.md`;
@@ -317,7 +317,7 @@ export const planMock: PlanApi = {
       : [];
     return {
       enabled: true, sprint, removedTarget: 'backlog', moves,
-      problems: fz ? [] : ['Freeze the plan first; only the agreed tickets are written to the tracker.'], canUndo: (writeDone[sprint] ?? []).length > 0,
+      problems: fz ? [] : ['Start the sprint first; only the agreed tickets are written to the tracker.'], canUndo: (writeDone[sprint] ?? []).length > 0,
     };
   },
   async PlanWriteApply(_t, sprint, approved) {

@@ -10,8 +10,7 @@
   import type { StepKey, TodayData, TodaySprint, TodayStep } from '../../lib/types.today';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
-  import StartSprint from '../../lib/plan/StartSprint.svelte';
-
+  
   let { params }: PageProps = $props();
   void params;
 
@@ -148,7 +147,13 @@
           </Banner>
         {/if}
         {#if s.startDue}
-          <StartSprint sprint={s.id} start={s.start} end={s.end} startedOn="" due={true} running={false} onchange={() => load(team)} />
+          <Banner tone="warn">
+            <strong>{t('Sprint {id} is not started yet.', { id: s.id })}</strong>
+            {t('Start it on the Plan page, together with the commitment.')}
+            {#snippet action()}
+              <button class="btn" type="button" onclick={() => open(s, '/sprint/plan')}>{t('Go to Plan')}<Icon name="arrow_forward" /></button>
+            {/snippet}
+          </Banner>
         {/if}
         <ul class="steps">
           {#each s.steps.filter((x) => x.state !== 'none') as step (step.key)}
