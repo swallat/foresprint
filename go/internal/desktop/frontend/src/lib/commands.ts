@@ -6,7 +6,7 @@ import { api } from './api';
 import { app, openTicket, refresh, save, selectSprint, setTheme, syncTracker } from './app.svelte';
 import { t } from './i18n.svelte';
 import { go } from './router.svelte';
-import { pages } from './routes';
+import { pages, switchedOff } from './routes';
 
 export type CommandGroup = 'page' | 'action' | 'help' | 'ticket' | 'sprint';
 
@@ -39,7 +39,7 @@ const nextTheme: Record<string, string> = { system: 'light', light: 'dark', dark
 
 function pageCommands(): Command[] {
   return pages
-    .filter((p) => !p.path.includes(':') && !p.bare)
+    .filter((p) => !p.path.includes(':') && !p.bare && !switchedOff(p.path, app.features))
     .map((p) => ({ id: `page:${p.path}`, label: t(p.title), group: 'page' as const, hint: p.path, run: () => go(p.path) }));
 }
 

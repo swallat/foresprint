@@ -7,7 +7,7 @@
 import type { Component } from 'svelte';
 import type { IconName } from './icons';
 
-export type Needs = 'tickets';
+export type Needs = 'tickets' | 'products' | 'projects';
 
 /** Props every page component receives. */
 export interface PageProps {
@@ -69,7 +69,7 @@ export interface NavItem {
   path: string;
   icon: IconName;
   label: string;
-  /** Shown only when the team gets its work from a tracker or work packages (no "no tickets" mode). */
+  /** Shown only when the team gets its work from a tracker or work packages (no "no tickets" mode), or when the feature is switched on in the team settings. */
   needs?: Needs;
   /** Indented entry of the sprint workspace. */
   sub?: boolean;
@@ -103,7 +103,7 @@ export const nav: NavGroup[] = [
   },
   {
     items: [
-      { path: '/projects', icon: 'flag', label: 'Projects' },
+      { path: '/projects', icon: 'flag', label: 'Projects', needs: 'projects' },
       { path: '/forecast', icon: 'monitoring', label: 'Forecast' },
     ],
   },
@@ -111,7 +111,7 @@ export const nav: NavGroup[] = [
     label: 'Team',
     items: [
       { path: '/team/people', icon: 'group', label: 'People and absences' },
-      { path: '/team/products', icon: 'category', label: 'Products' },
+      { path: '/team/products', icon: 'category', label: 'Products', needs: 'products' },
       { path: '/team/calendar', icon: 'calendar_month', label: 'Sprint calendar' },
     ],
   },
@@ -143,3 +143,16 @@ export const nav: NavGroup[] = [
     ],
   },
 ];
+
+/** The feature a page belongs to, if the team can switch it off (Settings, Team, Features). */
+export function featureOf(path: string): 'products' | 'projects' | undefined {
+  if (path === '/projects' || path.startsWith('/projects/')) return 'projects';
+  if (path === '/team/products') return 'products';
+  return undefined;
+}
+
+/** True when the page belongs to a feature the team has switched off. Unknown features count as on. */
+export function switchedOff(path: string, features: { products: boolean; projects: boolean } | undefined): boolean {
+  const f = featureOf(path);
+  return f !== undefined && features?.[f] === false;
+}
