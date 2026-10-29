@@ -8,10 +8,10 @@ As of: 24.06.2026 · unit: PT · reference capacity: 40 PT · Ø over 5 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (75 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.13 | 24.06. – 08.07.2026 | **running** | 75.0 ⚠️ Calendar, absences unknown | 31.58 | **59.2** | 56.5–65.5 | 44.40 | 14.80 |
-| 2026.14 | 08.07. – 22.07.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 57.3–66.4 | 45.00 | 15.00 |
-| 2026.15 | 22.07. – 05.08.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 57.3–66.4 | 45.00 | 15.00 |
-| 2026.16 | 05.08. – 19.08.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 57.3–66.4 | 45.00 | 15.00 |
+| 2026.13 | 24.06. – 08.07.2026 | **running** | 75.0 ⚠️ Calendar, absences unknown | 31.58 | **59.2** | 39.4–79.0 | 44.40 | 14.80 |
+| 2026.14 | 08.07. – 22.07.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 38.6–81.4 | 45.00 | 15.00 |
+| 2026.15 | 22.07. – 05.08.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 37.3–82.7 | 45.00 | 15.00 |
+| 2026.16 | 05.08. – 19.08.2026 | planned | 76.0 ⚠️ Calendar, absences unknown | 31.58 | **60.0** | 36.0–84.0 | 45.00 | 15.00 |
 
 ⚠️ *Trend/calendar*: no absences are recorded for this sprint yet, the capacity is estimated. `foresprint absences products-edge <SPRINT>` makes the forecast reliable.
 

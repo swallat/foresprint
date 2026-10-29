@@ -10,7 +10,6 @@
 package analysis
 
 import (
-	"math"
 	"time"
 
 	"github.com/swallat/foresprint/internal/engine"
@@ -123,21 +122,22 @@ func BandOf(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 	}, true
 }
 
-// BandAroundPlan is the range of the Forecast PLAN of the entry: the plan with the spread of the
-// last sprints around it. The spread is how far the lowest and the highest normalized velocity
-// lie from their median (BandOf); that distance is laid around the plan: the plan stands where
-// the median stood, and the range does not depend on where the trend has gone.
+// BandAroundPlan is the range of the Forecast PLAN of the entry: a prediction interval around
+// the plan that grows with the distance to the last result (forecast.PlanSpanOf). Mid is the
+// plan; ok is false where there is no interval yet (a plan that is not a projection, fewer than
+// 3 results).
 func BandAroundPlan(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
-	b, ok := BandOf(fc, entry)
-	if !ok || entry.Result.Plan == nil {
-		return b, ok
+	for i := range fc.Entries {
+		if fc.Entries[i].Sprint.ID != entry.Sprint.ID {
+			continue
+		}
+		span, ok := fc.PlanSpanOf(i)
+		if !ok {
+			return Band{}, false
+		}
+		return Band{Low: span.Low, Mid: *entry.Result.Plan, High: span.High, Samples: span.Samples}, true
 	}
-	plan, digits := *entry.Result.Plan, fc.Data.Team.Forecast.Rounding
-	below, above := b.Mid-b.Low, b.High-b.Mid
-	b.Low = engine.RoundHalfUp(math.Max(plan-below, 0), digits)
-	b.Mid = plan
-	b.High = engine.RoundHalfUp(plan+above, digits)
-	return b, true
+	return Band{}, false
 }
 
 // --- Focus factor --------------------------------------------------------------------------

@@ -140,7 +140,7 @@
     <p class="formula data">{t('Forecast PLAN = trend of the normalized velocity ÷ reference capacity × capacity of the sprint, rounded down')}</p>
     <ul>
       <li>{t('The trend is flat (mean of the window), rising or falling, as set in the forecast settings. With thin history only the mean is used and the sprint is marked.')}</li>
-      <li>{t('The range is the spread of the last sprints around the Forecast PLAN: how far their lowest and highest normalized velocity lie from the median, converted to the capacity of the sprint. It needs at least 2 sprints; below 5 it is only a rough hint.')}</li>
+      <li>{t('The range is an 80 % interval around the Forecast PLAN. It measures how far each of the last sprints missed the mean of the sprints before it, and it widens with the square root of the distance to the last result. It needs at least 3 sprints; below 5 it is only a rough hint.')}</li>
       <li>{t('For a sprint that is already planned, the recorded commitment replaces the projection and is marked as actual.')}</li>
     </ul>
     {#if next?.trend != null && next.capacity != null && next.plan != null}

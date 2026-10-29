@@ -8,10 +8,10 @@ As of: 18.03.2026 · unit: PT · reference capacity: 40 PT · Ø over 6 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.6 | 18.03. – 01.04.2026 | **running** | 38.8 ⚠️ Trend | 23.87 | **23.1** | 20.1–24.9 | 18.48 | 4.62 |
-| 2026.7 | 01.04. – 15.04.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 20.1–24.9 | 18.48 | 4.62 |
-| 2026.8 | 15.04. – 29.04.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 20.1–24.9 | 18.48 | 4.62 |
-| 2026.9 | 29.04. – 13.05.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 20.1–24.9 | 18.48 | 4.62 |
+| 2026.6 | 18.03. – 01.04.2026 | **running** | 38.8 ⚠️ Trend | 23.87 | **23.1** | 16.4–29.8 | 18.48 | 4.62 |
+| 2026.7 | 01.04. – 15.04.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 14.8–31.4 | 18.48 | 4.62 |
+| 2026.8 | 15.04. – 29.04.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 13.6–32.6 | 18.48 | 4.62 |
+| 2026.9 | 29.04. – 13.05.2026 | planned | 38.8 ⚠️ Trend | 23.87 | **23.1** | 12.4–33.8 | 18.48 | 4.62 |
 
 ⚠️ *Trend/calendar*: no absences are recorded for this sprint yet, the capacity is estimated. `foresprint absences thin <SPRINT>` makes the forecast reliable.
 

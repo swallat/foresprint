@@ -105,8 +105,7 @@ func TestSimulateMatchesPython(t *testing.T) {
 	}
 }
 
-// The range shown next to a Forecast PLAN always holds the plan, also when the trend runs past
-// the spread of the history.
+// The range shown next to a Forecast PLAN holds the plan and grows with the distance.
 func TestBandAroundPlanHoldsThePlan(t *testing.T) {
 	for _, c := range golden.Cases(t) {
 		data := coretest.Load(t, c)
@@ -117,10 +116,10 @@ func TestBandAroundPlanHoldsThePlan(t *testing.T) {
 		for i := range fc.Entries {
 			e := &fc.Entries[i]
 			b, ok := analysis.BandAroundPlan(fc, e)
-			if !ok || e.Result.Plan == nil {
+			if !ok {
 				continue
 			}
-			if p := *e.Result.Plan; p < b.Low-1e-9 || p > b.High+1e-9 || b.Mid != p {
+			if p := *e.Result.Plan; p < b.Low || p > b.High || b.Mid != p {
 				t.Errorf("%s %s: plan %v outside %v-%v", c.Name, e.Sprint.ID, p, b.Low, b.High)
 			}
 		}
