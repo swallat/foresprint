@@ -506,33 +506,33 @@ type PlanSpan struct {
 	Ahead int
 }
 
-// IntervalLevel is the share of the outcomes the range of the Forecast PLAN is meant to hold.
-const IntervalLevel = 0.8
-
 // tQuantile is the two-sided 80 % quantile of the t distribution for df degrees of freedom: the
 // samples are few, so the plain normal quantile (1.28) would make the range too narrow.
 func tQuantile(df int) float64 {
-	table := [...]float64{0, 3.078, 1.886, 1.638, 1.533, 1.476, 1.440, 1.415, 1.397, 1.383, 1.372}
+	table := [...]float64{0, 3.078, 1.886, 1.638, 1.533, 1.476, 1.440, 1.415, 1.397, 1.383, 1.372,
+		1.363, 1.356, 1.350, 1.345, 1.341, 1.337, 1.333, 1.330, 1.328, 1.325,
+		1.323, 1.321, 1.319, 1.318, 1.316, 1.315, 1.314, 1.313, 1.311, 1.310}
 	switch {
 	case df < 1:
 		return table[1]
 	case df < len(table):
 		return table[df]
-	case df <= 30:
-		return 1.31
 	}
-	return 1.282
+	return 1.30
 }
 
 // PlanSpanOf is the range of the Forecast PLAN of the entry at index i, ok is false for a plan
 // that is not a projection, without a capacity, or with fewer than 3 results to measure from.
 //
-// The last Window normalized velocities are the sample. Each one is "forecast" by the mean of
+// A heuristic, not a calibrated 80 % interval: the misses are measured against the mean of the
+// sprints before, whatever the trend mode of the plan is, so a team with a steady trend gets a
+// wider range. The last Window normalized velocities (at least 3) are the sample. Each one is "forecast" by the mean of
 // those before it; the root mean square of these misses is the scatter of one sprint. The
 // level of a team drifts, so the uncertainty grows with the square root of the distance h to the
 // last result (random walk). The range is plan ± t · scatter · √h, converted to the capacity of
-// the sprint, with t from the t distribution for the few samples (one degree of freedom is spent
-// on the mean). It never goes below 0.
+// the sprint, with t from the t distribution for the few samples (n results give n-1
+// misses and as many degrees of freedom). It never goes below 0. A sprint without a result
+// (a forgotten review) counts in the distance.
 func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	if i < 0 || i >= len(f.Entries) {
 		return span, false
@@ -549,8 +549,8 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 			values, last = append(values, *v), k
 		}
 	}
-	if settings.Window > 0 && len(values) > settings.Window {
-		values = values[len(values)-settings.Window:]
+	if window := max(settings.Window, 3); len(values) > window {
+		values = values[len(values)-window:]
 	}
 	if len(values) < 3 {
 		return span, false
@@ -559,14 +559,14 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	for k, v := range values {
 		if k > 0 {
 			miss := v - sum/float64(k)
-			squares += float64(miss * miss)
+			squares += miss * miss
 		}
 		sum += v
 	}
 	misses := len(values) - 1
 	scatter := math.Sqrt(squares / float64(misses))
 	span.Samples, span.Ahead = len(values), i-last
-	half := tQuantile(misses-1) * scatter * math.Sqrt(float64(span.Ahead)) / settings.ReferenceCapacity * (*r.PlanCapacity)
+	half := tQuantile(misses) * scatter * math.Sqrt(float64(span.Ahead)) / settings.ReferenceCapacity * (*r.PlanCapacity)
 	span.Low = engine.RoundHalfUp(math.Max(*r.Plan-half, 0), settings.Rounding)
 	span.High = engine.RoundHalfUp(*r.Plan+half, settings.Rounding)
 	return span, true

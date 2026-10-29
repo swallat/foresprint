@@ -8,11 +8,11 @@ As of: 24.06.2026 · unit: PT · reference capacity: 40 PT · Ø over 5 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.13 | 24.06. – 08.07.2026 | **running** | 41.8 ⚠️ Trend | 38.34 | **40.0** | 35.8–44.2 | 32.00 | 8.00 |
-| 2026.14 | 08.07. – 22.07.2026 | planned | 42.4 ⚠️ Trend | 39.84 | **42.2** | 37.0–47.4 | 33.76 | 8.44 |
-| 2026.15 | 22.07. – 05.08.2026 | planned | 43.0 ⚠️ Trend | 41.35 | **44.4** | 38.3–50.5 | 35.52 | 8.88 |
-| 2026.16 | 05.08. – 19.08.2026 | planned | 43.6 ⚠️ Trend | 42.86 | **46.7** | 39.8–53.6 | 37.36 | 9.34 |
-| 2026.17 | 19.08. – 02.09.2026 | planned | 44.2 ⚠️ Trend | 44.36 | **49.0** | 41.3–56.7 | 39.20 | 9.80 |
+| 2026.13 | 24.06. – 08.07.2026 | **running** | 41.8 ⚠️ Trend | 38.34 | **40.0** | 36.1–43.9 | 32.00 | 8.00 |
+| 2026.14 | 08.07. – 22.07.2026 | planned | 42.4 ⚠️ Trend | 39.84 | **42.2** | 37.3–47.1 | 33.76 | 8.44 |
+| 2026.15 | 22.07. – 05.08.2026 | planned | 43.0 ⚠️ Trend | 41.35 | **44.4** | 38.7–50.1 | 35.52 | 8.88 |
+| 2026.16 | 05.08. – 19.08.2026 | planned | 43.6 ⚠️ Trend | 42.86 | **46.7** | 40.2–53.2 | 37.36 | 9.34 |
+| 2026.17 | 19.08. – 02.09.2026 | planned | 44.2 ⚠️ Trend | 44.36 | **49.0** | 41.8–56.2 | 39.20 | 9.80 |
 
 ⚠️ *Trend/calendar*: no absences are recorded for this sprint yet, the capacity is estimated. `foresprint absences trend-linear <SPRINT>` makes the forecast reliable.
 

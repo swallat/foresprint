@@ -8,10 +8,10 @@ As of: 15.10.2026 · unit: PT · reference capacity: 45 PT · Ø over 5 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.21 | 14.10. – 28.10.2026 | **running** | 25.5 (people list) | 16.84 | **9.5** | 8.0–11.0 | 7.60 | 1.90 |
-| 2026.22 | 28.10. – 11.11.2026 | planned | 30.0 (people list) | 16.84 | **11.2** | 8.7–13.7 | 8.96 | 2.24 |
-| 2026.23 | 11.11. – 25.11.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 8.2–14.4 | 9.04 | 2.26 |
-| 2026.24 | 25.11. – 09.12.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 7.7–14.9 | 9.04 | 2.26 |
+| 2026.21 | 14.10. – 28.10.2026 | **running** | 25.5 (people list) | 16.84 | **9.5** | 8.1–10.9 | 7.60 | 1.90 |
+| 2026.22 | 28.10. – 11.11.2026 | planned | 30.0 (people list) | 16.84 | **11.2** | 8.9–13.5 | 8.96 | 2.24 |
+| 2026.23 | 11.11. – 25.11.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 8.4–14.2 | 9.04 | 2.26 |
+| 2026.24 | 25.11. – 09.12.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 8.0–14.6 | 9.04 | 2.26 |
 
 **Planning 2026.21:** total 8.50 PT, delta to the Forecast PLAN 1.00 PT
 

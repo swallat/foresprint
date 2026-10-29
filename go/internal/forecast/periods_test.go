@@ -112,13 +112,13 @@ func TestPlanSpan(t *testing.T) {
 	}
 	future := forecast.TimelineEntry{Result: engine.SprintResult{Plan: &plan, PlanSource: &src, PlanCapacity: &cap}}
 	// results 18, 22, 20: the misses against the mean of those before are 4 and 0, so the
-	// scatter is sqrt((16 + 0) / 2) and t has 1 degree of freedom
+	// scatter is sqrt((16 + 0) / 2) and t has 2 degrees of freedom
 	fc := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{norm(18), norm(22), norm(20), future, future, future, future}}
 	scatter := math.Sqrt(8)
 	var widths []float64
 	for k, ahead := range []int{1, 2, 3, 4} {
 		span, ok := fc.PlanSpanOf(3 + k)
-		half := 3.078 * scatter * math.Sqrt(float64(ahead))
+		half := 1.886 * scatter * math.Sqrt(float64(ahead))
 		if !ok || span.Ahead != ahead || span.Samples != 3 ||
 			math.Abs(span.Low-math.Round((plan-half)*100)/100) > 1e-9 || math.Abs(span.High-math.Round((plan+half)*100)/100) > 1e-9 {
 			t.Errorf("%d ahead: %+v %v, want 20 ± %.2f", ahead, span, ok, half)
@@ -130,6 +130,19 @@ func TestPlanSpan(t *testing.T) {
 			t.Errorf("the range must grow with the distance: %v", widths)
 		}
 	}
+	// only the last Window results count, and a sprint without a result counts in the distance
+	data.Team.Forecast.Window = 3
+	gap := forecast.TimelineEntry{}
+	longer := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{norm(100), norm(18), norm(22), norm(20), gap, future}}
+	if span, ok := longer.PlanSpanOf(5); !ok || span.Samples != 3 || span.Ahead != 2 {
+		t.Errorf("window 3 with a gap: %+v %v, want 3 samples, 2 ahead (the 100 is out of the window)", span, ok)
+	}
+	// a window under 3 still measures from 3 results
+	data.Team.Forecast.Window = 1
+	if span, ok := longer.PlanSpanOf(5); !ok || span.Samples != 3 {
+		t.Errorf("window 1: %+v %v, want 3 samples", span, ok)
+	}
+	data.Team.Forecast.Window = 5
 	// the lower end never goes below 0
 	low := 3.0
 	fc.Entries[3].Result.Plan = &low
