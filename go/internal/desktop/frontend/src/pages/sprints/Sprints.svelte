@@ -142,7 +142,6 @@
   <p class="small muted note">
     {t('Normalized velocity is the velocity at the full team capacity without absences ({ref} {unit}), so sprints with and without absences can be compared. In brackets the rate per person day that the forecast calculates with.', { ref: days(data.reference), unit: data.unit === 'PT' ? t('PD') : t('person days') })}
   </p>
-  <p class="small muted">{t('The selected sprint is highlighted. Capacity and Forecast PLAN follow the absences at once.')}</p>
 {/if}
 
 <style>

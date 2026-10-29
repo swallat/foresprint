@@ -4,7 +4,6 @@
  "texts": {
   "(removed)": "(entfernt)",
   "A merge cannot be taken back.": "Eine Zusammenführung lässt sich nicht zurücknehmen.",
-  "A tag names a state of the data, for example the end of a sprint. Any earlier state can be chosen; tags help to find it.": "Ein Tag benennt einen Stand der Daten, zum Beispiel das Ende eines Sprints. Du kannst jeden früheren Stand wählen, Tags helfen beim Finden.",
   "Actions": "Aktionen",
   "All changes could be merged automatically.": "Alle Änderungen ließen sich automatisch zusammenführen.",
   "All conflicts are decided": "Alle Konflikte sind entschieden",
@@ -65,7 +64,6 @@
   "Others changed something. Refresh takes it over; your own changes stay.": "Andere haben etwas geändert. Aktualisieren übernimmt es, deine eigenen Änderungen bleiben.",
   "Restore this state": "Diesen Stand wiederherstellen",
   "Result:": "Ergebnis:",
-  "Save finishes the merge and shares the result with the team.": "Speichern schließt das Zusammenführen ab und gibt das Ergebnis ans Team.",
   "Saved on this computer, not shared with the team yet. Save shares it.": "Auf diesem Rechner gespeichert, noch nicht beim Team. Speichern gibt es ans Team.",
   "Saved recently": "Zuletzt gespeichert",
   "Scope": "Umfang",

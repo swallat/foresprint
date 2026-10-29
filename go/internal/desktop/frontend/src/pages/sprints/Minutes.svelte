@@ -139,7 +139,6 @@
       </tbody>
     </table>
   </div>
-  <p class="small muted note">{t('Superseded versions stay as files. They are marked when a newer version of the same kind exists.')}</p>
 {/if}
 
 {#if open}
@@ -181,9 +180,6 @@
   }
   .end {
     margin-left: auto;
-  }
-  .note {
-    margin-top: 12px;
   }
   tr.old td {
     color: var(--text-muted);

@@ -461,7 +461,6 @@
             </tbody>
           </table>
         </div>
-        <p class="small muted">{t('Budget is the pre-planned amount.')}</p>
       </div>
     {/if}
     <div class="card">

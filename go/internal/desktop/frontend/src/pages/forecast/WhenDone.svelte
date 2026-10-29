@@ -93,7 +93,6 @@
 
 <section class="card stack" aria-labelledby="fc-done" data-tour="forecast-analysis">
   <h2 id="fc-done">{t('When is it done?')}</h2>
-  <p class="small muted">{t('Simulates the coming sprints from the velocities so far. A likelihood, not a promise.')}</p>
   <form
     class="row"
     onsubmit={(e) => {

@@ -536,7 +536,6 @@
           {#if d.kind !== 'clone'}<p class="muted">{t('A folder on this computer needs no sign-in. Foresprint only needs your name for the history.')}</p>{/if}
           <div class="field"><label for="su-name">{t('Your name')}</label><input id="su-name" class="input" bind:value={d.name} /></div>
           <div class="field"><label for="su-mail">{t('Email')}</label><input id="su-mail" class="input" type="email" bind:value={d.email} /></div>
-          <p class="small muted">{t('Entered once. It appears in the history next to your changes.')}</p>
         </div>
       </div>
     {:else if d.step === 'team'}
@@ -601,7 +600,6 @@
       </div>
     {:else if d.step === 'tickets'}
       <h2>{t('Where does the work come from?')}</h2>
-      <p class="muted">{t('Foresprint also works without a tracker. You can change this later under Settings, Tickets and tracker.')}</p>
       <div class="stack" role="radiogroup" aria-label={t('Where does the work come from?')}>
         {#each sources as s (s.key)}
           <div class="opt" class:on={d.source === s.key}>
