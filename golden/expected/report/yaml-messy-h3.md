@@ -8,10 +8,10 @@ As of: 01.03.2026 · unit: SP · reference capacity: 50 PT · Ø over 5 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (SP) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.4 | 18.02. – 04.03.2026 | **running** | 12.6 (expected absences) | – | **–** | 3.1–8.5 | – | – |
-| 2026.5 | 04.03. – 18.03.2026 | planned | 12.6 (expected absences) | – | **–** | 3.1–8.5 | – | – |
-| 2026.6 | 18.03. – 01.04.2026 | planned | 12.6 (expected absences) | – | **–** | 3.1–8.5 | – | – |
-| 2026.7 | 01.04. – 15.04.2026 | planned | 10.1 (expected absences) | – | **–** | 2.5–6.8 | – | – |
+| 2026.4 | 18.02. – 04.03.2026 | **running** | 12.6 (expected absences) | – | **–** | – | – | – |
+| 2026.5 | 04.03. – 18.03.2026 | planned | 12.6 (expected absences) | – | **–** | – | – | – |
+| 2026.6 | 18.03. – 01.04.2026 | planned | 12.6 (expected absences) | – | **–** | – | – | – |
+| 2026.7 | 01.04. – 15.04.2026 | planned | 10.1 (expected absences) | – | **–** | – | – | – |
 
 ⚠️ Rate uncertain: 1 sprint in the expected absence rate (`2026.1`) only counts as confirmed because it has already been planned or reviewed; no absences are saved, so the rate assumes "0 % lost". The estimated capacity of future sprints may be too high.
 

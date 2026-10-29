@@ -12,7 +12,6 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/planning"
-	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -497,18 +496,43 @@ func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Pr
 	return Build(&copied, today)
 }
 
-// PlanSpan is the range of the Forecast PLAN of a sprint: the spread of the window (how far the
-// lowest and the highest normalized velocity lie from their median, in the plan's capacity) laid
-// around the plan (it stands where the median stood).
+// PlanSpan is the range of the Forecast PLAN of a sprint: a prediction interval around the plan
+// that grows with the distance to the last sprint with a result.
 type PlanSpan struct {
 	Low, High float64
-	// Samples is the number of sprints with a value inside the window.
+	// Samples is the number of sprints with a value the interval is measured from.
 	Samples int
+	// Ahead is the distance in sprints to the last sprint with a result (1 = the next one).
+	Ahead int
 }
 
-// PlanSpanOf is the range of the Forecast PLAN of the entry at index i. The window is the
-// team's Window sprints before the entry. ok is false for a plan that is not a projection,
-// without a capacity, or without any value in the window.
+// tQuantile is the two-sided 80 % quantile of the t distribution for df degrees of freedom: the
+// samples are few, so the plain normal quantile (1.28) would make the range too narrow.
+func tQuantile(df int) float64 {
+	table := [...]float64{0, 3.078, 1.886, 1.638, 1.533, 1.476, 1.440, 1.415, 1.397, 1.383, 1.372,
+		1.363, 1.356, 1.350, 1.345, 1.341, 1.337, 1.333, 1.330, 1.328, 1.325,
+		1.323, 1.321, 1.319, 1.318, 1.316, 1.315, 1.314, 1.313, 1.311, 1.310}
+	switch {
+	case df < 1:
+		return table[1]
+	case df < len(table):
+		return table[df]
+	}
+	return 1.30
+}
+
+// PlanSpanOf is the range of the Forecast PLAN of the entry at index i, ok is false for a plan
+// that is not a projection, without a capacity, or with fewer than 3 results to measure from.
+//
+// A heuristic, not a calibrated 80 % interval: the misses are measured against the mean of the
+// sprints before, whatever the trend mode of the plan is, so a team with a steady trend gets a
+// wider range. The last Window normalized velocities (at least 3) are the sample. Each one is "forecast" by the mean of
+// those before it; the root mean square of these misses is the scatter of one sprint. The
+// level of a team drifts, so the uncertainty grows with the square root of the distance h to the
+// last result (random walk). The range is plan ± t · scatter · √h, converted to the capacity of
+// the sprint, with t from the t distribution for the few samples (n results give n-1
+// misses and as many degrees of freedom). It never goes below 0. A sprint without a result
+// (a forgotten review) counts in the distance.
 func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	if i < 0 || i >= len(f.Entries) {
 		return span, false
@@ -518,32 +542,33 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	if r.PlanSource == nil || *r.PlanSource != engine.PlanForecast || r.Plan == nil || r.PlanCapacity == nil || settings.ReferenceCapacity <= 0 {
 		return span, false
 	}
-	from := i - settings.Window
-	if from < 0 {
-		from = 0
-	}
 	var values []float64
-	for _, e := range f.Entries[from:i] {
-		if v := e.Result.NormalizedVelocity.Value; v != nil {
-			values = append(values, *v)
+	last := -1
+	for k := 0; k < i; k++ {
+		if v := f.Entries[k].Result.NormalizedVelocity.Value; v != nil {
+			values, last = append(values, *v), k
 		}
 	}
-	span.Samples = len(values)
-	if span.Samples == 0 {
+	if window := max(settings.Window, 3); len(values) > window {
+		values = values[len(values)-window:]
+	}
+	if len(values) < 3 {
 		return span, false
 	}
-	low, high := values[0], values[0]
-	for _, v := range values {
-		low, high = math.Min(low, v), math.Max(high, v)
+	var sum, squares float64
+	for k, v := range values {
+		if k > 0 {
+			miss := v - sum/float64(k)
+			squares += miss * miss
+		}
+		sum += v
 	}
-	mid := pymath.Median(values)
-	plan := func(norm float64) float64 {
-		return engine.RoundDown(norm/settings.ReferenceCapacity*(*r.PlanCapacity), settings.Rounding)
-	}
-	// The spread of the window is laid around the plan: the plan stands where the median stood.
-	centre := *r.Plan
-	span.Low = engine.RoundHalfUp(math.Max(centre-(plan(mid)-plan(low)), 0), settings.Rounding)
-	span.High = engine.RoundHalfUp(centre+(plan(high)-plan(mid)), settings.Rounding)
+	misses := len(values) - 1
+	scatter := math.Sqrt(squares / float64(misses))
+	span.Samples, span.Ahead = len(values), i-last
+	half := tQuantile(misses) * scatter * math.Sqrt(float64(span.Ahead)) / settings.ReferenceCapacity * (*r.PlanCapacity)
+	span.Low = engine.RoundHalfUp(math.Max(*r.Plan-half, 0), settings.Rounding)
+	span.High = engine.RoundHalfUp(*r.Plan+half, settings.Rounding)
 	return span, true
 }
 

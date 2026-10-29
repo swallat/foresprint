@@ -92,40 +92,69 @@ func TestPlanSpan(t *testing.T) {
 			if !ok {
 				continue
 			}
-			if span.Low > span.High || span.Samples == 0 {
+			if span.Low > span.High || span.Samples < 3 || span.Ahead < 1 {
 				t.Errorf("%s %s: %+v", c.Name, e.Sprint.ID, span)
+			}
+			if p := *e.Result.Plan; p < span.Low || p > span.High {
+				t.Errorf("%s %s: plan %v outside %v-%v", c.Name, e.Sprint.ID, p, span.Low, span.High)
 			}
 		}
 	}
+
 	data := &storage.TeamData{Team: model.NewTeam("t", "t")}
 	data.Team.Forecast.ReferenceCapacity = 10
-	data.Team.Forecast.Window = 2
-	data.Team.Forecast.Rounding = 0
-	plan, cap := 20.0, 5.0
+	data.Team.Forecast.Window = 5
+	data.Team.Forecast.Rounding = 2
+	plan, cap := 20.0, 10.0
 	src := engine.PlanForecast
-	norm := func(v float64) engine.SprintResult {
-		return engine.SprintResult{NormalizedVelocity: engine.Metric{Value: &v}}
+	norm := func(v float64) forecast.TimelineEntry {
+		return forecast.TimelineEntry{Result: engine.SprintResult{NormalizedVelocity: engine.Metric{Value: &v}}}
 	}
-	// window of 2 before index 3: 20 and 40 (the 8 before is outside); capacity 5, ref 10
-	fc := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{
-		{Result: norm(8)}, {Result: norm(20)}, {Result: norm(40)},
-		{Result: engine.SprintResult{Plan: &plan, PlanSource: &src, PlanCapacity: &cap}},
-	}}
-	// the window gives 10 / 15 / 20 for the lowest / median / highest value: 5 below, 5 above
-	span, ok := fc.PlanSpanOf(3)
-	if !ok || span.Low != 15 || span.High != 25 || span.Samples != 2 {
-		t.Errorf("span %+v %v, want 15..25 around the plan 20 over 2", span, ok)
+	future := forecast.TimelineEntry{Result: engine.SprintResult{Plan: &plan, PlanSource: &src, PlanCapacity: &cap}}
+	// results 18, 22, 20: the misses against the mean of those before are 4 and 0, so the
+	// scatter is sqrt((16 + 0) / 2) and t has 2 degrees of freedom
+	fc := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{norm(18), norm(22), norm(20), future, future, future, future}}
+	scatter := math.Sqrt(8)
+	var widths []float64
+	for k, ahead := range []int{1, 2, 3, 4} {
+		span, ok := fc.PlanSpanOf(3 + k)
+		half := 1.886 * scatter * math.Sqrt(float64(ahead))
+		if !ok || span.Ahead != ahead || span.Samples != 3 ||
+			math.Abs(span.Low-math.Round((plan-half)*100)/100) > 1e-9 || math.Abs(span.High-math.Round((plan+half)*100)/100) > 1e-9 {
+			t.Errorf("%d ahead: %+v %v, want 20 ± %.2f", ahead, span, ok, half)
+		}
+		widths = append(widths, span.High-span.Low)
 	}
-	// the range follows the plan, wherever the trend has put it, and never goes below 0
-	for _, p := range []float64{3, 6, 30} {
-		fc.Entries[3].Result.Plan = &p
-		span, _ := fc.PlanSpanOf(3)
-		if span.Low != math.Max(p-5, 0) || span.High != p+5 {
-			t.Errorf("plan %v: span %+v, want %v..%v", p, span, math.Max(p-5, 0), p+5)
+	for k := 1; k < len(widths); k++ {
+		if widths[k] <= widths[k-1] {
+			t.Errorf("the range must grow with the distance: %v", widths)
 		}
 	}
+	// only the last Window results count, and a sprint without a result counts in the distance
+	data.Team.Forecast.Window = 3
+	gap := forecast.TimelineEntry{}
+	longer := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{norm(100), norm(18), norm(22), norm(20), gap, future}}
+	if span, ok := longer.PlanSpanOf(5); !ok || span.Samples != 3 || span.Ahead != 2 {
+		t.Errorf("window 3 with a gap: %+v %v, want 3 samples, 2 ahead (the 100 is out of the window)", span, ok)
+	}
+	// a window under 3 still measures from 3 results
+	data.Team.Forecast.Window = 1
+	if span, ok := longer.PlanSpanOf(5); !ok || span.Samples != 3 {
+		t.Errorf("window 1: %+v %v, want 3 samples", span, ok)
+	}
+	data.Team.Forecast.Window = 5
+	// the lower end never goes below 0
+	low := 3.0
+	fc.Entries[3].Result.Plan = &low
+	if span, _ := fc.PlanSpanOf(3); span.Low != 0 || span.High <= low {
+		t.Errorf("plan 3: %+v, want a range from 0", span)
+	}
+	// fewer than 3 results, or a plan that is not a projection, have no range
+	if _, ok := (&forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{norm(18), norm(22), future}}).PlanSpanOf(2); ok {
+		t.Error("two results are too few for a range")
+	}
 	if _, ok := fc.PlanSpanOf(1); ok {
-		t.Error("a sprint that is not a projection has no span")
+		t.Error("a sprint that is not a projection has no range")
 	}
 }
 

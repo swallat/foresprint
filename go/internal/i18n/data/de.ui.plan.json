@@ -38,6 +38,7 @@
   "Choose a team and a sprint first.": "Wähle zuerst ein Team und einen Sprint.",
   "Clear assumption {label}": "Annahme {label} leeren",
   "Commitment against Forecast PLAN {plan} (range {low} to {high})": "Zusage gegen Forecast PLAN {plan} (Spanne {low} bis {high})",
+  "Commitment against Forecast PLAN {plan}": "Zusage gegen Forecast PLAN {plan}",
   "Commitment in {unit}": "Zusage in {unit}",
   "Commitment {sprint} ({unit})": "Commitment {sprint} ({unit})",
   "Confirm in Prepare": "In Vorbereiten bestätigen",

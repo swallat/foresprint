@@ -8,11 +8,11 @@ As of: 05.01.2027 · unit: PT · reference capacity: 40 PT · Ø over 5 sprints 
 
 | Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.27 | 30.12. – 13.01.2027 | **running** | 64.4 (announced absences) | 16.00 | **25.7** | 23.0–29.1 | 20.56 | 5.14 |
-| 2027.1 | 13.01. – 27.01.2027 | planned | 70.2 (expected absences) | 16.00 | **28.0** | 25.0–31.8 | 22.40 | 5.60 |
-| 2027.2 | 27.01. – 10.02.2027 | planned | 68.8 (expected absences) | 16.00 | **27.5** | 24.5–31.2 | 22.00 | 5.50 |
-| 2027.3 | 10.02. – 24.02.2027 | planned | 68.4 (expected absences) | 16.00 | **27.3** | 24.4–31.0 | 21.84 | 5.46 |
-| 2027.4 | 24.02. – 10.03.2027 | planned | 70.2 (expected absences) | 16.00 | **28.0** | 25.0–31.8 | 22.40 | 5.60 |
+| 2026.27 | 30.12. – 13.01.2027 | **running** | 64.4 (announced absences) | 16.00 | **25.7** | 16.6–34.8 | 20.56 | 5.14 |
+| 2027.1 | 13.01. – 27.01.2027 | planned | 70.2 (expected absences) | 16.00 | **28.0** | 16.9–39.1 | 22.40 | 5.60 |
+| 2027.2 | 27.01. – 10.02.2027 | planned | 68.8 (expected absences) | 16.00 | **27.5** | 15.6–39.4 | 22.00 | 5.50 |
+| 2027.3 | 10.02. – 24.02.2027 | planned | 68.4 (expected absences) | 16.00 | **27.3** | 14.5–40.1 | 21.84 | 5.46 |
+| 2027.4 | 24.02. – 10.03.2027 | planned | 70.2 (expected absences) | 16.00 | **28.0** | 14.0–42.0 | 22.40 | 5.60 |
 
 ⚠️ Rate uncertain: 2 sprints in the expected absence rate (`2026.20`, `2026.25`) only count as confirmed because they have already been planned or reviewed; no absences are saved, so the rate assumes "0 % lost". The estimated capacity of future sprints may be too high.
 

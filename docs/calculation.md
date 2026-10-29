@@ -74,11 +74,17 @@ forecast is never negative. If the history is too short for the chosen mode (for
 
 ## Uncertainty
 
-The forecast shows a range around every Forecast PLAN: the spread of the last sprints, that is
-how far their lowest and their highest normalized velocity lie below and above their median,
-converted to the capacity of the sprint, laid around the plan (the plan stands where the median
-stood; the lower end is never below 0). The range says how much a sprint scattered, not where
-the trend goes. The forecast tiles warn when fewer than 5 sprints have a velocity. Statements such as "in 85 % of the
+The forecast shows a range around every Forecast PLAN: an 80 % prediction interval. How far
+each of the last `window` sprints missed the mean of the sprints before it gives the scatter of a
+sprint (root mean square). The level of a team drifts, so the uncertainty grows with the square
+root of the distance in sprints to the last result (random walk); the quantile comes from the t
+distribution because the samples are few. The range is plan ± quantile x scatter x √distance,
+converted to the capacity of the sprint; the lower end is never below 0, and it needs at least 3
+sprints with a result within the window (a window of 1 or 2 measures from 3). A sprint without a
+result, for example a forgotten review, widens every range by its distance. It is a rule of thumb,
+not a calibrated 80 % interval: the misses are measured against the mean of the sprints before,
+whatever the trend mode is, so a team with a steady trend gets a wider range. The range of the
+supplementary analysis below (lowest, middle, highest) is a different thing. The forecast tiles warn when fewer than 5 sprints have a velocity. Statements such as "in 85 % of the
 simulations" are model-dependent frequencies from the history (the sample is shown), not
 promises.
 
