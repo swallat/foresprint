@@ -87,7 +87,6 @@
           {/each}
         </select>
       </div>
-      <p class="small muted">{t('More languages are possible: a translation file is enough, the interface itself stays the same.')}</p>
     </div>
   </div>
 {/if}

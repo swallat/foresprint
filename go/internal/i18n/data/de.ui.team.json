@@ -75,7 +75,6 @@
   "Start of {id}": "Start von {id}",
   "The count may have a gap. Files, minutes and tracker names still match. Sprints without a file keep counting on.": "Die Zählung kann eine Lücke haben. Dateien, Protokolle und Tracker-Namen passen weiter. Sprints ohne Datei zählen von selbst weiter.",
   "The days of {id} go to the sprint before, {via}.": "Die Tage von {id} gehen an den Vorgänger {via}.",
-  "The number is person days, never a reason. Typing an entry is enough; the lock confirms it, as on Prepare.": "Die Zahl sind Personentage, nie ein Grund. Eintragen genügt, das Schloss bestätigt, wie bei Vorbereiten.",
   "The pattern gives double names ({name}). A number such as {NN}, {LFD} or {KW} makes them unique.": "Das Muster ergibt doppelte Namen ({name}). Eine Nummer wie {NN}, {LFD} oder {KW} macht sie eindeutig.",
   "The sprint before is finished and locked. {id} and all following sprints move by the difference.": "Der Vorgänger ist beendet und gesperrt. {id} und alle Folgesprints rücken um die Differenz.",
   "The start of {id} is the day after the last day of {via}. That last day is what changes.": "Der Start von {id} ist der Tag nach dem letzten Tag des Vorgängers {via}. Geändert wird deshalb dessen letzter Tag.",

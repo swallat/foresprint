@@ -233,11 +233,9 @@
       <div class="stack">
         <div class="opt on">
           <div class="row"><Icon name="check_circle" /><strong>{t('Git repository')}</strong></div>
-          <p class="small muted">{t('History, restoring and data safety. The standard in 1.0.')}</p>
         </div>
         <div class="opt off" aria-disabled="true">
           <div class="row"><strong>{t('Shared folder')}</strong><span class="chip">{t('after 1.0')}</span></div>
-          <p class="small muted">{t('File server or SharePoint will use the same interface after 1.0.')}</p>
         </div>
       </div>
     </section>
@@ -378,7 +376,6 @@
         <div class="row top">
           <button class="btn primary" type="button" disabled={working || (name === st.name && email === st.email)} onclick={() => act(() => api.SetIdentity(name, email), t('Name and e-mail saved.'))}>{t('Save name and e-mail')}</button>
         </div>
-        <p class="small muted">{t('Shown in the history as the author of each change.')}</p>
       </section>
 
       <section class="card" aria-labelledby="s-review">
@@ -465,9 +462,6 @@
   }
   .opt.off {
     color: var(--text-muted);
-  }
-  .opt p {
-    margin: 4px 0 0;
   }
   .wrap {
     white-space: normal;

@@ -34,7 +34,6 @@
       <button class="btn primary" type="button" disabled={busy} onclick={onapply}>{t('Apply changes')}</button>
       <button class="btn" type="button" disabled={busy} onclick={onreset}>{t('Discard')}</button>
     </div>
-    <p class="small muted">{t('Applied changes then wait with the unsaved ones; Save in the top bar shares them with the team.')}</p>
   {:else}
     <p class="muted">{t('No changes.')}</p>
   {/if}

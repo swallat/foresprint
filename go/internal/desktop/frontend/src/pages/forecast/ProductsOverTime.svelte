@@ -44,7 +44,6 @@
 {:else if !data.enabled}
   <Banner tone="info">{t('This tab appears when the team looks after more than one product.')}</Banner>
 {:else}
-  <p class="small muted">{t('The same product table over several sprints: what each product gets by default, what was pre-planned and planned, and what is done.')}</p>
   <div class="tw">
     <table class="t">
       <thead>

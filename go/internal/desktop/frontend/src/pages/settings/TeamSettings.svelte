@@ -224,13 +224,13 @@
         <h2>{t('Features')}</h2>
         <div class="stack gap">
           <Switch bind:checked={draft.products} title={t('Products')}>
-            {t('The sprint is distributed to several products. Without it the pages show no product columns. Only the calculation and display change; tickets stay.')}
+            {t('The sprint is distributed to several products.')}
           </Switch>
           <Switch bind:checked={draft.po} title={t('Product owners')}>
-            {t('Each product has a responsible product owner; sums are shown per owner. Only the display changes; tickets stay.')}
+            {t('Each product has a responsible product owner; sums are shown per owner.')}
           </Switch>
           <Switch bind:checked={draft.production} title={t('Access to production')}>
-            {t('Each person can have production access, each ticket a production share (without tickets one PD value per sprint). Pre-planning and planning compare that with the time of the people with access. Only the calculation and display change; tickets stay.')}
+            {t('Each person can have production access, each ticket a production share (without tickets one PD value per sprint). Pre-planning and planning compare that with the time of the people with access.')}
           </Switch>
           {#if draft.production}
             <div class="sub">
@@ -241,7 +241,7 @@
             </div>
           {/if}
           <Switch bind:checked={draft.projects} title={t('Projects and contingents')}>
-            {t('Projects with milestones and a contingent in person days. They also work without a tracker. Only projects and their calculation change; tickets stay. Whether tickets are used is set under Settings, Tickets and tracker.')}
+            {t('Projects with milestones and a contingent in person days.')}
           </Switch>
         </div>
       </div>
@@ -278,7 +278,6 @@
             </select>
           </div>
         </div>
-        <p class="small muted">{t('The public holidays of this country and region reduce the working days of every sprint.')}</p>
       </div>
     {/if}
 
@@ -342,8 +341,6 @@
                 </div>
               {/if}
             </div>
-          {:else}
-            <p class="small muted">{t('Estimating in PD needs no conversion: contingents, planning and forecast count in person days directly.')}</p>
           {/if}
           {#if unitChanged}
             <div class="field" style="max-width:280px">
