@@ -541,6 +541,12 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 		return math.Max(engine.RoundDown(float64(norm/settings.ReferenceCapacity)*(*r.PlanCapacity), settings.Rounding), 0)
 	}
 	span.Low, span.High = plan(low), plan(high)
+	// The point value follows the trend of the normalized velocity, which runs past the lowest or
+	// highest value of the window when the trend rises or falls. The range always contains it.
+	if r.Plan != nil {
+		span.Low = math.Min(span.Low, *r.Plan)
+		span.High = math.Max(span.High, *r.Plan)
+	}
 	return span, true
 }
 

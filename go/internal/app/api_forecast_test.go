@@ -38,6 +38,12 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 		}
 	}
 
+	for _, r := range v.Upcoming {
+		if r.Plan != nil && r.Low != nil && r.High != nil && (*r.Plan < *r.Low || *r.Plan > *r.High) {
+			t.Errorf("%s: plan %v outside the range %v-%v", r.ID, *r.Plan, *r.Low, *r.High)
+		}
+	}
+
 	same, err := api.ForecastWhatIf(key, ForecastAssumption{FocusPercent: 100})
 	if err != nil {
 		t.Fatal(err)

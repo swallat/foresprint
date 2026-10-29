@@ -114,6 +114,17 @@ func TestPlanSpan(t *testing.T) {
 	if !ok || span.Low != 10 || span.High != 20 || span.Samples != 2 {
 		t.Errorf("span %+v %v, want 10..20 over 2", span, ok)
 	}
+	// A falling trend puts the plan below the lowest value of the window: the span still holds it.
+	low := 6.0
+	fc.Entries[3].Result.Plan = &low
+	if span, _ := fc.PlanSpanOf(3); span.Low != 6 || span.High != 20 {
+		t.Errorf("span %+v, want the plan 6 inside 6..20", span)
+	}
+	high := 30.0
+	fc.Entries[3].Result.Plan = &high
+	if span, _ := fc.PlanSpanOf(3); span.Low != 10 || span.High != 30 {
+		t.Errorf("span %+v, want the plan 30 inside 10..30", span)
+	}
 	if _, ok := fc.PlanSpanOf(1); ok {
 		t.Error("a sprint that is not a projection has no span")
 	}
