@@ -5,6 +5,7 @@
   import Icon from '../lib/Icon.svelte';
   import type { IconName } from '../lib/icons';
   import { current, link } from '../lib/router.svelte';
+  import { switchedOff } from '../lib/routes';
 
   let open = $state(false);
   let root: HTMLElement | undefined = $state();
@@ -18,6 +19,8 @@
     { icon: 'category', label: () => t('Add product'), path: '/team/products', query: { new: '1' }, needsTeam: true },
     { icon: 'flag', label: () => t('New project'), path: '/projects', query: { new: '1' }, needsTeam: true },
   ];
+
+  const visible = $derived(entries.filter((e) => !switchedOff(e.path, app.features)));
 
   const blocked = (e: (typeof entries)[number]) => e.needsTeam && !app.team;
 
@@ -88,7 +91,7 @@
   </button>
   {#if open}
     <div class="pop" role="menu" tabindex="-1" aria-label={t('Create new')} bind:this={pop} onkeydown={onMenuKey}>
-      {#each entries as e (e.path + e.label())}
+      {#each visible as e (e.path + e.label())}
         <button class="item" type="button" role="menuitem" aria-disabled={blocked(e)} onclick={() => choose(e)}>
           <Icon name={e.icon} />{e.label()}
         </button>
