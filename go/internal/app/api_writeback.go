@@ -141,7 +141,7 @@ func (c *planCtx) writeReady() error {
 		return errors.New(i18n.T("Start the sprint first; only the agreed tickets are written to the tracker."))
 	case "current":
 		if c.sprint.CommittedTickets == nil {
-			return errors.New(i18n.T("Start the sprint first; only the agreed tickets are written to the tracker."))
+			return errors.New(i18n.T("This sprint was started without an agreed plan; take the start back and start it on the Plan page."))
 		}
 	}
 	return nil

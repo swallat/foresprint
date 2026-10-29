@@ -28,7 +28,8 @@
   let { sprint, start, end, startedOn, due, stage, plan, onchange }: Props = $props();
 
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  let today = $state(iso(new Date()));
+  const clock = () => app.teams.find((x) => x.key === app.team)?.asOf || iso(new Date());
+  let today = $state(clock());
 
   let asking = $state(false);
   let day = $state('');
@@ -41,7 +42,7 @@
   const valid = $derived(day >= start && day <= today);
 
   function ask(): void {
-    today = iso(new Date()); // the page may have been open past midnight
+    today = clock(); // the page may have been open past midnight
     day = startedOn || start;
     failed = '';
     asking = true;
@@ -116,7 +117,7 @@
     {/if}
   </div>
 {:else if plan && stage !== 'past'}
-  <div class="banner info">
+  <div class="banner info" data-tour="plan-freeze">
     <Icon name="info" />
     <div class="grow">{t('The commitment is set in the Planning on the first day of the sprint, {day}. Until then you can earmark and prepare.', { day: fmtDay(start) })}</div>
   </div>

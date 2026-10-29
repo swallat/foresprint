@@ -16,6 +16,7 @@
   "Agreed tickets": "Vereinbarte Tickets",
   "Adjust in the tracker": "Im Tracker anpassen",
   "Writing the sprint back works with Jira only.": "Das Zurückschreiben des Sprints funktioniert nur mit Jira.",
+  "This sprint was started without an agreed plan; take the start back and start it on the Plan page.": "Dieser Sprint wurde ohne vereinbarten Plan gestartet; nimm den Start zurück und starte ihn auf der Seite Planen.",
   "The sprint {id} has started; its plan cannot be written to the tracker any more.": "Der Sprint {id} hat begonnen; sein Plan lässt sich nicht mehr in den Tracker schreiben.",
   "Start the sprint first; only the agreed tickets are written to the tracker.": "Starte zuerst den Sprint; nur die vereinbarten Tickets werden in den Tracker geschrieben.",
   "Writing the sprint back to the tracker is not switched on.": "Das Zurückschreiben des Sprints in den Tracker ist nicht eingeschaltet.",

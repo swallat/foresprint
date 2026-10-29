@@ -117,7 +117,7 @@ func (a *API) StartSprint(team, sprintID, day string) (SprintStart, error) {
 	if phase == model.PhasePast {
 		return SprintStart{}, fmt.Errorf("%s", i18n.T("Sprint {id} is finished; it cannot be started.", "id", sprintID))
 	}
-	if phase == model.PhaseOpen && found.Commitment == nil && found.CommittedTickets == nil && found.Planning == nil {
+	if phase == model.PhaseOpen && found.Commitment == nil && found.CommittedTickets == nil {
 		return SprintStart{}, fmt.Errorf("%s", i18n.T("Plan sprint {id} first: it is started on the Plan page, together with the commitment.", "id", sprintID))
 	}
 	from, err := startDayOf(*found, day, fc.Today)
