@@ -120,7 +120,7 @@ func TestBandAroundPlanHoldsThePlan(t *testing.T) {
 			if !ok || e.Result.Plan == nil {
 				continue
 			}
-			if p := *e.Result.Plan; p < b.Low || p > b.High {
+			if p := *e.Result.Plan; p < b.Low-1e-9 || p > b.High+1e-9 || b.Mid != p {
 				t.Errorf("%s %s: plan %v outside %v-%v", c.Name, e.Sprint.ID, p, b.Low, b.High)
 			}
 		}

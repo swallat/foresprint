@@ -55,7 +55,7 @@
   "Product balance": "Saldo",
   "Products over time": "Produkte über Zeit",
   "Range": "Spanne",
-  "Range: lowest and highest normalized velocity of the last {n} sprints, same calculation.": "Spanne: niedrigste und höchste normierte Velocity der letzten {n} Sprints, gleiche Rechnung.",
+  "Range: spread of the last {n} sprints, laid around the Forecast PLAN.": "Spanne: Streuung der letzten {n} Sprints, um den Forecast PLAN gelegt.",
   "Reads a workbook from the Excel export, or a CSV table of work packages. You see every change first; nothing is written before you confirm.": "Liest eine Arbeitsmappe aus dem Excel-Export oder eine CSV-Tabelle mit Arbeitspaketen. Du siehst zuerst jede Änderung; ohne deine Bestätigung wird nichts geschrieben.",
   "Remaining work (points)": "Restarbeit (Punkte)",
   "Report as file": "Bericht als Datei",

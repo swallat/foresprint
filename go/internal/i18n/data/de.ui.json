@@ -637,7 +637,7 @@
   "in the backlog (default)": "im Backlog (Standard)",
   "in the next sprint": "im nächsten Sprint",
   "just now": "gerade eben",
-  "lowest to highest normalized velocity in the window, converted to the capacity. No setting.": "niedrigste bis höchste normierte Velocity im Fenster, auf die Kapazität umgerechnet. Keine Einstellung.",
+  "spread of the last sprints in the window, laid around the Forecast PLAN. No setting.": "Streuung der letzten Sprints im Fenster, um den Forecast PLAN gelegt. Keine Einstellung.",
   "needs": "braucht",
   "never": "nie",
   "no": "nein",

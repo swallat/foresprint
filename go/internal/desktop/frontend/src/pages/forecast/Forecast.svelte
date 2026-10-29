@@ -268,7 +268,7 @@
                           {t('Trend of the normalized velocity ÷ reference capacity × capacity of the sprint, rounded down.')}
                         </div>
                         {#if r.low !== null}
-                          <div class="muted">{t('Range: lowest and highest normalized velocity of the last {n} sprints, same calculation.', { n: view.samples })}</div>
+                          <div class="muted">{t('Range: spread of the last {n} sprints, laid around the Forecast PLAN.', { n: view.samples })}</div>
                         {/if}
                       {:else}
                         <div class="muted">{t('The recorded commitment of the sprint, rounded down.')}</div>
