@@ -201,7 +201,6 @@
 </div>
 
 <h2 class="tags">{t('Tags')}</h2>
-<p class="muted small lead">{t('A tag names a state of the data, for example the end of a sprint. Any earlier state can be chosen; tags help to find it.')}</p>
 <div class="row set">
   <input class="input data" aria-label={t('Name of the new tag')} placeholder={t('e.g. 2026.22')} bind:value={newLabel} onkeydown={(e) => e.key === 'Enter' && setLabel()} />
   <button class="btn" type="button" disabled={working || !newLabel.trim()} onclick={setLabel}><Icon name="sell" />{t('Tag the current state')}</button>

@@ -225,7 +225,6 @@
     {#if data.source !== 'none'}
       <section class="card stack" aria-labelledby="td-bl">
         <h2 id="td-bl"><Icon name="view_list" /> {t('Backlog')}</h2>
-        <p class="muted">{t('Order and earmark {what}, open one for its details.', { what: sourceName })}</p>
         <div class="row"><a class="btn" href={link('/backlog')}>{t('Open backlog')}<Icon name="arrow_forward" /></a></div>
       </section>
     {/if}

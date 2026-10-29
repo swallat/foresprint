@@ -139,7 +139,6 @@
       </tbody>
     </table>
   </div>
-  <p class="small muted note">{t('Superseded versions stay as files. They are marked when a newer version of the same kind exists.')}</p>
 {/if}
 
 {#if open}

@@ -128,7 +128,6 @@
     <Icon name="check_circle" size={32} />
     {#if decided}
       <h2>{t('All conflicts are decided')}</h2>
-      <p class="muted">{t('Save finishes the merge and shares the result with the team.')}</p>
       <button class="btn primary" type="button" disabled={!!app.busy} onclick={save}><Icon name="save" />{t('Save')}</button>
     {:else}
       <h2>{t('No conflicts')}</h2>

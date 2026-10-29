@@ -282,7 +282,6 @@
           </tbody>
         </table>
       </div>
-      <p class="small muted" style="margin:8px 0 0">{t('Reports, minutes and past sprints keep finished projects. Their rules no longer apply.')}</p>
     </details>
   {/if}
 

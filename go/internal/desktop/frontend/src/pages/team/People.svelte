@@ -301,7 +301,6 @@
     {t('A member belongs to the team for good. A guest helps out from another team. An external is a temporary resource from outside and needs an end date (end of contract). All three count for capacity; minutes and calculations show guests and externals separately.')}
   </p>
   {#if !production}
-    <p class="small muted">{t('The production access column appears when the feature is switched on in Settings, Team.')}</p>
   {/if}
 {/if}
 
@@ -312,7 +311,7 @@
     <div class="row head">
       <h2 id="all-h">{t('All absences')}</h2>
     </div>
-    <p class="small muted">{t('Every planned period of every person. Change, confirm or delete them here or in the times of a person; only the dates are stored, never a reason.')}</p>
+    <p class="small muted">{t('Every planned period of every person.')}</p>
     <div class="row filter" role="group" aria-label={t('View')}>
       <button type="button" class="chip filter" class:on={absenceView === 'list'} aria-pressed={absenceView === 'list'} onclick={() => (absenceView = 'list')}><Icon name="view_list" size={16} />{t('List')}</button>
       <button type="button" class="chip filter" class:on={absenceView === 'timeline'} aria-pressed={absenceView === 'timeline'} onclick={() => (absenceView = 'timeline')}><Icon name="view_timeline" size={16} />{t('Timeline')}</button>
@@ -328,7 +327,6 @@
     <div class="row head">
       <h2 id="abs-h">{t('Absences over several sprints')}</h2>
     </div>
-    <p class="small muted">{t('The number is person days, never a reason. Typing an entry is enough; the lock confirms it, as on Prepare.')}</p>
     <AbsenceGrid team={app.team} count={4} version={gridKey} />
   </section>
 {/if}

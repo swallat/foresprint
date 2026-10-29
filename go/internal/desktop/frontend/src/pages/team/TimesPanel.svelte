@@ -142,7 +142,6 @@
   </div>
 
   <h3>{t('Absence periods')}</h3>
-  <p class="small muted">{t('Planned absences as periods, first to last day. They are saved right away. Only the dates are stored, never a reason.')}</p>
   <AbsenceOverview people={[person]} {today} {absences} {openFrom} only={person.id} onchange={onabsences} />
 
   <h3>{t('Remove')}</h3>

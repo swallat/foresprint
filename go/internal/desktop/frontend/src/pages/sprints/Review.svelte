@@ -218,7 +218,6 @@
           {days(commitmentNow)} − {days(notDoneNow)} + {days(additionalNow)} = {days(velocity)} {unit}
         </Calc>
       </div>
-      <p class="small muted">{t('Commitment {n} minus not done plus done in addition.', { n: days(commitmentNow) })}</p>
     </section>
 
     <section class="card" aria-labelledby="scope-h" data-tour="review-scope">
