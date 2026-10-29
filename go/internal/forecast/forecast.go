@@ -499,7 +499,7 @@ func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Pr
 
 // PlanSpan is the range of the Forecast PLAN of a sprint: the spread of the window (how far the
 // lowest and the highest normalized velocity lie from their median, in the plan's capacity) laid
-// around the plan.
+// around the plan (it stands where the median stood).
 type PlanSpan struct {
 	Low, High float64
 	// Samples is the number of sprints with a value inside the window.
@@ -540,10 +540,10 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	plan := func(norm float64) float64 {
 		return engine.RoundDown(norm/settings.ReferenceCapacity*(*r.PlanCapacity), settings.Rounding)
 	}
-	// The spread of the window is laid around the plan: the plan is the middle of its range.
+	// The spread of the window is laid around the plan: the plan stands where the median stood.
 	centre := *r.Plan
-	span.Low = math.Max(centre-(plan(mid)-plan(low)), 0)
-	span.High = centre + (plan(high) - plan(mid))
+	span.Low = engine.RoundHalfUp(math.Max(centre-(plan(mid)-plan(low)), 0), settings.Rounding)
+	span.High = engine.RoundHalfUp(centre+(plan(high)-plan(mid)), settings.Rounding)
 	return span, true
 }
 

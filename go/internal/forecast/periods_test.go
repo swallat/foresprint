@@ -117,7 +117,7 @@ func TestPlanSpan(t *testing.T) {
 		t.Errorf("span %+v %v, want 15..25 around the plan 20 over 2", span, ok)
 	}
 	// the range follows the plan, wherever the trend has put it, and never goes below 0
-	for _, p := range []float64{6, 30} {
+	for _, p := range []float64{3, 6, 30} {
 		fc.Entries[3].Result.Plan = &p
 		span, _ := fc.PlanSpanOf(3)
 		if span.Low != math.Max(p-5, 0) || span.High != p+5 {

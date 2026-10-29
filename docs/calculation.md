@@ -67,15 +67,18 @@ Example (last average 44, before that 40, three future sprints): `flat` gives 44
 `linear` gives 48, 52, 56; `classic` gives 48, 52.8 (44/40 = +10 % on 48), 57.6. The mode can be
 changed at any time; no data is lost, the forecast is only recalculated.
 
-Warning: `classic` and `linear` also extrapolate noise. The forecast can rise or fall and, with a
-longer horizon, quickly leaves the range. Choose them only deliberately (the UI warns). The
+Warning: `classic` and `linear` also extrapolate noise. The forecast can rise or fall strongly
+with a longer horizon. Choose them only deliberately (the UI warns). The
 forecast is never negative. If the history is too short for the chosen mode (for example exactly
 `window` sprints), `flat` applies with the note "thin history".
 
 ## Uncertainty
 
-The forecast tiles show the range (lowest to highest normalized velocity of the last sprints)
-and warn when fewer than 5 sprints have a velocity. Statements such as "in 85 % of the
+The forecast shows a range around every Forecast PLAN: the spread of the last sprints, that is
+how far their lowest and their highest normalized velocity lie below and above their median,
+converted to the capacity of the sprint, laid around the plan (the plan stands where the median
+stood; the lower end is never below 0). The range says how much a sprint scattered, not where
+the trend goes. The forecast tiles warn when fewer than 5 sprints have a velocity. Statements such as "in 85 % of the
 simulations" are model-dependent frequencies from the history (the sample is shown), not
 promises.
 
@@ -88,10 +91,8 @@ distribution per product); where both appear, they are shown separately with the
 `foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
 **Forecast** page, in addition to the forecast; the existing figures stay unchanged:
 
-- **Range:** the spread of the last sprints laid around the Forecast PLAN: how far the lowest and
-  the highest normalized velocity lie below and above their median, converted to the capacity of
-  the sprint. The plan is the middle of its range, so the range always holds it; it shows how
-  much the plan could scatter, not where the trend goes.
+- **Range:** forecast with the lowest, middle and highest normalized velocity of the last sprints
+  (conservative / middle / optimistic).
 - **Focus factor:** velocity / capacity, the same quantity as the normalized velocity, only
   without the reference capacity (normalized velocity = focus factor x reference capacity). It
   depends on the estimation unit (with story points on the team's estimation scale) and is

@@ -125,15 +125,18 @@ func BandOf(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 
 // BandAroundPlan is the range of the Forecast PLAN of the entry: the plan with the spread of the
 // last sprints around it. The spread is how far the lowest and the highest normalized velocity
-// lie from their median (BandOf); that distance is laid around the plan, so the plan is the
-// middle of its range and the range does not depend on where the trend has gone.
+// lie from their median (BandOf); that distance is laid around the plan: the plan stands where
+// the median stood, and the range does not depend on where the trend has gone.
 func BandAroundPlan(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 	b, ok := BandOf(fc, entry)
 	if !ok || entry.Result.Plan == nil {
 		return b, ok
 	}
-	plan := *entry.Result.Plan
-	b.Low, b.Mid, b.High = math.Max(plan-(b.Mid-b.Low), 0), plan, plan+(b.High-b.Mid)
+	plan, digits := *entry.Result.Plan, fc.Data.Team.Forecast.Rounding
+	below, above := b.Mid-b.Low, b.High-b.Mid
+	b.Low = engine.RoundHalfUp(math.Max(plan-below, 0), digits)
+	b.Mid = plan
+	b.High = engine.RoundHalfUp(plan+above, digits)
 	return b, true
 }
 
