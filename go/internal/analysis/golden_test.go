@@ -104,3 +104,25 @@ func TestSimulateMatchesPython(t *testing.T) {
 		}
 	}
 }
+
+// The range shown next to a Forecast PLAN always holds the plan, also when the trend runs past
+// the spread of the history.
+func TestBandAroundPlanHoldsThePlan(t *testing.T) {
+	for _, c := range golden.Cases(t) {
+		data := coretest.Load(t, c)
+		fc, err := analysis.HorizonForecast(data, coretest.Today(t, c), analysis.DefaultMaxSprints)
+		if err != nil {
+			continue
+		}
+		for i := range fc.Entries {
+			e := &fc.Entries[i]
+			b, ok := analysis.BandAroundPlan(fc, e)
+			if !ok || e.Result.Plan == nil {
+				continue
+			}
+			if p := *e.Result.Plan; p < b.Low || p > b.High {
+				t.Errorf("%s %s: plan %v outside %v-%v", c.Name, e.Sprint.ID, p, b.Low, b.High)
+			}
+		}
+	}
+}

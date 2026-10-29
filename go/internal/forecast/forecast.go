@@ -497,7 +497,8 @@ func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Pr
 }
 
 // PlanSpan is the range of the Forecast PLAN of a sprint: the plan that the lowest and the
-// highest normalized velocity of the window would give with the same capacity.
+// highest normalized velocity of the window would give with the same capacity, widened to hold
+// the plan itself.
 type PlanSpan struct {
 	Low, High float64
 	// Samples is the number of sprints with a value inside the window.
