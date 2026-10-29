@@ -428,7 +428,7 @@ func (r *Repository) Load(key string) (*TeamData, error) {
 			return nil, err
 		}
 	}
-	if data.Team.Features.Tickets || data.Team.Features.Projects { // off: the files are not even read
+	if data.Team.Features.Projects { // off: the files are not even read
 		if p := filepath.Join(base, "projects.yaml"); fileExists(p) {
 			if m, err = read(p); err != nil {
 				return nil, err

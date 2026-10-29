@@ -195,7 +195,7 @@ const settingsMock: SettingsApi = {
       products: team.products,
       po: team.po,
       production: team.production,
-      projects: team.projects || tracker.source !== 'none',
+      projects: team.projects,
       rounding: team.forecast.rounding,
       capacityRounding: 1,
     };

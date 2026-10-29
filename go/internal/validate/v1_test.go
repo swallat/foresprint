@@ -141,3 +141,17 @@ func TestCheckFilesProjects(t *testing.T) {
 }
 
 func writeFile(path, text string) error { return os.WriteFile(path, []byte(text), 0o644) }
+
+// Tickets with projects switched off: projects.yaml is not read, so the project ids that
+// tickets and decisions still carry are not reported as unknown.
+func TestTicketsWithoutProjectsDoNotReportUnknownProjects(t *testing.T) {
+	i18n.SetLanguage("en")
+	t.Cleanup(func() { i18n.SetLanguage("") })
+	data := ticketTeam(t)
+	data.Team.Features.Projects = false
+	data.Projects = nil
+	got := messages(CheckTeam(data, d("2026-07-08")))
+	if strings.Contains(got, "unknown project") {
+		t.Errorf("unknown project reported although projects are off:\n%s", got)
+	}
+}

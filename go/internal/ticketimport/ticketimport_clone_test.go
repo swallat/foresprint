@@ -75,3 +75,18 @@ func TestSprintMappedToBacklogIsResolvedAndNotInASprint(t *testing.T) {
 		t.Errorf("backlog mapping: in sprint %v", tk.InSprint)
 	}
 }
+
+// Without projects a fetch keeps the project of a known ticket and reports no unassigned tickets.
+func TestFetchWithoutProjectsKeepsTheProject(t *testing.T) {
+	proj := "alpha"
+	env := Env{NoProjects: true, Tickets: []model.Ticket{{Key: "A-1", Title: "One", Project: &proj}}}
+	plan := PlanImport(env, []sources.RawTicket{{Key: "A-1", Title: "One"}, {Key: "A-2", Title: "Two"}}, nil, false)
+	if plan.Tickets[0].Project == nil || *plan.Tickets[0].Project != "alpha" {
+		t.Errorf("project of A-1 = %v, want alpha", plan.Tickets[0].Project)
+	}
+	for _, c := range plan.Changes {
+		if c.Kind == KindUnassigned || c.Kind == KindUnknownEpic {
+			t.Errorf("change %v although the team keeps no projects", c.Kind)
+		}
+	}
+}

@@ -305,7 +305,7 @@
   {/if}
 {/if}
 
-<OwnersCard people={view} onchange={poStep} />
+{#if app.features?.po !== false}<OwnersCard people={view} onchange={poStep} />{/if}
 
 {#if view}
   <section class="grid-sec" aria-labelledby="all-h">

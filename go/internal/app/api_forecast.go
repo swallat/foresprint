@@ -327,7 +327,7 @@ func (a *API) ForecastWhenProjects(team string) ([]WhenProject, error) {
 		return nil, err
 	}
 	out := []WhenProject{}
-	if !data.Team.Features.Tickets && !data.Team.Features.Projects {
+	if !data.Team.Features.Projects {
 		return out, nil
 	}
 	for _, p := range data.Projects {

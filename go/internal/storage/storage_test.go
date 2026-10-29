@@ -474,3 +474,36 @@ func TestPreplanOrderRoundTrip(t *testing.T) {
 		t.Errorf("got %+v err %v", got.Order, err)
 	}
 }
+
+// A team file with tickets and no "projects" key is older than the switch: it keeps its projects.
+// Only an explicit "projects: false" turns them off, and that survives a write.
+func TestProjectsImpliedByTicketsUntilStoredOff(t *testing.T) {
+	dir := t.TempDir()
+	repo := NewRepository(dir)
+	write := func(features string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Join(dir, "t"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		body := "name: T\nunit: PT\nfeatures:\n  tickets: true\n" + features
+		if err := os.WriteFile(filepath.Join(dir, "t", "team.yaml"), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("")
+	d, err := repo.Load("t")
+	if err != nil || !d.Team.Features.Projects {
+		t.Fatalf("legacy file: projects = %v, %v; want on", d.Team.Features.Projects, err)
+	}
+	write("  projects: false\n")
+	d, err = repo.Load("t")
+	if err != nil || d.Team.Features.Projects {
+		t.Fatalf("stored off: projects = %v, %v; want off", d.Team.Features.Projects, err)
+	}
+	if _, err := repo.SaveTeam(d.Team); err != nil {
+		t.Fatal(err)
+	}
+	if d, err = repo.Load("t"); err != nil || d.Team.Features.Projects {
+		t.Fatalf("after save: projects = %v, %v; want off", d.Team.Features.Projects, err)
+	}
+}

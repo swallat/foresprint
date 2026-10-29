@@ -346,7 +346,7 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 		}
 		data.Projects[i] = withoutProduct(p, id)
 	}
-	if data.Team.Features.Tickets || data.Team.Features.Projects {
+	if data.Team.Features.Projects {
 		if _, err := repo.SaveProjects(team, data.Projects); err != nil {
 			return EndResult{}, err
 		}

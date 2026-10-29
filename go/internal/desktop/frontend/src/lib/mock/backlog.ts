@@ -171,6 +171,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
         unit: 'SP',
         products,
         projects,
+        projectsOn: true,
         tickets:
           kind === 'none'
             ? []

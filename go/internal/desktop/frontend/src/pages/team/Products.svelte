@@ -215,7 +215,7 @@
       <thead>
         <tr>
           <th>{t('Product')}</th>
-          <th>{t('Product owner')}</th>
+          <th class="only-multipo">{t('Product owner')}</th>
           <th class="num">{t('Share %')}</th>
           {#if focus}<th class="num" title={t('Forecast PLAN of the sprint times the share')}>{t('Default {sprint}', { sprint: focus.sprint })}</th>{/if}
           {#if rules}<th>{t('Assignment rule')}</th>{/if}
@@ -227,7 +227,7 @@
         {#each active as p (p.id)}
           <tr>
             <td><input class="input name" data-name={p.id} value={p.name} aria-label={t('Name')} onchange={(e) => rename(p, e.currentTarget.value)} /></td>
-            <td>
+            <td class="only-multipo">
               <select class="input" aria-label={t('Product owner of {name}', { name: p.name })} value={p.po} onchange={(e) => save(replace({ ...p, po: e.currentTarget.value }))}>
                 {#if !view.owners.some((o) => o.id === p.po)}<option value={p.po}>{p.po || '–'}</option>{/if}
                 {#each view.owners as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
@@ -310,7 +310,7 @@
     </table>
   </div>
   <p class="small muted note">
-    {#each view.owners as o, i (o.id)}{i ? ', ' : ''}{o.name} <span class="data">{shareSum(active.filter((p) => p.po === o.id))} %</span>{/each}.
+    {#if app.features?.po !== false}{#each view.owners as o, i (o.id)}{i ? ', ' : ''}{o.name} <span class="data">{shareSum(active.filter((p) => p.po === o.id))} %</span>{/each}.{/if}
     {t('The share is the target; what is really planned and done is in the sprint table. Create and rename POs under People and absences. To remove a product use the symbol at the end of the row; a product with history is ended, not deleted.')}
   </p>
 
@@ -371,12 +371,12 @@
       <summary><strong>{t('Ended products')}</strong> <span class="muted small">{ended.length}</span></summary>
       <div class="tw">
         <table class="t">
-          <thead><tr><th>{t('Product')}</th><th>{t('Product owner')}</th><th>{t('Last day')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Product')}</th><th class="only-multipo">{t('Product owner')}</th><th>{t('Last day')}</th><th></th></tr></thead>
           <tbody>
             {#each ended as p (p.id)}
               <tr>
                 <td>{p.name}</td>
-                <td>{ownerName(p.po)}</td>
+                <td class="only-multipo">{ownerName(p.po)}</td>
                 <td class="data">{fmtDay(p.to)}</td>
                 <td><button class="btn" type="button" onclick={() => resume(p)}><Icon name="unarchive" />{t('Take up again')}</button></td>
               </tr>

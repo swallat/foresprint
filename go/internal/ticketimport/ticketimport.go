@@ -75,6 +75,9 @@ type Lister interface {
 type Env struct {
 	Tracker  model.TrackerSettings
 	Projects []model.Project
+	// NoProjects: the team keeps no projects (features.projects off). The import then leaves the
+	// project of known tickets alone and reports no unassigned tickets or unknown epics.
+	NoProjects bool
 	// Products are matched by id or name when the product comes from a tracker field.
 	Products []model.Product
 	// Tickets are the tickets of the last import (tickets.yaml).
@@ -606,6 +609,9 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 	for i, key := range order {
 		plan.Tickets[i] = seen[key]
 		plan.Tickets[i].SubtaskCount = subtasks[key]
+		if env.NoProjects {
+			plan.Tickets[i].Project, plan.Tickets[i].ProjectCandidates = old[key].Project, []string{}
+		}
 	}
 
 	add := func(c Change) { plan.Changes = append(plan.Changes, c) }
@@ -661,10 +667,10 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 			}
 			earmarkFromLabel(&plan, &preplan, tk, env, known)
 		}
-		if tk.Project == nil {
+		if tk.Project == nil && !env.NoProjects {
 			add(Change{Kind: KindUnassigned, Key: tk.Key, Title: tk.Title, New: cloneStrings(tk.ProjectCandidates)})
 		}
-		if tk.Epic != nil && *tk.Epic != "" && !epicsKnown[strings.ToLower(*tk.Epic)] {
+		if !env.NoProjects && tk.Epic != nil && *tk.Epic != "" && !epicsKnown[strings.ToLower(*tk.Epic)] {
 			if _, ok := unknown[*tk.Epic]; !ok {
 				unknownOrder = append(unknownOrder, *tk.Epic)
 			}

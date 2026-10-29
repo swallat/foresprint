@@ -575,7 +575,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 		return Result{}, bad("The query returned no tickets – nothing written. Check the query and the permissions of the token.")
 	}
 	name := jira.Name()
-	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Tickets: data.Tickets,
+	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, NoProjects: !data.Team.Features.Projects, Tickets: data.Tickets,
 		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: todayOf(data), KeepOrder: keepOrder}
 	plan := ticketimport.PlanImport(env, raws, &name, true)
 	a.mu.Lock()

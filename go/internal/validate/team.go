@@ -324,7 +324,7 @@ func checkTickets(data *storage.TeamData, today time.Time, r *reporter) {
 		if isNeg(tk.Remaining) {
 			r.error(where, msg("{name} must not be negative", "name", "remaining"))
 		}
-		if tk.Project != nil && !projectIDs[*tk.Project] {
+		if tk.Project != nil && team.Features.Projects && !projectIDs[*tk.Project] {
 			r.error(where, msg("unknown project '{id}'", "id", *tk.Project))
 		}
 		if tk.InSprint != nil {

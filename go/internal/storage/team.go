@@ -149,6 +149,11 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 			Projects:   truthy(getOr(rawFeatures, "projects", false)),
 			Explicit:   true,
 		}
+		// Before the switch could turn projects off, tickets implied them: a file with tickets and
+		// no "projects" key keeps its projects.
+		if !has(rawFeatures, "projects") && features.Tickets {
+			features.Projects = true
+		}
 		if features.ProductionMax, err = floatOf(get(rawFeatures, "production_max"), where+": features.production_max"); err != nil {
 			return model.Team{}, err
 		}
@@ -340,7 +345,13 @@ func TeamToDict(team model.Team) *yamlx.Map {
 	if team.Features.Tickets { // only when on: files of teams without it stay unchanged
 		put(features, "tickets", true)
 	}
-	if team.Features.Projects {
+	if team.Features.Tickets {
+		// With tickets, projects are the default and stay unwritten (older files read the same);
+		// only "off" is stored, or the file would read as "projects with tickets" again.
+		if !team.Features.Projects {
+			put(features, "projects", false)
+		}
+	} else if team.Features.Projects {
 		put(features, "projects", true)
 	}
 	if len(team.Sprint.Naming) > 0 {
