@@ -1,12 +1,14 @@
 <script lang="ts">
-  // The official start of a sprint: a sprint runs when the team starts it, not when its first
-  // day comes, and it stays running until its Review is closed. The start day may be earlier than
-  // the day of the click, so a late start or a mistake can be put right.
+  // The official start of a sprint, the one step that makes the Planning binding: starting freezes
+  // the agreement (tickets or amounts, commitment, minutes) and the sprint runs until its Review
+  // is closed. The start day may be earlier than the day of the click, so a late start or a mistake
+  // can be put right; taking the start back opens the plan again.
   import { api } from '../api';
   import { app, refreshSprints, toast } from '../app.svelte';
   import { fmtDay } from '../team/format';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
+  import type { FreezeInput, Stage } from '../types.plan';
 
   interface Props {
     sprint: string;
@@ -18,14 +20,14 @@
     startedOn: string;
     /** The first day has come and the sprint is not started. */
     due: boolean;
-    /** The sprint is running (started, Review not closed): its start can be moved or taken back. */
-    running: boolean;
+    stage: Stage;
+    /** The agreement of the Plan page. Without it (other pages) the start is offered there. */
+    plan?: () => FreezeInput;
     onchange?: () => void | Promise<void>;
   }
-  let { sprint, start, end, startedOn, due, running, onchange }: Props = $props();
+  let { sprint, start, end, startedOn, due, stage, plan, onchange }: Props = $props();
 
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  // The team's simulated day (as_of in team.yaml) counts as today, as it does on the server.
   const clock = () => app.teams.find((x) => x.key === app.team)?.asOf || iso(new Date());
   let today = $state(clock());
 
@@ -34,6 +36,7 @@
   let busy = $state(false);
   let failed = $state('');
 
+  const running = $derived(stage === 'current');
   // The start of a sprint whose last day is over cannot be taken back: it would count as never started.
   const canTakeBack = $derived(end > today);
   const valid = $derived(day >= start && day <= today);
@@ -61,8 +64,13 @@
     }
   }
 
-  const startIt = () => run(() => api.StartSprint(app.team, sprint, day), t('Sprint {id} started.', { id: sprint }));
-  const takeBack = () => run(() => api.WithdrawSprintStart(app.team, sprint), t('The start of sprint {id} is taken back.', { id: sprint }));
+  // A plan that is frozen already (older versions, command line) is started as it is.
+  const startIt = () =>
+    run(
+      () => (plan && stage !== 'planned' && !running ? api.StartSprintWithPlan(app.team, sprint, day, plan()) : api.StartSprint(app.team, sprint, day)),
+      running ? t('The start day of sprint {id} is changed.', { id: sprint }) : t('Sprint {id} started. The plan is frozen and the planning minutes are written.', { id: sprint }),
+    );
+  const takeBack = () => run(() => api.WithdrawSprintStart(app.team, sprint), t('The start of sprint {id} is taken back. The plan is open again.', { id: sprint }));
 </script>
 
 {#if due || running}
@@ -74,7 +82,11 @@
         <span class="small muted">{t('It stays running until its Review is closed.')}</span>
       {:else}
         <strong>{t('Sprint {id} is not started yet.', { id: sprint })}</strong>
-        <span class="small muted">{t('Planning and Review can go on. Start the sprint when you are ready; it then counts from the day you choose.')}</span>
+        <span class="small muted">
+          {plan
+            ? t('Starting freezes the plan (tickets, commitment, planning minutes). The sprint then counts from the day you choose.')
+            : t('Start it on the Plan page, together with the commitment.')}
+        </span>
       {/if}
       {#if asking}
         <div class="row">
@@ -94,10 +106,19 @@
     {#if !asking}
       {#if running}
         <button class="btn" type="button" disabled={busy} onclick={ask}>{t('Change start day')}</button>
-        {#if canTakeBack}<button class="btn" type="button" disabled={busy} onclick={takeBack}>{t('Take start back')}</button>{/if}
+        {#if canTakeBack}
+          <button class="btn" type="button" disabled={busy} title={t('Taking the start back opens the plan again.')} onclick={takeBack}>{t('Take start back')}</button>
+        {/if}
+      {:else if plan}
+        <button class="btn primary" type="button" id="freeze" data-tour="plan-freeze" disabled={busy} onclick={ask}><Icon name="play_arrow" />{t('Start sprint')}</button>
       {:else}
-        <button class="btn primary" type="button" disabled={busy} onclick={ask}><Icon name="play_arrow" />{t('Start sprint')}</button>
+        <a class="btn" href="#/sprint/plan">{t('Go to Plan')}<Icon name="arrow_forward" /></a>
       {/if}
     {/if}
+  </div>
+{:else if plan && stage !== 'past'}
+  <div class="banner info" data-tour="plan-freeze">
+    <Icon name="info" />
+    <div class="grow">{t('The commitment is set in the Planning on the first day of the sprint, {day}. Until then you can earmark and prepare.', { day: fmtDay(start) })}</div>
   </div>
 {/if}

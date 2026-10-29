@@ -58,7 +58,9 @@ func planTeam(t *testing.T) (*API, string) {
 	}
 	for _, e := range fc.Entries {
 		if fc.Phase(e.Sprint) == model.PhaseOpen && !e.Sprint.Start.After(fc.Today) {
-			if _, err := api.StartSprint("demo", e.Sprint.ID, ""); err != nil {
+			started := e.Sprint.Clone()
+			started.StartedOn = &started.Start
+			if _, err := repo.SaveSprint("demo", &started); err != nil {
 				t.Fatal(err)
 			}
 			break
@@ -241,7 +243,7 @@ func TestFreezeAndReopen(t *testing.T) {
 	}
 	_ = api.EarmarkTicket(team, "T-1", next, "")
 	_ = api.EarmarkTicket(team, "T-2", next, "")
-	name, err := api.FreezePlan(team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}})
+	name, err := freezeOnly(api, team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}})
 	if err != nil || name == "" {
 		t.Fatalf("freeze: %q %v", name, err)
 	}
@@ -271,7 +273,7 @@ func TestFreezeAndReopen(t *testing.T) {
 	if v.Stage != "open" || v.Frozen != nil {
 		t.Errorf("not reopened: %s", v.Stage)
 	}
-	if _, err := api.FreezePlan(team, sprints[0].ID, FreezeInput{}); err == nil {
+	if _, err := freezeOnly(api, team, sprints[0].ID, FreezeInput{}); err == nil {
 		t.Error("a past sprint was frozen")
 	}
 }
@@ -751,4 +753,9 @@ func TestPreplanMinutes(t *testing.T) {
 	if _, err := api.SavePreplanMinutes(team, sprints[0].ID); err == nil {
 		t.Error("minutes for a past sprint")
 	}
+}
+
+// freezeOnly freezes a plan without starting the sprint (the window starts and freezes together).
+func freezeOnly(api *API, team, sprint string, in FreezeInput) (string, error) {
+	return api.planFreeze(team, sprint, in, nil)
 }

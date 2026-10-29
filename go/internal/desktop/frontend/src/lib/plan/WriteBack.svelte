@@ -80,13 +80,13 @@
 
   {#if !preview}
     <div class="row">
-      <button class="btn" type="button" id="wb-show" disabled={busy || d.stage !== 'planned'} onclick={show}>
+      <button class="btn" type="button" id="wb-show" disabled={busy || (d.stage !== 'planned' && d.stage !== 'current')} onclick={show}>
         <Icon name="preview" />{t('Show what would change')}
       </button>
       {#if canUndo}
         <button class="btn" type="button" id="wb-undo" disabled={busy} onclick={undo}><Icon name="undo" />{t('Take back what was written')}</button>
       {/if}
-      {#if d.stage !== 'planned'}<span class="small muted">{t('Freeze the plan first.')}</span>{/if}
+      {#if (d.stage !== 'planned' && d.stage !== 'current')}<span class="small muted">{t('Start the sprint first.')}</span>{/if}
     </div>
   {:else}
     {#each preview.problems as p (p)}
