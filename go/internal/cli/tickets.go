@@ -221,7 +221,7 @@ func (k knownSprints) End(id string) (time.Time, bool) {
 }
 
 func ticketEnv(data *storage.TeamData, today time.Time) ticketimport.Env {
-	return ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, Products: data.Products, Tickets: data.Tickets,
+	return ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, NoProjects: !data.Team.Features.Projects, Products: data.Products, Tickets: data.Tickets,
 		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: today}
 }
 
