@@ -92,7 +92,7 @@ func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) Fo
 		out.CarryIn, out.CarryAssumed, out.Overbooked = carry.Rest, carry.Assumed, split.Overbooked
 	}
 	if band {
-		if b, ok := analysis.BandOf(fc, e); ok {
+		if b, ok := analysis.BandAroundPlan(fc, e); ok {
 			out.Low, out.High = &b.Low, &b.High
 		}
 	}

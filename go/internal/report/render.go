@@ -82,7 +82,7 @@ func bandOf(fc *forecast.Forecast, e *forecast.TimelineEntry) (analysis.Band, bo
 	if fc.Phase(e.Sprint) == model.PhasePast {
 		return analysis.Band{}, false
 	}
-	return analysis.BandOf(fc, e)
+	return analysis.BandAroundPlan(fc, e)
 }
 
 // BandRange is the range of a future sprint as "low–high" for tables ("–" if it cannot be
