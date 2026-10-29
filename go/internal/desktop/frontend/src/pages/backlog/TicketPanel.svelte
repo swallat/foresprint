@@ -250,13 +250,15 @@
             </select>
           </dd>
         {/if}
-        <dt><label for="wp-project">{t('Project')}</label></dt>
-        <dd>
-          <select class="input" id="wp-project" bind:value={draft.project}>
-            <option value="">{t('Daily business')}</option>
-            {#each (view?.projects ?? []).filter((p) => !p.closed) as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-          </select>
-        </dd>
+        {#if view?.projectsOn !== false}
+          <dt><label for="wp-project">{t('Project')}</label></dt>
+          <dd>
+            <select class="input" id="wp-project" bind:value={draft.project}>
+              <option value="">{t('Daily business')}</option>
+              {#each (view?.projects ?? []).filter((p) => !p.closed) as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+            </select>
+          </dd>
+        {/if}
         <dt><label for="wp-est">{t('Estimate')}</label></dt>
         <dd class="row nowrap">
           <input class="input data short" id="wp-est" inputmode="decimal" value={draft.estimate ?? ''} placeholder="–" onchange={(e) => { if (draft) draft.estimate = number(e.currentTarget.value); }} />
@@ -365,14 +367,16 @@
             </select>
           </dd>
         {/if}
-        <dt><label for="tp-project">{t('Project')}</label></dt>
-        <dd>
-          <select class="input" id="tp-project" value={projectSelect} onchange={(e) => assign(productSelect, e.currentTarget.value)}>
-            <option value="">{!detail.projectSet && detail.project ? t('By rule: {name}', { name: projectName(detail.project) }) : t('By rule: daily business')}</option>
-            <option value="__daily">{t('Daily business')}</option>
-            {#each (view?.projects ?? []).filter((p) => !p.closed) as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-          </select>
-        </dd>
+        {#if view?.projectsOn !== false}
+          <dt><label for="tp-project">{t('Project')}</label></dt>
+          <dd>
+            <select class="input" id="tp-project" value={projectSelect} onchange={(e) => assign(productSelect, e.currentTarget.value)}>
+              <option value="">{!detail.projectSet && detail.project ? t('By rule: {name}', { name: projectName(detail.project) }) : t('By rule: daily business')}</option>
+              <option value="__daily">{t('Daily business')}</option>
+              {#each (view?.projects ?? []).filter((p) => !p.closed) as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+            </select>
+          </dd>
+        {/if}
         <dt><label for="tp-est">{t('Estimate')}</label></dt>
         <dd>
           {#if detail.estimate != null || detail.remaining != null}

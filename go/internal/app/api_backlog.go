@@ -339,6 +339,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 		Unit:       settingsUnitNow(data),
 		Products:   namedProducts(data),
 		Projects:   namedProjects(data),
+		ProjectsOn: data.Team.Features.Projects,
 		Tickets:    []BacklogTicket{},
 		Lanes:      []BacklogLane{},
 		ProForma:   []ProFormaSprint{},
@@ -942,12 +943,15 @@ func (a *API) SetAssignment(team, key, product, project string, daily bool) erro
 		if product != "" && !backlogHasID(namedProducts(data), product) {
 			return nil, fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", product))
 		}
-		if project != "" && !backlogHasID(namedProjects(data), project) {
+		projectsOn := data.Team.Features.Projects
+		if projectsOn && project != "" && !backlogHasID(namedProjects(data), project) {
 			return nil, fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", project))
 		}
 		if a.writePackages(data) {
 			tk.Product = backlogStrPtr(product)
-			tk.Project = backlogStrPtr(project)
+			if projectsOn { // off: the project stays as it was, the window does not offer it
+				tk.Project = backlogStrPtr(project)
+			}
 			return backlogSavePackages(repo, team, data), nil
 		}
 		pp := &data.Preplan
@@ -955,6 +959,11 @@ func (a *API) SetAssignment(team, key, product, project string, daily bool) erro
 		for _, o := range pp.Overrides {
 			if o.Ticket != key {
 				kept = append(kept, o)
+			} else if !projectsOn { // keep the earlier decision about the project
+				project, daily = "", o.Daily
+				if o.Project != nil {
+					project = *o.Project
+				}
 			}
 		}
 		pp.Overrides = kept
@@ -1070,7 +1079,7 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	if in.Product != "" && !backlogHasID(namedProducts(data), in.Product) {
 		return "", fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", in.Product))
 	}
-	if in.Project != "" && !backlogHasID(namedProjects(data), in.Project) {
+	if data.Team.Features.Projects && in.Project != "" && !backlogHasID(namedProjects(data), in.Project) {
 		return "", fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", in.Project))
 	}
 	tk := data.TicketByKey(in.Key)
@@ -1097,7 +1106,9 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	tk.Priority = backlogStrPtr(strings.TrimSpace(in.Priority))
 	tk.Assignee = backlogStrPtr(strings.TrimSpace(in.Assignee))
 	tk.Product = backlogStrPtr(in.Product)
-	tk.Project = backlogStrPtr(in.Project)
+	if data.Team.Features.Projects { // off: the project stays as it was
+		tk.Project = backlogStrPtr(in.Project)
+	}
 	tk.Estimate = in.Estimate
 	tk.EstimateSource = estimateSource(in.Estimate, in.Refined)
 	tk.Labels = backlogCleanList(in.Labels)

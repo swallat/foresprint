@@ -71,6 +71,8 @@ export interface BacklogView {
   unit: string;
   products: Named[];
   projects: Named[];
+  /** False when the team keeps no projects: the project choice is hidden. */
+  projectsOn: boolean;
   tickets: BacklogTicket[];
   lanes: BacklogLane[];
   proForma: ProFormaSprint[];
