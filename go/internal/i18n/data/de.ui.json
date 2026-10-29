@@ -735,8 +735,8 @@
   "The last day lies before the first day.": "Der letzte Tag liegt vor dem ersten Tag.",
   "The first day lies in a finished sprint. Finished sprints stay as they are.": "Der erste Tag liegt in einem beendeten Sprint. Beendete Sprints bleiben unverändert.",
   "Confirmed (otherwise announced)": "Bestätigt (sonst angekündigt)",
-  "Every planned period of every person.": "Jeder geplante Zeitraum jeder Person.",
   "Days in finished sprints stay as they are; only the last day and the status can change.": "Tage in beendeten Sprints bleiben unverändert; nur der letzte Tag und der Status lassen sich ändern.",
-  "Absence periods": "Abwesenheiten"
+  "Absence periods": "Abwesenheiten",
+  "Only the dates are stored, never a reason.": "Gespeichert werden nur die Daten, nie ein Grund."
  }
 }

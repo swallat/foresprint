@@ -98,7 +98,6 @@
 
   const tracker = $derived(app.status.tracker);
   const lastSync = $derived(tracker.last ? new Date(tracker.last).toLocaleString(language(), { dateStyle: 'short', timeStyle: 'short' }) : '');
-  const sourceName = $derived(data?.source === 'packages' ? t('Work packages') : t('Tickets'));
   const trackerName = $derived(tracker.name || t('Tracker'));
   const unreviewed = $derived(data?.sprints.find((s) => s.state === 'past'));
 </script>

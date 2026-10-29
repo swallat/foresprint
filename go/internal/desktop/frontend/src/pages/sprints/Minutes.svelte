@@ -181,9 +181,6 @@
   .end {
     margin-left: auto;
   }
-  .note {
-    margin-top: 12px;
-  }
   tr.old td {
     color: var(--text-muted);
   }

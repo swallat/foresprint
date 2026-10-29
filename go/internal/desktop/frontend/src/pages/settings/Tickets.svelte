@@ -283,8 +283,6 @@
             <option value="csv">{t('CSV file (export)')}</option>
           </select>
         </div>
-        {#if draft.kind === 'csv'}
-        {/if}
       </div>
 
       {#if jira}
@@ -376,7 +374,6 @@
               <button class="btn" type="button" onclick={restAsBacklog}><Icon name="inbox" />{t('Treat all of these as backlog')}</button>
               <span class="small muted">{t('For old sprints that no longer matter. Their open tickets then count as backlog.')}</span>
             </div>
-          {:else if sprintRows.length}
           {/if}
           {#if otherRows.length}
             <details class="top">

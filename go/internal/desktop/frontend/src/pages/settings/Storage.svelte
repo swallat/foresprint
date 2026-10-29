@@ -463,9 +463,6 @@
   .opt.off {
     color: var(--text-muted);
   }
-  .opt p {
-    margin: 4px 0 0;
-  }
   .wrap {
     white-space: normal;
     overflow-wrap: anywhere;

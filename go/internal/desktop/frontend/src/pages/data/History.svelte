@@ -302,9 +302,6 @@
   .tags {
     margin-top: 24px;
   }
-  .lead {
-    margin: -4px 0 8px;
-  }
   .set {
     margin-bottom: 12px;
   }

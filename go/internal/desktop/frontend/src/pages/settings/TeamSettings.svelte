@@ -341,7 +341,6 @@
                 </div>
               {/if}
             </div>
-          {:else}
           {/if}
           {#if unitChanged}
             <div class="field" style="max-width:280px">
