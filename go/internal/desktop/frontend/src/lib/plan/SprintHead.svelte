@@ -5,7 +5,7 @@
   import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import Icon from '../Icon.svelte';
-  import type { PlanSprint } from '../types.plan';
+  import type { FreezeInput, PlanSprint } from '../types.plan';
   import SprintMeta from '../sprints/SprintMeta.svelte';
   import PageHead from '../ui/PageHead.svelte';
   import { itemWord } from './model.svelte';
@@ -17,8 +17,10 @@
     actions?: Snippet;
     /** Called after the sprint was started or its start taken back, to read the page again. */
     onchange?: () => void | Promise<void>;
+    /** The agreement of the Plan page: with it the sprint is started and frozen from there. */
+    plan?: () => FreezeInput;
   }
-  let { d, stage, actions, onchange }: Props = $props();
+  let { d, stage, actions, onchange, plan }: Props = $props();
 
   const steps = $derived([
     { id: 'prepare', label: t('Prepare'), missing: d.absences !== 'confirmed' ? t('Absences are not confirmed.') : '' },
@@ -63,7 +65,7 @@
   {/snippet}
 </SprintMeta>
 {#if d.sprint === app.sprint}
-  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} due={d.startDue} running={d.stage === 'current'} {onchange} />
+  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} due={d.startDue} stage={d.stage} {plan} {onchange} />
 {/if}
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}

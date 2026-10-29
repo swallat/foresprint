@@ -224,7 +224,7 @@ export interface PlanApi {
   SetStartRate(team: string, rate: number | null): Promise<void>;
   StartSprint(team: string, sprint: string, day: string): Promise<SprintStart>;
   WithdrawSprintStart(team: string, sprint: string): Promise<SprintStart>;
-  FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
+  StartSprintWithPlan(team: string, sprint: string, day: string, input: FreezeInput): Promise<SprintStart>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
   SavePreplanMinutes(team: string, sprint: string): Promise<string>;
   SetMatrixCell(team: string, sprint: string, product: string, project: string, value: number | null): Promise<void>;

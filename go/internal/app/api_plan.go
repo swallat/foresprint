@@ -1108,10 +1108,12 @@ func (a *API) SetProductionPercent(team, ticket string, percent *float64) error 
 	return nil
 }
 
-// FreezePlan freezes the agreement: it stores the ticket list (or amounts) and the commitment
+// planFreeze freezes the agreement: it stores the ticket list (or amounts) and the commitment
 // in the sprint, freezes the Forecast PLAN and writes the planning minutes. It returns the name
 // of the minutes file. Freezing again replaces the plan; the older minutes are marked obsolete.
-func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) {
+// With startDay the sprint is started in the same write (see StartSprintWithPlan); without it
+// the sprint waits for its start.
+func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.Time) (string, error) {
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return "", err
@@ -1188,7 +1190,10 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	}
 	commit = math.Round(commit*100) / 100
 	s.Commitment = &commit
-	if s.StartedOn == nil {
+	switch {
+	case startDay != nil:
+		s.StartedOn, s.StartPending = startDay, false
+	case s.StartedOn == nil:
 		s.StartPending = true // the sprint is started by hand, not by the frozen plan
 	}
 	forecast.FreezePlan(&s, c.entry, c.today, true)
@@ -1265,6 +1270,16 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 	return notes
 }
 
+// planUnfreeze takes the frozen plan out of a sprint copy.
+func planUnfreeze(s *model.Sprint) {
+	s.CommittedTickets = nil
+	for id, v := range s.Products {
+		v.Planned, v.ProductionPlanned = nil, nil
+		setProductValue(s, id, func(x *model.ProductValues) { *x = v })
+	}
+	s.Commitment = nil
+}
+
 // ReopenPlan takes the frozen list back so that the team can plan again; the minutes are
 // marked obsolete at once.
 func (a *API) ReopenPlan(team, sprintID string) error {
@@ -1276,12 +1291,7 @@ func (a *API) ReopenPlan(team, sprintID string) error {
 		return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
 	}
 	s := c.sprint.Clone()
-	s.CommittedTickets = nil
-	for id, v := range s.Products {
-		v.Planned, v.ProductionPlanned = nil, nil
-		setProductValue(&s, id, func(x *model.ProductValues) { *x = v })
-	}
-	s.Commitment = nil
+	planUnfreeze(&s)
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
 	if _, err := store.ObsoleteWithSave(sprintID, protocol.Planning, func() ([]string, error) {
 		path, serr := c.repo.SaveSprint(team, &s)

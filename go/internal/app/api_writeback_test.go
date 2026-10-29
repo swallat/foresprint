@@ -100,7 +100,7 @@ func writeTeam(t *testing.T) (api *API, team, next string, fake *fakeTracker) {
 	if err := api.SetRemoved(team, next, "T-3", true); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := api.FreezePlan(team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}}); err != nil {
+	if _, err := freezeOnly(api, team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}}); err != nil {
 		t.Fatal(err)
 	}
 	fake = &fakeTracker{sprints: []sources.SprintValue{{ID: "7", Name: next, State: "FUTURE"}}, where: map[string]string{"T-3": next}}
