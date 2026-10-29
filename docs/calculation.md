@@ -88,8 +88,10 @@ distribution per product); where both appear, they are shown separately with the
 `foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
 **Forecast** page, in addition to the forecast; the existing figures stay unchanged:
 
-- **Range:** forecast with the lowest, middle and highest normalized velocity of the last sprints
-  (conservative / middle / optimistic).
+- **Range:** the spread of the last sprints laid around the Forecast PLAN: how far the lowest and
+  the highest normalized velocity lie below and above their median, converted to the capacity of
+  the sprint. The plan is the middle of its range, so the range always holds it; it shows how
+  much the plan could scatter, not where the trend goes.
 - **Focus factor:** velocity / capacity, the same quantity as the normalized velocity, only
   without the reference capacity (normalized velocity = focus factor x reference capacity). It
   depends on the estimation unit (with story points on the team's estimation scale) and is

@@ -1,6 +1,7 @@
 package forecast_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -110,20 +111,18 @@ func TestPlanSpan(t *testing.T) {
 		{Result: norm(8)}, {Result: norm(20)}, {Result: norm(40)},
 		{Result: engine.SprintResult{Plan: &plan, PlanSource: &src, PlanCapacity: &cap}},
 	}}
+	// the window gives 10 / 15 / 20 for the lowest / median / highest value: 5 below, 5 above
 	span, ok := fc.PlanSpanOf(3)
-	if !ok || span.Low != 10 || span.High != 20 || span.Samples != 2 {
-		t.Errorf("span %+v %v, want 10..20 over 2", span, ok)
+	if !ok || span.Low != 15 || span.High != 25 || span.Samples != 2 {
+		t.Errorf("span %+v %v, want 15..25 around the plan 20 over 2", span, ok)
 	}
-	// A falling trend puts the plan below the lowest value of the window: the span still holds it.
-	low := 6.0
-	fc.Entries[3].Result.Plan = &low
-	if span, _ := fc.PlanSpanOf(3); span.Low != 6 || span.High != 20 {
-		t.Errorf("span %+v, want the plan 6 inside 6..20", span)
-	}
-	high := 30.0
-	fc.Entries[3].Result.Plan = &high
-	if span, _ := fc.PlanSpanOf(3); span.Low != 10 || span.High != 30 {
-		t.Errorf("span %+v, want the plan 30 inside 10..30", span)
+	// the range follows the plan, wherever the trend has put it, and never goes below 0
+	for _, p := range []float64{6, 30} {
+		fc.Entries[3].Result.Plan = &p
+		span, _ := fc.PlanSpanOf(3)
+		if span.Low != math.Max(p-5, 0) || span.High != p+5 {
+			t.Errorf("plan %v: span %+v, want %v..%v", p, span, math.Max(p-5, 0), p+5)
+		}
 	}
 	if _, ok := fc.PlanSpanOf(1); ok {
 		t.Error("a sprint that is not a projection has no span")

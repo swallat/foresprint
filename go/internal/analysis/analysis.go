@@ -10,6 +10,7 @@
 package analysis
 
 import (
+	"math"
 	"time"
 
 	"github.com/swallat/foresprint/internal/engine"
@@ -122,15 +123,18 @@ func BandOf(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 	}, true
 }
 
-// BandAroundPlan is BandOf widened to hold the Forecast PLAN of the entry. The plan follows the
-// trend of the normalized velocity, which runs past the spread of the history when it rises or
-// falls; a range shown next to the plan must contain it.
+// BandAroundPlan is the range of the Forecast PLAN of the entry: the plan with the spread of the
+// last sprints around it. The spread is how far the lowest and the highest normalized velocity
+// lie from their median (BandOf); that distance is laid around the plan, so the plan is the
+// middle of its range and the range does not depend on where the trend has gone.
 func BandAroundPlan(fc *forecast.Forecast, entry *forecast.TimelineEntry) (Band, bool) {
 	b, ok := BandOf(fc, entry)
-	if ok && entry.Result.Plan != nil {
-		b.Low, b.High = min(b.Low, *entry.Result.Plan), max(b.High, *entry.Result.Plan)
+	if !ok || entry.Result.Plan == nil {
+		return b, ok
 	}
-	return b, ok
+	plan := *entry.Result.Plan
+	b.Low, b.Mid, b.High = math.Max(plan-(b.Mid-b.Low), 0), plan, plan+(b.High-b.Mid)
+	return b, true
 }
 
 // --- Focus factor --------------------------------------------------------------------------

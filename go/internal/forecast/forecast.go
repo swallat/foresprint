@@ -12,6 +12,7 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/planning"
+	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -496,9 +497,9 @@ func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Pr
 	return Build(&copied, today)
 }
 
-// PlanSpan is the range of the Forecast PLAN of a sprint: the plan that the lowest and the
-// highest normalized velocity of the window would give with the same capacity, widened to hold
-// the plan itself.
+// PlanSpan is the range of the Forecast PLAN of a sprint: the spread of the window (how far the
+// lowest and the highest normalized velocity lie from their median, in the plan's capacity) laid
+// around the plan.
 type PlanSpan struct {
 	Low, High float64
 	// Samples is the number of sprints with a value inside the window.
@@ -514,40 +515,35 @@ func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
 	}
 	r := f.Entries[i].Result
 	settings := f.Data.Team.Forecast
-	if r.PlanSource == nil || *r.PlanSource != engine.PlanForecast || r.PlanCapacity == nil || settings.ReferenceCapacity <= 0 {
+	if r.PlanSource == nil || *r.PlanSource != engine.PlanForecast || r.Plan == nil || r.PlanCapacity == nil || settings.ReferenceCapacity <= 0 {
 		return span, false
 	}
 	from := i - settings.Window
 	if from < 0 {
 		from = 0
 	}
-	var low, high float64
+	var values []float64
 	for _, e := range f.Entries[from:i] {
-		v := e.Result.NormalizedVelocity.Value
-		if v == nil {
-			continue
+		if v := e.Result.NormalizedVelocity.Value; v != nil {
+			values = append(values, *v)
 		}
-		if span.Samples == 0 || *v < low {
-			low = *v
-		}
-		if span.Samples == 0 || *v > high {
-			high = *v
-		}
-		span.Samples++
 	}
+	span.Samples = len(values)
 	if span.Samples == 0 {
 		return span, false
 	}
+	low, high := values[0], values[0]
+	for _, v := range values {
+		low, high = math.Min(low, v), math.Max(high, v)
+	}
+	mid := pymath.Median(values)
 	plan := func(norm float64) float64 {
-		return math.Max(engine.RoundDown(float64(norm/settings.ReferenceCapacity)*(*r.PlanCapacity), settings.Rounding), 0)
+		return engine.RoundDown(norm/settings.ReferenceCapacity*(*r.PlanCapacity), settings.Rounding)
 	}
-	span.Low, span.High = plan(low), plan(high)
-	// The point value follows the trend of the normalized velocity, which runs past the lowest or
-	// highest value of the window when the trend rises or falls. The range always contains it.
-	if r.Plan != nil {
-		span.Low = math.Min(span.Low, *r.Plan)
-		span.High = math.Max(span.High, *r.Plan)
-	}
+	// The spread of the window is laid around the plan: the plan is the middle of its range.
+	centre := *r.Plan
+	span.Low = math.Max(centre-(plan(mid)-plan(low)), 0)
+	span.High = centre + (plan(high) - plan(mid))
 	return span, true
 }
 
