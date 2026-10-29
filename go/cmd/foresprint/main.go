@@ -17,10 +17,23 @@ import (
 // version is set at build time: -ldflags "-X main.version=1.0.0".
 var version = "dev"
 
+// commit is the git commit of a local build: -ldflags "-X main.commit=abc1234" (scripts/build.mjs).
+var commit = ""
+
 func init() {
+	version = withCommit(version, commit)
 	cli.Version = version
 	cli.AfterRun = cli.AutoUpdate
 	cli.Register(versionCommand)
+}
+
+// withCommit makes a development build show its commit ("dev (abc1234)"). A release version is
+// left alone; it is not a development build, and the update check compares it.
+func withCommit(v, c string) string {
+	if v != "dev" || c == "" {
+		return v
+	}
+	return v + " (" + c + ")"
 }
 
 func main() { os.Exit(run()) }

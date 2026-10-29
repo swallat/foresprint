@@ -30,6 +30,11 @@ const opt = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const version = opt("version", process.env.FORESPRINT_VERSION || "dev").replace(/^v/, "");
+// A local build also shows its git commit ("dev (abc1234)"); a release build has no use for it.
+const commit =
+  version === "dev"
+    ? spawnSync("git", ["rev-parse", "--short=7", "HEAD"], { cwd: root, encoding: "utf8" }).stdout?.trim() || ""
+    : "";
 const outDir = resolve(root, opt("out", "dist"));
 const exe = win ? "foresprint.exe" : "foresprint";
 
@@ -72,7 +77,7 @@ function build(desktop) {
   if (win && existsSync(join(winresDir, "winres.json"))) {
     run("go", ["run", goWinres, "make", "--arch", "amd64"], { cwd: join(goDir, "cmd", "foresprint") });
   }
-  const goArgs = ["build", "-trimpath", "-ldflags", `-s -w -X main.version=${version}`];
+  const goArgs = ["build", "-trimpath", "-ldflags", `-s -w -X main.version=${version}` + (commit ? ` -X main.commit=${commit}` : "")];
   if (tags) goArgs.push("-tags", tags);
   goArgs.push("-o", join(outDir, exe), "./cmd/foresprint");
   run("go", goArgs, { cwd: goDir, env });
