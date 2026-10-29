@@ -212,7 +212,7 @@
             <li><strong>{t('Window')}:</strong> {t('over how many sprints with a value the normalized velocity is averaged (rolling mean). A new team gets a first forecast from 3 sprints.')}</li>
             <li><strong>{t('Trend')}:</strong> {t('how the average is carried into the future. Flat keeps the last average (robust). Linear continues the slope of the last two averages. Classic works like the Excel template: first sprint linear, second multiplicative, then linear; it carries outliers on.')}</li>
             <li><strong>{t('Forecast PLAN')}</strong> = {t('trend of the normalized velocity ÷ reference capacity × capacity of the sprint, rounded down. With a flat trend this equals capacity × rate.')}</li>
-            <li><strong>{t('Range')}:</strong> {t('spread of the last sprints in the window, laid around the Forecast PLAN. No setting.')}</li>
+            <li><strong>{t('Range')}:</strong> {t('scatter of the last sprints in the window as an 80 % interval around the Forecast PLAN that widens with the distance. No setting.')}</li>
             <li><strong>{t('Plannable share')}:</strong> {t('the part of the Forecast PLAN that is distributed to products and projects; the rest is small items.')}</li>
           </ul>
         </details>

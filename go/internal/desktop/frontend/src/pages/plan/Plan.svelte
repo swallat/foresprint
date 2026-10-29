@@ -351,7 +351,7 @@
         </div>
         <div class="bar">
           <CapacityBar used={commitment} plan={d.plan} low={d.low} high={d.high} unit={unitName(d)} />
-          <span class="small muted">{t('Commitment against Forecast PLAN {plan} (range {low} to {high})', { plan: fmt(d.plan), low: fmt(d.low), high: fmt(d.high) })}</span>
+          <span class="small muted">{#if d.low !== null && d.high !== null}{t('Commitment against Forecast PLAN {plan} (range {low} to {high})', { plan: fmt(d.plan), low: fmt(d.low), high: fmt(d.high) })}{:else}{t('Commitment against Forecast PLAN {plan}', { plan: fmt(d.plan) })}{/if}</span>
         </div>
       </div>
     </div>
@@ -420,7 +420,7 @@
         <div class="lane-head">
           <div class="row">
             <strong class="grow">{t('Sprint {sprint}', { sprint: d.sprint })}</strong>
-            <span class="data"><strong>{fmtVal(laneSum)}</strong> {t('of')} {fmt(d.plan)} <span class="muted small">({fmt(d.low)} – {fmt(d.high)})</span></span>
+            <span class="data"><strong>{fmtVal(laneSum)}</strong> {t('of')} {fmt(d.plan)} {#if d.low !== null && d.high !== null}<span class="muted small">({fmt(d.low)} – {fmt(d.high)})</span>{/if}</span>
           </div>
           <CapacityBar used={laneSum} plan={d.plan} low={d.low} high={d.high} unit={unitName(d)} />
           <div class="row small">
