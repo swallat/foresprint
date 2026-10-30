@@ -202,7 +202,7 @@
   ],
   [
    "Trend modes",
-   "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall and quickly leaves the range over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated."
+   "Example: the average was 44 recently, 40 before. Constant (default): the next sprints stay at 44, 44, 44. Robust, but follows no development. Linear: the last step (+4) continues: 48, 52, 56. Classic: linear first (48), then proportional like the last time (+10 %: 52.8), then linear again (57.6). Linear and classic also extrapolate random fluctuations; the forecast can then rise or fall strongly over a longer horizon. They only fit a proven, stable trend. If the history is not enough (fewer sprints with a value than the mode needs), “constant” applies, and a note says so. The forecast is never negative. You can switch the mode at any time under Manage team → Settings; no data is lost, the forecast is only recalculated."
   ],
   [
    "Current forecast / at planning",
@@ -210,7 +210,7 @@
   ],
   [
    "Range",
-   "Forecast with the lowest and highest normalized velocity of the last sprints. With fewer than 8 sprints with velocity only a rough hint."
+   "80 % interval around the Forecast PLAN, measured from the scatter of the last sprints; it widens with the distance to the last result. With fewer than 5 sprints with velocity only a rough hint."
   ],
   [
    "Done",
