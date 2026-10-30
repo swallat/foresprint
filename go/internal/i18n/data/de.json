@@ -284,7 +284,7 @@
   "Forecast for the current and upcoming sprints": "Prognose für laufenden und kommende Sprints",
   "Forecast horizon (sprints)": "Prognose-Horizont (Sprints)",
   "Forecast sprint {id}": "Prognose Sprint {id}",
-  "80 % interval around the Forecast PLAN, measured from the scatter of the last sprints; it widens with the distance. With fewer than 8 sprints with velocity only a rough hint.": "80-Prozent-Intervall um den Forecast PLAN, aus der Streuung der letzten Sprints; wird mit dem Abstand breiter. Bei weniger als 5 Sprints mit Velocity nur ein grober Hinweis.",
+  "80 % interval around the Forecast PLAN, measured from the scatter of the last sprints; it widens with the distance to the last result. With fewer than 5 sprints with velocity only a rough hint.": "80-Prozent-Intervall um den Forecast PLAN, aus der Streuung der letzten Sprints; je weiter vom letzten Ergebnis entfernt, desto breiter. Bei weniger als 5 Sprints mit Velocity nur ein grober Hinweis.",
   "Forecast with the lowest, median and highest normalized velocity of the last {count} sprints (instead of the trend).": "Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der letzten {count} Sprints (statt des Trends).",
   "Forecast {team}": "Forecast {team}",
   "Forgejo/Gitea/Codeberg: under Settings › Applications create an access token with the permission “write:repository”. The user name is your own account name.": "Forgejo/Gitea/Codeberg: Unter Einstellungen › Anwendungen einen Zugangstoken mit dem Recht „write:repository“ anlegen. Benutzername ist der eigene Kontoname.",

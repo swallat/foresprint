@@ -210,7 +210,7 @@
   ],
   [
    "Range",
-   "80 % interval around the Forecast PLAN, measured from the scatter of the last sprints; it widens with the distance. With fewer than 8 sprints with velocity only a rough hint."
+   "80 % interval around the Forecast PLAN, measured from the scatter of the last sprints; it widens with the distance to the last result. With fewer than 5 sprints with velocity only a rough hint."
   ],
   [
    "Done",
