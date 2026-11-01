@@ -30,7 +30,9 @@ func packagesTeam(t *testing.T) *API {
 	if _, err := repo.SaveProjects("t", []model.Project{{ID: "p1", Name: "Relaunch"}}); err != nil {
 		t.Fatal(err)
 	}
-	start := today().AddDate(0, 0, -20)
+	// The API below fixes the clock to 2026-10-22 (see newAPI); the sprints are laid out around that
+	// day, not around the real one, which is not set yet here.
+	start := time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC).AddDate(0, 0, -20)
 	for i := 0; i < 6; i++ {
 		s := model.Sprint{ID: "2026." + string(rune('1'+i)), Start: start.AddDate(0, 0, 14*i), End: start.AddDate(0, 0, 14*i+11)}
 		if _, err := repo.SaveSprint("t", &s); err != nil {
