@@ -15,8 +15,30 @@
   }
   let { past, upcoming, whatIf = [], shown = 10, digits = 0 }: Props = $props();
 
-  // Normalized velocity (history and trend) can be switched off.
-  let showNv = $state(true);
+  // Every series can be switched on and off in the legend; the choice is kept for the next visit.
+  type Key = 'vel' | 'nv' | 'trend' | 'plan' | 'range' | 'wif' | 'ful';
+  const KEYS: Key[] = ['vel', 'nv', 'trend', 'plan', 'range', 'wif', 'ful'];
+  const STORE = 'foresprint.chart.series';
+  const defaults = (): Record<Key, boolean> => ({ vel: true, nv: true, trend: true, plan: true, range: true, wif: true, ful: false });
+  function restore(): Record<Key, boolean> {
+    const on = defaults();
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE) ?? '{}') as Partial<Record<Key, unknown>>;
+      for (const k of KEYS) if (typeof saved[k] === 'boolean') on[k] = saved[k];
+    } catch {
+      // no storage: the defaults apply
+    }
+    return on;
+  }
+  let on = $state(restore());
+  function toggle(k: Key): void {
+    on[k] = !on[k];
+    try {
+      localStorage.setItem(STORE, JSON.stringify(on));
+    } catch {
+      // not kept, the chart still works
+    }
+  }
 
   const W = 760;
   const H = 300;
@@ -41,8 +63,8 @@
 
   const top = $derived.by(() => {
     let max = 0;
-    for (const r of history) max = Math.max(max, r.velocity ?? 0, showNv ? (r.normalizedVelocity ?? 0) : 0);
-    for (const r of upcoming) max = Math.max(max, r.plan ?? 0, r.high ?? 0, wi.get(r.id)?.forecast ?? 0, showNv ? (r.trend ?? 0) : 0);
+    for (const r of history) max = Math.max(max, on.vel ? (r.velocity ?? 0) : 0, on.nv ? (r.normalizedVelocity ?? 0) : 0);
+    for (const r of upcoming) max = Math.max(max, on.plan ? (r.plan ?? 0) : 0, on.range ? (r.high ?? 0) : 0, on.wif ? (wi.get(r.id)?.forecast ?? 0) : 0, on.trend ? (r.trend ?? 0) : 0);
     const step = max > 60 ? 20 : max > 30 ? 10 : 5;
     return Math.max(step, Math.ceil(max / step) * step);
   });
@@ -53,9 +75,17 @@
   const x = (i: number) => M.l + ((W - M.l - M.r) * (i + 0.5)) / Math.max(1, all.length);
   const y = (v: number) => M.t + (H - M.t - M.b) * (1 - v / top);
 
+  // Fulfillment is a ratio, so it has its own axis on the right (0 to at least 125 %); the dotted line is 100 %.
+  const fTop = $derived(Math.max(1.25, Math.ceil(Math.max(0, ...history.map((r) => r.fulfillment ?? 0)) * 4) / 4));
+  const fTicks = $derived(Array.from({ length: Math.floor(fTop / 0.5) + 1 }, (_, i) => i * 0.5));
+  const yf = (v: number) => M.t + (H - M.t - M.b) * (1 - v / fTop);
+
   const line = (pts: { x: number; y: number }[]) => pts.map((p) => `${p.x},${p.y}`).join(' ');
   const velocityPts = $derived(
     history.flatMap((r, i) => (r.velocity !== null ? [{ x: x(i), y: y(r.velocity), r }] : [])),
+  );
+  const fulPts = $derived(
+    history.flatMap((r, i) => (r.fulfillment !== null ? [{ x: x(i), y: yf(r.fulfillment), r }] : [])),
   );
   const nvPts = $derived(
     history.flatMap((r, i) => (r.normalizedVelocity !== null ? [{ x: x(i), y: y(r.normalizedVelocity), r }] : [])),
@@ -85,22 +115,20 @@
   // Labels in the plot are rounded to one decimal so they stay short; tooltips keep the team's rounding.
   const label = (v: number | null) => fmt(v, 1);
 
+  const triangle = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy + r} ${cx - r},${cy + r}`;
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
 </script>
 
-<label class="nv-switch small"><input type="checkbox" bind:checked={showNv} />{t('Show normalized velocity and its trend')}</label>
-
-<div class="legend small" aria-hidden="true">
-  <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s vel" /><circle cx="9" cy="6" r="4" class="f vel" /></svg>{t('Velocity')}</span>
-  {#if showNv}
-    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s nv" /><rect x="5" y="2" width="8" height="8" class="f nv" /></svg>{t('Normalized velocity')}</span>
-    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s nv dash" /></svg>{t('Trend of the normalized velocity')}</span>
-  {/if}
-  <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s fc dash" /><polygon points={diamond(9, 6, 5)} class="o fc" /></svg>{t('Forecast PLAN')}</span>
-  <span><svg width="18" height="12"><line x1="9" x2="9" y1="0" y2="12" class="s fc" /><line x1="4" x2="14" y1="1" y2="1" class="s fc" /><line x1="4" x2="14" y1="11" y2="11" class="s fc" /></svg>{t('Range')}</span>
+<div class="legend small" role="group" aria-label={t('Series shown in the chart')}>
+  <button type="button" class="lg" class:off={!on.vel} aria-pressed={on.vel} onclick={() => toggle('vel')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s vel" /><circle cx="9" cy="6" r="4" class="f vel" /></svg>{t('Velocity')}</button>
+  <button type="button" class="lg" class:off={!on.nv} aria-pressed={on.nv} onclick={() => toggle('nv')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s nv" /><rect x="5" y="2" width="8" height="8" class="f nv" /></svg>{t('Normalized velocity')}</button>
+  <button type="button" class="lg" class:off={!on.trend} aria-pressed={on.trend} onclick={() => toggle('trend')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s nv dash" /></svg>{t('Trend of the normalized velocity')}</button>
+  <button type="button" class="lg" class:off={!on.plan} aria-pressed={on.plan} onclick={() => toggle('plan')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s fc dash" /><polygon points={diamond(9, 6, 5)} class="o fc" /></svg>{t('Forecast PLAN')}</button>
+  <button type="button" class="lg" class:off={!on.range} aria-pressed={on.range} onclick={() => toggle('range')}><svg width="18" height="12" aria-hidden="true"><line x1="9" x2="9" y1="0" y2="12" class="s fc" /><line x1="4" x2="14" y1="1" y2="1" class="s fc" /><line x1="4" x2="14" y1="11" y2="11" class="s fc" /></svg>{t('Range')}</button>
   {#if whatIf.length > 0}
-    <span><svg width="18" height="12"><line x1="0" x2="18" y1="6" y2="6" class="s wif dash" /><polygon points={diamond(9, 6, 5)} class="f wif" /></svg>{t('What if')}</span>
+    <button type="button" class="lg" class:off={!on.wif} aria-pressed={on.wif} onclick={() => toggle('wif')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s wif dash" /><polygon points={diamond(9, 6, 5)} class="f wif" /></svg>{t('What if')}</button>
   {/if}
+  <button type="button" class="lg" class:off={!on.ful} aria-pressed={on.ful} onclick={() => toggle('ful')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s ful" /><polygon points={triangle(9, 6, 5)} class="f ful" /></svg>{t('Fulfillment (right axis)')}</button>
 </div>
 
 <svg class="chart" viewBox="0 0 {W} {H}" role="img" aria-label={t('Chart of velocity and Forecast PLAN per sprint; the same numbers are in the tables below.')}>
@@ -108,6 +136,13 @@
     <line x1={M.l} x2={W - M.r} y1={y(v)} y2={y(v)} class="grid" />
     <text x={M.l - 8} y={y(v) + 4} text-anchor="end" class="axis">{v}</text>
   {/each}
+
+  {#if on.ful}
+    {#each fTicks as v (v)}
+      <text x={W - M.r + 8} y={yf(v) + 4} class="axis axis-ful">{fmt(v * 100, 0)} %</text>
+    {/each}
+    <line x1={M.l} x2={W - M.r} y1={yf(1)} y2={yf(1)} class="s ful hundred" />
+  {/if}
 
   {#if history.length > 0 && upcoming.length > 0}
     <rect x={x(history.length) - (W - M.l - M.r) / all.length / 2} y={M.t} width={(W - M.l - M.r) * upcoming.length / all.length} height={H - M.t - M.b} class="future" />
@@ -119,38 +154,45 @@
     {/if}
   {/each}
 
-  {#if showNv && trendLine.length > 1}<polyline points={line(trendLine)} class="s nv dash" fill="none" />{/if}
-  {#if showNv && nvPts.length > 1}<polyline points={line(nvPts)} class="s nv" fill="none" />{/if}
-  {#if velocityPts.length > 1}<polyline points={line(velocityPts)} class="s vel" fill="none" />{/if}
-  {#if planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
+  {#if on.trend && trendLine.length > 1}<polyline points={line(trendLine)} class="s nv dash" fill="none" />{/if}
+  {#if on.nv && nvPts.length > 1}<polyline points={line(nvPts)} class="s nv" fill="none" />{/if}
+  {#if on.vel && velocityPts.length > 1}<polyline points={line(velocityPts)} class="s vel" fill="none" />{/if}
+  {#if on.plan && planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
+  {#if on.ful && fulPts.length > 1}<polyline points={line(fulPts)} class="s ful" fill="none" />{/if}
 
-  {#if showNv}
+  {#if on.trend}
     {#each trendPts as p (p.r.id)}
       <circle cx={p.x} cy={p.y} r="3.5" class="o nv"><title>{t('{id}: trend of the normalized velocity {n}', { id: p.r.id, n: fmtVal(p.r.trend) })}</title></circle>
     {/each}
   {/if}
-  {#each showNv ? nvPts : [] as p (p.r.id)}
+  {#each on.nv ? nvPts : [] as p (p.r.id)}
     <rect x={p.x - 4} y={p.y - 4} width="8" height="8" class="f nv"><title>{t('{id}: normalized velocity {n}', { id: p.r.id, n: fmtVal(p.r.normalizedVelocity) })}</title></rect>
   {/each}
-  {#each velocityPts as p (p.r.id)}
+  {#each on.vel ? velocityPts : [] as p (p.r.id)}
     <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{t('{id}: velocity {n}', { id: p.r.id, n: fmtVal(p.r.velocity) })}</title></circle>
   {/each}
 
-  {#each planPts as p (p.r.id)}
-    {#if p.r.low !== null && p.r.high !== null}
+  {#each on.ful ? fulPts : [] as p (p.r.id)}
+    <polygon points={triangle(p.x, p.y, 5.5)} class="f ful"><title>{t('{id}: fulfillment {n}', { id: p.r.id, n: fmt((p.r.fulfillment ?? 0) * 100, 0) + ' %' })}</title></polygon>
+  {/each}
+
+  {#each on.plan || on.range ? planPts : [] as p (p.r.id)}
+    {#if on.range && p.r.low !== null && p.r.high !== null}
       <line x1={p.x} x2={p.x} y1={y(p.r.high)} y2={y(p.r.low)} class="s fc" />
       <line x1={p.x - 5} x2={p.x + 5} y1={y(p.r.high)} y2={y(p.r.high)} class="s fc" />
       <line x1={p.x - 5} x2={p.x + 5} y1={y(p.r.low)} y2={y(p.r.low)} class="s fc" />
     {/if}
+    {#if on.plan}
     <polygon points={diamond(p.x, p.y, 7)} class="o fc">
       <title>{p.r.low !== null
         ? t('{id}: Forecast PLAN {plan}, range {low} – {high}', { id: p.r.id, plan: fmt(p.r.plan, digits), low: fmt(p.r.low, digits), high: fmt(p.r.high, digits) })
         : t('{id}: Forecast PLAN {plan}', { id: p.r.id, plan: fmt(p.r.plan, digits) })}</title>
     </polygon>
-    <text x={p.x} y={(p.r.high !== null ? y(p.r.high) : p.y - 7) - 7} text-anchor="middle" class="value">{label(p.r.plan)}</text>
+    <text x={p.x} y={(on.range && p.r.high !== null ? y(p.r.high) : p.y - 7) - 7} text-anchor="middle" class="value">{label(p.r.plan)}</text>
+    {/if}
   {/each}
 
-  {#each wiPts as p (p.w.id)}
+  {#each on.wif ? wiPts : [] as p (p.w.id)}
     <polygon points={diamond(p.x, p.y, 5)} class="f wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
     <text x={p.x + 11} y={p.y + 4} class="value wiftext">{label(p.w.forecast)}</text>
   {/each}
@@ -164,16 +206,32 @@
     margin-bottom: 8px;
     color: var(--text);
   }
-  .legend span {
+  .lg {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 2px 6px;
+    margin: -2px -6px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
   }
-  .nv-switch {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 8px;
+  .lg:hover {
+    background: var(--surface-2);
+  }
+  .lg:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .lg.off {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .lg.off svg {
+    opacity: 0.45;
   }
   .chart {
     width: 100%;
@@ -211,8 +269,12 @@
   .nv { stroke: var(--c-nv); }
   .fc { stroke: var(--c-fc); }
   .wif { stroke: var(--c-wif); }
+  .ful { stroke: var(--c-ful); }
+  .hundred { stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
+  .axis-ful { fill: var(--c-ful); }
   .f.vel { fill: var(--c-vel); stroke: var(--surface); stroke-width: 1.5; }
   .f.nv { fill: var(--c-nv); stroke: var(--surface); stroke-width: 1.5; }
+  .f.ful { fill: var(--c-ful); stroke: var(--surface); stroke-width: 1.5; }
   .f.wif { fill: var(--c-wif); stroke: var(--surface); stroke-width: 1.5; }
   .o { fill: var(--surface); stroke-width: 2.5; }
   .value.wiftext { fill: var(--c-wif); }
