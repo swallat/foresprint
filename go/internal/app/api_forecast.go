@@ -319,6 +319,17 @@ func forecastOpenScope(data *storage.TeamData, p model.Project) (*float64, int) 
 	return p.OpenScope, open
 }
 
+// ForecastFulfillment is the fulfillment (velocity / commitment) of the last completed sprints
+// for the analysis tab: the sprints with their value, the mean and the spread. Sprints without
+// a commitment or velocity have no value and stay out of the mean.
+func (a *API) ForecastFulfillment(team string) (analysis.FulfillmentHint, error) {
+	_, fc, err := a.forecastOf(team)
+	if err != nil {
+		return analysis.FulfillmentHint{}, err
+	}
+	return analysis.Fulfillment(fc), nil
+}
+
 // ForecastWhenProjects lists the open projects for the analysis "When is it done?" with their
 // open scope, so that the page can fill the form.
 func (a *API) ForecastWhenProjects(team string) ([]WhenProject, error) {

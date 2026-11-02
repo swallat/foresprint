@@ -105,6 +105,13 @@
   "{n} files written. Check the result and save.": "{n} Dateien geschrieben. Prüfe das Ergebnis und speichere.",
   "{n} of {total} sprints": "{n} von {total} Sprints",
   "{n} without Done value": "{n} ohne Wert für Erledigt",
-  "… and {n} more changes": "… und {n} weitere Änderungen"
+  "… and {n} more changes": "… und {n} weitere Änderungen",
+  "Fulfillment": "Fulfillment",
+  "Mean of the last {n} sprints: {avg}. Lowest {min}, highest {max}.": "Durchschnitt der letzten {n} Sprints: {avg}. Niedrigster {min}, höchster {max}.",
+  "Trend: {n}.": "Trend: {n}.",
+  "The sprints deliver clearly less than committed. The commitment is probably set too high.": "Die Sprints liefern deutlich weniger als zugesagt. Das Commitment ist vermutlich zu hoch angesetzt.",
+  "Too few sprints with a commitment and a velocity for a mean. At least {n} are needed.": "Zu wenige Sprints mit Commitment und Velocity für einen Durchschnitt. Es braucht mindestens {n}.",
+  "Sprints without a commitment or velocity are left out, not counted as 0 %.": "Sprints ohne Commitment oder Velocity bleiben außen vor und zählen nicht als 0 %.",
+  "Fulfillment = velocity / commitment per sprint. The mean is the plain mean of these ratios over the last sprints of the window. Work added later counts as done, so a sprint can lie above 100 %.": "Fulfillment = Velocity / Commitment je Sprint. Der Durchschnitt ist das einfache Mittel dieser Quoten über die letzten Sprints des Fensters. Nachträglich Hinzugekommenes zählt als erledigt, ein Sprint kann also über 100 % liegen."
  }
 }

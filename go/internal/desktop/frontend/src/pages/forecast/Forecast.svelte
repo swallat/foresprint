@@ -12,6 +12,7 @@
   import Icon from '../../lib/Icon.svelte';
   import ProductsOverTime from './ProductsOverTime.svelte';
   import Reports from './Reports.svelte';
+  import Fulfillment from './Fulfillment.svelte';
   import WhenDone from './WhenDone.svelte';
   import ForecastChart from './ForecastChart.svelte';
 
@@ -188,7 +189,10 @@
   {#if activeTab === 'products'}
     <ProductsOverTime />
   {:else if activeTab === 'when'}
-    <WhenDone roadmapShare={view.roadmapShare} />
+    <div class="stack-lg">
+      <Fulfillment />
+      <WhenDone roadmapShare={view.roadmapShare} />
+    </div>
   {:else if activeTab === 'reports'}
     <Reports />
   {:else}

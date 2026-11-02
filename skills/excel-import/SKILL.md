@@ -35,7 +35,10 @@ of these is unclear:
 - **Estimation unit**: story points (`SP`) or person days (`PT`). Capacity is always in person days.
 - **Commitment vs. done**: which column is what the team committed to (`forecast_ist`) and which
   is what was actually finished (`velocity`). Names like "Plan", "Ist", "Velocity", "Delivered"
-  are ambiguous.
+  are ambiguous. Check the sheet's own fulfillment row, if it has one: Foresprint computes
+  fulfillment as `velocity / forecast_ist` per sprint, so the sheet's figure must match that.
+  Ask what an empty or 0 commitment means for past sprints (never entered vs. really none);
+  such sprints stay `null` and are left out of the fulfillment analysis, not counted as 0 %.
 - **Absences**: unit (days or hours), whether public holidays are already included (they must
   not be entered), whether it is per person per sprint or a calendar of date ranges.
 - **Part-time**: share of a full week (`fte`) vs. a shortened working week (`workweek`); model it

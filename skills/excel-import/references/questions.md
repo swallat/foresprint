@@ -21,6 +21,9 @@ user can answer with one word. Never answer them yourself from guesses.
 7. Which column is the commitment at planning ("committed") and which is done at the end?
    Does "done" include parts of unfinished tickets? (Only note it; Foresprint counts the same way
    consistently, and the team should too.)
+   Does the sheet have a fulfillment figure? It must equal done / committed per sprint, otherwise
+   ask how it is calculated. For past sprints without a commitment: never entered, or none? Leave
+   such values `null` (the fulfillment analysis skips them; do not enter 0).
 8. Is there a "added during the sprint" figure, and as a share of the commitment or as points?
    (`scope_creep` is a share: 0.2 = 20 %.) If unclear, leave it `null`.
 9. Absences: days or hours, per person and sprint, or date ranges? Are public holidays already
