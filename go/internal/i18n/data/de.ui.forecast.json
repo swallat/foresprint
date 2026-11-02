@@ -114,6 +114,7 @@
   "Mean of {n} sprints with a value: {avg}. Lowest {min}, highest {max}.": "Durchschnitt aus {n} Sprints mit Wert: {avg}. Niedrigster {min}, höchster {max}.",
   "Series shown in the chart": "Im Diagramm gezeigte Reihen",
   "Fulfillment (right axis)": "Fulfillment (rechte Achse)",
-  "{id}: fulfillment {n}": "{id}: Fulfillment {n}"
+  "{id}: fulfillment {n}": "{id}: Fulfillment {n}",
+  "{id}: commitment {n}": "{id}: Commitment {n}"
  }
 }

@@ -35,6 +35,9 @@ func TestFulfillmentMatchesTable(t *testing.T) {
 				if (h.Rows[i].Value == nil) != (want == nil) || (want != nil && *h.Rows[i].Value != *want) {
 					t.Fatalf("row %s differs from the table", h.Rows[i].Sprint)
 				}
+				if h.Rows[i].Commitment != e.Result.Commitment.Value && (h.Rows[i].Commitment == nil || e.Result.Commitment.Value == nil || *h.Rows[i].Commitment != *e.Result.Commitment.Value) {
+					t.Fatalf("row %s: commitment differs from the table", h.Rows[i].Sprint)
+				}
 				if want != nil {
 					sum += *want
 					n++

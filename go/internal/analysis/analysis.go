@@ -180,6 +180,9 @@ const FulfillmentLow = 0.9
 type FulfillmentRow struct {
 	Sprint string   `json:"sprint"`
 	Value  *float64 `json:"value"`
+	// Commitment and Velocity are the two numbers behind Value (nil where not recorded).
+	Commitment *float64 `json:"commitment"`
+	Velocity   *float64 `json:"velocity"`
 }
 
 // FulfillmentHint is the fulfillment (velocity / commitment) of the last sprints. It is the same
@@ -211,7 +214,7 @@ func Fulfillment(fc *forecast.Forecast) FulfillmentHint {
 	var values []float64
 	last := fc.HistoryLast(fc.Data.Team.Forecast.Window)
 	for _, e := range last {
-		hint.Rows = append(hint.Rows, FulfillmentRow{Sprint: e.Sprint.ID, Value: e.Result.Fulfillment.Value})
+		hint.Rows = append(hint.Rows, FulfillmentRow{Sprint: e.Sprint.ID, Value: e.Result.Fulfillment.Value, Commitment: e.Result.Commitment.Value, Velocity: e.Result.Velocity.Value})
 		if v := e.Result.Fulfillment.Value; v != nil {
 			values = append(values, *v)
 		}

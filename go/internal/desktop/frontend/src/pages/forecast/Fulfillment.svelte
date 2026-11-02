@@ -2,7 +2,7 @@
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { pct } from '../../lib/format';
+  import { fmtVal, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import type { FulfillmentView } from '../../lib/types.forecast';
   import Banner from '../../lib/ui/Banner.svelte';
@@ -58,12 +58,14 @@
     <div class="tw">
       <table class="t">
         <thead>
-          <tr><th scope="col">{t('Sprint')}</th><th scope="col" class="num">{t('Fulfillment ratio')}</th><th scope="col"><span class="sr-only">{t('Bar')}</span></th></tr>
+          <tr><th scope="col">{t('Sprint')}</th><th scope="col" class="num">{t('Commitment')}</th><th scope="col" class="num">{t('Velocity')}</th><th scope="col" class="num">{t('Fulfillment ratio')}</th><th scope="col"><span class="sr-only">{t('Bar')}</span></th></tr>
         </thead>
         <tbody>
           {#each view.rows as r (r.sprint)}
             <tr>
               <td class="data">{r.sprint}</td>
+              <td class="num">{fmtVal(r.commitment)}</td>
+              <td class="num">{fmtVal(r.velocity)}</td>
               <td class="num">{pct(r.value)}</td>
               <td class="barcell">
                 {#if r.value !== null}<span class="bar" style:width="{Math.min(r.value, 1.5) / 1.5 * 100}%"></span>{/if}
