@@ -211,6 +211,10 @@
   "Σ default": "Σ Standard",
   "Σ done": "Σ Erledigt",
   "“Earliest” is the first sprint in which the work is done in at least 15 % of the runs.": "„Frühestens“ ist der erste Sprint, in dem die Arbeit in mindestens 15 % der Läufe fertig ist.",
-  "“Half of the runs” and “85 % of the runs” are the sprints in which the work is done that often. They are likelihoods, not commitments.": "„Hälfte der Läufe“ und „85 % der Läufe“ sind die Sprints, in denen die Arbeit so oft fertig ist. Das sind Wahrscheinlichkeiten, keine Zusagen."
+  "“Half of the runs” and “85 % of the runs” are the sprints in which the work is done that often. They are likelihoods, not commitments.": "„Hälfte der Läufe“ und „85 % der Läufe“ sind die Sprints, in denen die Arbeit so oft fertig ist. Das sind Wahrscheinlichkeiten, keine Zusagen.",
+  "Fulfillment = velocity / commitment": "Fulfillment = Velocity / Commitment",
+  "The mean is the plain mean of the sprint ratios over the last sprints of the window; no mean is shown for fewer than 3 sprints.": "Der Durchschnitt ist das einfache Mittel der Sprint-Quoten über die letzten Sprints des Fensters; bei weniger als 3 Sprints wird kein Durchschnitt gezeigt.",
+  "Work added later counts as done, so a sprint can lie above 100 %.": "Nachträglich Hinzugekommenes zählt als erledigt, ein Sprint kann also über 100 % liegen.",
+  "How much of the commitment the sprints delivered.": "Wie viel vom Commitment die Sprints geliefert haben."
  }
 }

@@ -86,6 +86,20 @@ export interface WhenDoneView {
   light: 'ok' | 'warn' | 'bad' | 'none';
 }
 
+export interface FulfillmentRow {
+  sprint: string;
+  value: number | null;
+}
+
+export interface FulfillmentView {
+  rows: FulfillmentRow[];
+  samples: number;
+  average: number | null;
+  min: number | null;
+  max: number | null;
+  trend: number | null;
+}
+
 export interface WhenProject {
   id: string;
   name: string;
@@ -153,6 +167,7 @@ export interface ForecastApi {
   Forecast(team: string): Promise<ForecastView>;
   ForecastWhatIf(team: string, as: ForecastAssumption): Promise<WhatIfRow[]>;
   ForecastSaveWhatIf(team: string, as: ForecastAssumption): Promise<void>;
+  ForecastFulfillment(team: string): Promise<FulfillmentView>;
   ForecastWhenProjects(team: string): Promise<WhenProject[]>;
   ForecastWhenDone(team: string, remaining: number, sharePercent: number, project: string): Promise<WhenDoneView>;
 }

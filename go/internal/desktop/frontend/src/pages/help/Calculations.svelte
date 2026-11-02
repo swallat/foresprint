@@ -244,6 +244,15 @@
     </ul>
   {/snippet}
   {@render section('whendone', t('When is it done?'), t('A likelihood from a simulation, not a promise.'), whendoneBody)}
+  {#snippet fulfillmentBody()}
+    <p class="formula data">{t('Fulfillment = velocity / commitment')}</p>
+    <ul>
+      <li>{t('The mean is the plain mean of the sprint ratios over the last sprints of the window; no mean is shown for fewer than 3 sprints.')}</li>
+      <li>{t('Sprints without a commitment or velocity are left out, not counted as 0 %.')}</li>
+      <li>{t('Work added later counts as done, so a sprint can lie above 100 %.')}</li>
+    </ul>
+  {/snippet}
+  {@render section('fulfillment', t('Fulfillment'), t('How much of the commitment the sprints delivered.'), fulfillmentBody)}
   {#snippet balanceBody()}
     <p class="formula data">{t('Balance = Σ done − Σ default (only sprints in which a done value is entered)')}</p>
     <ul>
