@@ -4,6 +4,7 @@
 //   - Range: forecast with the lowest, middle and highest normalized velocity of the last
 //     sprints instead of the trend.
 //   - Focus factor: velocity / capacity (independent of the reference capacity).
+//   - Fulfillment: velocity / commitment per sprint, with mean and spread of the last sprints.
 //   - Buffer recommendation: average scope creep of the last sprints compared to the
 //     small-items share.
 //   - Completion: Monte Carlo simulation of the sprint in which a remaining quantity is done.
@@ -163,6 +164,72 @@ func AverageFocusFactor(fc *forecast.Forecast) *float64 {
 		return nil
 	}
 	return model.Ptr(pymath.FMean(values))
+}
+
+// --- Fulfillment ---------------------------------------------------------------------------
+
+// FulfillmentMinSamples is the number of sprints below which no mean is shown.
+const FulfillmentMinSamples = 3
+
+// FulfillmentLow is the mean below which the commitment is regularly set too high.
+const FulfillmentLow = 0.9
+
+// FulfillmentRow is the fulfillment of one completed sprint; Value is nil if the sprint has no
+// commitment (or a commitment of 0) or no recorded velocity. Such a sprint is left out of the mean,
+// not counted as 0 %; a recorded velocity of 0 with a commitment does count, as 0 %.
+type FulfillmentRow struct {
+	Sprint string   `json:"sprint"`
+	Value  *float64 `json:"value"`
+}
+
+// FulfillmentHint is the fulfillment (velocity / commitment) of the last sprints. It is the same
+// quantity as Result.Fulfillment of the forecast table.
+type FulfillmentHint struct {
+	Rows []FulfillmentRow `json:"rows"`
+	// Samples is the number of rows with a value.
+	Samples int      `json:"samples"`
+	Average *float64 `json:"average"`
+	Min     *float64 `json:"min"`
+	Max     *float64 `json:"max"`
+	// Trend is the trend of the rolling mean as of the last completed sprint; nil without one.
+	Trend *float64 `json:"trend"`
+}
+
+// SufficientData reports whether there are enough samples to show a mean.
+func (h FulfillmentHint) SufficientData() bool { return h.Samples >= FulfillmentMinSamples }
+
+// CommitmentTooHigh reports whether the mean lies clearly below 100 %.
+func (h FulfillmentHint) CommitmentTooHigh() bool {
+	return h.SufficientData() && h.Average != nil && *h.Average < FulfillmentLow
+}
+
+// Fulfillment is the fulfillment of the last Window completed sprints. Sprints without a value
+// stay in Rows (as nil) but do not enter the mean, minimum and maximum. The mean is the plain
+// mean of the sprint ratios, like the focus factor.
+func Fulfillment(fc *forecast.Forecast) FulfillmentHint {
+	hint := FulfillmentHint{Rows: []FulfillmentRow{}}
+	var values []float64
+	last := fc.HistoryLast(fc.Data.Team.Forecast.Window)
+	for _, e := range last {
+		hint.Rows = append(hint.Rows, FulfillmentRow{Sprint: e.Sprint.ID, Value: e.Result.Fulfillment.Value})
+		if v := e.Result.Fulfillment.Value; v != nil {
+			values = append(values, *v)
+		}
+	}
+	hint.Samples = len(values)
+	if len(values) == 0 {
+		return hint
+	}
+	lo, hi := values[0], values[0]
+	for _, v := range values {
+		lo, hi = min(lo, v), max(hi, v)
+	}
+	hint.Min, hint.Max = &lo, &hi
+	hint.Average = model.Ptr(pymath.FMean(values))
+	if len(last) > 0 {
+		hint.Trend = last[len(last)-1].Result.Fulfillment.Trend
+	}
+	return hint
 }
 
 // --- Buffer --------------------------------------------------------------------------------

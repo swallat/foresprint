@@ -41,6 +41,7 @@ func analysisCommand(env *Env) *cobra.Command {
 			}
 			printBand(env, fc)
 			printFocus(env, fc)
+			printFulfillment(env, fc)
 			printBuffer(env, fc)
 			if cmd.Flags().Changed("remaining") {
 				return printCompletion(env, fc, remaining, total, sharePercent)
@@ -87,6 +88,27 @@ func printFocus(env *Env, fc *forecast.Forecast) {
 	}
 	t.Add("Ø", report.Fmt(analysis.AverageFocusFactor(fc), 2, ""))
 	t.Render(env.Out)
+}
+
+func printFulfillment(env *Env, fc *forecast.Forecast) {
+	hint := analysis.Fulfillment(fc)
+	t := &Table{
+		Title:  i18n.T("Fulfillment (velocity / commitment)"),
+		Header: []string{"Sprint", i18n.T("Fulfillment")},
+		Right:  []bool{false, true},
+	}
+	for _, r := range hint.Rows {
+		t.Add(r.Sprint, report.Pct(r.Value))
+	}
+	if hint.SufficientData() {
+		t.Add("Ø", report.Pct(hint.Average))
+	}
+	t.Render(env.Out)
+	if !hint.SufficientData() {
+		env.Println(i18n.P("Fulfillment: fewer than {count} sprints with a commitment and a velocity – no mean.", "count", analysis.FulfillmentMinSamples))
+	} else if hint.CommitmentTooHigh() {
+		env.Println(i18n.T("The sprints deliver clearly less than committed. The commitment is probably set too high."))
+	}
 }
 
 func printBuffer(env *Env, fc *forecast.Forecast) {

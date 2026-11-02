@@ -2,7 +2,7 @@
 // Excel import) for the demo team.
 
 import type { Api } from '../api';
-import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView, WhenProject } from '../types.forecast';
+import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, FulfillmentView, WhatIfRow, WhenDoneView, WhenProject } from '../types.forecast';
 
 // Forecast of Team Atlas: 10 completed sprints, the current one and 4 coming ones.
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -117,6 +117,10 @@ const forecastMock: Partial<Api> = {
       });
   },
   async ForecastSaveWhatIf(): Promise<void> {},
+  async ForecastFulfillment(): Promise<FulfillmentView> {
+    const rows = [0.92, 0.81, null, 0.88, 1.04, 0.79].map((value, i) => ({ sprint: `2026.${17 + i}`, value }));
+    return { rows, samples: 5, average: 0.888, min: 0.79, max: 1.04, trend: 0.86 };
+  },
   async ForecastWhenProjects(): Promise<WhenProject[]> {
     return [
       { id: 'self-service', name: 'Self-Service 2.0', end: dayAfter(100), openScope: 120, open: 18 },

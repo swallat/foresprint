@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockApi } from '../../lib/mock';
 import { app } from '../../lib/app.svelte';
 import { resetPlanMock } from '../../lib/mock/plan';
+import { sprints } from '../../lib/mock/shared';
 import Plan from './Plan.svelte';
 
 let host: HTMLElement;
@@ -118,8 +119,10 @@ describe('Plan page without tickets', () => {
   });
 
   it('starting records the typed amounts and commitment, and then locks the fields', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] }); // the mock sprint starts on 2026-11-09: its first day has come
-    vi.setSystemTime(new Date(2026, 10, 12));
+    // The mock sprints are counted from the real today, so take the start of this one from them:
+    // three days into the sprint its first day has come.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse(`${sprints.find((s) => s.id === '2026.21')!.start}T12:00:00`) + 3 * 86400000);
     await show();
     const freeze = vi.spyOn(mockApi, 'StartSprintWithPlan');
     type(commitInput(), '30');
