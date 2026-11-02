@@ -42,6 +42,15 @@ describe('ForecastChart legend', () => {
     expect(host.textContent).toContain('100 %');
   });
 
+  it('shows the commitment line only after it is switched on, on the point axis', async () => {
+    await show();
+    expect(polylines('com')).toBe(0);
+    button('Commitment').click();
+    await tick();
+    expect(polylines('com')).toBe(1);
+    expect(host.querySelectorAll('circle.o.com').length).toBeGreaterThan(1);
+  });
+
   it('switches a series off and back on', async () => {
     await show();
     expect(polylines('vel')).toBe(1);

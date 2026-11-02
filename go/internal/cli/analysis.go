@@ -94,14 +94,14 @@ func printFulfillment(env *Env, fc *forecast.Forecast) {
 	hint := analysis.Fulfillment(fc)
 	t := &Table{
 		Title:  i18n.T("Fulfillment (velocity / commitment)"),
-		Header: []string{"Sprint", i18n.T("Fulfillment")},
-		Right:  []bool{false, true},
+		Header: []string{"Sprint", "Commitment", "Velocity", i18n.T("Fulfillment")},
+		Right:  []bool{false, true, true, true},
 	}
 	for _, r := range hint.Rows {
-		t.Add(r.Sprint, report.Pct(r.Value))
+		t.Add(r.Sprint, report.Fmt(r.Commitment, 2, ""), report.Fmt(r.Velocity, 2, ""), report.Pct(r.Value))
 	}
 	if hint.SufficientData() {
-		t.Add("Ø", report.Pct(hint.Average))
+		t.Add("Ø", "", "", report.Pct(hint.Average))
 	}
 	t.Render(env.Out)
 	if !hint.SufficientData() {
