@@ -16,10 +16,10 @@
   let { past, upcoming, whatIf = [], shown = 10, digits = 0 }: Props = $props();
 
   // Every series can be switched on and off in the legend; the choice is kept for the next visit.
-  type Key = 'vel' | 'nv' | 'trend' | 'plan' | 'range' | 'wif' | 'ful';
-  const KEYS: Key[] = ['vel', 'nv', 'trend', 'plan', 'range', 'wif', 'ful'];
+  type Key = 'vel' | 'com' | 'nv' | 'trend' | 'plan' | 'range' | 'wif' | 'ful';
+  const KEYS: Key[] = ['vel', 'com', 'nv', 'trend', 'plan', 'range', 'wif', 'ful'];
   const STORE = 'foresprint.chart.series';
-  const defaults = (): Record<Key, boolean> => ({ vel: true, nv: true, trend: true, plan: true, range: true, wif: true, ful: false });
+  const defaults = (): Record<Key, boolean> => ({ vel: true, com: false, nv: true, trend: true, plan: true, range: true, wif: true, ful: false });
   function restore(): Record<Key, boolean> {
     const on = defaults();
     try {
@@ -63,7 +63,7 @@
 
   const top = $derived.by(() => {
     let max = 0;
-    for (const r of history) max = Math.max(max, on.vel ? (r.velocity ?? 0) : 0, on.nv ? (r.normalizedVelocity ?? 0) : 0);
+    for (const r of history) max = Math.max(max, on.vel ? (r.velocity ?? 0) : 0, on.com ? (r.commitment ?? 0) : 0, on.nv ? (r.normalizedVelocity ?? 0) : 0);
     for (const r of upcoming) max = Math.max(max, on.plan ? (r.plan ?? 0) : 0, on.range ? (r.high ?? 0) : 0, on.wif ? (wi.get(r.id)?.forecast ?? 0) : 0, on.trend ? (r.trend ?? 0) : 0);
     const step = max > 60 ? 20 : max > 30 ? 10 : 5;
     return Math.max(step, Math.ceil(max / step) * step);
@@ -83,6 +83,9 @@
   const line = (pts: { x: number; y: number }[]) => pts.map((p) => `${p.x},${p.y}`).join(' ');
   const velocityPts = $derived(
     history.flatMap((r, i) => (r.velocity !== null ? [{ x: x(i), y: y(r.velocity), r }] : [])),
+  );
+  const comPts = $derived(
+    history.flatMap((r, i) => (r.commitment !== null ? [{ x: x(i), y: y(r.commitment), r }] : [])),
   );
   const fulPts = $derived(
     history.flatMap((r, i) => (r.fulfillment !== null ? [{ x: x(i), y: yf(r.fulfillment), r }] : [])),
@@ -121,6 +124,7 @@
 
 <div class="legend small" role="group" aria-label={t('Series shown in the chart')}>
   <button type="button" class="lg" class:off={!on.vel} aria-pressed={on.vel} onclick={() => toggle('vel')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s vel" /><circle cx="9" cy="6" r="4" class="f vel" /></svg>{t('Velocity')}</button>
+  <button type="button" class="lg" class:off={!on.com} aria-pressed={on.com} onclick={() => toggle('com')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s com" /><circle cx="9" cy="6" r="3.5" class="o com" /></svg>{t('Commitment')}</button>
   <button type="button" class="lg" class:off={!on.nv} aria-pressed={on.nv} onclick={() => toggle('nv')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s nv" /><rect x="5" y="2" width="8" height="8" class="f nv" /></svg>{t('Normalized velocity')}</button>
   <button type="button" class="lg" class:off={!on.trend} aria-pressed={on.trend} onclick={() => toggle('trend')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s nv dash" /></svg>{t('Trend of the normalized velocity')}</button>
   <button type="button" class="lg" class:off={!on.plan} aria-pressed={on.plan} onclick={() => toggle('plan')}><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s fc dash" /><polygon points={diamond(9, 6, 5)} class="o fc" /></svg>{t('Forecast PLAN')}</button>
@@ -157,6 +161,7 @@
   {#if on.trend && trendLine.length > 1}<polyline points={line(trendLine)} class="s nv dash" fill="none" />{/if}
   {#if on.nv && nvPts.length > 1}<polyline points={line(nvPts)} class="s nv" fill="none" />{/if}
   {#if on.vel && velocityPts.length > 1}<polyline points={line(velocityPts)} class="s vel" fill="none" />{/if}
+  {#if on.com && comPts.length > 1}<polyline points={line(comPts)} class="s com" fill="none" />{/if}
   {#if on.plan && planLine.length > 1}<polyline points={line(planLine)} class="s fc dash" fill="none" />{/if}
   {#if on.ful && fulPts.length > 1}<polyline points={line(fulPts)} class="s ful" fill="none" />{/if}
 
@@ -172,6 +177,9 @@
     <circle cx={p.x} cy={p.y} r="5" class="f vel"><title>{t('{id}: velocity {n}', { id: p.r.id, n: fmtVal(p.r.velocity) })}</title></circle>
   {/each}
 
+  {#each on.com ? comPts : [] as p (p.r.id)}
+    <circle cx={p.x} cy={p.y} r="4" class="o com"><title>{t('{id}: commitment {n}', { id: p.r.id, n: fmtVal(p.r.commitment) })}</title></circle>
+  {/each}
   {#each on.ful ? fulPts : [] as p (p.r.id)}
     <polygon points={triangle(p.x, p.y, 5.5)} class="f ful"><title>{t('{id}: fulfillment {n}', { id: p.r.id, n: fmt((p.r.fulfillment ?? 0) * 100, 0) + ' %' })}</title></polygon>
   {/each}
@@ -270,6 +278,7 @@
   .fc { stroke: var(--c-fc); }
   .wif { stroke: var(--c-wif); }
   .ful { stroke: var(--c-ful); }
+  .com { stroke: var(--c-com); }
   .hundred { stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
   .axis-ful { fill: var(--c-ful); }
   .f.vel { fill: var(--c-vel); stroke: var(--surface); stroke-width: 1.5; }

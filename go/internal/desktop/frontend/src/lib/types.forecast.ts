@@ -89,6 +89,8 @@ export interface WhenDoneView {
 export interface FulfillmentRow {
   sprint: string;
   value: number | null;
+  commitment: number | null;
+  velocity: number | null;
 }
 
 export interface FulfillmentView {

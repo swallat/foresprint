@@ -118,7 +118,7 @@ const forecastMock: Partial<Api> = {
   },
   async ForecastSaveWhatIf(): Promise<void> {},
   async ForecastFulfillment(): Promise<FulfillmentView> {
-    const rows = [0.92, 0.81, null, 0.88, 1.04, 0.79].map((value, i) => ({ sprint: `2026.${17 + i}`, value }));
+    const rows = [0.92, 0.81, null, 0.88, 1.04, 0.79].map((value, i) => ({ sprint: `2026.${17 + i}`, value, commitment: value === null ? null : 40, velocity: value === null ? null : Math.round(40 * value * 10) / 10 }));
     return { rows, samples: 5, average: 0.888, min: 0.79, max: 1.04, trend: 0.86 };
   },
   async ForecastWhenProjects(): Promise<WhenProject[]> {
