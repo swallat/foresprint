@@ -47,8 +47,7 @@
   {:else if view}
     {#if enough}
       <p>
-        {t('Mean of the last {n} sprints: {avg}. Lowest {min}, highest {max}.', { n: view.samples, avg: pct(view.average), min: pct(view.min), max: pct(view.max) })}
-        {#if view.trend !== null}{t('Trend: {n}.', { n: pct(view.trend) })}{/if}
+        {t('Mean of {n} sprints with a value: {avg}. Lowest {min}, highest {max}.', { n: view.samples, avg: pct(view.average), min: pct(view.min), max: pct(view.max) })}
       </p>
       {#if low}
         <Banner tone="warn">{t('The sprints deliver clearly less than committed. The commitment is probably set too high.')}</Banner>

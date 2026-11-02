@@ -62,3 +62,25 @@ func TestFulfillmentMatchesTable(t *testing.T) {
 		t.Fatal("no golden case has a fulfillment")
 	}
 }
+
+func TestFulfillmentLimits(t *testing.T) {
+	v := func(x float64) *float64 { return &x }
+	cases := []struct {
+		name            string
+		h               analysis.FulfillmentHint
+		sufficient, low bool
+	}{
+		{"two samples", analysis.FulfillmentHint{Samples: 2, Average: v(0.5)}, false, false},
+		{"three samples, low", analysis.FulfillmentHint{Samples: 3, Average: v(0.89)}, true, true},
+		{"exactly 90 %", analysis.FulfillmentHint{Samples: 3, Average: v(0.9)}, true, false},
+		{"no values", analysis.FulfillmentHint{Samples: 0}, false, false},
+	}
+	for _, c := range cases {
+		if got := c.h.SufficientData(); got != c.sufficient {
+			t.Errorf("%s: SufficientData = %v", c.name, got)
+		}
+		if got := c.h.CommitmentTooHigh(); got != c.low {
+			t.Errorf("%s: CommitmentTooHigh = %v", c.name, got)
+		}
+	}
+}

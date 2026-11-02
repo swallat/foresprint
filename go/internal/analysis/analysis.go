@@ -175,7 +175,8 @@ const FulfillmentMinSamples = 3
 const FulfillmentLow = 0.9
 
 // FulfillmentRow is the fulfillment of one completed sprint; Value is nil if the sprint has no
-// commitment or no velocity (it is left out of the mean, not counted as 0 %).
+// commitment (or a commitment of 0) or no recorded velocity. Such a sprint is left out of the mean,
+// not counted as 0 %; a recorded velocity of 0 with a commitment does count, as 0 %.
 type FulfillmentRow struct {
 	Sprint string   `json:"sprint"`
 	Value  *float64 `json:"value"`
