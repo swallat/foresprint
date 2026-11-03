@@ -193,7 +193,11 @@ func ExpandShortName(pattern, id string, start time.Time) (string, bool) {
 		return "", false
 	}
 	n, err := strconv.Atoi(m[2])
-	if err != nil {
+	if err != nil || n < 1 {
+		return "", false
+	}
+	// Without a number placeholder the number the user typed would be thrown away.
+	if _, order := patternRegexp(pattern); len(order) == 0 {
 		return "", false
 	}
 	name, err := model.FormatSprintName(pattern, model.SprintNameInput{Start: start, Number: n, Sequence: n})
