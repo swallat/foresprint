@@ -32,7 +32,7 @@
 </script>
 
 <div class="field" style:width>
-  <label for={id}>{label}{#if unit} <span class="muted">({unit})</span>{/if}</label>
+  <label for={id}>{label}{#if unit}{' '}<span class="muted nowrap">({unit})</span>{/if}</label>
   <input
     {id}
     class="input data num"
@@ -55,6 +55,9 @@
 <style>
   input[aria-invalid='true'] {
     border-color: var(--bad);
+  }
+  .nowrap {
+    white-space: nowrap;
   }
   .err {
     color: var(--bad);
