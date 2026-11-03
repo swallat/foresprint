@@ -411,7 +411,14 @@
   .fields {
     display: grid;
     gap: 8px 12px;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    /* Felder unten bündig, auch wenn ein Label zweizeilig umbricht */
+    align-items: end;
+  }
+  .fields :global(select.input),
+  .fields :global(input.input) {
+    width: 100%;
+    min-width: 0;
   }
   .gap {
     gap: 12px;
