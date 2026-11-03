@@ -182,6 +182,27 @@ func NameMatchesPattern(pattern, id string) bool {
 	return re != nil && re.MatchString(id)
 }
 
+var shortNameRE = regexp.MustCompile(`^(?:(\d{4})\.)?(\d{1,3})$`)
+
+// ExpandShortName turns the short form of a first sprint ("2026.17", or just "17") into the full
+// name the pattern makes for a sprint starting on start. It reports false if id is not a short
+// form, the year is not the one of the start, or the pattern cannot be filled.
+func ExpandShortName(pattern, id string, start time.Time) (string, bool) {
+	m := shortNameRE.FindStringSubmatch(id)
+	if m == nil || (m[1] != "" && m[1] != strconv.Itoa(start.Year())) {
+		return "", false
+	}
+	n, err := strconv.Atoi(m[2])
+	if err != nil {
+		return "", false
+	}
+	name, err := model.FormatSprintName(pattern, model.SprintNameInput{Start: start, Number: n, Sequence: n})
+	if err != nil || !NameMatchesPattern(pattern, name) {
+		return "", false
+	}
+	return name, true
+}
+
 var tokenRE = regexp.MustCompile(`\{([^{}]*)\}`)
 
 // patternRegexp matches names made by the pattern; it returns the order of the captured
