@@ -234,6 +234,12 @@ func (a *API) SetupCreateTeam(req NewTeam) (TeamSummary, error) {
 			return TeamSummary{}, errors.New(i18n.T("Unknown placeholder {placeholder} in the sprint naming pattern.", "placeholder", bad))
 		}
 		if !calendar.NameMatchesPattern(pattern, id) {
+			// The short form ("2026.17") is joined with the pattern to the full name.
+			if full, ok := calendar.ExpandShortName(pattern, id, start); ok {
+				id = full
+			}
+		}
+		if !calendar.NameMatchesPattern(pattern, id) {
 			return TeamSummary{}, errors.New(i18n.T("Sprint name {id} does not fit the pattern {pattern}.", "id", id, "pattern", pattern))
 		}
 		team.Sprint.Naming = []model.NamingRule{{Pattern: pattern}}
