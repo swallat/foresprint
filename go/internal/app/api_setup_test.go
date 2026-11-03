@@ -146,6 +146,28 @@ func TestSetupCreateTeamFreeSprintName(t *testing.T) {
 	}
 }
 
+func TestSetupCreateTeamShortNameWithPattern(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	req := newTeamRequest(SourceNone)
+	req.FirstSprintID, req.FirstStart, req.NamingPattern = "2026.17", "2026-11-03", "Team Nord Sprint {JJJJ}.{NN}"
+	got, err := api.SetupCreateTeam(req)
+	if err != nil {
+		t.Fatalf("the short form must be joined with the pattern: %v", err)
+	}
+	data, err := storage.NewRepository(api.DataDir()).Load(got.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, s := range data.Sprints {
+		ids = append(ids, s.ID)
+	}
+	want := []string{"Team Nord Sprint 2026.17", "Team Nord Sprint 2026.18", "Team Nord Sprint 2026.19"}
+	if strings.Join(ids, "|") != strings.Join(want, "|") {
+		t.Fatalf("sprints = %v, want %v", ids, want)
+	}
+}
+
 func TestSetupCreateTeamNamingPattern(t *testing.T) {
 	api := newAPI(t, t.TempDir())
 	req := newTeamRequest(SourceNone)
