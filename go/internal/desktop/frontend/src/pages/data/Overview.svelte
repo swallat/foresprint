@@ -12,8 +12,7 @@
   import DataTabs from './DataTabs.svelte';
   import { fileState, shortFile } from './util';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let incoming = $state<Change[]>([]);
   let unsaved = $state<UnsavedFile[]>([]);

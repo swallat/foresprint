@@ -11,8 +11,7 @@
   import DataTabs from './DataTabs.svelte';
   import { shortFile } from './util';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   type Mode = 'team' | 'sprint' | 'file';
   const teamFiles = ['team.yaml', 'people.yaml', 'products.yaml', 'projects.yaml', 'tickets.yaml', 'preplan.yaml', 'abwesenheiten.yaml'];

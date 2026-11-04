@@ -6,8 +6,7 @@
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   const repo = 'https://github.com/swallat/foresprint';
 

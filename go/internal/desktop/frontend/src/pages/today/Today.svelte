@@ -11,8 +11,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   // The start page (flows.md section 5): what comes next per sprint, what others changed, what
   // the data check found. Every item leads to the page that handles it; nothing is required and

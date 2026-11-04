@@ -26,6 +26,8 @@
     ondone: (result: CalendarResult, message: string) => void | Promise<void>;
   } = $props();
 
+  // The starting mode follows the kind once; the dialog is opened per change.
+  /* svelte-ignore state_referenced_locally */
   let mode = $state<ChangeMode>(kind === 'remove' ? 'keep' : 'shift');
   let naming = $state<ChangeNaming>('keep');
   let preview = $state<CalendarPreview>();

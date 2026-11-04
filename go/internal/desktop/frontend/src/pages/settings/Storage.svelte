@@ -12,8 +12,7 @@
   // Settings > Storage. The only page with the words of the storage kind (server, branch, merge
   // request, token); everywhere else the window says save, refresh and history.
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let st = $state<StorageSettings>();
   let branches = $state<Branch[]>([]);

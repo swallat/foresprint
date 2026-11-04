@@ -20,8 +20,7 @@
   import Timeline from './Timeline.svelte';
   import { addDays, windowOf, type Range } from './timeline';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let view = $state<ProjectsView | undefined>();
   let problem = $state('');

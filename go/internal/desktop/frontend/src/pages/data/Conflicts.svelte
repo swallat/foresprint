@@ -11,8 +11,7 @@
   import DataTabs from './DataTabs.svelte';
   import { decisionsOf, entryKey, openCount, shortFile, type Choice } from './util';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let conflicts = $state<Conflict[]>([]);
   let choices = $state<Record<string, Choice>>({});

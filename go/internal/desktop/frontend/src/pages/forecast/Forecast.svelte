@@ -16,8 +16,7 @@
   import WhenDone from './WhenDone.svelte';
   import ForecastChart from './ForecastChart.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let view = $state<ForecastView>();
   let problem = $state('');

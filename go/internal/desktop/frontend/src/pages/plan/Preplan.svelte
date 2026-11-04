@@ -17,8 +17,7 @@
   import WhatIfCard from './WhatIfCard.svelte';
   import type { PageProps } from '../../lib/routes';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   const model = new PlanModel();
   $effect(() => {

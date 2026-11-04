@@ -13,8 +13,7 @@
   import FieldMapping from './FieldMapping.svelte';
   import PackageImport from './PackageImport.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let applied = $state<TrackerSettings>();
   let draft = $state<TrackerSettings>();

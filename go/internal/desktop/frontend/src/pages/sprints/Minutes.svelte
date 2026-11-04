@@ -13,8 +13,7 @@
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { MinutesRow, MinutesText } from '../../lib/types.review';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let all = $state(false);
   let rows = $state<MinutesRow[]>([]);

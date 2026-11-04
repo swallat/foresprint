@@ -6,8 +6,7 @@
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   async function change(apply: () => Promise<void>): Promise<void> {
     try {
