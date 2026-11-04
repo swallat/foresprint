@@ -11,8 +11,7 @@
   import type { ProjectsView } from '../../lib/types.projects';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   // The team's own numbers fill the examples; without a forecast the formulas stand alone.
   let view = $state<ForecastView>();

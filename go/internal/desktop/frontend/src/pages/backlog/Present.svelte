@@ -13,8 +13,7 @@
   import { loadBacklog, present, store, allTickets, t } from './store.svelte';
   import { openExternal } from './external';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let detail = $state<TicketDetail | undefined>();
   let tracker = $state<TrackerDetails | undefined>();

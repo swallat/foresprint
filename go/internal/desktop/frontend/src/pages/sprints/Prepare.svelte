@@ -19,8 +19,7 @@
   import type { AbsenceColumn, ReadyItem, SprintPrepare } from '../../lib/types.sprints';
   import type { AbsencePeriod, PeopleView } from '../../lib/types.team';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let info = $state<SprintPrepare | undefined>();
   let error = $state('');

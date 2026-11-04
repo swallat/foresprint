@@ -15,8 +15,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import type { NextStep, SprintOverview, SprintRow } from '../../lib/types.sprints';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let data = $state<SprintOverview | undefined>();
   let error = $state('');

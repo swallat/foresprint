@@ -20,8 +20,7 @@
   import type { FreezeInput, PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   const model = new PlanModel();
   /** Amounts and commitment without tickets, typed during the planning. */

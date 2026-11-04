@@ -15,8 +15,7 @@
   import Icon from '../../lib/Icon.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let applied = $state<TeamSettings>();
   let draft = $state<TeamSettings>();

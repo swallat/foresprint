@@ -15,8 +15,7 @@
   import PageHead from '../../lib/ui/PageHead.svelte';
   import EndProductPanel from './EndProductPanel.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let view = $state<ProductsView>();
   let failed = $state('');
