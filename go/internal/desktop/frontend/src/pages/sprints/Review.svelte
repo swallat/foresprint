@@ -17,8 +17,7 @@
   import StageNav from '../../lib/sprints/StageNav.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let info = $state<SprintReview | undefined>();
   let error = $state('');

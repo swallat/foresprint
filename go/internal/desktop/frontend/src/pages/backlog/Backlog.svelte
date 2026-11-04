@@ -16,8 +16,7 @@
   import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   const view = $derived(store.view);
   const packages = $derived(view?.source === 'packages');

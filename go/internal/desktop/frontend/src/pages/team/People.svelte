@@ -18,8 +18,7 @@
   import OwnersCard from './OwnersCard.svelte';
   import TimesPanel from './TimesPanel.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   let view = $state<PeopleView>();
   let absences = $state<AbsencePeriod[]>([]);

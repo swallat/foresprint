@@ -21,10 +21,14 @@
   // The form starts from the project once; later changes of the page data do not overwrite input.
   /* svelte-ignore state_referenced_locally */
   const p = project;
+  /* svelte-ignore state_referenced_locally */
+  const today = view.today;
+  /* svelte-ignore state_referenced_locally */
+  const soleProduct = view.products.length === 1 ? [view.products[0]!.id] : [];
   let name = $state(p?.name ?? '');
-  let products = $state<string[]>(p?.products ?? (view.products.length === 1 ? [view.products[0]!.id] : []));
+  let products = $state<string[]>(p?.products ?? soleProduct);
   let start = $state(p?.start ?? '');
-  let end = $state(p?.end ?? addMonths(view.today, 3));
+  let end = $state(p?.end ?? addMonths(today, 3));
   let booked = $state(p?.booked === null || p?.booked === undefined ? '' : String(p.booked));
   let used = $state(p?.usedHand === null || p?.usedHand === undefined ? '' : String(p.usedHand));
   let contact = $state(p?.contact ?? '');
@@ -40,7 +44,7 @@
   let ruleValid = $state(true);
   let note = $state(p?.note ?? '');
   let milestones = $state<MilestoneInput[]>(
-    p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets, light: m.hand })) : [{ id: '', name: '', date: addMonths(view.today, 2), tickets: [], light: '' }],
+    p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets, light: m.hand })) : [{ id: '', name: '', date: addMonths(today, 2), tickets: [], light: '' }],
   );
   let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.booked > 0).map((m) => [m.month, String(m.booked)])));
   let error = $state('');

@@ -7,8 +7,7 @@
   import DemoChoice from '../../lib/ui/DemoChoice.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 </script>
 
 <PageHead

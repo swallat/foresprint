@@ -15,8 +15,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
-  let { params }: PageProps = $props();
-  void params;
+  let {}: PageProps = $props();
 
   // The first-start wizard (flows.md F1 and D1). Short steps; the person can go back at any
   // time. Nothing is written before the step that needs it, and a token is never kept here: it
