@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy – Foresprint</title>
+<meta name="description" content="Privacy Policy (Datenschutzerklärung) of foresprint.ing and the Foresprint application">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://foresprint.ing/privacy.html">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/iosevka-aile-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Iosevka Aile";font-weight:400;font-display:swap;src:url(assets/fonts/iosevka-aile-latin-400.woff2) format("woff2")}
+@font-face{font-family:"Iosevka Aile";font-weight:600;font-display:swap;src:url(assets/fonts/iosevka-aile-latin-600.woff2) format("woff2")}
+@font-face{font-family:"Iosevka";font-weight:400;font-display:swap;src:url(assets/fonts/iosevka-latin-400.woff2) format("woff2")}
+@font-face{font-family:"Iosevka";font-weight:600;font-display:swap;src:url(assets/fonts/iosevka-latin-600.woff2) format("woff2")}
+:root{
+  --bg:#f2f3f8;--surface:#fff;--surface-2:#e9ebf3;--border:#c6cad9;--border-control:#858aa3;
+  --text:#1b1d2a;--text-muted:#4f546f;--primary:#4646d4;--on-primary:#fff;--secondary:#8633d1;
+  --forecast:#0a7660;--forecast-weak:#dff3ee;--primary-weak:#e6e6fb;--highlight:#ffc233;
+  --ok:#157443;--warn:#835200;--bad:#b42536;--warn-weak:#fdf0d3;--bad-weak:#fbe3e6;--ok-weak:#dcf2e5;
+  --code-bg:#1b1d2a;--code-text:#e8eaf4;
+  --sans:"Iosevka Aile",ui-sans-serif,system-ui,sans-serif;--mono:"Iosevka",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101118;--surface:#181a24;--surface-2:#212433;--border:#2d3144;--border-control:#6b7190;
+  --text:#e8eaf4;--text-muted:#9aa0bf;--primary:#8585ff;--on-primary:#101118;--secondary:#bb7bff;
+  --forecast:#2ad9b5;--forecast-weak:#12302b;--primary-weak:#25274a;
+  --ok:#3dc07c;--warn:#f0a81c;--bad:#ff6b7a;--warn-weak:#3a2d10;--bad-weak:#3d1c23;--ok-weak:#143325;
+  --code-bg:#0b0c11;--code-text:#e8eaf4}}
+:root[data-theme="dark"]{
+  --bg:#101118;--surface:#181a24;--surface-2:#212433;--border:#2d3144;--border-control:#6b7190;
+  --text:#e8eaf4;--text-muted:#9aa0bf;--primary:#8585ff;--on-primary:#101118;--secondary:#bb7bff;
+  --forecast:#2ad9b5;--forecast-weak:#12302b;--primary-weak:#25274a;
+  --ok:#3dc07c;--warn:#f0a81c;--bad:#ff6b7a;--warn-weak:#3a2d10;--bad-weak:#3d1c23;--ok-weak:#143325;
+  --code-bg:#0b0c11;--code-text:#e8eaf4}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--primary)}
+a:focus-visible,button:focus-visible,summary:focus-visible,.matrix:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+html{scroll-padding-top:80px}
+.i{width:20px;height:20px;fill:currentColor;flex:none;vertical-align:-4px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+@media(min-width:720px){.wrap{padding:0 32px}}
+.mono{font-family:var(--mono)}
+h1,h2,h3{font-weight:600;line-height:1.15;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5.2vw,3.5rem)}
+h2{font-size:clamp(1.5rem,3.4vw,2.25rem)}
+h3{font-size:1.0625rem;line-height:1.3}
+p{margin:0;text-wrap:pretty}
+h1,h2,h3{text-wrap:balance}
+.lead{font-size:1.125rem;color:var(--text-muted);max-width:60ch}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:8px;top:-60px;background:var(--surface);padding:8px 12px;border-radius:6px;z-index:10}
+.skip:focus{top:8px}
+
+/* header */
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.top .wrap{display:flex;align-items:center;gap:16px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font:600 1.0625rem var(--mono);color:var(--text);text-decoration:none}
+.brand img{width:36px;height:36px}
+nav.main{margin-left:auto;display:flex;gap:4px;align-items:center}
+nav.main a{color:var(--text);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:.9375rem}
+nav.main a:hover{background:var(--surface-2)}
+@media(max-width:900px){nav.main a.opt{display:none}}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 16px;border-radius:6px;border:1px solid var(--border-control);background:transparent;color:var(--text);font:600 .9375rem var(--sans);text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{min-height:32px;padding:0 12px;font-size:.875rem}
+
+/* hero */
+.hero{padding:56px 0 24px}
+.hero-grid{display:grid;gap:32px;grid-template-columns:1fr;align-items:center}
+@media(min-width:900px){.hero-grid{grid-template-columns:1fr 340px}}
+.lockup{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.lockup img{width:72px;height:72px}
+.lockup .word{font:600 clamp(2rem,4vw,2.75rem)/1 var(--mono);letter-spacing:-.02em}
+.bigmark{display:none}
+@media(min-width:900px){.bigmark{display:block}.bigmark img{width:100%;height:auto;filter:drop-shadow(0 24px 40px color-mix(in srgb,var(--primary) 35%,transparent))}}
+.hero h1{max-width:22ch;margin:0 0 20px}
+.nb{white-space:nowrap}
+.hero h1 em{font-style:normal;color:var(--primary)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero .meta{margin-top:16px;font:400 .8125rem var(--mono);color:var(--text-muted)}
+
+/* matrix illustration */
+.matrix{margin-top:48px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;overflow-x:auto}
+.matrix h2{font-size:1rem;margin-bottom:4px}
+.matrix .cap{color:var(--text-muted);font-size:.875rem;margin-bottom:16px}
+table.m{border-collapse:collapse;width:100%;min-width:640px;font:400 .875rem var(--mono)}
+table.m th,table.m td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+table.m th:first-child,table.m td:first-child{text-align:left}
+table.m thead th{font:600 .75rem var(--mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+table.m td.z{color:var(--text-muted)}
+table.m td.dot span{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+table.m tfoot td,table.m tfoot th{border-bottom:0;font-weight:600}
+table.m tr.plan td,table.m tr.plan th{color:var(--forecast)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font:600 .75rem var(--mono);background:var(--forecast-weak);color:var(--forecast)}
+.chip.warn{background:var(--warn-weak);color:var(--warn)}
+.chip.ok{background:var(--ok-weak);color:var(--ok)}
+.chip.bad{background:var(--bad-weak);color:var(--bad)}
+
+section{padding:72px 0}
+section.alt{background:var(--surface);border-block:1px solid var(--border)}
+.sec-head{display:grid;gap:12px;margin-bottom:40px}
+.sec-head .lead{max-width:62ch}
+
+/* ladder */
+.ladder{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:760px){.ladder{grid-template-columns:repeat(4,1fr)}}
+.rung{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;display:grid;gap:8px;align-content:start}
+section.alt .rung{background:var(--bg)}
+.rung .n{font:600 .75rem var(--mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.rung .who{font:600 1.375rem/1.2 var(--mono)}
+.rung p{color:var(--text-muted);font-size:.9375rem}
+.rung.hot{border:2px solid var(--primary)}
+.rung.hot .n{color:var(--primary)}
+.rung .tag{display:inline-flex;gap:6px;align-items:center;font:600 .8125rem var(--sans);color:var(--ok)}
+.rung.hot .tag{color:var(--primary)}
+
+.split{display:grid;gap:32px;grid-template-columns:1fr;align-items:center}
+@media(min-width:900px){.split{grid-template-columns:1fr 1fr;gap:56px}}
+.split .txt{display:grid;gap:16px;align-content:start}
+.ticks{margin:0;padding:0;list-style:none;display:grid;gap:10px;color:var(--text-muted)}
+.ticks li{display:flex;gap:10px}
+.ticks .i{color:var(--forecast);width:20px;height:20px;margin-top:3px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;display:grid;gap:4px}
+section.alt .panel{background:var(--bg)}
+.panel .cap{font:600 .75rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px}
+.kv{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 0;border-top:1px solid var(--border)}
+.kv span:first-child{color:var(--text-muted);font-size:.9375rem;min-width:11rem}
+.kv b{font:600 1.125rem var(--mono)}
+.kv small{font:400 .8125rem var(--mono);color:var(--text-muted)}
+.band{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;background:var(--primary-weak);border:1px solid var(--primary);border-radius:10px;padding:24px}
+.band .i{width:40px;height:40px;color:var(--primary)}
+.band h2{margin-bottom:12px}
+@media(max-width:560px){.band{grid-template-columns:1fr}}
+/* features */
+.cols{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){.cols.c3{grid-template-columns:repeat(3,1fr)}.cols.c2{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;display:grid;gap:8px;align-content:start}
+section.alt .card{background:var(--bg)}
+.card .i{color:var(--primary);width:24px;height:24px}
+.card p{color:var(--text-muted);font-size:.9375rem}
+
+/* shots */
+.shot{display:grid;gap:24px;align-items:center;grid-template-columns:1fr;margin-top:56px}
+@media(min-width:900px){.shot{grid-template-columns:5fr 7fr;gap:48px}.shot.rev{grid-template-columns:7fr 5fr}.shot.rev .txt{order:2}}
+.shot:first-of-type{margin-top:0}
+.shot .txt{display:grid;gap:12px}
+.shot .txt p{color:var(--text-muted)}
+.shot ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;color:var(--text-muted);font-size:.9375rem}
+.shot li{display:flex;gap:8px}
+.shot li .i{color:var(--forecast);width:18px;height:18px;margin-top:3px}
+.frame{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:0 1px 0 var(--border)}
+.frame img{display:block;width:100%;height:auto}
+.note{margin-top:24px;font-size:.8125rem;color:var(--text-muted);font-family:var(--mono)}
+
+/* principles list */
+.keys{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:760px){.keys{grid-template-columns:repeat(2,1fr)}}
+.key{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--border)}
+.key .i{color:var(--primary);width:24px;height:24px;margin-top:2px}
+.key p{color:var(--text-muted);font-size:.9375rem}
+
+/* install */
+.install{display:grid;gap:24px;grid-template-columns:1fr}
+@media(min-width:900px){.install{grid-template-columns:7fr 5fr}}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tabs button{min-height:36px;padding:0 14px;border-radius:6px;border:1px solid var(--border-control);background:transparent;color:var(--text);font:600 .875rem var(--sans);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--primary-weak);border-color:var(--primary);color:var(--primary)}
+.code{position:relative;background:var(--code-bg);color:var(--code-text);border-radius:10px;padding:16px 56px 16px 16px;font:400 .8125rem/1.6 var(--mono);overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.code button{position:absolute;top:8px;right:8px;min-height:32px;min-width:32px;border-radius:6px;border:1px solid #6b7190;background:transparent;color:var(--code-text);cursor:pointer;display:grid;place-items:center}
+.code button:hover{background:#2d3144}
+.dl{display:grid;gap:8px}
+.dl a{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);text-decoration:none;font-size:.9375rem}
+section.alt .dl a{background:var(--bg)}
+.dl a:hover{border-color:var(--primary)}
+.dl a .i{color:var(--primary)}
+.dl a small{margin-left:auto;font:400 .75rem var(--mono);color:var(--text-muted)}
+.fine{margin-top:16px;font-size:.875rem;color:var(--text-muted);max-width:62ch}
+
+footer{padding:40px 0 56px;border-top:1px solid var(--border);color:var(--text-muted);font-size:.875rem}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+footer a{color:var(--text-muted)}
+footer .sp{margin-left:auto}
+
+/* legal pages */
+.legal{padding:48px 0 72px}
+.legal .wrap{max-width:760px}
+.legal h1{font-size:clamp(1.75rem,4vw,2.5rem);margin-bottom:8px}
+.legal .lang{margin:0 0 32px;color:var(--text-muted);font-size:.9375rem}
+.legal section{margin-top:40px;padding-top:32px;border-top:1px solid var(--border)}
+.legal section:first-of-type{margin-top:24px;border-top:0;padding-top:0}
+.legal h2{font-size:clamp(1.25rem,2.6vw,1.625rem);margin:32px 0 12px}
+.legal h3{font-size:1.125rem;margin:28px 0 8px}
+.legal h4{font-size:1rem;margin:20px 0 6px}
+.legal h5{font-size:1rem;font-weight:600;color:var(--text-muted);margin:16px 0 6px}
+.legal p,.legal ul{margin:0 0 12px;max-width:68ch}
+.legal ul{padding-left:1.25rem}
+.legal li{margin-bottom:6px}
+.legal section>h2:first-child{margin-top:0}
+.legal code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);padding:1px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content / Zum Inhalt</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="assets/logo.svg" alt="" width="36" height="36">Foresprint</a>
+    <nav class="main" aria-label="Main">
+      <a href="./">Home / Startseite</a>
+    </nav>
+  </div>
+</header>
+<main id="main" class="legal">
+<div class="wrap">
+<h1>Privacy Policy</h1>
+<p class="lang">English version first, <a href="#de" lang="de">deutsche Fassung weiter unten</a>.</p>
+<section lang="en" id="en">
+<h2>Privacy Policy</h2>
+<h3>1. Who is responsible</h3>
+<p>The controller for the processing of personal data on this website is:</p>
+<p>Sebastian Wallat<br>c/o Autorenglück #23597<br>Albert-Einstein-Str. 47<br>02977 Hoyerswerda<br>Germany</p>
+<p>E-mail: <a href="mailto:hello@voidyapp.ing">hello@voidyapp.ing</a></p>
+<h3>2. What this policy covers</h3>
+<p>This policy describes which personal data is processed when you visit foresprint.ing, and what the Foresprint desktop application does with data (section 7). The website is a static information page. It does not use cookies, analytics, tracking tools, contact forms, user accounts, or content loaded from third-party servers; fonts and icons are served from the site itself.</p>
+<h3>3. Hosting</h3>
+<p>The website is served by GitHub Pages, a service of GitHub Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. When you open a page, your browser connects to GitHub&rsquo;s servers, which process technical connection data such as your IP address, the date and time of the request, the requested page, and browser and operating system details. GitHub processes this data to deliver the site, possibly on servers in the USA. Where data is transferred outside the European Economic Area, this relies on the safeguards that the provider uses under Chapter V GDPR.</p>
+<p>The legal basis is Art. 6(1)(f) GDPR: we have a legitimate interest in delivering this website securely and reliably.</p>
+<h3>4. Domain name resolution (DNS)</h3>
+<p>The domain of this website is resolved through the DNS service of Cloudflare. Cloudflare is used for name resolution only (&ldquo;DNS only&rdquo;); the traffic of the website does not run through Cloudflare. When the domain name is resolved, technically necessary connection data (e.g., the IP address of the requesting party) may be processed by the name servers. The legal basis is Art. 6(1)(f) GDPR (legitimate interest in the reliable availability of the website).</p>
+<h3>5. Server log data</h3>
+<p>Each request to the website is logged by the hosting provider. Such logs typically contain the IP address, the time of the request, the requested address, the referring page, and the browser and operating system in use. We do not have access to these logs and do not combine this data with other sources. The legal basis is Art. 6(1)(f) GDPR: logging is needed to run and protect the service.</p>
+<h3>6. Contacting us</h3>
+<p>If you write to us by e-mail, we process your message and the details you give (such as your name and e-mail address) in order to answer you. We do not pass this on to others without your consent. The legal basis is Art. 6(1)(b) GDPR where your message relates to a contract or pre-contractual steps, and otherwise Art. 6(1)(f) GDPR (our interest in handling enquiries). We delete your message once your matter is resolved, unless a statutory retention duty applies.</p>
+<h3>7. The application</h3>
+<p>This section concerns the Foresprint desktop application, not a visit to this website. The application stores its data locally and in the Git repository that your team sets up for it, and does not send it to the operator of this website. It connects only to the Jira and Git servers that you set up yourself.</p>
+<p>In addition, the application checks once a day whether a new version is available. For this it retrieves the list of releases from GitHub (see the section &ldquo;Hosting&rdquo;); GitHub processes technically necessary connection data in the process, in particular your IP address. Nothing is installed automatically. The check can be switched off with <code>foresprint update --auto off</code>. The legal basis is Art. 6(1)(f) GDPR (legitimate interest in informing users about new versions).</p>
+<h3>8. Recipients and storage period</h3>
+<p>Your data is passed on only to the service providers named above, to the extent they need it to deliver the service, or where the law requires or permits disclosure. We keep personal data only as long as the purpose requires it or a statutory retention duty applies; server logs are kept by the hosting provider under its own retention rules.</p>
+<h3>9. Your rights</h3>
+<p>Under the GDPR you have the right to:</p>
+<ul>
+<li>obtain confirmation of whether we process personal data about you, and access to that data (Art. 15);</li>
+<li>have inaccurate data corrected (Art. 16);</li>
+<li>have your data erased where the legal conditions are met (Art. 17);</li>
+<li>have processing restricted, for example while the accuracy of data is being checked or while an objection is being assessed (Art. 18);</li>
+<li>receive data you provided in a common, machine-readable format, where processing is based on consent or a contract (Art. 20);</li>
+<li>withdraw consent at any time with effect for the future, without affecting earlier processing (Art. 7(3));</li>
+<li>complain to a supervisory authority, in particular in the member state of your habitual residence, your place of work, or the place of the alleged infringement (Art. 77).</li>
+</ul>
+<p>To exercise these rights, write to the e-mail address in section 1.</p>
+<h4>Right to object (Art. 21 GDPR)</h4>
+<p>Where we process your data on the basis of Art. 6(1)(f) GDPR, you may object at any time, on grounds relating to your particular situation. We will then stop processing unless we can show compelling legitimate grounds that override your interests, rights and freedoms, or the processing serves to establish, exercise or defend legal claims. We do not use personal data for direct marketing or profiling.</p>
+<h3>10. Security</h3>
+<p>The website is delivered over an encrypted HTTPS connection, so that the data exchanged between your browser and the server cannot be read by third parties on the way. You can recognise this by &ldquo;https://&rdquo; and the lock symbol in your browser. Please note that e-mail in general cannot be protected completely against access by third parties.</p>
+<h3>11. Changes</h3>
+<p>We may update this policy when the website or the application changes or when legal requirements change. The current version is the one published on this page.</p>
+</section>
+<section lang="de" id="de">
+<h2>Datenschutzerklärung (deutsche Fassung)</h2>
+<h3>1. Wer ist verantwortlich</h3>
+<p>Verantwortlich für die Verarbeitung personenbezogener Daten auf dieser Website ist:</p>
+<p>Sebastian Wallat<br>c/o Autorenglück #23597<br>Albert-Einstein-Str. 47<br>02977 Hoyerswerda<br>Deutschland</p>
+<p>E-Mail: <a href="mailto:hello@voidyapp.ing">hello@voidyapp.ing</a></p>
+<h3>2. Geltungsbereich</h3>
+<p>Diese Erklärung beschreibt, welche personenbezogenen Daten beim Besuch von foresprint.ing verarbeitet werden und was die Desktop-Anwendung Foresprint mit Daten macht (Abschnitt 7). Die Website ist eine statische Informationsseite. Sie setzt keine Cookies, keine Analyse- oder Tracking-Werkzeuge, keine Kontaktformulare und keine Nutzerkonten ein und lädt keine Inhalte von fremden Servern nach; Schriften und Symbole stammen von der Seite selbst.</p>
+<h3>3. Hosting</h3>
+<p>Die Website wird über GitHub Pages ausgeliefert, einen Dienst der GitHub Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf einer Seite verbindet sich Ihr Browser mit den Servern von GitHub. Diese verarbeiten technische Verbindungsdaten wie Ihre IP-Adresse, Datum und Uhrzeit der Anfrage, die abgerufene Seite sowie Angaben zu Browser und Betriebssystem. GitHub verarbeitet diese Daten, um die Seite auszuliefern, gegebenenfalls auf Servern in den USA. Soweit Daten außerhalb des Europäischen Wirtschaftsraums verarbeitet werden, stützt sich das auf die Garantien, die der Anbieter nach Kapitel V DSGVO einsetzt.</p>
+<p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: Wir haben ein berechtigtes Interesse an einer sicheren und zuverlässigen Bereitstellung dieser Website.</p>
+<h3>4. Namensauflösung (DNS)</h3>
+<p>Die Domain dieser Website wird über den DNS-Dienst von Cloudflare aufgelöst. Cloudflare dient dabei ausschließlich der Namensauflösung („DNS only“); der Datenverkehr der Website läuft nicht über Cloudflare. Bei der Auflösung des Domainnamens können technisch notwendige Verbindungsdaten (z. B. IP-Adresse der anfragenden Stelle) bei den Nameservern anfallen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer zuverlässigen Erreichbarkeit der Website).</p>
+<h3>5. Server-Protokolldaten</h3>
+<p>Jede Anfrage an die Website wird vom Hosting-Anbieter protokolliert. Solche Protokolle enthalten üblicherweise die IP-Adresse, den Zeitpunkt der Anfrage, die aufgerufene Adresse, die verweisende Seite sowie Browser und Betriebssystem. Wir haben auf diese Protokolle keinen Zugriff und führen die Daten nicht mit anderen Quellen zusammen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: Die Protokollierung ist für Betrieb und Schutz des Dienstes nötig.</p>
+<h3>6. Kontaktaufnahme</h3>
+<p>Wenn Sie uns per E-Mail schreiben, verarbeiten wir Ihre Nachricht und Ihre Angaben (etwa Name und E-Mail-Adresse), um Ihnen zu antworten. Ohne Ihre Einwilligung geben wir sie nicht weiter. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, wenn sich Ihre Nachricht auf einen Vertrag oder vorvertragliche Schritte bezieht, sonst Art. 6 Abs. 1 lit. f DSGVO (unser Interesse an der Bearbeitung von Anfragen). Wir löschen Ihre Nachricht, sobald Ihr Anliegen erledigt ist, soweit keine gesetzliche Aufbewahrungspflicht besteht.</p>
+<h3>7. Die Anwendung</h3>
+<p>Dieser Abschnitt betrifft die Desktop-Anwendung Foresprint, nicht den Besuch dieser Website. Die Anwendung speichert ihre Daten lokal und in dem Git-Repository, das Ihr Team dafür einrichtet, und sendet sie nicht an den Betreiber dieser Website. Sie verbindet sich nur mit den Jira- und Git-Servern, die Sie selbst einrichten.</p>
+<p>Zusätzlich prüft die Anwendung einmal täglich, ob eine neue Version vorliegt. Dabei wird bei GitHub (siehe Abschnitt „Hosting“) die Liste der Veröffentlichungen abgerufen; GitHub verarbeitet dabei technisch notwendige Verbindungsdaten, insbesondere Ihre IP-Adresse. Es wird nichts von selbst installiert. Die Prüfung lässt sich mit <code>foresprint update --auto off</code> abschalten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse, Nutzer über neue Versionen zu informieren).</p>
+<h3>8. Empfänger und Speicherdauer</h3>
+<p>Ihre Daten gehen nur an die oben genannten Dienstleister, soweit diese sie zur Erbringung ihres Dienstes brauchen, oder wenn das Gesetz eine Weitergabe verlangt oder erlaubt. Personenbezogene Daten bewahren wir nur so lange auf, wie es der Zweck erfordert oder eine gesetzliche Aufbewahrungspflicht besteht; Server-Protokolle speichert der Hosting-Anbieter nach seinen eigenen Fristen.</p>
+<h3>9. Ihre Rechte</h3>
+<p>Nach der DSGVO haben Sie das Recht,</p>
+<ul>
+<li>zu erfahren, ob wir personenbezogene Daten über Sie verarbeiten, und Auskunft darüber zu erhalten (Art. 15);</li>
+<li>unrichtige Daten berichtigen zu lassen (Art. 16);</li>
+<li>Ihre Daten löschen zu lassen, wenn die gesetzlichen Voraussetzungen vorliegen (Art. 17);</li>
+<li>die Verarbeitung einschränken zu lassen, etwa solange die Richtigkeit von Daten geprüft oder ein Widerspruch beurteilt wird (Art. 18);</li>
+<li>Daten, die Sie bereitgestellt haben, in einem gängigen, maschinenlesbaren Format zu erhalten, wenn die Verarbeitung auf Einwilligung oder Vertrag beruht (Art. 20);</li>
+<li>eine Einwilligung jederzeit mit Wirkung für die Zukunft zu widerrufen, ohne dass frühere Verarbeitung dadurch unrechtmäßig wird (Art. 7 Abs. 3);</li>
+<li>sich bei einer Aufsichtsbehörde zu beschweren, insbesondere in dem Mitgliedstaat Ihres gewöhnlichen Aufenthalts, Ihres Arbeitsplatzes oder des Orts des mutmaßlichen Verstoßes (Art. 77).</li>
+</ul>
+<p>Um diese Rechte auszuüben, schreiben Sie an die E-Mail-Adresse in Abschnitt 1.</p>
+<h4>Widerspruchsrecht (Art. 21 DSGVO)</h4>
+<p>Verarbeiten wir Ihre Daten auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO, können Sie aus Gründen, die sich aus Ihrer besonderen Situation ergeben, jederzeit widersprechen. Wir beenden die Verarbeitung dann, es sei denn, wir weisen zwingende schutzwürdige Gründe nach, die Ihre Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Personenbezogene Daten nutzen wir weder für Direktwerbung noch für Profiling.</p>
+<h3>10. Sicherheit</h3>
+<p>Die Website wird über eine verschlüsselte HTTPS-Verbindung ausgeliefert, sodass Dritte die zwischen Ihrem Browser und dem Server ausgetauschten Daten unterwegs nicht mitlesen können. Erkennbar ist das an „https://“ und dem Schloss-Symbol im Browser. Bitte beachten Sie, dass sich E-Mail generell nicht vollständig gegen den Zugriff Dritter schützen lässt.</p>
+<h3>11. Änderungen</h3>
+<p>Wir können diese Erklärung anpassen, wenn sich Website oder Anwendung oder die Rechtslage ändern. Maßgeblich ist die jeweils auf dieser Seite veröffentlichte Fassung.</p>
+</section>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Sebastian Wallat · <a href="https://github.com/swallat/foresprint/blob/main/LICENSE">EUPL-1.2</a></span>
+    <a href="https://github.com/swallat/foresprint">GitHub</a>
+    <a href="https://github.com/swallat/foresprint/tree/main/docs">Documentation</a>
+    <a href="https://github.com/swallat/foresprint/issues">Issues</a>
+    <a href="impressum.html">Imprint (Impressum)</a>
+    <a href="privacy.html">Privacy Policy (Datenschutz)</a>
+    <a href="https://github.com/swallat/foresprint/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
+    <span class="sp">Icons: Material Symbols · Fonts: Iosevka (OFL)</span>
+  </div>
+</footer>
+</body>
+</html>
