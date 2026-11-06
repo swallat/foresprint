@@ -173,7 +173,8 @@
   }
   function listOf(zone: string): BacklogTicket[] {
     if (zone === 'backlog') return items;
-    if (zone.startsWith('lane:')) return laneTickets(lanes.find((l) => l.sprint === zone.slice(5))?.tickets ?? []);
+    // The whole lane, hidden tickets too: top and bottom must be the real ones.
+    if (zone.startsWith('lane:')) return sortTickets(lanes.find((l) => l.sprint === zone.slice(5))?.tickets ?? [], ui.sort);
     return [];
   }
   function rowOver(e: DragEvent, tk: BacklogTicket): void {

@@ -15,6 +15,7 @@
     sorts = ALL_SORTS,
     groups = true,
     layout = false,
+    groupNone = true,
   }: {
     products: Named[];
     projects: Named[];
@@ -23,6 +24,8 @@
     sorts?: Sort[];
     groups?: boolean;
     layout?: boolean;
+    /** False where the list is always grouped (Pre-plan: by project unless by product). */
+    groupNone?: boolean;
   } = $props();
 
   const sortNames: Record<Sort, string> = $derived({
@@ -67,8 +70,8 @@
   {/if}
   {#if groups}
     <span class="small muted gap">{t('Group by')}</span>
-    {#each [['none', t('Nothing')], ['project', t('Project')], ...(multi ? [['product', t('Product')]] : [])] as [value, label] (value)}
-      <button type="button" class="chip filter" class:on={ui.group === value} aria-pressed={ui.group === value} onclick={() => (ui.group = value as Group)}>{label}</button>
+    {#each [...(groupNone ? [['none', t('Nothing')]] : []), ['project', t('Project')], ...(multi ? [['product', t('Product')]] : [])] as [value, label] (value)}
+      <button type="button" class="chip filter" class:on={ui.group === value || (!groupNone && ui.group === 'none' && value === 'project')} aria-pressed={ui.group === value || (!groupNone && ui.group === 'none' && value === 'project')} onclick={() => (ui.group = value as Group)}>{label}</button>
     {/each}
   {/if}
   {#if active}

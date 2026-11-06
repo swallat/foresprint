@@ -317,7 +317,7 @@
           </thead>
           <tbody>
             {@render group_(listed)}
-            {#if addedRows.length > 0}
+            {#if shownRows(addedRows).length > 0}
               <tr class="sum"><td colspan="6"><Icon name="call_received" size={14} /> {t('Pulled in after the planning')} <span class="small muted">{t('(new in the sprint since freezing, not part of the commitment)')}</span></td></tr>
               {@render group_(addedRows)}
             {/if}

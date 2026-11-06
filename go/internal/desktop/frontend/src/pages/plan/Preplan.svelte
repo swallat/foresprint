@@ -247,7 +247,7 @@
       </div>
       {#if d.tickets.length > 0}
         <div class="filters" data-tour="preplan-filters">
-          <TicketFilter products={d.products} projects={d.projects} multi={d.multiProduct} groups={d.multiProduct} />
+          <TicketFilter products={d.products} projects={d.projects} multi={d.multiProduct} groups={d.multiProduct} groupNone={false} />
           {#if hiddenN > 0 && byProject.length > 0}<span class="small muted">{t('{n} hidden by the filters', { n: hiddenN })}</span>{/if}
         </div>
       {/if}

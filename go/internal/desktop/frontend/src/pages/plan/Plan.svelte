@@ -182,7 +182,7 @@
       ctx = null;
       return;
     }
-    const list = ctxIn === 'sprint' ? laneShown : candidates;
+    const list = ctxIn === 'sprint' ? lane : byRank(allCandidates);
     ctx = null;
     if (!canReorder) return;
     const others = list.filter((x) => x.key !== key);
@@ -493,8 +493,8 @@
       <span class="data">{t('Sprint {sprint}', { sprint: d.sprint })}</span>
     </button>
     <button class="ctx-item" type="button" role="menuitem" disabled={ctxIn === 'candidates'} onclick={() => ctxMove('candidates')}>{t('Candidates')}</button>
-    <button class="ctx-item" type="button" role="menuitem" onclick={() => ctxEdge(true)}>{t('Top of the list')}</button>
-    <button class="ctx-item" type="button" role="menuitem" onclick={() => ctxEdge(false)}>{t('Bottom of the list')}</button>
+    <button class="ctx-item" type="button" role="menuitem" disabled={!canReorder} onclick={() => ctxEdge(true)}>{t('Top of the list')}</button>
+    <button class="ctx-item" type="button" role="menuitem" disabled={!canReorder} onclick={() => ctxEdge(false)}>{t('Bottom of the list')}</button>
   </div>
 {/if}
 
