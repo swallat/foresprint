@@ -67,7 +67,7 @@ func TestReleaseKeepsForeignLock(t *testing.T) {
 	must(t, os.Remove(LockPath(root)))
 	b, _ := Acquire(root, "b", "h", time.Second, time.Now)
 	a.Release() // must not remove b's lock
-	if a.Renew(time.Now) != ErrLockLost {
+	if !errors.Is(a.Renew(time.Now), ErrLockLost) {
 		t.Fatal("renew of a lost lock must fail")
 	}
 	if l, ok := ReadLock(root); !ok || l.Owner != "b" {
