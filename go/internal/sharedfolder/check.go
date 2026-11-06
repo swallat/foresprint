@@ -46,7 +46,10 @@ func Check(root string) []CheckResult {
 	fd, err := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err == nil {
 		fd.Close()
-		_, err2 := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		second, err2 := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		if err2 == nil {
+			second.Close()
+		}
 		add("lock", errors.Is(err2, fs.ErrExist), "")
 	} else {
 		add("lock", false, err.Error())

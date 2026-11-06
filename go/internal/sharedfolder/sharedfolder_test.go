@@ -1,6 +1,7 @@
 package sharedfolder
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -45,7 +46,8 @@ func TestLockExcludesAndExpires(t *testing.T) {
 	// A held lock is reported with its owner after the wait.
 	rel, _ := Acquire(root, "anna", "h", time.Second, time.Now)
 	_, err := Acquire(root, "ben", "h", 50*time.Millisecond, time.Now)
-	if h, ok := err.(*Held); !ok || h.By.Owner != "anna" {
+	var h *Held
+	if !errors.As(err, &h) || h.By.Owner != "anna" {
 		t.Fatalf("got %v", err)
 	}
 	rel()
