@@ -151,6 +151,9 @@ type LostFile struct {
 
 // Labels lists the named states (tags), with what the server knows when it can be reached.
 func (s *Store) Labels(checkServer bool) ([]Label, error) {
+	if _, ok := s.backend().(*folderBackend); ok {
+		return []Label{}, nil // a shared folder has no labels
+	}
 	dir, err := s.folder()
 	if err != nil {
 		return nil, err

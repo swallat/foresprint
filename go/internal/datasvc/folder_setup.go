@@ -68,8 +68,8 @@ func (s *Store) UseSharedFolder(local, shared, person string, create bool) Opene
 	if l == sh || strings.HasPrefix(l, sh+string(filepath.Separator)) || strings.HasPrefix(sh, l+string(filepath.Separator)) {
 		return Opened{Problem: problemOf(git.New(i18n.T("The local copy and the shared folder must be different folders, neither inside the other."), "path", ""))}
 	}
-	if _, err := os.Stat(filepath.Join(local, ".git")); err == nil {
-		return Opened{Problem: problemOf(git.New(i18n.T("The folder {path} is a Git repository already.", "path", local), "path", ""))}
+	if insideGit(local) {
+		return Opened{Problem: problemOf(git.New(i18n.T("The folder {path} is inside a Git repository already. Choose a folder for your copy outside of it.", "path", local), "path", ""))}
 	}
 	if err := os.MkdirAll(local, 0o755); err != nil {
 		return Opened{Problem: problemOf(err)}
@@ -101,4 +101,16 @@ func (s *Store) UseSharedFolder(local, shared, person string, create bool) Opene
 		return Opened{Folder: local, Problem: res.Problem}
 	}
 	return Opened{Folder: local}
+}
+
+// insideGit reports whether dir is, or lies inside, a Git work tree (also one that does not exist yet).
+func insideGit(dir string) bool {
+	for d := dir; ; d = filepath.Dir(d) {
+		if _, err := os.Stat(filepath.Join(d, ".git")); err == nil {
+			return true
+		}
+		if filepath.Dir(d) == d {
+			return false
+		}
+	}
 }

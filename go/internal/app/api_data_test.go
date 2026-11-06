@@ -178,3 +178,30 @@ func TestRecentFoldersMarkInUseAndMissing(t *testing.T) {
 		t.Fatalf("%+v", a.RecentFolders())
 	}
 }
+
+func TestSharedFolderThroughTheAPI(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	shared := t.TempDir()
+	local := filepath.Join(t.TempDir(), "copy")
+	if err := os.MkdirAll(filepath.Join(local, "a"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(local, "a", "team.yaml"), []byte("name: A\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if c := api.CheckSharedFolder(shared); !c.OK || c.HasData {
+		t.Fatalf("check: %+v", c)
+	}
+	if o := api.UseSharedFolder(local, shared, "Anna", true); o.Problem != nil {
+		t.Fatalf("use: %+v", o.Problem)
+	}
+	if st := api.Storage(); st.Kind != datasvc.KindFolder || st.Shared != shared || st.Person != "Anna" || !st.Connected {
+		t.Fatalf("storage: %+v", st)
+	}
+	if res, err := api.Save(); err != nil || res.Outcome != datasvc.OutcomeSaved {
+		t.Fatalf("save: %+v %v", res, err)
+	}
+	if _, err := os.Stat(filepath.Join(shared, "a", "team.yaml")); err != nil {
+		t.Fatal(err)
+	}
+}
