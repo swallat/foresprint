@@ -38,11 +38,17 @@ type cachedInfo struct {
 
 // GetRemoteInfo is the server of the data folder including special cases (see RemoteInfo).
 func GetRemoteInfo(ctx context.Context, path string) (RemoteInfo, error) {
+	return remoteInfo(ctx, path, State)
+}
+
+// remoteInfo is GetRemoteInfo with the way the state is read: the interface asks for the cached
+// one, so that a redraw does not run "git status" twice.
+func remoteInfo(ctx context.Context, path string, state func(context.Context, string) (SyncState, error)) (RemoteInfo, error) {
 	root, err := Root(ctx, path)
 	if err != nil {
 		return RemoteInfo{}, err
 	}
-	current, err := State(ctx, path)
+	current, err := state(ctx, path)
 	if err != nil {
 		return RemoteInfo{}, err
 	}
@@ -102,7 +108,7 @@ func CachedRemoteInfo(ctx context.Context, path string) (RemoteInfo, error) {
 	if ok && time.Since(cached.at) < stateTTL {
 		return cached.info, nil
 	}
-	info, err := GetRemoteInfo(ctx, path)
+	info, err := remoteInfo(ctx, path, CachedState)
 	if err != nil {
 		return RemoteInfo{}, err
 	}

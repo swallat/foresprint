@@ -418,3 +418,34 @@ func TestSwitchToRemoteOnlyBranchWithTwoRemotes(t *testing.T) {
 		}
 	}
 }
+
+// The settings are read with one Git call and cached; a write shows at once, the old spelling of
+// a key still counts.
+func TestSettingsCacheFollowsWrites(t *testing.T) {
+	w := newWorld(t)
+	root, err := Root(bg, w.alice.data())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m, _ := ShareMode(bg, root); m != ShareDirect {
+		t.Fatalf("default: %q", m)
+	}
+	if err := SetShareMode(bg, root, ShareMergeRequest); err != nil {
+		t.Fatal(err)
+	}
+	if m, _ := ShareMode(bg, root); m != ShareMergeRequest {
+		t.Fatalf("after write: %q", m)
+	}
+	if err := SetAutoMerge(bg, root, false); err != nil {
+		t.Fatal(err)
+	}
+	if ok, _ := AutoMerge(bg, root); ok {
+		t.Error("auto merge off was not seen")
+	}
+	// the key from before the rename, written behind the program's back
+	w.alice.git("config", "--local", "sprintforecast.host", "gitlab")
+	git.InvalidateStatus()
+	if h, _ := HostSetting(bg, root); h != "gitlab" {
+		t.Errorf("legacy key: %q", h)
+	}
+}

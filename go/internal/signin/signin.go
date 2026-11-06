@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/swallat/foresprint/internal/git"
@@ -132,12 +133,7 @@ func helperExists(ctx context.Context, name string) bool {
 	if _, err := exec.LookPath(command); err == nil {
 		return true
 	}
-	home, _ := os.UserHomeDir()
-	run, err := git.Run(ctx, home, git.Opts{Timeout: 10 * time.Second}, "--exec-path")
-	if err != nil || run.Code != 0 {
-		return false
-	}
-	folder := pytext.Strip(run.Stdout)
+	folder := gitExecPath(ctx)
 	if folder == "" {
 		return false
 	}
@@ -147,6 +143,28 @@ func helperExists(ctx context.Context, name string) bool {
 		}
 	}
 	return false
+}
+
+var (
+	execPathMu sync.Mutex
+	execPath   string
+)
+
+// gitExecPath is the folder of the Git helper programs. It is asked for once per run (one Git
+// process per candidate made the first start slow on Windows); a failure is not remembered.
+func gitExecPath(ctx context.Context) string {
+	execPathMu.Lock()
+	defer execPathMu.Unlock()
+	if execPath != "" {
+		return execPath
+	}
+	home, _ := os.UserHomeDir()
+	run, err := git.Run(ctx, home, git.Opts{Timeout: 10 * time.Second}, "--exec-path")
+	if err != nil || run.Code != 0 {
+		return ""
+	}
+	execPath = pytext.Strip(run.Stdout)
+	return execPath
 }
 
 // SuggestedHelper is the credential helper the app may offer for this computer ("" = none, then
