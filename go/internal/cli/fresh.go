@@ -3,8 +3,6 @@ package cli
 import (
 	"os"
 	"runtime"
-
-	"github.com/swallat/foresprint/internal/config"
 )
 
 // startFresh opens the window as on the first start (to try the setup dialogs): the settings
@@ -21,6 +19,8 @@ func startFresh(env *Env) error {
 	for _, name := range []string{"XDG_CONFIG_HOME", "APPDATA", DataEnv} {
 		if old, had := os.LookupEnv(name); had {
 			defer os.Setenv(name, old) //nolint:errcheck
+		} else {
+			defer os.Unsetenv(name) //nolint:errcheck
 		}
 	}
 	_ = os.Setenv("XDG_CONFIG_HOME", tmp)
@@ -30,5 +30,3 @@ func startFresh(env *Env) error {
 	_ = os.Unsetenv(DataEnv)
 	return GUI(env.Data) // "" = no data folder: the setup starts
 }
-
-var configDataDir = config.DataDir

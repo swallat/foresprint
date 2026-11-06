@@ -134,10 +134,11 @@ func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
 	GUI = func(dir string) error {
 		gotData = dir
 		gotConfig = os.Getenv("XDG_CONFIG_HOME")
-		_, remembered = configDataDir()
+		_, remembered = config.DataDir()
 		return nil
 	}
 	origConfig := os.Getenv("XDG_CONFIG_HOME")
+	os.Unsetenv("APPDATA") //nolint:errcheck
 	if code, _, e := run(t, "--fresh"); code != 0 {
 		t.Fatalf("exit %d: %s", code, e)
 	}
@@ -146,6 +147,9 @@ func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
 	}
 	if gotConfig == origConfig {
 		t.Error("settings folder was not redirected")
+	}
+	if v, ok := os.LookupEnv("APPDATA"); ok {
+		t.Errorf("APPDATA not unset again: %q", v)
 	}
 	if _, err := os.Stat(gotConfig); err == nil {
 		t.Error("temporary settings folder was not removed")

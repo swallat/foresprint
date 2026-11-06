@@ -16,7 +16,9 @@ for retrospectives and tests.
 **Trying the first-start setup:** `foresprint --fresh` (or `foresprint gui --fresh`) opens the window
 as on the very first start: empty settings, no remembered data folder, `FORESPRINT_DATA` ignored.
 The settings are redirected to a temporary folder that is deleted when the window closes; your
-saved settings are neither read nor changed. `--data PATH` still applies.
+saved settings are neither read nor changed. `--data PATH` still applies. Limits: the web view's own
+storage (an unfinished setup draft) is only redirected on Windows, and `git` started by the window
+also sees the redirected settings folder.
 
 ## Commands at a glance
 

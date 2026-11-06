@@ -168,6 +168,9 @@ func newRoot(env *Env) *cobra.Command {
 	root.Flags().BoolVar(&showVersion, "version", false, i18n.P("Show version."))
 	root.Flags().BoolVar(&env.Fresh, "fresh", false, i18n.P(
 		"Open the window as on the very first start, with empty settings and no remembered data folder. Nothing saved is read, changed or deleted; settings made in this session are discarded at the end."))
+	if GUI == nil {
+		_ = root.Flags().MarkHidden("fresh")
+	}
 	localize(root)
 	for _, b := range builders {
 		cmd := b(env)
