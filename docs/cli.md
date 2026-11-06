@@ -13,6 +13,11 @@ one is used. If the window finds no data folder, it guides you through choosing,
 cloning one. `--as-of DATE` (or `FORESPRINT_AS_OF`) sets the date that counts as "today",
 for retrospectives and tests.
 
+**Trying the first-start setup:** `foresprint --fresh` (or `foresprint gui --fresh`) opens the window
+as on the very first start: empty settings, no remembered data folder, `FORESPRINT_DATA` ignored.
+The settings are redirected to a temporary folder that is deleted when the window closes; your
+saved settings are neither read nor changed. `--data PATH` still applies.
+
 ## Commands at a glance
 
 Window and command line are one program (Go, see [go/README.md](../go/README.md)); the

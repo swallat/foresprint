@@ -39,6 +39,8 @@ type Env struct {
 	Data string
 	// AsOf is the value of --as-of / FORESPRINT_AS_OF ("" = not given).
 	AsOf string
+	// Fresh is --fresh: open the window with empty temporary settings (see startFresh).
+	Fresh bool
 	// Today is the date that counts as today: --as-of or the clock.
 	Today time.Time
 
@@ -134,6 +136,9 @@ func newRoot(env *Env) *cobra.Command {
 			if len(args) > 0 {
 				return fmt.Errorf("%s", i18n.T("Unknown command {name!r}. Try: {help}", "name", args[0], "help", progName+" --help"))
 			}
+			if GUI != nil && env.Fresh {
+				return startFresh(env)
+			}
 			if GUI != nil { // started without arguments, e.g. by a double click
 				return GUI(env.DataDir())
 			}
@@ -143,7 +148,7 @@ func newRoot(env *Env) *cobra.Command {
 			if !cmd.Flags().Changed("as-of") && os.Getenv(AsOfEnv) != "" {
 				env.AsOf = os.Getenv(AsOfEnv)
 			}
-			if env.Data == "" {
+			if env.Data == "" && !env.Fresh {
 				env.Data = os.Getenv(DataEnv)
 			}
 			today, err := parseAsOf(env.AsOf)
@@ -161,6 +166,8 @@ func newRoot(env *Env) *cobra.Command {
 	root.PersistentFlags().StringVar(&env.AsOf, "as-of", "", i18n.P(
 		`Date (YYYY-MM-DD) treated as "today" – for retrospectives and tests.`))
 	root.Flags().BoolVar(&showVersion, "version", false, i18n.P("Show version."))
+	root.Flags().BoolVar(&env.Fresh, "fresh", false, i18n.P(
+		"Open the window as on the very first start, with empty settings and no remembered data folder. Nothing saved is read, changed or deleted; settings made in this session are discarded at the end."))
 	localize(root)
 	for _, b := range builders {
 		cmd := b(env)

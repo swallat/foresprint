@@ -167,6 +167,7 @@
   "Set automatic mode: on or notice (look once a day and report, never install), off (never look).": "Automatik einstellen: on oder notice (einmal täglich nachsehen und melden, nie installieren), off (nie nachsehen).",
   "Fulfillment (velocity / commitment)": "Fulfillment (Velocity / Commitment)",
   "Fulfillment: fewer than {count} sprints with a commitment and a velocity – no mean.": "Fulfillment: weniger als {count} Sprints mit Commitment und Velocity – kein Durchschnitt.",
-  "The sprints deliver clearly less than committed. The commitment is probably set too high.": "Die Sprints liefern deutlich weniger als zugesagt. Das Commitment ist vermutlich zu hoch angesetzt."
+  "The sprints deliver clearly less than committed. The commitment is probably set too high.": "Die Sprints liefern deutlich weniger als zugesagt. Das Commitment ist vermutlich zu hoch angesetzt.",
+  "Open the window as on the very first start, with empty settings and no remembered data folder. Nothing saved is read, changed or deleted; settings made in this session are discarded at the end.": "Fenster wie beim allerersten Start öffnen, mit leeren Einstellungen und ohne gemerkten Datenordner. Gespeichertes wird weder gelesen noch geändert oder gelöscht; Einstellungen dieser Sitzung werden am Ende verworfen."
  }
 }

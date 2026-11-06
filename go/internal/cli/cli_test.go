@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/swallat/foresprint/internal/config"
 )
 
 func run(t *testing.T, args ...string) (int, string, string) {
@@ -115,5 +117,40 @@ func TestDataDirOrder(t *testing.T) {
 	e.Data = "given"
 	if got := e.DataDir(); got != "given" {
 		t.Errorf("flag: %q", got)
+	}
+}
+
+func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
+	isolate(t)
+	saved := t.TempDir()
+	if err := config.SaveDataDir(saved); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(DataEnv, "/should/be/ignored")
+	var gotData, gotConfig string
+	var remembered bool
+	old := GUI
+	defer func() { GUI = old }()
+	GUI = func(dir string) error {
+		gotData = dir
+		gotConfig = os.Getenv("XDG_CONFIG_HOME")
+		_, remembered = configDataDir()
+		return nil
+	}
+	origConfig := os.Getenv("XDG_CONFIG_HOME")
+	if code, _, e := run(t, "--fresh"); code != 0 {
+		t.Fatalf("exit %d: %s", code, e)
+	}
+	if gotData != "" || remembered {
+		t.Errorf("data %q remembered %v: want an empty start", gotData, remembered)
+	}
+	if gotConfig == origConfig {
+		t.Error("settings folder was not redirected")
+	}
+	if _, err := os.Stat(gotConfig); err == nil {
+		t.Error("temporary settings folder was not removed")
+	}
+	if code, out, _ := run(t, "data-dir"); code != 0 || !strings.Contains(out, saved) {
+		t.Errorf("saved settings changed: %q", out)
 	}
 }
