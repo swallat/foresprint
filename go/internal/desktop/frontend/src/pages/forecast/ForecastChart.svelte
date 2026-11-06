@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { id, num, op, row, par, fn, frac, sqrt, sq, floor, times, eq, minus, plus, sum, lines } from '../../lib/mathml';
+  import { id, num, op, row, par, fn, frac, sqrt, sq, floor, times, eq, minus, plus, sum, prime, lines } from '../../lib/mathml';
   import { shortNames } from '../../lib/axis';
   import { fmt, fmtVal } from '../../lib/format';
   import Icon from '../../lib/Icon.svelte';
@@ -153,8 +153,8 @@
     row(P, op('±'), par(frac(par(fn('t', n, minus, num(1)), times, id('σ'), times, sqrt(h)), Ref)), times, Cap),
   );
   const mathWif = lines(
-    row(id("P'"), eq, floor(par(par(frac(T, Ref)), times, id("Cap'")), times, par(frac(Focus, num(100))))),
-    row(id("Cap'"), eq, fn('max', num(0), op(','), Cap, minus, id('D'))),
+    row(prime(P), eq, floor(par(par(frac(T, Ref)), times, prime(Cap)), times, par(frac(Focus, num(100))))),
+    row(prime(Cap), eq, fn('max', num(0), op(','), Cap, minus, id('D'))),
   );
   const mathFul = lines(row(id('F'), eq, frac(V, C)));
   const paths = $derived(

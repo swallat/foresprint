@@ -26,3 +26,5 @@ export const sub = (base: M, s: M): M => `<msub>${base}${s}</msub>`;
 export const lines = (...l: M[]): M => l.map((m) => `<math display="block">${row(m)}</math>`).join('');
 /** Sum sign with bounds below and above. */
 export const sum = (from: M, to: M): M => `<munderover>${op('∑')}${row(from)}${row(to)}</munderover>`;
+/** Prime mark after an identifier, e.g. P′. */
+export const prime = (base: M): M => `<msup>${base}${op('′')}</msup>`;
