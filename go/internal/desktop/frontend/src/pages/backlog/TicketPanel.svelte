@@ -6,7 +6,7 @@
   import { untrack } from 'svelte';
   import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
-  import { app, toast } from '../../lib/app.svelte';
+  import { app, toast, PANEL_MIN, setPanelWidth } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
@@ -23,6 +23,30 @@
   let newComment = $state('');
   let newDep = $state('');
   let loadId = 0;
+  let dragging = $state(false);
+
+  // The grip on the left edge: dragging left widens the panel (it sits at the right window edge).
+  function grip(e: PointerEvent): void {
+    e.preventDefault();
+    dragging = true;
+    const move = (m: PointerEvent) => setPanelWidth(window.innerWidth - m.clientX, false);
+    const up = () => {
+      dragging = false;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setPanelWidth(app.panelWidth);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+  function gripKey(e: KeyboardEvent): void {
+    const step = e.shiftKey ? 80 : 20;
+    if (e.key === 'ArrowLeft') setPanelWidth(app.panelWidth + step);
+    else if (e.key === 'ArrowRight') setPanelWidth(app.panelWidth - step);
+    else if (e.key === 'Home') setPanelWidth(PANEL_MIN);
+    else return;
+    e.preventDefault();
+  }
 
   const view = $derived(store.view);
   const creating = $derived(app.ticket === NEW);
@@ -194,7 +218,22 @@
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
-<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')}>
+<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width="min({app.panelWidth}px, 100vw)">
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+  <div
+    class="grip"
+    class:on={dragging}
+    role="separator"
+    aria-orientation="vertical"
+    aria-label={t('Panel width')}
+    aria-valuemin={PANEL_MIN}
+    aria-valuenow={app.panelWidth}
+    title={t('Drag to change the width, double-click for the smallest width')}
+    tabindex="0"
+    onpointerdown={grip}
+    ondblclick={() => setPanelWidth(PANEL_MIN)}
+    onkeydown={gripKey}
+  ></div>
   <div class="panel-head">
     <strong class="data">{creating ? t('New work package') : app.ticket}</strong>
     {#if detail?.status}<span class="chip">{detail.status}</span>{/if}
@@ -534,6 +573,30 @@
 {/snippet}
 
 <style>
+  .grip {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 1;
+  }
+  .grip::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: transparent;
+  }
+  .grip:hover::after,
+  .grip:focus-visible::after,
+  .grip.on::after {
+    background: var(--primary);
+  }
   .grow {
     flex: 1;
     min-width: 0;

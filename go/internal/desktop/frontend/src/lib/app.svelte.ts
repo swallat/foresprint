@@ -53,6 +53,8 @@ export const app = $state({
   problem: '',
   /** Personal setting: calculations next to numbers (see lib/calc/Calc.svelte). */
   calcMode: 'icon' as CalcMode,
+  /** Width of the ticket panel in pixels (at least PANEL_MIN); remembered on this machine. */
+  panelWidth: 440,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
   /** The variant the demo was opened with ("atlas/packages"); see demoChoice. */
@@ -79,6 +81,15 @@ const store = {
     }
   },
 };
+
+export const PANEL_MIN = 440;
+
+/** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
+export function setPanelWidth(px: number, remember = true): void {
+  const max = Math.max(PANEL_MIN, (typeof window === 'undefined' ? 1200 : window.innerWidth) - 160);
+  app.panelWidth = Math.round(Math.min(max, Math.max(PANEL_MIN, px)));
+  if (remember) store.set('panelWidth', String(app.panelWidth));
+}
 
 const calcModes: CalcMode[] = ['off', 'icon', 'inline'];
 
@@ -333,6 +344,8 @@ export async function start(): Promise<void> {
   if (inProgram && (await api.InDemo())) await api.LeaveDemo();
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
+  const pw = parseInt(store.get('panelWidth'), 10);
+  if (Number.isFinite(pw)) app.panelWidth = Math.max(PANEL_MIN, pw);
   await loadPrefs();
   await loadTeams();
   // The window opens as soon as the teams are known. The state of the storage needs several Git

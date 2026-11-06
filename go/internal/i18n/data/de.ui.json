@@ -87,6 +87,8 @@
   "Classic": "Klassisch",
   "Clear selection": "Auswahl aufheben",
   "Close": "Schließen",
+  "Panel width": "Breite des Fensters",
+  "Drag to change the width, double-click for the smallest width": "Ziehen ändert die Breite, Doppelklick stellt die kleinste Breite ein",
   "Close presentation view": "Präsentationsansicht schließen",
   "Closed {date}.": "Abgeschlossen am {date}.",
   "Collapse": "Zuklappen",
