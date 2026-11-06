@@ -120,6 +120,46 @@ func TestDataDirOrder(t *testing.T) {
 	}
 }
 
+func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
+	isolate(t)
+	saved := t.TempDir()
+	if err := config.SaveDataDir(saved); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(DataEnv, "/should/be/ignored")
+	var gotData, gotConfig string
+	var remembered bool
+	old := GUI
+	defer func() { GUI = old }()
+	GUI = func(dir string) error {
+		gotData = dir
+		gotConfig = os.Getenv("XDG_CONFIG_HOME")
+		_, remembered = config.DataDir()
+		return nil
+	}
+	origConfig := os.Getenv("XDG_CONFIG_HOME")
+	os.Unsetenv("APPDATA") //nolint:errcheck
+	if code, _, e := run(t, "--fresh"); code != 0 {
+		t.Fatalf("exit %d: %s", code, e)
+	}
+	if gotData != "" || remembered {
+		t.Errorf("data %q remembered %v: want an empty start", gotData, remembered)
+	}
+	if gotConfig == origConfig {
+		t.Error("settings folder was not redirected")
+	}
+	if v, ok := os.LookupEnv("APPDATA"); ok {
+		t.Errorf("APPDATA not unset again: %q", v)
+	}
+	if _, err := os.Stat(gotConfig); err == nil {
+		t.Error("temporary settings folder was not removed")
+	}
+	want, _ := filepath.EvalSymlinks(saved) // macOS: /var -> /private/var
+	if got, ok := config.DataDir(); !ok || (got != saved && got != want) {
+		t.Errorf("saved settings changed: %q %v", got, ok)
+	}
+}
+
 // A double click starts the program in some folder; the window must not take it for the data
 // folder, especially not when the remembered one is gone.
 func TestWindowDataDirIgnoresTheCurrentFolder(t *testing.T) {
