@@ -159,3 +159,37 @@ func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
 		t.Errorf("saved settings changed: %q %v", got, ok)
 	}
 }
+
+// A double click starts the program in some folder; the window must not take it for the data
+// folder, especially not when the remembered one is gone.
+func TestWindowDataDirIgnoresTheCurrentFolder(t *testing.T) {
+	isolate(t)
+	cwd := t.TempDir()
+	team := filepath.Join(cwd, "teams", "alpha")
+	if err := os.MkdirAll(team, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(team, "team.yaml"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(cwd)
+	e := &Env{}
+	if got := e.WindowDataDir(); got != "" {
+		t.Errorf("nothing remembered: %q", got)
+	}
+	gone := filepath.Join(t.TempDir(), "gone")
+	if err := config.SaveDataDir(gone); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.WindowDataDir(); got == "" || got == "." || got == filepath.Join(".", "teams") {
+		t.Errorf("remembered folder that is gone must stay named: %q", got)
+	}
+	t.Setenv(DataEnv, "/elsewhere")
+	if got := e.WindowDataDir(); got != "/elsewhere" {
+		t.Errorf("env: %q", got)
+	}
+	e.Data = "given"
+	if got := e.WindowDataDir(); got != "given" {
+		t.Errorf("flag: %q", got)
+	}
+}

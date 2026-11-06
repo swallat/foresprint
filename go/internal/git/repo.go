@@ -313,10 +313,22 @@ func CloneRepository(ctx context.Context, url, path string, timeout time.Duratio
 		if err := os.MkdirAll(parent, 0o777); err != nil {
 			return err
 		}
-		_, err := With(ctx, parent, Opts{
-			Network: true, Timeout: timeout, URL: address.URL,
-			Env: map[string]string{"GIT_ALLOW_PROTOCOL": SafeProtocols},
-		}, "clone", "--", address.URL, path)
+		env := map[string]string{"GIT_ALLOW_PROTOCOL": SafeProtocols}
+		// A window has no terminal: SSH that waits for a passphrase, a password or a host-key
+		// answer would hang until the time limit. Without own SSH settings it fails at once
+		// (and with a short connect time) so that the next step is shown instead.
+		if os.Getenv("GIT_SSH_COMMAND") == "" && os.Getenv("GIT_SSH") == "" {
+			if own, _ := Lenient(ctx, parent, "config", "--get", "core.sshCommand"); own == "" {
+				// A graphical askpass (Git for Windows) can still answer; then only the connect time is limited.
+				if os.Getenv("SSH_ASKPASS") != "" {
+					env["GIT_SSH_COMMAND"] = "ssh -o ConnectTimeout=20"
+				} else {
+					env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o ConnectTimeout=20"
+				}
+			}
+		}
+		_, err := With(ctx, parent, Opts{Network: true, Timeout: timeout, URL: address.URL, Env: env},
+			"clone", "--", address.URL, path)
 		return err
 	})
 }

@@ -140,7 +140,7 @@ func newRoot(env *Env) *cobra.Command {
 				return startFresh(env)
 			}
 			if GUI != nil { // started without arguments, e.g. by a double click
-				return GUI(env.DataDir())
+				return GUI(env.WindowDataDir())
 			}
 			return cmd.Help()
 		},

@@ -2,6 +2,7 @@ package datasvc
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -55,8 +56,15 @@ func (s *Store) ctx() context.Context { return context.Background() }
 
 // folder is the data folder, or the error "no folder chosen": without one, Git would work on
 // whatever repository holds the current directory of the process.
+//
+// A folder that is gone (deleted, or on a drive that is not there) is reported at once. Without
+// this check Git would be started in the nearest folder above it that exists, and what it found
+// there (some other repository, maybe a big one) would be shown and read as the data.
 func (s *Store) folder() (string, error) {
 	if dir := s.Folder(); dir != "" {
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			return "", git.New(i18n.T("The folder {path} does not exist.", "path", dir), "path", "")
+		}
 		return dir, nil
 	}
 	return "", git.New(i18n.T("No data folder chosen."), "path", "")
