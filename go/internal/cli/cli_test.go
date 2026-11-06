@@ -154,7 +154,7 @@ func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
 	if _, err := os.Stat(gotConfig); err == nil {
 		t.Error("temporary settings folder was not removed")
 	}
-	if code, out, _ := run(t, "data-dir"); code != 0 || !strings.Contains(out, saved) {
-		t.Errorf("saved settings changed: %q", out)
+	if got, ok := config.DataDir(); !ok || got != saved {
+		t.Errorf("saved settings changed: %q %v", got, ok)
 	}
 }
