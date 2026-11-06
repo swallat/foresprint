@@ -210,16 +210,17 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 	data := c.data
 	size, source := preplan.TicketSize(tk, data, 1)
 	r := BacklogTicket{
-		Key:            tk.Key,
-		Title:          tk.Title,
-		Status:         backlogStr(tk.Status),
-		Type:           backlogStr(tk.IssueType),
-		Priority:       backlogStr(tk.Priority),
-		Assignee:       backlogStr(tk.Assignee),
-		URL:            backlogTicketURL(data.Team, tk.Key),
-		Size:           size,
-		SizeSource:     string(source),
-		Refined:        source == model.EstimateRefined,
+		Key:        tk.Key,
+		Title:      tk.Title,
+		Status:     backlogStr(tk.Status),
+		Type:       backlogStr(tk.IssueType),
+		Priority:   backlogStr(tk.Priority),
+		Assignee:   backlogStr(tk.Assignee),
+		URL:        backlogTicketURL(data.Team, tk.Key),
+		Size:       size,
+		SizeSource: string(source),
+		// Like the Plan and Review pages: an unclear refined state is not refined.
+		Refined:        source == model.EstimateRefined && !tk.RefinedUnclear,
 		RefinedUnclear: tk.RefinedUnclear,
 		Earmark:        "",
 		TrackerSprint:  backlogStr(tk.InSprint),
