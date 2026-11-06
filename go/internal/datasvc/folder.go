@@ -355,6 +355,19 @@ func (f *folderBackend) removeLocal(rel string) error {
 	return nil
 }
 
+// localUnchanged checks right before a local file is replaced that it still is what the scan saw:
+// an edit made meanwhile (the window writes files too) must not be overwritten.
+func (f *folderBackend) localUnchanged(rel, sum string) error {
+	cur, err := sharedfolder.SumFile(f.abs(f.dir, rel))
+	if err != nil {
+		return err
+	}
+	if cur != sum {
+		return errChanged
+	}
+	return nil
+}
+
 // keep copies a local file to .foresprint-local/trash before something replaces or deletes it, if
 // it has unsaved changes (it differs from the base). Nothing is kept for files that are saved.
 func (f *folderBackend) keep(rel string) error {
@@ -365,7 +378,7 @@ func (f *folderBackend) keep(rel string) error {
 	if base, has := readIf(f.abs(f.baseDir(), rel)); has && sharedfolder.Sum(base) == sharedfolder.Sum(cur) {
 		return nil
 	}
-	stamp := time.Now().UTC().Format("20060102T150405")
+	stamp := time.Now().UTC().Format("20060102T150405.000000000")
 	return sharedfolder.WriteFile(localPath(f.dir, "trash", stamp, filepath.FromSlash(rel)), cur, 2*time.Second)
 }
 
@@ -530,7 +543,10 @@ func (f *folderBackend) run(push bool, message string) Result {
 				Message: i18n.T("{who} is saving right now.", "who", held.By.Owner),
 				Hint:    i18n.T("Try again in a moment.")}}
 		}
-		return f.problem(err)
+		if push {
+			return f.problem(err)
+		}
+		lock = nil // read-only access: refreshing works without the lock
 	}
 	defer lock.Release()
 	st, err := f.state()
@@ -545,10 +561,12 @@ func (f *folderBackend) run(push bool, message string) Result {
 		if err != nil {
 			return f.problem(err)
 		}
-		if !ok {
-			err = f.removeLocal(rel)
-		} else {
-			err = f.writeLocal(rel, data)
+		if err = f.localUnchanged(rel, st.local[rel]); err == nil {
+			if !ok {
+				err = f.removeLocal(rel)
+			} else {
+				err = f.writeLocal(rel, data)
+			}
 		}
 		if err == nil {
 			err = f.setBase(rel, data, ok)
@@ -569,6 +587,9 @@ func (f *folderBackend) run(push bool, message string) Result {
 			continue
 		}
 		// The merged file contains the shared version; its base is exactly that version.
+		if err := f.localUnchanged(rel, st.local[rel]); err != nil {
+			return f.problem(err)
+		}
 		if err := f.writeLocal(rel, []byte(m.text)); err != nil {
 			return f.problem(err)
 		}
@@ -624,28 +645,39 @@ func (f *folderBackend) publish(lock *sharedfolder.Handle, message string) (int,
 		return 0, nil
 	}
 	now := time.Now()
+	if err := lock.Renew(time.Now); err != nil {
+		return 0, err
+	}
 	if err := sharedfolder.Snapshot(f.cfg.Shared, rels, now, isData); err != nil {
 		return 0, err
 	}
 	done := map[string]sharedfolder.Change{}
 	// Whatever was written is journaled, also when the save stops half way.
-	defer func() {
-		if len(done) > 0 {
-			_ = sharedfolder.Append(f.cfg.Shared, sharedfolder.Entry{ID: entryID(now, f.person()), Who: f.person(),
-				Time: now, Summary: message, Files: done})
+	journal := func() error {
+		if len(done) == 0 {
+			return nil
 		}
-	}()
+		return sharedfolder.Append(f.cfg.Shared, sharedfolder.Entry{ID: entryID(now, f.person()), Who: f.person(),
+			Time: now, Summary: message, Files: done})
+	}
+	fail := func(err error) (int, error) {
+		_ = journal()
+		return len(done), err
+	}
 	for _, rel := range rels {
 		if err := lock.Renew(time.Now); err != nil {
-			return len(done), err
+			return fail(err)
 		}
 		data, exists, err := readExpect(f.dir, rel, st.local[rel])
 		if err != nil {
-			return len(done), err
+			return fail(err)
 		}
 		dst := f.abs(f.cfg.Shared, rel)
 		if cur, err := sharedfolder.SumFile(dst); err != nil || cur != st.shared[rel] {
-			return len(done), errChanged
+			if err != nil {
+				return fail(err)
+			}
+			return fail(errChanged)
 		}
 		if exists {
 			err = sharedfolder.WriteFile(dst, data, 10*time.Second)
@@ -653,14 +685,14 @@ func (f *folderBackend) publish(lock *sharedfolder.Handle, message string) (int,
 			err = nil
 		}
 		if err != nil {
-			return len(done), err
+			return fail(err)
 		}
 		done[rel] = sharedfolder.Change{Before: st.shared[rel], After: st.local[rel]}
 		if err := f.setBase(rel, data, exists); err != nil {
-			return len(done), err
+			return fail(err)
 		}
 	}
-	return len(done), nil
+	return len(done), journal()
 }
 
 func entryID(t time.Time, who string) string {
@@ -802,7 +834,7 @@ func (f *folderBackend) decide(st folderState, rel string, choices yamlmerge.Cho
 	if len(m.conflicts) > 0 || m.whole {
 		return nil // some values still without a decision
 	}
-	if err := f.writeLocal(rel, []byte(m.text)); err != nil {
+	if err := f.overwriteLocal(rel, []byte(m.text)); err != nil {
 		return err
 	}
 	return f.setBase(rel, m.theirs, m.hasTheirs)
@@ -1054,6 +1086,9 @@ func (f *folderBackend) Revert(version string) Done {
 		}
 		if st.local[rel] != st.base[rel] {
 			return f.s.undone(git.New(i18n.T("{file} has unsaved changes; save or discard them first.", "file", rel), "error", ""))
+		}
+		if st.base[rel] != st.shared[rel] {
+			return f.s.undone(git.New(i18n.T("{file} is not up to date; refresh first.", "file", rel), "error", ""))
 		}
 		if c.Before == "" {
 			plan = append(plan, restore{rel: rel, del: true})

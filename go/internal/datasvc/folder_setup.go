@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/i18n"
@@ -50,7 +51,7 @@ func (s *Store) CheckSharedFolder(shared string) SharedFolderCheck {
 // with the given name (empty = the user of the computer). The shared folder gets a small file that
 // says it is a shared storage. Existing data on either side is kept; the first Refresh takes over
 // what the shared folder has (a local file the shared folder lacks becomes an unsaved change).
-func (s *Store) UseSharedFolder(local, shared, person string) Opened {
+func (s *Store) UseSharedFolder(local, shared, person string, create bool) Opened {
 	if local == "" || shared == "" {
 		return Opened{Problem: problemOf(git.New(i18n.T("Choose a folder first."), "path", ""))}
 	}
@@ -75,7 +76,19 @@ func (s *Store) UseSharedFolder(local, shared, person string) Opened {
 	}
 	marker := filepath.Join(shared, sharedfolder.Dir, "storage.yaml")
 	if _, err := os.Stat(marker); err != nil {
-		if err := sharedfolder.WriteFile(marker, []byte("kind: folder\nformat: 1\n"), 2*1e9); err != nil {
+		// Only a person who says "create" marks a folder as the team's storage; an unmounted mount
+		// point or a sync folder that is not filled yet must not become one by accident.
+		if !create {
+			return Opened{Problem: problemOf(git.New(i18n.T("{path} is not a Foresprint shared folder yet. Create the storage there, or check the path.", "path", shared), "path", ""))}
+		}
+		if err := sharedfolder.WriteFile(marker, []byte("kind: folder\nformat: 1\n"), 2*time.Second); err != nil {
+			return Opened{Problem: problemOf(err)}
+		}
+	}
+	// A base from an earlier setup describes another shared folder; with it, the files missing in
+	// this one would look like deletions by others.
+	if old, ok := readFolderConfig(local); !ok || old.Shared != shared {
+		if err := os.RemoveAll(localPath(local, "base")); err != nil {
 			return Opened{Problem: problemOf(err)}
 		}
 	}

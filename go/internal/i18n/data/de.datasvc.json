@@ -51,6 +51,8 @@
     "Try again.": "Versuche es noch einmal.",
     "Foresprint cannot tell which file {file} belongs to; open it and copy what you need by hand.": "Foresprint kann nicht erkennen, zu welcher Datei {file} gehört; öffne sie und übernimm, was du brauchst, von Hand.",
     "{file} was saved again after this save; take those saves back first.": "{file} wurde nach diesem Speicherstand erneut gespeichert; nimm zuerst diese Speicherstände zurück.",
-    "{file} has unsaved changes; save or discard them first.": "{file} hat ungespeicherte Änderungen; speichere oder verwirf sie zuerst."
+    "{file} has unsaved changes; save or discard them first.": "{file} hat ungespeicherte Änderungen; speichere oder verwirf sie zuerst.",
+    "{file} is not up to date; refresh first.": "{file} ist nicht auf dem neuesten Stand; aktualisiere zuerst.",
+    "{path} is not a Foresprint shared folder yet. Create the storage there, or check the path.": "{path} ist noch kein geteilter Foresprint-Ordner. Lege dort den Speicher an oder prüfe den Pfad."
   }
 }

@@ -40,13 +40,13 @@ func team(t *testing.T) (anna, ben *Store, shared, annaDir, benDir string) {
 	}
 	anna, ben = New(""), New("")
 	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: 5\nvelocity: 10\n")
-	if o := anna.UseSharedFolder(annaDir, shared, "Anna"); o.Problem != nil {
+	if o := anna.UseSharedFolder(annaDir, shared, "Anna", true); o.Problem != nil {
 		t.Fatal(o.Problem)
 	}
 	if r := anna.Save(SaveOptions{Message: "first"}); r.Outcome != OutcomeSaved {
 		t.Fatalf("first save: %+v", r)
 	}
-	if o := ben.UseSharedFolder(benDir, shared, "Ben"); o.Problem != nil {
+	if o := ben.UseSharedFolder(benDir, shared, "Ben", false); o.Problem != nil {
 		t.Fatal(o.Problem)
 	}
 	return
@@ -219,13 +219,13 @@ func TestFolderCheckAndSetupGuards(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(shared, ".foresprint-check")); err == nil {
 		t.Fatal("check left its folder")
 	}
-	if o := s.UseSharedFolder(shared, shared, ""); o.Problem == nil {
+	if o := s.UseSharedFolder(shared, shared, "", true); o.Problem == nil {
 		t.Fatal("same folder accepted")
 	}
-	if o := s.UseSharedFolder(filepath.Join(shared, "in"), shared, ""); o.Problem == nil {
+	if o := s.UseSharedFolder(filepath.Join(shared, "in"), shared, "", true); o.Problem == nil {
 		t.Fatal("local inside shared accepted")
 	}
-	if o := s.UseSharedFolder(t.TempDir(), filepath.Join(shared, "missing"), ""); o.Problem == nil {
+	if o := s.UseSharedFolder(t.TempDir(), filepath.Join(shared, "missing"), "", true); o.Problem == nil {
 		t.Fatal("missing shared accepted")
 	}
 }
@@ -307,5 +307,49 @@ func TestFolderKeepsDiscardedAndReplacedEdits(t *testing.T) {
 	anna.ResolveConflicts([]Decision{{File: cs[0].File, Path: []string{}, Choice: Theirs}})
 	if !strings.Contains(trashed(), "capacity: 77") || !strings.Contains(get(t, annaDir), "name: Copy") {
 		t.Fatalf("copy taken without keeping the edit: %q / %q", trashed(), get(t, annaDir))
+	}
+}
+
+func TestFolderNewShareDoesNotDeleteTheLocalCopy(t *testing.T) {
+	anna, _, _, annaDir, _ := team(t)
+	// The old share is gone; the person points the copy at a new, empty folder to republish.
+	fresh := filepath.Join(t.TempDir(), "newshare")
+	if err := os.MkdirAll(fresh, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if o := anna.UseSharedFolder(annaDir, fresh, "Anna", false); o.Problem == nil {
+		t.Fatal("an empty folder without the marker must not become a storage by itself")
+	}
+	if o := anna.UseSharedFolder(annaDir, fresh, "Anna", true); o.Problem != nil {
+		t.Fatal(o.Problem)
+	}
+	if got := get(t, annaDir); !strings.Contains(got, "capacity: 5") {
+		t.Fatalf("local copy lost: %q", got)
+	}
+	if r := anna.Save(SaveOptions{Message: "republish"}); r.Outcome != OutcomeSaved {
+		t.Fatalf("republish: %+v", r)
+	}
+	if got := get(t, fresh); !strings.Contains(got, "capacity: 5") {
+		t.Fatalf("not republished: %q", got)
+	}
+}
+
+func TestFolderTrashKeepsEveryReplacement(t *testing.T) {
+	anna, _, shared, annaDir, _ := team(t)
+	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: 77\nvelocity: 10\n")
+	put(t, shared, "t1/team (Ben's conflicted copy 2026-11-06).yaml", "name: One\n")
+	put(t, shared, "t1/team (Carla's conflicted copy 2026-11-06).yaml", "name: Two\n")
+	anna.TakeTheirs()
+	n, found := 0, ""
+	_ = filepath.WalkDir(filepath.Join(annaDir, ".foresprint-local", "trash"), func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			n++
+			b, _ := os.ReadFile(p)
+			found += string(b)
+		}
+		return nil
+	})
+	if n < 2 || !strings.Contains(found, "capacity: 77") {
+		t.Fatalf("trash lost an edit: %d entries %q", n, found)
 	}
 }

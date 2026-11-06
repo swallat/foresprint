@@ -97,7 +97,9 @@ func Acquire(root, owner, host string, wait time.Duration, now func() time.Time)
 		switch {
 		case expired:
 			takeOver(path, token, cur, ok, now)
-			continue
+			if !now().Before(deadline) { // taking over keeps failing (no right to rename or delete here)
+				return nil, &Held{By: cur}
+			}
 		case !now().Before(deadline):
 			return nil, &Held{By: cur}
 		}
@@ -109,7 +111,7 @@ func Acquire(root, owner, host string, wait time.Duration, now func() time.Time)
 // renamed turns out to be a live lock of somebody who took the file in the meantime, it is put back.
 func takeOver(path, token string, seen Lock, seenOK bool, now func() time.Time) {
 	stale := path + ".stale-" + token
-	if os.Rename(path, stale) != nil {
+	if renameRetry(path, stale) != nil {
 		return // somebody else was faster
 	}
 	data, _ := os.ReadFile(stale)
@@ -120,12 +122,15 @@ func takeOver(path, token string, seen Lock, seenOK bool, now func() time.Time) 
 			return
 		}
 	}
-	_ = os.Remove(stale)
+	removeRetry(stale)
 }
 
 // Renew extends the lock; call it before each step of a long save. It fails with ErrLockLost if the
 // lock is no longer this one.
 func (h *Handle) Renew(now func() time.Time) error {
+	if h == nil {
+		return nil
+	}
 	cur, ok := ReadLock(h.root)
 	if !ok || cur.Token != h.token {
 		return ErrLockLost
@@ -136,7 +141,36 @@ func (h *Handle) Renew(now func() time.Time) error {
 
 // Release gives the lock back; a lock that was taken over is left alone.
 func (h *Handle) Release() {
-	if cur, ok := ReadLock(h.root); ok && cur.Token == h.token {
-		_ = os.Remove(LockPath(h.root))
+	if h == nil {
+		return
 	}
+	if cur, ok := ReadLock(h.root); ok && cur.Token == h.token {
+		removeRetry(LockPath(h.root))
+	}
+}
+
+// removeRetry removes a file, trying again for up to two seconds. On Windows a file that another
+// program has open (a waiting save reading the lock) cannot be removed for a moment; leaving the
+// lock behind would block everybody until it expires.
+func removeRetry(path string) {
+	for i := 0; i < 40; i++ {
+		err := os.Remove(path)
+		if err == nil || errors.Is(err, fs.ErrNotExist) {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// renameRetry renames a file, trying again briefly on errors other than "does not exist" (Windows
+// refuses while another program has the file open).
+func renameRetry(from, to string) error {
+	var err error
+	for i := 0; i < 20; i++ {
+		if err = os.Rename(from, to); err == nil || errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return err
 }

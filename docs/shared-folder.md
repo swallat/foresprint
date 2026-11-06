@@ -45,6 +45,10 @@ not detected.
 
 ## Setting up
 
+A folder becomes the team's storage only when a person says "create" (it then gets `.foresprint/storage.yaml`);
+for everybody else the folder must already have that marker. If the local copy was set up for another shared
+folder before, its record of the last sync is reset, so nothing is mistaken for a deletion by others.
+
 The setup checks the folder first (can we write, does the exclusive create of the lock file work, can a file
 be replaced in one step, do the clocks agree within 5 s, do umlauts in names work). It only writes a temporary
 subfolder and removes it again. The local copy and the shared folder must be different folders, neither
@@ -63,6 +67,7 @@ inside the other.
 
 ## Limits
 
+- People with read-only access can refresh (without the lock) but not save.
 - Needs the shared folder to be reachable as a path; there is no login to cloud APIs.
 - The clocks of the team members should agree within a few seconds (the lock expiry relies on it).
 - Git-only features (branches, labels) are not available; the window hides them.
