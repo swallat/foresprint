@@ -221,6 +221,7 @@ export interface SettingsApi {
   SetDensity(code: string): Promise<void>;
   SyncTracker(team: string): Promise<Result>;
   SyncTrackerAuto(team: string): Promise<Result>;
+  SyncTrackerScope(team: string, keys: string[], sprint: string): Promise<Result>;
   PackageImportPreview(team: string): Promise<PackageImportPreview>;
   PackageImportApply(team: string, path: string, hash: string): Promise<Result>;
 }
