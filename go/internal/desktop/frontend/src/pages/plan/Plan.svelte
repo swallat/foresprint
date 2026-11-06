@@ -144,6 +144,10 @@
   function laneDrop(here: 'sprint' | 'candidates'): boolean {
     return over && overWhich === here && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here);
   }
+  /** A dragleave counts only when the pointer leaves the element, not when it moves onto a child of it. */
+  function leaves(e: DragEvent): boolean {
+    return !(e.relatedTarget instanceof Node) || !(e.currentTarget as Node).contains(e.relatedTarget);
+  }
   function dragEnd(): void {
     dragKey = '';
     over = false;
@@ -367,7 +371,7 @@
         role="group"
         aria-label={t('Candidates')}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'candidates'; } }}
-        ondragleave={() => (over = false)}
+        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
         ondrop={(e) => { e.preventDefault(); drop('candidates'); }}
         onkeydown={(e) => laneKey(e, 'candidates')}
       >
@@ -395,7 +399,7 @@
         role="group"
         aria-label={t('Sprint {sprint}', { sprint: d.sprint })}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'sprint'; } }}
-        ondragleave={() => (over = false)}
+        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
         ondrop={(e) => { e.preventDefault(); drop('sprint'); }}
         onkeydown={(e) => laneKey(e, 'sprint')}
       >
@@ -534,8 +538,7 @@
       class="slot"
       class:dragging={dragKey === x.key}
       ondragover={(e) => rowOver(e, x.key, here)}
-      ondragleave={() => { if (overRow?.key === x.key) overRow = null; }}
-      ondrop={(e) => rowDrop(e, x.key, here)}
+            ondrop={(e) => rowDrop(e, x.key, here)}
       oncontextmenu={(e) => openMenu(e, x.key)}
     >
       {#if overRow?.key === x.key && !overRow.after}<DropGap height={dragHeight} />{/if}

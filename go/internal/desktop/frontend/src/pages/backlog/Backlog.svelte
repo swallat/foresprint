@@ -115,6 +115,10 @@
     e.dataTransfer?.setData('text/plain', dragKeys.join(','));
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   }
+  /** A dragleave counts only when the pointer leaves the element, not when it moves onto a child of it. */
+  function leaves(e: DragEvent): boolean {
+    return !(e.relatedTarget instanceof Node) || !(e.currentTarget as Node).contains(e.relatedTarget);
+  }
   function dragEnd(): void {
     dragKeys = [];
     overZone = '';
@@ -123,7 +127,12 @@
   /** A drag over a whole list (not a row): the gap at its end, unless every dragged ticket already sits there. */
   function laneGap(zone: string): boolean {
     if (overZone !== zone || dragKeys.length === 0 || overRow !== '') return false;
-    const here = zone === 'backlog' || zone.startsWith('pf:') ? zone : `lane:${zone}`;
+    if (zone.startsWith('pf:')) {
+      // Pro-forma: fixed tickets cannot move, and tickets already in this sprint stay.
+      const inside = new Set(view?.proForma.find((p) => p.name === zone.slice(3))?.tickets.map((x) => x.key));
+      return dragKeys.some((k) => !fixedKeys.has(k) && !inside.has(k));
+    }
+    const here = zone === 'backlog' ? zone : `lane:${zone}`;
     return !dragKeys.every((k) => zoneOf(k) === here);
   }
   function dragOver(e: DragEvent, zone: string): void {
@@ -450,7 +459,7 @@
           class="lane"
           class:over={overZone === 'backlog'}
           ondragover={(e) => dragOver(e, 'backlog')}
-          ondragleave={() => (overZone = '')}
+          ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }}
           ondrop={(e) => drop(e, '')}
         >
           <div class="lane-head">
@@ -518,7 +527,7 @@
         {#each view.proForma as pf (pf.name)}
           {@const open = ui.open[pf.name] ?? false}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={() => (overZone = '')} ondrop={(e) => dropPro(e, pf.name)}>
+          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }} ondrop={(e) => dropPro(e, pf.name)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={open} aria-label={open ? t('Collapse') : t('Expand')} onclick={() => (ui.open[pf.name] = !open)}>
@@ -556,7 +565,7 @@
           {@const closed = laneIsClosed(l.sprint, li)}
           {@const over = l.plan != null && used > l.plan}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane" class:over={overZone === l.sprint} data-zone={l.sprint} ondragover={(e) => dragOver(e, l.sprint)} ondragleave={() => (overZone = '')} ondrop={(e) => drop(e, l.sprint)}>
+          <div class="lane" class:over={overZone === l.sprint} data-zone={l.sprint} ondragover={(e) => dragOver(e, l.sprint)} ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }} ondrop={(e) => drop(e, l.sprint)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={!closed} aria-label={closed ? t('Expand sprint {id}', { id: l.sprint }) : t('Collapse sprint {id}', { id: l.sprint })} onclick={() => (laneClosed[l.sprint] = !closed)}><Icon name={closed ? 'chevron_right' : 'keyboard_arrow_down'} /></button>
@@ -675,7 +684,7 @@
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
   {#if view}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="slot" class:dragging={dragKeys.includes(tk.key)} ondragover={(e) => rowOver(e, tk)} ondragleave={() => { if (overRow === tk.key) overRow = ''; }} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
+    <div class="slot" class:dragging={dragKeys.includes(tk.key)} ondragover={(e) => rowOver(e, tk)} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
     {#if overRow === tk.key && !overAfter}<DropGap height={dragHeight} />{/if}
     <TicketRow
       ticket={tk}
