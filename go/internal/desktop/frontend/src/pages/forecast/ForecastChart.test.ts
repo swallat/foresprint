@@ -80,7 +80,8 @@ describe('ForecastChart calculation paths', () => {
   it('lists the symbolic path of every series that is shown', async () => {
     await show();
     expect(host.querySelector('.paths')).not.toBeNull();
-    expect(names().length).toBeGreaterThanOrEqual(4);
+    expect(names().length).toBe(5);
+    expect(host.querySelector('.paths')?.textContent).not.toContain("P'");
     expect(host.querySelector('.paths')?.textContent).toContain('P = ⌊ T ÷ Ref × Cap ⌋');
     expect(host.querySelector('.paths')?.textContent).not.toContain('F = V ÷ C');
   });
@@ -92,5 +93,11 @@ describe('ForecastChart calculation paths', () => {
     button('Forecast PLAN').click();
     await tick();
     expect(host.querySelector('.paths')?.textContent).not.toContain('P = ⌊ T ÷ Ref × Cap ⌋');
+  });
+  it('disappears when every series is off', async () => {
+    await show();
+    for (const b of host.querySelectorAll<HTMLButtonElement>('button.lg[aria-pressed="true"]')) b.click();
+    await tick();
+    expect(host.querySelector('.paths')).toBeNull();
   });
 });

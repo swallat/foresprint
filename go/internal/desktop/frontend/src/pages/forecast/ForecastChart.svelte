@@ -120,7 +120,7 @@
   const label = (v: number | null) => fmt(v, 1);
 
   // The calculation path of every value that is shown: symbols only, so the numbers can be rebuilt
-  // by hand. The symbols are the same on Help > Calculations.
+  // by hand. Each row explains its symbols; the full text is on Help > Calculations.
   interface Path {
     key: Key;
     name: string;
@@ -132,14 +132,14 @@
       {
         key: 'vel',
         name: t('Velocity'),
-        formula: 'V = Σ E(i)   [i done at sprint end]',
-        where: t('E(i) = estimate of item i at sprint start, including items pulled in later; unfinished items count 0. Without tickets V is the value entered at the Review.'),
+        formula: 'V = C − U + A',
+        where: t('C = commitment, U = estimates of the planned items that are not finished (at most C), A = estimates of items pulled in later and finished. Without tickets, U and A are the values entered at the Review.'),
       },
       {
         key: 'com',
         name: t('Commitment'),
-        formula: 'C = carry-over + backlog',
-        where: t('From the Planning of the sprint, or the value entered there.'),
+        formula: 'C = R + B',
+        where: t('R = carry-over and B = backlog from the Planning of the sprint, or the value entered there.'),
       },
       {
         key: 'nv',
@@ -150,26 +150,26 @@
       {
         key: 'trend',
         name: t('Trend of the normalized velocity'),
-        formula: 'Ø(k) = ( N(k−w+1) + … + N(k) ) ÷ w\nT(k) = Ø(k−1) + ( Ø(k−1) − Ø(k−2) )',
-        where: t('w = window of completed sprints; k = the sprint. With the trend mode "flat" T(k) = Ø(k−1). With thin history only the mean is used.'),
+        formula: 'Ø(k) = ( N(a) + … + N(k) ) ÷ w\nT(k) = X(k−1) + ( X(k−1) − X(k−2) )',
+        where: t('w = window of sprints with an N (a is the first of them); with fewer than w but at least 3, Ø is the mean of all. X = Ø, or T where Ø is missing. With the flat trend mode T(k) = X(k−1). T is never below 0.'),
       },
       {
         key: 'plan',
         name: t('Forecast PLAN'),
         formula: 'P = ⌊ T ÷ Ref × Cap ⌋',
-        where: t('T = trend of the sprint, Cap = its capacity, rounded down to the rounding of the team. For a sprint that is already planned, P = ⌊ C ⌋.'),
+        where: t('T = trend of the sprint, Cap = its capacity, rounded down to the rounding of the team. Without a trend: P = ⌊ C ⌋; without any history: P = ⌊ Cap × start rate ⌋.'),
       },
       {
         key: 'range',
         name: t('Range'),
-        formula: 'σ = √( Σ ( N(j) − Ø(j−1) )² ÷ (n−1) )\nP ± t(n−1) × σ × √h ÷ Ref × Cap',
-        where: t('n = number of results in the window (at least 3), h = distance in sprints to the last result, t = factor of the t distribution for 80 %. The lower end is never below 0.'),
+        formula: 'σ = √( Σ ( N(j) − mean( N(1) … N(j−1) ) )² ÷ (n−1) ),  j = 2 … n\nP ± t(n−1) × σ × √h ÷ Ref × Cap',
+        where: t('n = last results N in the window (at least 3), h = distance in sprints to the last result, t = factor of the t distribution for 80 %. Never below 0; rounded to the rounding of the team.'),
       },
       {
         key: 'wif',
         name: t('What if'),
-        formula: "P' = ⌊ T' ÷ Ref × Cap' ⌋",
-        where: t("Like P, but with your assumption: Cap' = capacity with the extra absence and focus, T' = trend after the expected velocity of the running sprint."),
+        formula: "P' = ⌊ T ÷ Ref × Cap' × Focus ÷ 100 ⌋\nCap' = max( 0, Cap − D )",
+        where: t("D = extra days off of your assumption, Focus = focus in %. Without a trend: start rate instead of T ÷ Ref."),
       },
       {
         key: 'ful',
@@ -179,6 +179,7 @@
       },
     ] satisfies Path[]).filter((p) => on[p.key] && (p.key !== 'wif' || whatIf.length > 0)),
   );
+  const swatch = (k: Key): string => (k === 'trend' ? 'nv dash' : k === 'plan' || k === 'range' ? 'fc' + (k === 'plan' ? ' dash' : '') : k);
 
   const triangle = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy + r} ${cx - r},${cy + r}`;
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
@@ -274,7 +275,7 @@
     <dl>
       {#each paths as p (p.key)}
         <div class="p">
-          <dt><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s {p.key === 'range' || p.key === 'plan' ? 'fc' : p.key === 'trend' ? 'nv' : p.key}" /></svg>{p.name}</dt>
+          <dt><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s {swatch(p.key)}" /></svg>{p.name}</dt>
           <dd>
             <div class="formula data">{p.formula}</div>
             <div class="small muted">{p.where}</div>
@@ -292,9 +293,6 @@
   }
   .paths summary {
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     color: var(--text-muted);
     font-size: 12px;
   }
