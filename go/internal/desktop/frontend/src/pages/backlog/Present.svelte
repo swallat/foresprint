@@ -35,7 +35,12 @@
 
   onMount(async () => {
     app.ticket = '';
-    if (!store.view) await loadBacklog();
+    if (!store.view || store.team !== app.team) {
+      // the list or the keys belong to another team (e.g. the person's data before a tour): start over
+      present.keys = [];
+      present.key = '';
+      await loadBacklog();
+    }
     if (present.keys.length === 0) {
       // opened by address: show what is earmarked, then the backlog
       const v = store.view;

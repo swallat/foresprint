@@ -159,6 +159,7 @@ export async function loadTeams(): Promise<void> {
 }
 
 export async function selectTeam(key: string): Promise<void> {
+  if (key !== app.team) app.ticket = ''; // a ticket of the former team does not exist in this one
   app.team = key;
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
@@ -285,6 +286,7 @@ export async function enterDemo(): Promise<void> {
   app.demo = true;
   app.demoVariant = demoVariantKey();
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
@@ -296,6 +298,7 @@ export async function leaveDemo(): Promise<void> {
   app.demo = false;
   app.demoVariant = '';
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
