@@ -29,7 +29,7 @@ func outside() error {
 
 // History lists who changed what and when, newest first (D6). Scope is a team folder or a file,
 // relative to the data folder; "" is everything. Limit 0 means 40.
-func (s *Store) History(scope string, limit int) ([]Version, error) {
+func (s *Store) gitHistory(scope string, limit int) ([]Version, error) {
 	dir, err := s.folder()
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (s *Store) History(scope string, limit int) ([]Version, error) {
 // Restore brings the folder or file of scope back to the state of an earlier version. It is a
 // save on this computer that Save shares and Revert takes back. It is refused while there are
 // unsaved changes in that area.
-func (s *Store) Restore(scope, version, message string) Done {
+func (s *Store) gitRestore(scope, version, message string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)
@@ -82,7 +82,7 @@ func (s *Store) Restore(scope, version, message string) Done {
 
 // Revert takes back one change of the history with a new change (D6, "take back this change").
 // Merge entries cannot be taken back.
-func (s *Store) Revert(version string) Done {
+func (s *Store) gitRevert(version string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)
@@ -105,7 +105,7 @@ func (s *Store) undone(err error) Done {
 
 // Discard throws away the unsaved changes of the listed files (all when empty). Anything thrown
 // away is kept in the trash folder of the data repository; Lost says what would go.
-func (s *Store) Discard(files []string) Done {
+func (s *Store) gitDiscard(files []string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)

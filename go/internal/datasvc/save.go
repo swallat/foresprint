@@ -19,12 +19,12 @@ var protectedRe = regexp.MustCompile(`(?i)protected branch|GH006|not allowed to 
 // Save makes the work visible to the team: it commits, takes over what others did meanwhile and
 // uploads, in one step (D2). If the server only takes merge requests, the work goes to a branch of
 // the person's own and the result carries the link (D4).
-func (s *Store) Save(opts SaveOptions) Result {
+func (s *Store) gitSave(opts SaveOptions) Result {
 	return s.share(gitsync.SyncOptions{Message: s.messageOf(opts.Message), AllowInvalid: opts.SaveAnyway, Tags: opts.Tags})
 }
 
 // Refresh takes over what others have saved, without uploading anything (D2).
-func (s *Store) Refresh() Result {
+func (s *Store) gitRefresh() Result {
 	return s.share(gitsync.SyncOptions{PullOnly: true})
 }
 
@@ -142,7 +142,7 @@ func countOpen(files []gitsync.ConflictFile) int {
 
 // Conflicts lists what two people changed in different ways and needs a decision (D3). It is
 // empty when no merge waits.
-func (s *Store) Conflicts() []Conflict {
+func (s *Store) gitConflicts() []Conflict {
 	dir, err := s.folder()
 	if err != nil {
 		return []Conflict{}
@@ -203,7 +203,7 @@ func show(v any) string {
 
 // ResolveConflicts records the decisions. Entries without a decision stay open; the result says
 // how many files still wait. When none do, Save finishes the merge (D3).
-func (s *Store) ResolveConflicts(decisions []Decision) Result {
+func (s *Store) gitResolveConflicts(decisions []Decision) Result {
 	dir, err := s.folder()
 	if err != nil {
 		return s.failed(err)
@@ -243,7 +243,7 @@ func (s *Store) ResolveConflicts(decisions []Decision) Result {
 
 // TakeTheirs decides every open conflict for the other side ("Discard mine", D3). What is lost
 // is the person's own change to the contested values only.
-func (s *Store) TakeTheirs() Result {
+func (s *Store) gitTakeTheirs() Result {
 	var decisions []Decision
 	for _, c := range s.Conflicts() {
 		for _, e := range c.Entries {
@@ -255,7 +255,7 @@ func (s *Store) TakeTheirs() Result {
 
 // AbortMerge gives up an unfinished merge from outside the app and returns to the state before
 // it; the own work stays.
-func (s *Store) AbortMerge() Status {
+func (s *Store) gitAbortMerge() Status {
 	if dir, err := s.folder(); err == nil {
 		_ = gitsync.AbortUnfinished(s.ctx(), dir)
 	}
