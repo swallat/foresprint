@@ -196,7 +196,7 @@ func nilIfEmpty(files []string) []string {
 
 // adopt remembers a folder the storage has just switched to as the data folder of the program.
 func (a *API) adopt(o datasvc.Opened) datasvc.Opened {
-	if o.Problem != nil || o.Folder == "" {
+	if o.Folder == "" { // a setup whose first refresh failed has a folder and a problem: the copy is in use
 		return o
 	}
 	if err := a.SetDataDir(o.Folder); err != nil {

@@ -353,3 +353,26 @@ func TestFolderTrashKeepsEveryReplacement(t *testing.T) {
 		t.Fatalf("trash lost an edit: %d entries %q", n, found)
 	}
 }
+
+func TestFolderCopyInsideGitIsRefusedAndLabelsAreEmpty(t *testing.T) {
+	s := New("")
+	shared := t.TempDir()
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if o := s.UseSharedFolder(filepath.Join(repo, "teams"), shared, "", true); o.Problem == nil {
+		t.Fatal("copy inside a Git work tree accepted")
+	}
+	if _, err := os.Stat(filepath.Join(repo, "teams", ".foresprint-local")); err == nil {
+		t.Fatal("config written into the repository")
+	}
+	anna, _, _, annaDir, _ := team(t)
+	if l, err := anna.Labels(false); err != nil || l == nil || len(l) != 0 {
+		t.Fatalf("labels %v %v", l, err)
+	}
+	other := New("")
+	if o := other.OpenFolder(annaDir); o.Problem != nil || o.Folder != annaDir {
+		t.Fatalf("open the copy again: %+v", o)
+	}
+}

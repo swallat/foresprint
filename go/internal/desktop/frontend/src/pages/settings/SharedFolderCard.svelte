@@ -20,6 +20,16 @@
 
   const isFolder = $derived(st.kind === 'folder');
 
+  // After a switch back to Git the card starts empty again.
+  $effect(() => {
+    if (isFolder) return;
+    shared = '';
+    local = '';
+    person = '';
+    create = false;
+    check = undefined;
+  });
+
   async function pick(which: 'shared' | 'local'): Promise<void> {
     const got = await api.PickFolder(which === 'shared' ? t('Choose the shared folder') : t('Choose the folder for your copy of the data'));
     if (!got) return;
@@ -32,7 +42,7 @@
   async function test(): Promise<void> {
     working = true;
     try {
-      check = await api.CheckSharedFolder(shared);
+      check = await api.CheckSharedFolder(shared.trim());
       // A folder with data is joined; an empty one is the start of a new storage.
       create = check.ok && !check.hasData;
     } catch (e) {
@@ -45,13 +55,20 @@
   async function use(): Promise<void> {
     working = true;
     try {
-      const o = await api.UseSharedFolder(local || st.folder, shared, person.trim(), create);
+      const o = await api.UseSharedFolder(local.trim() || st.folder, shared.trim(), person.trim(), create);
       if (o.problem) {
         toast(o.problem.hint ? `${o.problem.message} ${o.problem.hint}` : o.problem.message, 'bad');
+        // The copy is set up but the first refresh failed: the window follows the storage anyway.
+        if (o.folder) {
+          app.prefs = await api.Prefs();
+          await loadTeams();
+          await onchange();
+          await refreshStatus();
+        }
         return;
       }
       app.prefs = await api.Prefs();
-      toast(t('Shared folder in use: {folder}', { folder: shared }), 'ok');
+      toast(t('Shared folder in use: {folder}', { folder: shared.trim() }), 'ok');
       await loadTeams();
       await onchange();
       await refreshStatus();
@@ -97,11 +114,11 @@
       <button class="btn" type="button" disabled={working || !shared.trim()} onclick={test}><Icon name="fact_check" />{t('Test the folder')}</button>
     </div>
     {#if check}
-      <ul class="plain top" aria-label={t('Result of the test')}>
+      <ul class="plain top" role="status" aria-label={t('Result of the test')}>
         {#each check.results as r (r.key)}
           <li class="row">
             <Icon name={r.ok ? 'check_circle' : 'warning'} />
-            <span class:muted={r.ok}>{label(r)}{#if !r.ok && r.detail}: <span class="data">{r.detail}</span>{/if}</span>
+            <span class:muted={r.ok}>{#if !r.ok}<span class="sr">{t('Failed:')} </span>{/if}{label(r)}{#if !r.ok && r.detail}: <span class="data">{r.detail}</span>{/if}</span>
           </li>
         {/each}
       </ul>
@@ -132,6 +149,9 @@
             <Icon name="check_circle" />{t('Use this folder')}
           </button>
         </div>
+        {#if !create && !check.hasData}
+          <p class="small muted">{t('The folder holds no team data yet. Tick “Start a new shared storage in this folder” to use it.')}</p>
+        {/if}
       {/if}
     {/if}
   {/if}
@@ -152,6 +172,14 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .check {
     display: flex;

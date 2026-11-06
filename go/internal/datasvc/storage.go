@@ -379,6 +379,11 @@ func (s *Store) OpenFolder(folder string) Opened {
 	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}
+	if _, ok := readFolderConfig(abs); ok {
+		// A copy of a shared folder (from the recent list): no Git repository around it.
+		s.SetFolder(abs)
+		return Opened{Folder: abs}
+	}
 	if _, err := gitsync.Root(s.ctx(), abs); err != nil {
 		return Opened{Problem: problemOf(err)}
 	}

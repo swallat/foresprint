@@ -232,10 +232,10 @@
       <h2 id="s-kind">{t('Kind of storage')}</h2>
       <div class="stack">
         <div class="opt" class:on={st.kind !== 'folder'} class:off={st.kind === 'folder'}>
-          <div class="row">{#if st.kind !== 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Git repository')}</strong></div>
+          <div class="row">{#if st.kind !== 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Git repository')}</strong>{#if st.kind !== 'folder'}<span class="sr"> ({t('in use')})</span>{/if}</div>
         </div>
         <div class="opt" class:on={st.kind === 'folder'} class:off={st.kind !== 'folder'}>
-          <div class="row">{#if st.kind === 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Shared folder')}</strong></div>
+          <div class="row">{#if st.kind === 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Shared folder')}</strong>{#if st.kind === 'folder'}<span class="sr"> ({t('in use')})</span>{/if}</div>
         </div>
       </div>
     </section>
@@ -506,5 +506,13 @@
   }
   .grow:is(input) {
     min-width: 200px;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 </style>
