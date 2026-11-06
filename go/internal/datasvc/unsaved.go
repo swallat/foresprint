@@ -84,7 +84,7 @@ func treesOf(root, file string, ctx context.Context) (before, after any, text st
 	return b, a, string(current), true
 }
 
-// UnsavedChanges lists what changed since the last save, value by value instead of file by file
+// gitUnsavedChanges lists what changed since the last save, value by value instead of file by file
 // (D2: the list before Save).
 func (s *Store) gitUnsavedChanges() ([]UnsavedFile, error) {
 	dir, err := s.folder()

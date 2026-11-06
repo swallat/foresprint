@@ -14,7 +14,7 @@ func (s *Store) gitCapabilities() Capabilities {
 }
 
 // gitStatus is the state of the storage without network access (what the last check found). Call
-// CheckForChanges to ask the server first.
+// gitCheckForChanges to ask the server first.
 func (s *Store) gitStatus() Status {
 	out := Status{Kind: "git", Writable: true, Connected: true, Capabilities: s.Capabilities(),
 		IncomingFrom: []string{}}
@@ -104,7 +104,7 @@ func chipFor(s Status, st gitsync.SyncState, viaReview, decided bool) Chip {
 	return Chip{State: ChipOK, Text: i18n.T("Up to date")}
 }
 
-// CheckForChanges asks the server whether others have changed something (a fetch, nothing is
+// gitCheckForChanges asks the server whether others have changed something (a fetch, nothing is
 // taken over) and returns the new status. An unreachable server is not an error; the status then
 // says offline.
 func (s *Store) gitCheckForChanges() Status {
@@ -115,7 +115,7 @@ func (s *Store) gitCheckForChanges() Status {
 	return s.Status()
 }
 
-// StartBackgroundCheck starts the check for changes in the background if it is due (at start and
+// gitStartBackgroundCheck starts the check for changes in the background if it is due (at start and
 // every 30 minutes) and says whether it started. The window reads Status a little later.
 func (s *Store) gitStartBackgroundCheck() bool {
 	dir, err := s.folder()
@@ -125,7 +125,7 @@ func (s *Store) gitStartBackgroundCheck() bool {
 	return gitsync.StartBackgroundFetch(s.ctx(), dir)
 }
 
-// IncomingChanges lists what others have changed and Refresh would take over.
+// gitIncomingChanges lists what others have changed and Refresh would take over.
 func (s *Store) gitIncomingChanges() []Change {
 	dir, err := s.folder()
 	if err != nil {

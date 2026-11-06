@@ -2,7 +2,7 @@ package datasvc
 
 // Backend is the storage behind the window: the operations of the storage interface
 // (docs/redesign/storage-interface.md). Git is the first backend; a shared folder is the second.
-// Store picks the backend by Kind and passes every call on, so the window and the API do not
+// Store passes every call on to the backend (today always Git; the folder backend adds a Kind switch in backend()), so the window and the API do not
 // change with the storage.
 //
 // Operations that only exist for Git (branches, labels, server settings, sign-in) stay on Store
@@ -63,6 +63,8 @@ func (s *Store) backend() Backend {
 	return gitBackend{s}
 }
 
+// The methods below are the public storage API of the window; each one passes the call on to the
+// backend of the data folder (see Backend for what they do).
 func (s *Store) Status() Status                       { return s.backend().Status() }
 func (s *Store) CheckForChanges() Status              { return s.backend().CheckForChanges() }
 func (s *Store) StartBackgroundCheck() bool           { return s.backend().StartBackgroundCheck() }

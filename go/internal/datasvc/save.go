@@ -16,14 +16,14 @@ import (
 var protectedRe = regexp.MustCompile(`(?i)protected branch|GH006|not allowed to push code to protected|` +
 	`branch protection`)
 
-// Save makes the work visible to the team: it commits, takes over what others did meanwhile and
+// gitSave makes the work visible to the team: it commits, takes over what others did meanwhile and
 // uploads, in one step (D2). If the server only takes merge requests, the work goes to a branch of
 // the person's own and the result carries the link (D4).
 func (s *Store) gitSave(opts SaveOptions) Result {
 	return s.share(gitsync.SyncOptions{Message: s.messageOf(opts.Message), AllowInvalid: opts.SaveAnyway, Tags: opts.Tags})
 }
 
-// Refresh takes over what others have saved, without uploading anything (D2).
+// gitRefresh takes over what others have saved, without uploading anything (D2).
 func (s *Store) gitRefresh() Result {
 	return s.share(gitsync.SyncOptions{PullOnly: true})
 }
@@ -140,7 +140,7 @@ func countOpen(files []gitsync.ConflictFile) int {
 	return n
 }
 
-// Conflicts lists what two people changed in different ways and needs a decision (D3). It is
+// gitConflicts lists what two people changed in different ways and needs a decision (D3). It is
 // empty when no merge waits.
 func (s *Store) gitConflicts() []Conflict {
 	dir, err := s.folder()
@@ -201,7 +201,7 @@ func show(v any) string {
 	return yamlx.PyStr(v)
 }
 
-// ResolveConflicts records the decisions. Entries without a decision stay open; the result says
+// gitResolveConflicts records the decisions. Entries without a decision stay open; the result says
 // how many files still wait. When none do, Save finishes the merge (D3).
 func (s *Store) gitResolveConflicts(decisions []Decision) Result {
 	dir, err := s.folder()
@@ -241,7 +241,7 @@ func (s *Store) gitResolveConflicts(decisions []Decision) Result {
 	return out
 }
 
-// TakeTheirs decides every open conflict for the other side ("Discard mine", D3). What is lost
+// gitTakeTheirs decides every open conflict for the other side ("Discard mine", D3). What is lost
 // is the person's own change to the contested values only.
 func (s *Store) gitTakeTheirs() Result {
 	var decisions []Decision
@@ -253,7 +253,7 @@ func (s *Store) gitTakeTheirs() Result {
 	return s.ResolveConflicts(decisions)
 }
 
-// AbortMerge gives up an unfinished merge from outside the app and returns to the state before
+// gitAbortMerge gives up an unfinished merge from outside the app and returns to the state before
 // it; the own work stays.
 func (s *Store) gitAbortMerge() Status {
 	if dir, err := s.folder(); err == nil {
