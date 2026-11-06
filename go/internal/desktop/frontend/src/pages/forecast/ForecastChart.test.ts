@@ -30,6 +30,9 @@ const show = async () => {
 const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>('button.lg')].find((b) => b.textContent?.includes(name))!;
 const polylines = (cls: string) => host.querySelectorAll(`polyline.${cls}`).length;
 
+// The formulas are drawn as MathML; the plain text is the aria-label of each one.
+const labels = () => [...document.querySelectorAll('.paths .formula')].map((e) => e.getAttribute('aria-label') ?? e.textContent).join('\n');
+
 describe('ForecastChart legend', () => {
   it('shows fulfillment only after it is switched on, on its own axis', async () => {
     await show();
@@ -81,18 +84,18 @@ describe('ForecastChart calculation paths', () => {
     await show();
     expect(host.querySelector('.paths')).not.toBeNull();
     expect(names().length).toBe(5);
-    expect(host.querySelector('.paths')?.textContent).not.toContain("P'");
-    expect(host.querySelector('.paths')?.textContent).toContain('P = ⌊ T ÷ Ref × Cap ⌋');
-    expect(host.querySelector('.paths')?.textContent).not.toContain('F = V ÷ C');
+    expect(labels()).not.toContain("P'");
+    expect(labels()).toContain('P = ⌊ T ÷ Ref × Cap ⌋');
+    expect(labels()).not.toContain('F = V ÷ C');
   });
   it('follows the legend', async () => {
     await show();
     button('Fulfillment').click();
     await tick();
-    expect(host.querySelector('.paths')?.textContent).toContain('F = V ÷ C');
+    expect(labels()).toContain('F = V ÷ C');
     button('Forecast PLAN').click();
     await tick();
-    expect(host.querySelector('.paths')?.textContent).not.toContain('P = ⌊ T ÷ Ref × Cap ⌋');
+    expect(labels()).not.toContain('P = ⌊ T ÷ Ref × Cap ⌋');
   });
   it('disappears when every series is off', async () => {
     await show();
