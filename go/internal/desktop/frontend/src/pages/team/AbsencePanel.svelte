@@ -5,6 +5,7 @@
   import Icon from '../../lib/Icon.svelte';
   import SidePanel from '../../lib/ui/SidePanel.svelte';
   import { fmtDay } from '../../lib/team/format';
+  import { overlapping } from '../../lib/team/absences';
   import type { AbsencePeriod, Person } from '../../lib/types.team';
 
   interface Props {
@@ -25,17 +26,29 @@
     return onchange([...others, ...list]);
   }
 
+  let problem = $state('');
+
   function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input: HTMLInputElement | null = null) {
     const next = { ...a, ...patch };
     if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
-    if (next.from === '' || next.to === '' || next.to < next.from) {
+    const empty = next.from === '' || next.to === '';
+    const datesMoved = next.from !== a.from || next.to !== a.to; // a status click never trips over an old overlap
+    const clash = empty || next.to < next.from || !datesMoved ? null : overlapping(mine, next, a);
+    if (empty || next.to < next.from || clash) {
       if (input) input.value = patch.from !== undefined ? a.from : a.to; // keep the field as saved
+      problem = empty
+        ? t('Enter the first and the last day.')
+        : clash
+          ? t('This period overlaps the absence {from} to {to}. Change or delete that one first.', { from: fmtDay(clash.from), to: fmtDay(clash.to) })
+          : t('The last day lies before the first day.');
       return;
     }
+    problem = '';
     return replaceMine(mine.map((x) => (x === a ? next : x)));
   }
 
   function add() {
+    problem = '';
     const from = mine.length ? mine[mine.length - 1]!.to : today;
     const day = new Date(`${from}T00:00:00Z`);
     day.setUTCDate(day.getUTCDate() + (mine.length ? 7 : 0));
@@ -89,6 +102,7 @@
   {:else}
     <p class="muted">{t('No absences planned.')}</p>
   {/if}
+  {#if problem}<p class="small bad" role="alert">{problem}</p>{/if}
   <div class="row">
     <button class="btn" type="button" onclick={add}><Icon name="add" />{t('Add period')}</button>
   </div>
@@ -97,6 +111,9 @@
 <style>
   .date {
     width: 138px;
+  }
+  .bad {
+    color: var(--bad);
   }
   .past {
     opacity: 0.6;

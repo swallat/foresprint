@@ -732,6 +732,7 @@
   "Absence: {name}": "Abwesenheit: {name}",
   "Enter the first and the last day.": "Gib den ersten und den letzten Tag ein.",
   "The last day lies before the first day.": "Der letzte Tag liegt vor dem ersten Tag.",
+  "This period overlaps the absence {from} to {to}. Change or delete that one first.": "Dieser Zeitraum überschneidet sich mit der Abwesenheit {from} bis {to}. Ändere oder lösche zuerst diese.",
   "The first day lies in a finished sprint. Finished sprints stay as they are.": "Der erste Tag liegt in einem beendeten Sprint. Beendete Sprints bleiben unverändert.",
   "Confirmed (otherwise announced)": "Bestätigt (sonst angekündigt)",
   "Days in finished sprints stay as they are; only the last day and the status can change.": "Tage in beendeten Sprints bleiben unverändert; nur der letzte Tag und der Status lassen sich ändern.",
