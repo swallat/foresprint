@@ -88,6 +88,8 @@
   "Clear selection": "Auswahl aufheben",
   "Close": "Schließen",
   "Panel width": "Breite des Panels",
+  "Show the panel over the page": "Panel über der Seite anzeigen",
+  "Show the panel as a column beside the page": "Panel als Spalte neben der Seite anzeigen",
   "Drag to change the width, double-click for the smallest width": "Ziehen ändert die Breite, Doppelklick stellt die kleinste Breite ein",
   "Close presentation view": "Präsentationsansicht schließen",
   "Closed {date}.": "Abgeschlossen am {date}.",

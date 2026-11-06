@@ -55,6 +55,8 @@ export const app = $state({
   calcMode: 'icon' as CalcMode,
   /** Width of the ticket panel in pixels (at least PANEL_MIN); remembered on this machine. */
   panelWidth: 440,
+  /** The ticket panel lies over the page (overlay) or sits beside it as a column; remembered on this machine. */
+  panelMode: 'overlay' as PanelMode,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
   /** The variant the demo was opened with ("atlas/packages"); see demoChoice. */
@@ -62,6 +64,8 @@ export const app = $state({
   /** A newer program version is known (daily check at the start); undefined if none. */
   update: undefined as UpdateInfo | undefined,
 });
+
+export type PanelMode = 'overlay' | 'column';
 
 export type CalcMode = 'off' | 'icon' | 'inline';
 
@@ -84,11 +88,37 @@ const store = {
 
 export const PANEL_MIN = 440;
 const PANEL_ROOM = 160;
+/** As a column the panel leaves the rail and at least this much for the page. */
+const COLUMN_PAGE_MIN = 360;
+const RAIL_WIDTH = 232;
+
+/** Window width, reactive; kept up to date by the ticket panel. */
+export const win = $state({ w: typeof window === 'undefined' ? 1200 : window.innerWidth });
+
+/** The column only fits in a wide window; a narrower one shows the panel over the page. */
+export function panelDocked(): boolean {
+  return app.panelMode === 'column' && win.w >= RAIL_WIDTH + PANEL_MIN + COLUMN_PAGE_MIN;
+}
+
+/** Largest panel width for the current mode (the grip's upper bound). */
+export function panelWidthMax(): number {
+  return Math.max(PANEL_MIN, win.w - (panelDocked() ? RAIL_WIDTH + COLUMN_PAGE_MIN : PANEL_ROOM));
+}
+
+/** The width shown: the remembered one, pulled in where the window or the mode leaves less room. */
+export function panelWidthNow(): number {
+  return Math.min(app.panelWidth, panelWidthMax());
+}
+
+/** Switches the ticket panel between overlay and column; remembered on this machine. The width stays as it was. */
+export function setPanelMode(mode: PanelMode): void {
+  app.panelMode = mode;
+  store.set('panelMode', mode);
+}
 
 /** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
 export function setPanelWidth(px: number, remember = true): void {
-  const max = Math.max(PANEL_MIN, (typeof window === 'undefined' ? 1200 : window.innerWidth) - PANEL_ROOM);
-  app.panelWidth = Math.round(Math.min(max, Math.max(PANEL_MIN, px)));
+  app.panelWidth = Math.round(Math.min(panelWidthMax(), Math.max(PANEL_MIN, px)));
   if (remember) store.set('panelWidth', String(app.panelWidth));
 }
 
@@ -348,6 +378,7 @@ export async function start(): Promise<void> {
   if (inProgram && (await api.InDemo())) await api.LeaveDemo();
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
+  if (store.get('panelMode') === 'column') app.panelMode = 'column';
   const pw = parseInt(store.get('panelWidth'), 10);
   if (Number.isFinite(pw)) setPanelWidth(pw, false);
   await loadPrefs();
