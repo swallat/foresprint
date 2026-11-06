@@ -12,6 +12,7 @@
   import { productColor } from './backlog';
   import { loadBacklog, present, store, allTickets, t } from './store.svelte';
   import { openExternal } from './external';
+  import JiraText from '../../lib/ui/JiraText.svelte';
 
   let {}: PageProps = $props();
 
@@ -143,7 +144,7 @@
     <div class="present-body">
       <div class="present-main">
         <h1>{detail.title}</h1>
-        {#if description}<section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{description}</p></section>{/if}
+        {#if description}<section class="td-sec"><h3>{t('Description')}</h3>{#if tracker?.description}<JiraText text={tracker.description} />{:else}<p class="prose">{description}</p>{/if}</section>{/if}
         {#if detail.acceptance}
           <section class="td-sec">
             <h3>{t('Acceptance criteria')}</h3>
