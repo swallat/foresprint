@@ -268,10 +268,11 @@
   }
   .ms {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto 32px;
+    grid-template-columns: auto minmax(0, 1fr) 32px;
     gap: 6px;
     align-items: center;
   }
+  .ms > :first-child,
   .ms .tickets {
     grid-column: 1 / -1;
   }
