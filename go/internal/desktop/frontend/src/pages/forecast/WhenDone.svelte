@@ -2,7 +2,7 @@
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
-  import { fmt, fmtVal, formatDate, formatPeriod, pct } from '../../lib/format';
+  import { fmt, fmtVal, formatDate, formatDay, formatPeriod, pct } from '../../lib/format';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { current } from '../../lib/router.svelte';
@@ -78,10 +78,15 @@
 
   const lightText = (l: string, end: string): string =>
     l === 'ok'
-      ? t('On track: done by {end} in 85 % of the runs.', { end })
+      ? t('On track: the project ends on {end}; the work is done by then in 85 % of the runs.', { end })
       : l === 'warn'
-        ? t('Tight: done by {end} in half of the runs, but not in 85 % of them.', { end })
-        : t('At risk: done by {end} in fewer than half of the runs.', { end });
+        ? t('Tight: the project ends on {end}; the work is done by then in half of the runs, but not in 85 % of them.', { end })
+        : t('At risk: the project ends on {end}; the work is done by then in fewer than half of the runs.', { end });
+  /** The table runs at least 12 sprints and always up to the sprint of the latest case, so that it reaches the 85 % the text names. */
+  const shown = (v: WhenDoneView): string[] => {
+    const last = v.p85 ? v.sprints.indexOf(v.p85) : -1;
+    return v.sprints.slice(0, Math.max(12, last + 1));
+  };
   const lightIcon = (l: string) => (l === 'ok' ? 'check_circle' : l === 'warn' ? 'error' : 'cancel');
   const period = (v: WhenDoneView, id: string): string => {
     const i = v.sprints.indexOf(id);
@@ -159,7 +164,7 @@
         </p>
         {#if done.projectEnd}
           <p aria-live="polite">
-            <span class="chip wd-light {done.light}"><Icon name={lightIcon(done.light)} size={16} />{lightText(done.light, formatDate(done.projectEnd))}</span>
+            <span class="chip wd-light {done.light}"><Icon name={lightIcon(done.light)} size={16} />{lightText(done.light, formatDay(done.projectEnd, 'medium'))}</span>
           </p>
         {:else if done.projectName}
           <p class="small muted">{t('The project has no end date, so there is nothing to compare with.')}</p>
@@ -170,7 +175,7 @@
               <tr><th scope="col">{t('Sprint')}</th><th scope="col">{t('Period')}</th><th scope="col" class="num">{t('Done by then')}</th><th scope="col"><span class="sr-only">{t('Bar')}</span></th></tr>
             </thead>
             <tbody>
-              {#each done.sprints.slice(0, 12) as id, i (id)}
+              {#each shown(done) as id, i (id)}
                 {@const c = done.cumulative[i] ?? 0}
                 <tr>
                   <td class="data">{id}</td>
