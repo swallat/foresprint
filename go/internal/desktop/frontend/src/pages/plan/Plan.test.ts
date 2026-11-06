@@ -250,16 +250,15 @@ describe('Plan page', () => {
       expect(app.toasts).toEqual([]);
     });
 
-    it('a ticket dragged from the other lane onto a ticket is not re-sorted: the lane drop takes it in', async () => {
+    it('a ticket dragged from the other lane onto a ticket is taken in and put at that place (rank order)', async () => {
       await show();
-      const sort = vi.spyOn(mockApi, 'MoveWorkPackage');
+      const rank = vi.spyOn(mockApi, 'MoveTicketByRank');
       const before = used();
       row('ATL-424').dispatchEvent(drag('dragstart'));
-      // The row ignores the foreign ticket, the event reaches the lane, which moves it.
       row('ATL-412').parentElement!.dispatchEvent(drag('dragover', 5));
       row('ATL-412').parentElement!.dispatchEvent(drag('drop', 5));
       await settled(() => expect(keys('Sprint')).toContain('ATL-424'));
-      expect(sort).not.toHaveBeenCalled();
+      expect(rank).toHaveBeenCalledWith('atlas', 'ATL-424', 'ATL-412', true);
       expect(used()).toBe(before + 3);
     });
   });
