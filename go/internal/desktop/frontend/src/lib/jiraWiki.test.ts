@@ -51,4 +51,16 @@ describe('Jira wiki markup', () => {
   it('keeps plain text lines together', () => {
     expect(parseWiki('one\ntwo')).toEqual([{ t: 'p', c: [{ t: 'text', v: 'one' }, { t: 'br' }, { t: 'text', v: 'two' }] }]);
   });
+
+  it('keeps text after an inline code close and links with markers inside', () => {
+    const doc = parseWiki('{code}a{code} after');
+    expect(doc.map((b) => b.t)).toEqual(['code', 'p']);
+    expect(parseInline('*a [b|https://example.org/*] c*')[0]).toMatchObject({ t: 'b' });
+  });
+
+  it('stays fast on a long line of unclosed markers', () => {
+    const start = Date.now();
+    parseInline('*b '.repeat(20000));
+    expect(Date.now() - start).toBeLessThan(2000);
+  });
 });

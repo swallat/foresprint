@@ -30,7 +30,7 @@
   {#each items as b, i (i)}
     {#if b.t === 'p'}<p>{@render inl(b.c)}</p>
     {:else if b.t === 'h'}
-      <p class="jh jh{Math.min(b.level, 4)}" role="heading" aria-level={b.level + 2}>{@render inl(b.c)}</p>
+      <p class="jh jh{Math.min(b.level, 4)}" role="heading" aria-level={Math.min(b.level + 3, 6)}>{@render inl(b.c)}</p>
     {:else if b.t === 'list'}
       {#if b.ordered}
         <ol>{#each b.items as it, k (k)}<li>{@render inl(it.c)}{@render blk(it.sub)}</li>{/each}</ol>
@@ -59,6 +59,9 @@
 <div class="jira">{@render blk(doc)}</div>
 
 <style>
+  .jira {
+    overflow-wrap: anywhere;
+  }
   .jira :global(p),
   .jira :global(ul),
   .jira :global(ol),
@@ -98,7 +101,7 @@
     background: var(--surface-2, rgba(128, 128, 128, 0.12));
   }
   .jira :global(code) {
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-data);
     font-size: 0.92em;
   }
   .jira :global(.panel) {

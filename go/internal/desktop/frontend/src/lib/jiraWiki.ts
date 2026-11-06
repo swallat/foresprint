@@ -45,8 +45,16 @@ function push(out: WikiInline[], v: string): void {
 // Finds the closing marker of an emphasis that opened at `from`: not after a space, not inside a
 // word. Returns -1 when the marker is just a character (a hyphen, a lone star).
 function closer(s: string, mark: string, from: number): number {
-  for (let j = s.indexOf(mark, from); j !== -1; j = s.indexOf(mark, j + 1)) {
-    if (j > from && !isSpace(s[j - 1]) && !isWord(s[j + mark.length])) return j;
+  const limit = Math.min(s.length, from + 500); // a marker without a closer must not rescan the whole line
+  for (let j = from; j < limit; j++) {
+    const ch = s[j];
+    if (ch === '[' || (ch === '{' && s[j + 1] === '{')) {
+      // a link or mono span is skipped as a whole, so a marker inside an address does not close
+      const end = s.indexOf(ch === '[' ? ']' : '}}', j + 1);
+      if (end !== -1 && end < limit) j = end + (ch === '[' ? 0 : 1);
+      continue;
+    }
+    if (s.startsWith(mark, j) && j > from && !isSpace(s[j - 1]) && !isWord(s[j + mark.length])) return j;
   }
   return -1;
 }
@@ -247,7 +255,12 @@ function blocks(lines: string[]): WikiBlock[] {
           body.push(first.slice(0, at));
           closed = true;
         } else body.push(first);
-        if (closed || i + 1 >= lines.length) break;
+        if (closed) {
+          const tail = first.slice(at + close.length);
+          if (tail.trim() !== '') lines.splice(i + 1, 0, tail); // text after the closing tag goes on
+          break;
+        }
+        if (i + 1 >= lines.length) break;
         first = lines[++i] ?? '';
       }
       out.push({ t: 'code', v: body.join('\n').replace(/^\n+|\n+$/g, '') });
