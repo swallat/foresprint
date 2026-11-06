@@ -19,6 +19,7 @@
   import type { PageProps } from '../../lib/routes';
   import type { FreezeInput, PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
+  import DropGap from '../../lib/ui/DropGap.svelte';
   import { fits, group, sortTickets } from '../backlog/backlog';
   import TicketFilter from '../backlog/TicketFilter.svelte';
   import { ui } from '../backlog/store.svelte';
@@ -135,9 +136,18 @@
     });
   }
 
-  let dragKey = '';
+  let dragKey = $state('');
+  let dragHeight = $state(40);
   /** The row a re-sorting drag hovers over, and on which half (the dragged ticket lands before or after it). */
   let overRow = $state<{ key: string; after: boolean } | null>(null);
+  /** A drag over the lane itself (not a row), from the other lane: the ticket will be taken in. */
+  function laneDrop(here: 'sprint' | 'candidates'): boolean {
+    return over && overWhich === here && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here);
+  }
+  /** A dragleave counts only when the pointer leaves the element, not when it moves onto a child of it. */
+  function leaves(e: DragEvent): boolean {
+    return !(e.relatedTarget instanceof Node) || !(e.currentTarget as Node).contains(e.relatedTarget);
+  }
   function dragEnd(): void {
     dragKey = '';
     over = false;
@@ -149,8 +159,12 @@
     e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
     over = false;
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    overRow = { key, after: e.clientY > r.top + r.height / 2 };
+    // The half is read from the ticket itself, not the slot: the gap sits in the slot and must not move the middle.
+    const row = Array.from((e.currentTarget as HTMLElement).children).find((c) => !c.classList.contains('drop-gap'));
+    if (!row) return;
+    const r = row.getBoundingClientRect();
+    if (e.clientY >= r.top && e.clientY <= r.bottom) overRow = { key, after: e.clientY > r.top + r.height / 2 };
+    else if (overRow?.key !== key) overRow = { key, after: e.clientY > r.top + r.height / 2 };
   }
   async function rowDrop(e: DragEvent, key: string, here: 'sprint' | 'candidates'): Promise<void> {
     if (!canReorder || !overRow || overRow.key !== key || !dragKey || !isNoopMove(d!, dragKey, here)) return;
@@ -193,6 +207,7 @@
 
   function dragStart(e: DragEvent, key: string): void {
     dragKey = key;
+    dragHeight = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect().height || 40;
     e.dataTransfer?.setData('text/plain', key);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   }
@@ -356,7 +371,7 @@
         role="group"
         aria-label={t('Candidates')}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'candidates'; } }}
-        ondragleave={() => (over = false)}
+        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
         ondrop={(e) => { e.preventDefault(); drop('candidates'); }}
         onkeydown={(e) => laneKey(e, 'candidates')}
       >
@@ -384,7 +399,7 @@
         role="group"
         aria-label={t('Sprint {sprint}', { sprint: d.sprint })}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'sprint'; } }}
-        ondragleave={() => (over = false)}
+        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
         ondrop={(e) => { e.preventDefault(); drop('sprint'); }}
         onkeydown={(e) => laneKey(e, 'sprint')}
       >
@@ -499,7 +514,7 @@
 {/if}
 
 {#snippet laneList(list: PlanTicket[], here: 'sprint' | 'candidates', empty: string)}
-  {#if list.length === 0}
+  {#if list.length === 0 && !laneDrop(here)}
     <div class="small muted pad">{empty}</div>
   {:else if ui.group === 'none'}
     {#each list as x (x.key)}{@render laneRow(x, here)}{/each}
@@ -513,6 +528,7 @@
       {#each g.items as x (x.key)}{@render laneRow(x, here)}{/each}
     {/each}
   {/if}
+  {#if laneDrop(here)}<DropGap height={dragHeight} />{/if}
 {/snippet}
 
 {#snippet laneRow(x: PlanTicket, here: 'sprint' | 'candidates')}
@@ -520,13 +536,12 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="slot"
-      class:before={overRow?.key === x.key && !overRow.after}
-      class:after={overRow?.key === x.key && overRow.after}
+      class:dragging={dragKey === x.key}
       ondragover={(e) => rowOver(e, x.key, here)}
-      ondragleave={() => { if (overRow?.key === x.key) overRow = null; }}
-      ondrop={(e) => rowDrop(e, x.key, here)}
+            ondrop={(e) => rowDrop(e, x.key, here)}
       oncontextmenu={(e) => openMenu(e, x.key)}
     >
+      {#if overRow?.key === x.key && !overRow.after}<DropGap height={dragHeight} />{/if}
       <TicketRow
         ticket={x}
         {d}
@@ -537,6 +552,7 @@
         ondragstart={(e) => dragStart(e, x.key)}
         ondragend={dragEnd}
       />
+      {#if overRow?.key === x.key && overRow.after}<DropGap height={dragHeight} />{/if}
     </div>
   {/if}
 {/snippet}
@@ -572,8 +588,6 @@
   .cand-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .gh { display: flex; gap: 8px; align-items: center; padding: 6px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
   .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
-  .slot.after { box-shadow: 0 2px 0 0 var(--primary); }
   .gapb {
     margin-bottom: 16px;
   }
