@@ -82,11 +82,27 @@ export interface Names {
   project: (id: string) => string;
 }
 
-export function matches(t: BacklogTicket, f: Filter, names: Names, multi: boolean): boolean {
+/** What the product, project and progress chips need of a ticket; every page's ticket type has it. */
+export interface Chipped {
+  product: string;
+  project: string;
+  refined: boolean;
+}
+
+/** The chips of the filter (product, project, progress) on any list of tickets; search and flags are the backlog's own. */
+export function fits(t: Chipped, f: Filter): boolean {
   if (f.products.length && !f.products.includes(t.product)) return false;
   if (f.projects.length && !f.projects.includes(t.project)) return false;
   if (f.refined === 'yes' && !t.refined) return false;
   if (f.refined === 'open' && t.refined) return false;
+  return true;
+}
+
+/** True when the chips (not the search or a flag) narrow the list. */
+export const chipsOn = (f: Filter): boolean => f.products.length > 0 || f.projects.length > 0 || f.refined !== 'all';
+
+export function matches(t: BacklogTicket, f: Filter, names: Names, multi: boolean): boolean {
+  if (!fits(t, f)) return false;
   if (f.flag === 'unassigned' && !unassigned(t, multi)) return false;
   if (f.flag === 'open' && !hasOpenPoint(t, multi)) return false;
   const q = f.q.trim().toLowerCase();
@@ -99,16 +115,16 @@ export function matches(t: BacklogTicket, f: Filter, names: Names, multi: boolea
 
 export const sum = (items: BacklogTicket[]): number => items.reduce((acc, t) => acc + (t.size ?? 0), 0);
 
-export interface Section {
+export interface Section<T = BacklogTicket> {
   id: string;
   /** The group's name; "" means daily business (project) or no product. */
   name: string;
   kind: 'project' | 'product';
-  items: BacklogTicket[];
+  items: T[];
 }
 
 /** Splits the list by project (with daily business last) or by product; empty groups drop out. */
-export function group(items: BacklogTicket[], by: Group, view: Pick<BacklogView, 'products' | 'projects'>): Section[] {
+export function group<T extends Chipped>(items: T[], by: Group, view: Pick<BacklogView, 'products' | 'projects'>): Section<T>[] {
   if (by === 'none') return [];
   const byProject = by === 'project';
   const named: Named[] = byProject ? view.projects : view.products;
@@ -140,13 +156,20 @@ export function neighbour(lanes: string[], at: string, step: -1 | 1): string | u
 }
 
 /** Sorts a copy of the list; "order" keeps the planning order, "rank" follows the tracker's rank. The sort is stable, so equal tickets keep it. */
-export function sortTickets(items: BacklogTicket[], by: Sort): BacklogTicket[] {
+export interface Sortable {
+  key: string;
+  title: string;
+  size: number | null;
+  rankPos: number;
+}
+
+export function sortTickets<T extends Sortable>(items: T[], by: Sort): T[] {
   if (by === 'order') return items;
   const out = [...items];
-  const nullsLast = (t: BacklogTicket, dir: 1 | -1): number => t.size ?? (dir === 1 ? Infinity : -Infinity);
+  const nullsLast = (t: Sortable, dir: 1 | -1): number => t.size ?? (dir === 1 ? Infinity : -Infinity);
   switch (by) {
     case 'rank':
-      return out.sort((a, b) => a.rankPos - b.rankPos);
+      return out.sort((a, b) => (a.rankPos || Infinity) - (b.rankPos || Infinity));
     case 'size-desc':
       return out.sort((a, b) => nullsLast(b, -1) - nullsLast(a, -1));
     case 'size-asc':

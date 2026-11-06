@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
-import { activeCustom, activeView, addCustom, applyView, blank, group, hasOpenPoint, matches, neighbour, readCustom, removeCustom, sortTickets, sum, unassigned } from './backlog';
+import { activeCustom, activeView, addCustom, applyView, blank, chipsOn, fits, group, hasOpenPoint, matches, neighbour, readCustom, removeCustom, sortTickets, sum, unassigned } from './backlog';
 
 const t = (key: string, o: Partial<BacklogTicket> = {}): BacklogTicket => ({
   key, title: `Title ${key}`, status: '', type: '', priority: '', assignee: '', url: '', size: 3, sizeSource: 'refined',
@@ -127,5 +127,19 @@ describe('custom views', () => {
     expect(activeCustom(big, blank(), 'none', 'size-desc')?.id).toBe('big');
     expect(activeCustom(big, blank(), 'none', 'order')).toBeUndefined();
     expect(sortTickets([t('A-1')], 'bogus' as never)).toHaveLength(1);
+  });
+});
+
+describe('fits (the chips on any list)', () => {
+  const tk = { product: 'a', project: 'p', refined: true };
+  it('applies product, project and progress', () => {
+    expect(fits(tk, blank())).toBe(true);
+    expect(fits(tk, { ...blank(), products: ['b'] })).toBe(false);
+    expect(fits(tk, { ...blank(), projects: ['p'] })).toBe(true);
+    expect(fits(tk, { ...blank(), refined: 'open' })).toBe(false);
+  });
+  it('chipsOn tells when the chips narrow the list', () => {
+    expect(chipsOn(blank())).toBe(false);
+    expect(chipsOn({ ...blank(), projects: [''] })).toBe(true);
   });
 });
