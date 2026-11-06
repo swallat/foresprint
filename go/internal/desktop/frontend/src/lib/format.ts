@@ -9,10 +9,12 @@ export function parseDay(day: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** A day as the user's language writes it, e.g. "22 Oct 2026" or "22. Okt. 2026". */
-export function formatDay(day: string, style: 'long' | 'short' = 'short'): string {
+/** A day as the user's language writes it, e.g. "22 Oct 2026" or "22. Okt. 2026"; "medium" writes the month out with the year: "October 22, 2026" or "22. Oktober 2026". */
+export function formatDay(day: string, style: 'long' | 'medium' | 'short' = 'short'): string {
   const d = parseDay(day);
-  return new Intl.DateTimeFormat(language(), style === 'long' ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short' }).format(d);
+  const options: Intl.DateTimeFormatOptions =
+    style === 'long' ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : style === 'medium' ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short' };
+  return new Intl.DateTimeFormat(language(), options).format(d);
 }
 
 /** A number in the language of the window; `digits` is the largest number of decimals shown, by default

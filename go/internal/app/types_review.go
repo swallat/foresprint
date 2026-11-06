@@ -17,6 +17,12 @@ type ReviewTicket struct {
 	// "" = the next sprint, a sprint id, "backlog".
 	Rest   float64 `json:"rest"`
 	Target string  `json:"target"`
+	// Product, Project, Refined and RankPos serve the filters and sorting of the list; they are
+	// read-only and ignored by Close.
+	Product string `json:"product"`
+	Project string `json:"project"`
+	Refined bool   `json:"refined"`
+	RankPos int    `json:"rankPos"`
 }
 
 // ReviewProduct is one product row of the Review.
@@ -54,19 +60,22 @@ type SprintReview struct {
 	AdditionalDone float64 `json:"additionalDone"`
 	// Pulled are the done tickets pulled in after the freeze; their estimates prefill AdditionalDone
 	// of an open Review. NoEstimate are those among them without an estimate.
-	Pulled       []string        `json:"pulled"`
-	NoEstimate   []string        `json:"noEstimate"`
-	RestNext     float64         `json:"restNext"` // without tickets: rest that continues in the next sprint
-	Velocity     float64         `json:"velocity"`
-	List         []ReviewTicket  `json:"list"`
-	Targets      []ReviewTarget  `json:"targets"`
-	PlannedDays  float64         `json:"plannedDays"`
-	FrozenDays   float64         `json:"frozenDays"`
-	Rate         *float64        `json:"rate"`   // velocity per person day, nil without days
-	Factor       *float64        `json:"factor"` // the fixed factor valid for the sprint, nil = measured rate
-	Products     []ReviewProduct `json:"products"`
-	ProductsOn   bool            `json:"productsOn"`
-	ProductionOn bool            `json:"productionOn"`
+	Pulled      []string        `json:"pulled"`
+	NoEstimate  []string        `json:"noEstimate"`
+	RestNext    float64         `json:"restNext"` // without tickets: rest that continues in the next sprint
+	Velocity    float64         `json:"velocity"`
+	List        []ReviewTicket  `json:"list"`
+	Targets     []ReviewTarget  `json:"targets"`
+	PlannedDays float64         `json:"plannedDays"`
+	FrozenDays  float64         `json:"frozenDays"`
+	Rate        *float64        `json:"rate"`   // velocity per person day, nil without days
+	Factor      *float64        `json:"factor"` // the fixed factor valid for the sprint, nil = measured rate
+	Products    []ReviewProduct `json:"products"`
+	ProductsOn  bool            `json:"productsOn"`
+	// FilterProducts and FilterProjects name the products and projects of the ticket list's filter.
+	FilterProducts []Named `json:"filterProducts"`
+	FilterProjects []Named `json:"filterProjects"`
+	ProductionOn   bool    `json:"productionOn"`
 	// Production is the done amount with production access for a team without products.
 	Production float64 `json:"production"`
 	Tag        string  `json:"tag"`

@@ -720,7 +720,7 @@ func (a *API) Project(team, id string) (ProjectDetail, error) {
 			line.Status = *t.Status
 		}
 		_, source := preplan.TicketSize(t, c.data, 1)
-		line.Refined = source == model.EstimateRefined
+		line.Refined = source == model.EstimateRefined && !t.RefinedUnclear
 		if prod, _ := preplan.TicketProduct(t, c.data); prod != nil {
 			line.Product = *prod
 		}

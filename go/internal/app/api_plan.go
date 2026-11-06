@@ -42,6 +42,8 @@ type planCtx struct {
 	repo   *storage.Repository
 	// ranks is the place of each open ticket in the order of the tracker's rank (see backlogByRank).
 	ranks map[string]int
+	// bl answers what the Backlog knows about a ticket (pro-forma sprints); built on first use.
+	bl *backlogContext
 }
 
 func (a *API) planContext(team, sprintID string) (*planCtx, error) {
@@ -85,13 +87,17 @@ func (c *planCtx) ticketURL(key string) string {
 	return strings.TrimRight(*t.BaseURL, "/") + "/browse/" + key
 }
 
-// earmarkSprint is the sprint a ticket is planned for: the earmark, else the sprint of the
-// tracker, else the frozen plan of the sprint it is in.
+// earmarkSprint is the sprint a ticket is planned for: the real sprint of the tracker, else the
+// earmark. The order is the Backlog's (plannedSprint), so that both pages count the same tickets
+// in a sprint; the import drops an earmark the tracker contradicts for the same reason.
 func (c *planCtx) earmarkSprint(t model.Ticket) string {
+	if id := str(t.InSprint); id != "" {
+		return id
+	}
 	if e := c.data.Preplan.EarmarkFor(t.Key); e != nil {
 		return e.Sprint
 	}
-	return str(t.InSprint)
+	return ""
 }
 
 // prodShare is the production share of a ticket and where it comes from: set in Foresprint,
@@ -187,6 +193,13 @@ func (c *planCtx) inSprint(t model.Ticket) bool {
 				return true
 			}
 		}
+		return false
+	}
+	// A ticket in a pro-forma sprint is not in a real one (the Backlog lists it there).
+	if c.bl == nil {
+		c.bl = newBacklogContext(c.data)
+	}
+	if c.bl.proFormaName(t) != "" {
 		return false
 	}
 	return c.earmarkSprint(t) == c.sprint.ID

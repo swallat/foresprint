@@ -48,6 +48,28 @@ func (e *Env) DataDir() string {
 	return "."
 }
 
+// WindowDataDir is the data folder for the window: --data > FORESPRINT_DATA > the remembered
+// folder > "" (the first-start wizard asks). The current folder does not count: a double click
+// or the start menu starts the program in some folder (the home folder, the program folder,
+// System32), and reading that as a data folder lists thousands of entries and runs Git in
+// whatever repository lies around it. That is also what happened when the remembered folder had
+// been deleted. A remembered folder that is gone stays named, so that the window can say so.
+func (e *Env) WindowDataDir() string {
+	if e.Data != "" {
+		return e.Data
+	}
+	if configured := os.Getenv(DataEnv); configured != "" {
+		return configured
+	}
+	saved, ok := config.DataDir()
+	if ok {
+		if found := teamsDir(saved); found != "" {
+			return found
+		}
+	}
+	return saved
+}
+
 // dataDirFor is DataDir for the shell completion, where the global options of the line typed
 // so far are not parsed by the command: they are looked up in the flags that are set.
 func dataDirFor(cmd *cobra.Command, env *Env) string {

@@ -832,3 +832,70 @@ func TestBacklogEditsWithProjectsOffKeepTheProject(t *testing.T) {
 		t.Errorf("view projectsOn = %v, %v; want off", v.ProjectsOn, err)
 	}
 }
+
+// The Backlog lane of a sprint and the lane of the Plan page count the same tickets with the same
+// refined state: the tracker's real sprint wins over an earmark, an unclear refined state is not
+// refined, and a pro-forma ticket is in no real sprint.
+func TestPlanLaneMatchesBacklogLane(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var future []string
+	for _, s := range sprints {
+		if s.State == "future" {
+			future = append(future, s.ID)
+		}
+	}
+	next, other := future[0], future[1]
+	repo := storage.NewRepository(api.DataDir())
+	f := func(v float64) *float64 { return &v }
+	str := func(v string) *string { return &v }
+	tickets := []model.Ticket{
+		{Key: "T-1", Title: "earmarked", Estimate: f(5), EstimateSource: model.EstimateRefined},
+		{Key: "T-2", Title: "in the sprint in the tracker", Estimate: f(3), EstimateSource: model.EstimateRefined, InSprint: str(next)},
+		{Key: "T-3", Title: "earmarked, tracker says another sprint", Estimate: f(2), EstimateSource: model.EstimateRefined, InSprint: str(other)},
+		{Key: "T-4", Title: "refined state unclear", Estimate: f(1), EstimateSource: model.EstimateRefined, RefinedUnclear: true},
+	}
+	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp := data.Preplan
+	pp.Earmarks = []model.Earmark{{Ticket: "T-1", Sprint: next}, {Ticket: "T-3", Sprint: next}, {Ticket: "T-4", Sprint: next}}
+	if _, err := repo.SavePreplan(team, pp); err != nil {
+		t.Fatal(err)
+	}
+	bv, err := api.Backlog(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	back := map[string]bool{}
+	for _, l := range bv.Lanes {
+		if l.Sprint == next {
+			for _, tk := range l.Tickets {
+				back[tk.Key] = tk.Refined
+			}
+		}
+	}
+	pv, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := map[string]bool{}
+	for _, tk := range pv.Tickets {
+		plan[tk.Key] = tk.Refined
+	}
+	if len(back) != 3 || len(plan) != len(back) {
+		t.Fatalf("backlog lane %v, plan lane %v: both want T-1, T-2, T-4", back, plan)
+	}
+	for k, r := range back {
+		if pr, ok := plan[k]; !ok || pr != r {
+			t.Errorf("%s: backlog refined %v, plan %v (in plan: %v)", k, r, pr, ok)
+		}
+	}
+	if back["T-4"] {
+		t.Error("T-4 has an unclear refined state and must not show as refined")
+	}
+}
