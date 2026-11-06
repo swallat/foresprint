@@ -82,8 +82,8 @@ func (s *Store) lastReview() string {
 	return s.review
 }
 
-// Abort stops the save or refresh that is running (Git is told to stop; what was saved stays).
-func (s *Store) Abort() bool {
+// gitAbort stops the save or refresh that is running (Git is told to stop; what was saved stays).
+func (s *Store) gitAbort() bool {
 	dir, err := s.folder()
 	if err != nil {
 		return false

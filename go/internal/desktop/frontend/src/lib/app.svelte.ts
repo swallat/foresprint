@@ -53,6 +53,8 @@ export const app = $state({
   problem: '',
   /** Personal setting: calculations next to numbers (see lib/calc/Calc.svelte). */
   calcMode: 'icon' as CalcMode,
+  /** Width of the ticket panel in pixels (at least PANEL_MIN); remembered on this machine. */
+  panelWidth: 440,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
   /** The variant the demo was opened with ("atlas/packages"); see demoChoice. */
@@ -79,6 +81,16 @@ const store = {
     }
   },
 };
+
+export const PANEL_MIN = 440;
+const PANEL_ROOM = 160;
+
+/** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
+export function setPanelWidth(px: number, remember = true): void {
+  const max = Math.max(PANEL_MIN, (typeof window === 'undefined' ? 1200 : window.innerWidth) - PANEL_ROOM);
+  app.panelWidth = Math.round(Math.min(max, Math.max(PANEL_MIN, px)));
+  if (remember) store.set('panelWidth', String(app.panelWidth));
+}
 
 const calcModes: CalcMode[] = ['off', 'icon', 'inline'];
 
@@ -147,6 +159,7 @@ export async function loadTeams(): Promise<void> {
 }
 
 export async function selectTeam(key: string): Promise<void> {
+  if (key !== app.team) app.ticket = ''; // a ticket of the former team does not exist in this one
   app.team = key;
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
@@ -273,6 +286,7 @@ export async function enterDemo(): Promise<void> {
   app.demo = true;
   app.demoVariant = demoVariantKey();
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
@@ -284,6 +298,7 @@ export async function leaveDemo(): Promise<void> {
   app.demo = false;
   app.demoVariant = '';
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
@@ -333,6 +348,8 @@ export async function start(): Promise<void> {
   if (inProgram && (await api.InDemo())) await api.LeaveDemo();
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
+  const pw = parseInt(store.get('panelWidth'), 10);
+  if (Number.isFinite(pw)) setPanelWidth(pw, false);
   await loadPrefs();
   await loadTeams();
   // The window opens as soon as the teams are known. The state of the storage needs several Git
