@@ -142,7 +142,7 @@
   let overRow = $state<{ key: string; after: boolean; here: 'sprint' | 'candidates' } | null>(null);
   /** A drag over the lane itself (not a row), from the other lane: the ticket will be taken in. */
   function laneDrop(here: 'sprint' | 'candidates'): boolean {
-    return over && overWhich === here && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here) && (listOf(here).length === 0 || endLands(here));
+    return over && overWhich === here && !overRow && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here) && (listOf(here).length === 0 || endLands(here));
   }
   const listOf = (here: 'sprint' | 'candidates'): PlanTicket[] => (here === 'sprint' ? laneShown : candidates);
   /** A drop on the empty part of a list puts the ticket at its end (rank order, ungrouped). */
@@ -200,7 +200,10 @@
   }
   /** Takes the ticket into the list (if it is in the other one), then puts it at the place. */
   async function landAt(key: string, here: 'sprint' | 'candidates', anchor: string, after: boolean): Promise<void> {
-    if (!isNoopMove(d!, key, here)) await move(key, here);
+    if (!isNoopMove(d!, key, here)) {
+      await move(key, here);
+      if (!isNoopMove(d!, key, here)) return; // not taken in (refused or failed): no place in a list it is not in
+    }
     await model.change(async () => void (await (ui.sort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, key, anchor, after)));
   }
   // --- Right-click menu: "Move to", as in the backlog -------------------------------------
@@ -403,7 +406,7 @@
         role="group"
         aria-label={t('Candidates')}
         ondragenter={(e) => { if (!frozen && dragKey) e.preventDefault(); }}
-        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'candidates'; } }}
+        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; overRow = null; over = true; overWhich = 'candidates'; } }}
         ondragleave={(e) => laneLeave(e, 'candidates')}
         ondrop={(e) => { e.preventDefault(); drop('candidates'); }}
         onkeydown={(e) => laneKey(e, 'candidates')}
@@ -432,7 +435,7 @@
         role="group"
         aria-label={t('Sprint {sprint}', { sprint: d.sprint })}
         ondragenter={(e) => { if (!frozen && dragKey) e.preventDefault(); }}
-        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'sprint'; } }}
+        ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; overRow = null; over = true; overWhich = 'sprint'; } }}
         ondragleave={(e) => laneLeave(e, 'sprint')}
         ondrop={(e) => { e.preventDefault(); drop('sprint'); }}
         onkeydown={(e) => laneKey(e, 'sprint')}

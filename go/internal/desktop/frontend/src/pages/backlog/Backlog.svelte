@@ -159,6 +159,7 @@
   function dragOver(e: DragEvent, zone: string): void {
     if (dragKeys.length === 0) return;
     e.preventDefault();
+    overRow = ''; // a row that took the event stopped it: reaching the list means no row is hovered
     overZone = zone;
   }
   async function drop(e: DragEvent, sprint: string): Promise<void> {
@@ -173,7 +174,7 @@
     // Behind the last ticket of the list, in the order they were dragged.
     let anchor = last!.key;
     for (const k of keys) {
-      if (k === anchor || fixedKeys.has(k)) continue;
+      if (k === anchor || fixedKeys.has(k) || zoneOf(k) !== zone) continue;
       if (!(await reorder(k, anchor, true))) break;
       anchor = k;
     }
@@ -252,7 +253,10 @@
     dragEnd();
     overRow = '';
     // From another list: take it in first (earmark), then put it at the place.
-    if (from !== to) await earmark([key], sprintOf(to));
+    if (from !== to) {
+      await earmark([key], sprintOf(to));
+      if (zoneOf(key) !== to) return; // not taken in: no place in a list it is not in
+    }
     await reorder(key, tk.key, after);
   }
   async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
