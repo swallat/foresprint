@@ -147,8 +147,8 @@ export async function loadTeams(): Promise<void> {
 }
 
 export async function selectTeam(key: string): Promise<void> {
+  if (key !== app.team) app.ticket = ''; // a ticket of the former team does not exist in this one
   app.team = key;
-  app.ticket = ''; // a ticket of the former team does not exist in this one
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
   const wanted = store.get(`sprint.${key}`);

@@ -61,7 +61,7 @@ async function show(): Promise<void> {
   for (const wait of [0, ...waits]) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     if (mine !== run) return;
-    if (step.openTicket && !app.ticket) {
+    if (step.openTicket && !app.ticket && backlog.team === app.team && !backlog.loading) {
       const first = allTickets(backlog.view)[0];
       if (first) app.ticket = first.key;
     }
