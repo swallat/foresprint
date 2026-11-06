@@ -31,3 +31,8 @@ export const touchesFinished = (a: AbsencePeriod, openFrom: string) => openFrom 
 export const isFixedStart = (a: AbsencePeriod, openFrom: string) => openFrom !== '' && a.from < openFrom;
 /** The same period (the list is replaced as a whole after every save, so identity is not enough). */
 export const same = (a: AbsencePeriod, b: AbsencePeriod) => a.person === b.person && a.from === b.from && a.to === b.to;
+
+/** Another period of the same person that shares a day with `next` (`skip` is the one being edited), or null. */
+export function overlapping(list: AbsencePeriod[], next: AbsencePeriod, skip: AbsencePeriod | null = null): AbsencePeriod | null {
+  return list.find((x) => x !== skip && x.person === next.person && x.from <= next.to && x.to >= next.from) ?? null;
+}
