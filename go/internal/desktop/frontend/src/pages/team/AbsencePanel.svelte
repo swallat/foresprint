@@ -31,12 +31,16 @@
   function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input: HTMLInputElement | null = null) {
     const next = { ...a, ...patch };
     if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
-    const clash = next.from === '' || next.to === '' || next.to < next.from ? null : overlapping(mine, next, a);
-    if (next.from === '' || next.to === '' || next.to < next.from || clash) {
+    const empty = next.from === '' || next.to === '';
+    const datesMoved = next.from !== a.from || next.to !== a.to; // a status click never trips over an old overlap
+    const clash = empty || next.to < next.from || !datesMoved ? null : overlapping(mine, next, a);
+    if (empty || next.to < next.from || clash) {
       if (input) input.value = patch.from !== undefined ? a.from : a.to; // keep the field as saved
-      problem = clash
-        ? t('This period overlaps the absence {from} to {to}. Change or delete that one first.', { from: fmtDay(clash.from), to: fmtDay(clash.to) })
-        : t('The last day lies before the first day.');
+      problem = empty
+        ? t('Enter the first and the last day.')
+        : clash
+          ? t('This period overlaps the absence {from} to {to}. Change or delete that one first.', { from: fmtDay(clash.from), to: fmtDay(clash.to) })
+          : t('The last day lies before the first day.');
       return;
     }
     problem = '';
