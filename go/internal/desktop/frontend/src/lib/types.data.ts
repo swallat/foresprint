@@ -165,8 +165,13 @@ export interface SignInGuide {
 }
 
 export interface StorageSettings {
+  /** 'git' or 'folder' (a shared folder). */
   kind: string;
   folder: string;
+  /** Shared folder: the folder of the team, the name in the journal, and whether it can be reached. */
+  shared?: string;
+  person?: string;
+  connected?: boolean;
   ready: boolean;
   server: string;
   special?: string;
@@ -227,6 +232,22 @@ export interface Opened {
   problem?: Problem;
 }
 
+/** One test of a folder for the shared storage (internal/sharedfolder). */
+export interface SharedFolderTest {
+  key: 'exists' | 'write' | 'lock' | 'replace' | 'clock' | 'names';
+  ok: boolean;
+  detail: string;
+}
+
+export interface SharedFolderCheck {
+  ok: boolean;
+  results: SharedFolderTest[];
+  /** The folder already holds team data. */
+  hasData: boolean;
+  /** A sync service recognised from the path, '' = none. */
+  service: string;
+}
+
 /** The methods of the area Data (internal/app/api_data.go). */
 export interface DataApi {
   SaveAnyway(): Promise<import('./types').Result>;
@@ -267,6 +288,8 @@ export interface DataApi {
   Branches(): Promise<Branch[]>;
   SwitchBranch(name: string): Promise<Done>;
   Reattach(): Promise<Reattached>;
+  CheckSharedFolder(shared: string): Promise<SharedFolderCheck>;
+  UseSharedFolder(local: string, shared: string, person: string, create: boolean): Promise<Opened>;
   CloneFrom(address: string, folder: string): Promise<Opened>;
   CreateFolder(folder: string): Promise<Opened>;
   OpenFolder(folder: string): Promise<Opened>;

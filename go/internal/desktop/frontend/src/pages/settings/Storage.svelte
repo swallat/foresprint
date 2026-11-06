@@ -8,6 +8,7 @@
   import type { Branch, LineEndings, Problem, RecentFolder, ServerCheck, StorageSettings } from '../../lib/types.data';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import SharedFolderCard from './SharedFolderCard.svelte';
 
   // Settings > Storage. The only page with the words of the storage kind (server, branch, merge
   // request, token); everywhere else the window says save, refresh and history.
@@ -230,11 +231,11 @@
     <section class="card" aria-labelledby="s-kind" data-tour="settings-storage">
       <h2 id="s-kind">{t('Kind of storage')}</h2>
       <div class="stack">
-        <div class="opt on">
-          <div class="row"><Icon name="check_circle" /><strong>{t('Git repository')}</strong></div>
+        <div class="opt" class:on={st.kind !== 'folder'} class:off={st.kind === 'folder'}>
+          <div class="row">{#if st.kind !== 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Git repository')}</strong></div>
         </div>
-        <div class="opt off" aria-disabled="true">
-          <div class="row"><strong>{t('Shared folder')}</strong><span class="chip">{t('after 1.0')}</span></div>
+        <div class="opt" class:on={st.kind === 'folder'} class:off={st.kind !== 'folder'}>
+          <div class="row">{#if st.kind === 'folder'}<Icon name="check_circle" />{/if}<strong>{t('Shared folder')}</strong></div>
         </div>
       </div>
     </section>
@@ -270,7 +271,9 @@
       {/if}
     </section>
 
-    {#if st.ready}
+    <SharedFolderCard {st} onchange={load} />
+
+    {#if st.ready && st.kind !== 'folder'}
       <section class="card" aria-labelledby="s-server">
         <h2 id="s-server">{t('Server')}</h2>
         <div class="field">

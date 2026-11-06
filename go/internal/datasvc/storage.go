@@ -19,6 +19,11 @@ import (
 type StorageSettings struct {
 	Kind   string `json:"kind"`
 	Folder string `json:"folder"`
+	// Shared and Person are set for the shared-folder storage (Kind "folder"): the shared folder
+	// and the name in the journal. Connected says whether the shared folder can be reached now.
+	Shared    string `json:"shared,omitempty"`
+	Person    string `json:"person,omitempty"`
+	Connected bool   `json:"connected,omitempty"`
 	// Ready: the folder is a data repository.
 	Ready bool `json:"ready"`
 	// Server is the address without credentials, "" = none set up.
@@ -61,6 +66,11 @@ type SignInGuide struct {
 // Storage reads the settings page. It changes nothing and needs no network.
 func (s *Store) Storage() StorageSettings {
 	dir := s.Folder()
+	if cfg, ok := readFolderConfig(dir); ok {
+		f := &folderBackend{s: s, dir: dir, cfg: cfg}
+		return StorageSettings{Kind: KindFolder, Folder: dir, Ready: true, Shared: cfg.Shared, Person: f.person(),
+			Connected: f.connected(), Hosts: []string{}, Setup: []SetupItem{}}
+	}
 	out := StorageSettings{Kind: "git", Folder: dir, Hosts: gitsync.Hosts, Setup: []SetupItem{}}
 	ctx := s.ctx()
 	root, err := "", error(nil)
