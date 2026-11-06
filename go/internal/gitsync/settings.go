@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/i18n"
@@ -15,19 +17,65 @@ import (
 var prURLRe = regexp.MustCompile(
 	`https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)`)
 
+// settingsCache holds the local settings of a data folder as read by one Git call; it is
+// dropped with the other Git caches (git.InvalidateStatus) and whenever a setting is written. A
+// start of the window asks for four of them, each of which used to be its own Git process.
+var (
+	settingsMu    sync.Mutex
+	settingsCache = map[string]cachedSettings{}
+)
+
+type cachedSettings struct {
+	at     time.Time
+	values map[string]string
+}
+
+func init() {
+	git.OnInvalidate(dropSettings)
+}
+
+func dropSettings() {
+	settingsMu.Lock()
+	settingsCache = map[string]cachedSettings{}
+	settingsMu.Unlock()
+}
+
+// localSettings reads all settings of the program in the local configuration of root with one
+// Git call (the names are lower case, as Git prints them). Nothing set gives an empty map.
+func localSettings(ctx context.Context, root string) map[string]string {
+	settingsMu.Lock()
+	cached, ok := settingsCache[root]
+	settingsMu.Unlock()
+	if ok && time.Since(cached.at) < stateTTL {
+		return cached.values
+	}
+	out, _ := git.Lenient(ctx, root, "config", "--local", "--get-regexp", `^(foresprint|sprintforecast)\.`)
+	values := map[string]string{}
+	for _, line := range strings.Split(out, "\n") {
+		key, value, _ := strings.Cut(strings.TrimRight(line, "\r"), " ")
+		if key != "" {
+			values[strings.ToLower(key)] = strings.TrimSpace(value) // the last entry wins, as with --get
+		}
+	}
+	settingsMu.Lock()
+	settingsCache[root] = cachedSettings{time.Now(), values}
+	settingsMu.Unlock()
+	return values
+}
+
 // getSetting is a local Git setting of the data folder; the key from before the rename is the
 // fallback.
 func getSetting(ctx context.Context, root, key string) string {
-	value, _ := git.Lenient(ctx, root, "config", "--local", "--get", key)
-	if value != "" {
+	values := localSettings(ctx, root)
+	if value := values[strings.ToLower(key)]; value != "" {
 		return value
 	}
-	value, _ = git.Lenient(ctx, root, "config", "--local", "--get", legacyKeys[key])
-	return value
+	return values[strings.ToLower(legacyKeys[key])]
 }
 
 // setSetting saves (or, with nil, removes) a local Git setting and drops the old spelling of it.
 func setSetting(ctx context.Context, root, key string, value *string) error {
+	defer dropSettings()
 	_, _ = git.Lenient(ctx, root, "config", "--local", "--unset-all", legacyKeys[key])
 	if value == nil {
 		_, _ = git.Lenient(ctx, root, "config", "--local", "--unset-all", key)
@@ -188,7 +236,7 @@ func DetectedHost(ctx context.Context, path string) (string, error) {
 }
 
 func detectedHost(ctx context.Context, root string) (string, error) {
-	current, err := State(ctx, root)
+	current, err := CachedState(ctx, root)
 	if err != nil {
 		return "", err
 	}
