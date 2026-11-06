@@ -17,7 +17,10 @@ import (
 // history, restore, revert, capabilities), so that a shared folder can sit behind the same
 // calls after 1.0.
 type Store struct {
-	mu  sync.Mutex
+	mu sync.Mutex
+	// fmu serialises the operations of the shared-folder storage; they read Status while running,
+	// which takes mu, so it is a lock of its own.
+	fmu sync.Mutex
 	dir string
 	// today is the day the data check runs for; tests set it.
 	today func() time.Time

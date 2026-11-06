@@ -26,6 +26,5 @@ Decided 21.10.2026: **Git is the storage of 1.0** (history, data integrity). A *
 
 ## Open (folder, after 1.0)
 
-- Behaviour on the real SMB share (lock, rename, clock skew): test script `share-test.py` from the storage pre-study, result pending.
-- Working without connection to the shared folder: read only from cache (proposal), clarification pending.
-- SharePoint folder after the file-server test, with detection of conflict copies.
+- Behaviour on the real SMB share (lock, rename, clock skew): the setup runs the same checks as `share-test.py` (see [Shared folder](../shared-folder.md)); a result from a real share is still pending.
+- Decided 06.11.2026: the app works on a local copy of the shared folder and can edit without a connection; saving waits. SharePoint, OneDrive, Dropbox and Nextcloud are supported as sync folders; conflict copies are detected by name.

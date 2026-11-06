@@ -32,6 +32,19 @@
     "This file cannot be put back value by value.": "Diese Datei lässt sich nicht Wert für Wert zurücksetzen.",
     "This value cannot be put back.": "Dieser Wert lässt sich nicht zurücksetzen.",
     "The value you entered cannot be read: {error}": "Der eingegebene Wert ist nicht lesbar: {error}",
-    "This value has changed in the meantime; look at the changes again.": "Dieser Wert hat sich inzwischen geändert; sieh dir die Änderungen noch einmal an."
+    "This value has changed in the meantime; look at the changes again.": "Dieser Wert hat sich inzwischen geändert; sieh dir die Änderungen noch einmal an.",
+    "The shared folder is not reachable": "Der geteilte Ordner ist nicht erreichbar",
+    "The folder {path} cannot be reached.": "Der Ordner {path} ist nicht erreichbar.",
+    "Check the network connection or the drive. You can keep working; saving waits.": "Prüfe die Netzwerkverbindung oder das Laufwerk. Du kannst weiterarbeiten, das Speichern wartet.",
+    "Shared folder not reachable: saving waits": "Geteilter Ordner nicht erreichbar: Speichern wartet",
+    "The shared folder is being saved": "Der geteilte Ordner wird gerade gespeichert",
+    "{who} is saving right now.": "{who} speichert gerade.",
+    "Try again in a moment.": "Versuche es gleich noch einmal.",
+    "This save is not in the history.": "Dieser Speicherstand steht nicht im Verlauf.",
+    "There is no snapshot of {file} from that day.": "Es gibt keinen Schnappschuss von {file} aus diesem Tag.",
+    "This save cannot be taken back exactly: the state before it is not kept.": "Dieser Speicherstand lässt sich nicht genau zurücknehmen: Der Stand davor ist nicht mehr gespeichert.",
+    "Choose a folder first.": "Wähle zuerst einen Ordner.",
+    "The local copy and the shared folder must be different folders, neither inside the other.": "Lokale Kopie und geteilter Ordner müssen verschiedene Ordner sein, keiner im anderen.",
+    "The folder {path} is a Git repository already.": "Der Ordner {path} ist bereits ein Git-Repository."
   }
 }
