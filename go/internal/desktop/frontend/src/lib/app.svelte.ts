@@ -83,10 +83,11 @@ const store = {
 };
 
 export const PANEL_MIN = 440;
+const PANEL_ROOM = 160;
 
 /** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
 export function setPanelWidth(px: number, remember = true): void {
-  const max = Math.max(PANEL_MIN, (typeof window === 'undefined' ? 1200 : window.innerWidth) - 160);
+  const max = Math.max(PANEL_MIN, (typeof window === 'undefined' ? 1200 : window.innerWidth) - PANEL_ROOM);
   app.panelWidth = Math.round(Math.min(max, Math.max(PANEL_MIN, px)));
   if (remember) store.set('panelWidth', String(app.panelWidth));
 }
@@ -345,7 +346,7 @@ export async function start(): Promise<void> {
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
   const pw = parseInt(store.get('panelWidth'), 10);
-  if (Number.isFinite(pw)) app.panelWidth = Math.max(PANEL_MIN, pw);
+  if (Number.isFinite(pw)) setPanelWidth(pw, false);
   await loadPrefs();
   await loadTeams();
   // The window opens as soon as the teams are known. The state of the storage needs several Git

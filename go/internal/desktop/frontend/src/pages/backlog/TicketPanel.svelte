@@ -27,18 +27,28 @@
 
   // The grip on the left edge: dragging left widens the panel (it sits at the right window edge).
   function grip(e: PointerEvent): void {
+    if (e.button !== 0) return;
     e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    el.focus();
+    el.setPointerCapture(e.pointerId);
     dragging = true;
-    const move = (m: PointerEvent) => setPanelWidth(window.innerWidth - m.clientX, false);
-    const up = () => {
-      dragging = false;
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      setPanelWidth(app.panelWidth);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
   }
+  function gripMove(e: PointerEvent): void {
+    if (dragging) setPanelWidth(window.innerWidth - e.clientX, false);
+  }
+  function gripEnd(): void {
+    if (!dragging) return;
+    dragging = false;
+    setPanelWidth(app.panelWidth);
+  }
+  // A narrower window pulls a too wide panel back in.
+  $effect(() => {
+    const fit = () => setPanelWidth(app.panelWidth, false);
+    window.addEventListener('resize', fit);
+    fit();
+    return () => window.removeEventListener('resize', fit);
+  });
   function gripKey(e: KeyboardEvent): void {
     const step = e.shiftKey ? 80 : 20;
     if (e.key === 'ArrowLeft') setPanelWidth(app.panelWidth + step);
@@ -228,9 +238,14 @@
     aria-label={t('Panel width')}
     aria-valuemin={PANEL_MIN}
     aria-valuenow={app.panelWidth}
+    aria-valuemax={Math.max(PANEL_MIN, window.innerWidth - 160)}
     title={t('Drag to change the width, double-click for the smallest width')}
     tabindex="0"
     onpointerdown={grip}
+    onpointermove={gripMove}
+    onpointerup={gripEnd}
+    onpointercancel={gripEnd}
+    onlostpointercapture={gripEnd}
     ondblclick={() => setPanelWidth(PANEL_MIN)}
     onkeydown={gripKey}
   ></div>
