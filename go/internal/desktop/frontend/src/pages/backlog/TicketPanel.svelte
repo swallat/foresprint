@@ -11,6 +11,7 @@
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
   import { openExternal } from './external';
+  import JiraText from '../../lib/ui/JiraText.svelte';
 
   let detail = $state<TicketDetail | undefined>();
   let tracker = $state<TrackerDetails | undefined>();
@@ -506,7 +507,7 @@
   {#if detail}
     {@const text = tracker?.description || detail.description}
     {#if text}
-      <section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{text}</p></section>
+      <section class="td-sec"><h3>{t('Description')}</h3>{#if tracker?.description}<JiraText text={tracker.description} />{:else}<p class="prose">{text}</p>{/if}</section>
     {/if}
     {#if detail.acceptance}
       <section class="td-sec"><h3>{t('Acceptance criteria')}</h3><p class="prose">{detail.acceptance}</p></section>
@@ -558,7 +559,7 @@
         {#each tracker.comments as c, i (i)}
           <div class="td-comment">
             <div class="small"><strong>{c.author}</strong> <span class="muted data">{when(c.at)}</span></div>
-            <div class="prose">{c.text}</div>
+            <JiraText text={c.text} />
           </div>
         {/each}
       </section>
