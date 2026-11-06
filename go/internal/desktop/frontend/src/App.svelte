@@ -80,7 +80,7 @@
       {/key}
     </main>
   {:else}
-    <div class="app">
+    <div class="app" class:docked={app.ticket && app.panelMode === 'column'} style:--panel-w="{app.panelWidth}px">
       <Topbar />
       <Rail />
       <main class="main" id="main" tabindex="-1">

@@ -6,7 +6,7 @@
   import { untrack } from 'svelte';
   import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
-  import { app, toast, PANEL_MIN, setPanelWidth } from '../../lib/app.svelte';
+  import { app, toast, PANEL_MIN, panelWidthMax, setPanelMode, setPanelWidth } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
@@ -229,7 +229,7 @@
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
-<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width="min({app.panelWidth}px, 100vw)">
+<aside class="panel" class:column={app.panelMode === 'column'} data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width={app.panelMode === 'column' ? undefined : `min(${app.panelWidth}px, 100vw)`}>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <div
     class="grip"
@@ -239,7 +239,7 @@
     aria-label={t('Panel width')}
     aria-valuemin={PANEL_MIN}
     aria-valuenow={app.panelWidth}
-    aria-valuemax={Math.max(PANEL_MIN, window.innerWidth - 160)}
+    aria-valuemax={panelWidthMax()}
     title={t('Drag to change the width, double-click for the smallest width')}
     tabindex="0"
     onpointerdown={grip}
@@ -258,6 +258,11 @@
       <button class="btn" type="button" title={t('Show the ticket large in the window, step with the arrow keys')} onclick={() => openPresent(others.length ? [detail!.key, ...others.map((o) => o.key)] : [detail!.key], detail!.key)}>
         <Icon name="fit_screen" />{t('Presentation view')}
       </button>
+    {/if}
+    {#if app.panelMode === 'column'}
+      <button class="btn icon ghost" type="button" aria-label={t('Show the panel over the page')} title={t('Show the panel over the page')} onclick={() => setPanelMode('overlay')}><Icon name="picture_in_picture" /></button>
+    {:else}
+      <button class="btn icon ghost" type="button" aria-label={t('Show the panel as a column beside the page')} title={t('Show the panel as a column beside the page')} onclick={() => setPanelMode('column')}><Icon name="dock_to_right" /></button>
     {/if}
     <button class="btn icon ghost" type="button" aria-label={t('Close')} title={t('Close')} onclick={close}><Icon name="close" /></button>
   </div>
