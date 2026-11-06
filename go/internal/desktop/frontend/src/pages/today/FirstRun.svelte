@@ -533,8 +533,10 @@
         {/if}
         <div class="stack">
           {#if d.kind !== 'clone'}<p class="muted">{t('A folder on this computer needs no sign-in. Foresprint only needs your name for the history.')}</p>{/if}
+          <p class="small muted">{t('Name and email are optional here. Saving asks for them if they are still missing.')}</p>
           <div class="field"><label for="su-name">{t('Your name')}</label><input id="su-name" class="input" bind:value={d.name} /></div>
           <div class="field"><label for="su-mail">{t('Email')}</label><input id="su-mail" class="input" type="email" bind:value={d.email} /></div>
+          {#if busy && d.kind === 'clone'}<p class="small muted" role="status">{t('Copying the data from the server. This can take a minute.')}</p>{/if}
         </div>
       </div>
     {:else if d.step === 'team'}
