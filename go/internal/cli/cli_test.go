@@ -154,7 +154,8 @@ func TestFreshStartsWindowWithEmptySettings(t *testing.T) {
 	if _, err := os.Stat(gotConfig); err == nil {
 		t.Error("temporary settings folder was not removed")
 	}
-	if got, ok := config.DataDir(); !ok || got != saved {
+	want, _ := filepath.EvalSymlinks(saved) // macOS: /var -> /private/var
+	if got, ok := config.DataDir(); !ok || (got != saved && got != want) {
 		t.Errorf("saved settings changed: %q %v", got, ok)
 	}
 }
