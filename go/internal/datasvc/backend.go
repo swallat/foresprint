@@ -63,26 +63,57 @@ func (s *Store) backend() Backend {
 	return gitBackend{s}
 }
 
-// The methods below are the public storage API of the window; each one passes the call on to the
-// backend of the data folder (see Backend for what they do).
-func (s *Store) Status() Status                       { return s.backend().Status() }
-func (s *Store) CheckForChanges() Status              { return s.backend().CheckForChanges() }
-func (s *Store) StartBackgroundCheck() bool           { return s.backend().StartBackgroundCheck() }
-func (s *Store) IncomingChanges() []Change            { return s.backend().IncomingChanges() }
-func (s *Store) Save(opts SaveOptions) Result         { return s.backend().Save(opts) }
-func (s *Store) Refresh() Result                      { return s.backend().Refresh() }
-func (s *Store) Conflicts() []Conflict                { return s.backend().Conflicts() }
+// Status is the state of the storage as the top bar shows it, without network access.
+func (s *Store) Status() Status { return s.backend().Status() }
+
+// CheckForChanges asks the storage whether others have changed something and returns the new status.
+func (s *Store) CheckForChanges() Status { return s.backend().CheckForChanges() }
+
+// StartBackgroundCheck starts the check for changes in the background if it is due.
+func (s *Store) StartBackgroundCheck() bool { return s.backend().StartBackgroundCheck() }
+
+// IncomingChanges lists what others have changed and Refresh would take over.
+func (s *Store) IncomingChanges() []Change { return s.backend().IncomingChanges() }
+
+// Save makes the work visible to the team.
+func (s *Store) Save(opts SaveOptions) Result { return s.backend().Save(opts) }
+
+// Refresh takes over what others have saved, without sharing anything.
+func (s *Store) Refresh() Result { return s.backend().Refresh() }
+
+// Conflicts lists what two people changed in different ways and needs a decision.
+func (s *Store) Conflicts() []Conflict { return s.backend().Conflicts() }
+
+// ResolveConflicts records the decisions; entries without a decision stay open.
 func (s *Store) ResolveConflicts(d []Decision) Result { return s.backend().ResolveConflicts(d) }
-func (s *Store) TakeTheirs() Result                   { return s.backend().TakeTheirs() }
-func (s *Store) AbortMerge() Status                   { return s.backend().AbortMerge() }
+
+// TakeTheirs decides every open conflict for the other side.
+func (s *Store) TakeTheirs() Result { return s.backend().TakeTheirs() }
+
+// AbortMerge gives up an unfinished merge and returns the new status.
+func (s *Store) AbortMerge() Status { return s.backend().AbortMerge() }
+
+// History lists the saves of the scope, newest first.
 func (s *Store) History(scope string, limit int) ([]Version, error) {
 	return s.backend().History(scope, limit)
 }
+
+// Restore brings the files of an earlier save back as unsaved changes.
 func (s *Store) Restore(scope, version, message string) Done {
 	return s.backend().Restore(scope, version, message)
 }
-func (s *Store) Revert(version string) Done             { return s.backend().Revert(version) }
-func (s *Store) Discard(files []string) Done            { return s.backend().Discard(files) }
-func (s *Store) Capabilities() Capabilities             { return s.backend().Capabilities() }
+
+// Revert takes one save back as unsaved changes.
+func (s *Store) Revert(version string) Done { return s.backend().Revert(version) }
+
+// Discard drops the unsaved changes of the files.
+func (s *Store) Discard(files []string) Done { return s.backend().Discard(files) }
+
+// Capabilities are the flags the window uses to show or hide features.
+func (s *Store) Capabilities() Capabilities { return s.backend().Capabilities() }
+
+// UnsavedChanges lists the files with unsaved changes and their values.
 func (s *Store) UnsavedChanges() ([]UnsavedFile, error) { return s.backend().UnsavedChanges() }
-func (s *Store) Abort() bool                            { return s.backend().Abort() }
+
+// Abort stops the save or refresh that is running.
+func (s *Store) Abort() bool { return s.backend().Abort() }
