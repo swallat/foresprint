@@ -117,7 +117,20 @@
   }
   /** A dragleave counts only when the pointer leaves the element, not when it moves onto a child of it. */
   function leaves(e: DragEvent): boolean {
-    return !(e.relatedTarget instanceof Node) || !(e.currentTarget as Node).contains(e.relatedTarget);
+    const el = e.currentTarget as HTMLElement;
+    // Where the engine gives no target (WebView2 often does not), the pointer position decides.
+    if (!(e.relatedTarget instanceof Node)) {
+      const r = el.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    }
+    return !el.contains(e.relatedTarget);
+  }
+  /** The pointer left a list. The engine may report it after the next list has taken over, so only this list's own state is cleared. */
+  function laneLeave(e: DragEvent, zone: string): void {
+    if (!leaves(e)) return;
+    if (overZone === zone) overZone = '';
+    const mine = zone === 'backlog' ? zone : `lane:${zone}`;
+    if (overRow !== '' && zoneOf(overRow) === mine) overRow = '';
   }
   function dragEnd(): void {
     dragKeys = [];
@@ -133,8 +146,16 @@
       return dragKeys.some((k) => !fixedKeys.has(k) && !inside.has(k));
     }
     const here = zone === 'backlog' ? zone : `lane:${zone}`;
-    return !dragKeys.every((k) => zoneOf(k) === here);
+    if (dragKeys.every((k) => zoneOf(k) === here)) return false;
+    // The drop lands at the end only in the rank order; elsewhere the list sorts the ticket in (no place promised).
+    return listOf(here).length === 0 || endLands(dragKeys);
   }
+  /** Rank order, ungrouped: a ticket may be put at a chosen place, also in another list (the rank moves anywhere). */
+  function endLands(keys: string[]): boolean {
+    return canReorder && ui.sort === 'rank' && keys.every((k) => !fixedKeys.has(k) && zoneOf(k) !== '');
+  }
+  /** The sprint a list stands for ("" = the backlog). */
+  const sprintOf = (zone: string): string => (zone.startsWith('lane:') ? zone.slice(5) : '');
   function dragOver(e: DragEvent, zone: string): void {
     if (dragKeys.length === 0) return;
     e.preventDefault();
@@ -143,8 +164,19 @@
   async function drop(e: DragEvent, sprint: string): Promise<void> {
     e.preventDefault();
     const keys = dragKeys;
+    const zone = sprint === '' ? 'backlog' : `lane:${sprint}`;
+    const last = listOf(zone).at(-1);
+    const atEnd = !!last && !keys.every((k) => zoneOf(k) === zone) && endLands(keys);
     dragEnd();
+    if (!atEnd) return sendTo(keys, sprint);
     await sendTo(keys, sprint);
+    // Behind the last ticket of the list, in the order they were dragged.
+    let anchor = last!.key;
+    for (const k of keys) {
+      if (k === anchor || fixedKeys.has(k)) continue;
+      if (!(await reorder(k, anchor, true))) break;
+      anchor = k;
+    }
   }
   async function dropPro(e: DragEvent, name: string): Promise<void> {
     e.preventDefault();
@@ -199,7 +231,7 @@
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
     if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
     const zone = zoneOf(tk.key);
-    if (!zone || zoneOf(dragKeys[0] ?? '') !== zone) return; // another list: the lane's drop earmarks
+    if (!zone || !(zoneOf(dragKeys[0] ?? '') === zone || endLands(dragKeys))) return; // else the lane's drop earmarks
     e.preventDefault();
     e.stopPropagation();
     // The half is read from the ticket itself, not the slot: the gap sits in the slot and must not move the middle.
@@ -215,8 +247,12 @@
     e.stopPropagation();
     const key = dragKeys[0] ?? '';
     const after = overAfter;
+    const from = zoneOf(key);
+    const to = zoneOf(tk.key);
     dragEnd();
     overRow = '';
+    // From another list: take it in first (earmark), then put it at the place.
+    if (from !== to) await earmark([key], sprintOf(to));
     await reorder(key, tk.key, after);
   }
   async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
@@ -458,8 +494,9 @@
         <div
           class="lane"
           class:over={overZone === 'backlog'}
+          ondragenter={(e) => { if (dragKeys.length) e.preventDefault(); }}
           ondragover={(e) => dragOver(e, 'backlog')}
-          ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }}
+          ondragleave={(e) => laneLeave(e, 'backlog')}
           ondrop={(e) => drop(e, '')}
         >
           <div class="lane-head">
@@ -527,7 +564,7 @@
         {#each view.proForma as pf (pf.name)}
           {@const open = ui.open[pf.name] ?? false}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }} ondrop={(e) => dropPro(e, pf.name)}>
+          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragenter={(e) => { if (dragKeys.length) e.preventDefault(); }} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={(e) => laneLeave(e, `pf:${pf.name}`)} ondrop={(e) => dropPro(e, pf.name)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={open} aria-label={open ? t('Collapse') : t('Expand')} onclick={() => (ui.open[pf.name] = !open)}>
@@ -565,7 +602,7 @@
           {@const closed = laneIsClosed(l.sprint, li)}
           {@const over = l.plan != null && used > l.plan}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane" class:over={overZone === l.sprint} data-zone={l.sprint} ondragover={(e) => dragOver(e, l.sprint)} ondragleave={(e) => { if (leaves(e)) { overZone = ''; overRow = ''; } }} ondrop={(e) => drop(e, l.sprint)}>
+          <div class="lane" class:over={overZone === l.sprint} data-zone={l.sprint} ondragenter={(e) => { if (dragKeys.length) e.preventDefault(); }} ondragover={(e) => dragOver(e, l.sprint)} ondragleave={(e) => laneLeave(e, l.sprint)} ondrop={(e) => drop(e, l.sprint)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={!closed} aria-label={closed ? t('Expand sprint {id}', { id: l.sprint }) : t('Collapse sprint {id}', { id: l.sprint })} onclick={() => (laneClosed[l.sprint] = !closed)}><Icon name={closed ? 'chevron_right' : 'keyboard_arrow_down'} /></button>
@@ -684,7 +721,7 @@
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
   {#if view}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="slot" class:dragging={dragKeys.includes(tk.key)} ondragover={(e) => rowOver(e, tk)} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
+    <div class="slot" class:dragging={dragKeys.includes(tk.key)} ondragenter={(e) => { if (dragKeys.length) e.preventDefault(); }} ondragover={(e) => rowOver(e, tk)} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
     {#if overRow === tk.key && !overAfter}<DropGap height={dragHeight} />{/if}
     <TicketRow
       ticket={tk}

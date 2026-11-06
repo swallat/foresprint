@@ -139,14 +139,29 @@
   let dragKey = $state('');
   let dragHeight = $state(40);
   /** The row a re-sorting drag hovers over, and on which half (the dragged ticket lands before or after it). */
-  let overRow = $state<{ key: string; after: boolean } | null>(null);
+  let overRow = $state<{ key: string; after: boolean; here: 'sprint' | 'candidates' } | null>(null);
   /** A drag over the lane itself (not a row), from the other lane: the ticket will be taken in. */
   function laneDrop(here: 'sprint' | 'candidates'): boolean {
-    return over && overWhich === here && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here);
+    return over && overWhich === here && !!dragKey && !frozen && !isNoopMove(d!, dragKey, here) && (listOf(here).length === 0 || endLands(here));
   }
+  const listOf = (here: 'sprint' | 'candidates'): PlanTicket[] => (here === 'sprint' ? laneShown : candidates);
+  /** A drop on the empty part of a list puts the ticket at its end (rank order, ungrouped). */
+  const endLands = (here: 'sprint' | 'candidates'): boolean => canReorder && ui.sort === 'rank' && listOf(here).length > 0;
   /** A dragleave counts only when the pointer leaves the element, not when it moves onto a child of it. */
   function leaves(e: DragEvent): boolean {
-    return !(e.relatedTarget instanceof Node) || !(e.currentTarget as Node).contains(e.relatedTarget);
+    const el = e.currentTarget as HTMLElement;
+    // Where the engine gives no target (WebView2 often does not), the pointer position decides.
+    if (!(e.relatedTarget instanceof Node)) {
+      const r = el.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    }
+    return !el.contains(e.relatedTarget);
+  }
+  /** The pointer left a lane. The engine may report it after the next lane has taken over, so only this lane's own state is cleared. */
+  function laneLeave(e: DragEvent, here: 'sprint' | 'candidates'): void {
+    if (!leaves(e)) return;
+    if (overWhich === here) over = false;
+    if (overRow?.here === here) overRow = null;
   }
   function dragEnd(): void {
     dragKey = '';
@@ -154,7 +169,7 @@
     overRow = null;
   }
   function rowOver(e: DragEvent, key: string, here: 'sprint' | 'candidates'): void {
-    if (frozen || !canReorder || !dragKey || dragKey === key || !isNoopMove(d!, dragKey, here)) return;
+    if (frozen || !canReorder || !dragKey || dragKey === key || !positional(here)) return;
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
@@ -163,17 +178,30 @@
     const row = Array.from((e.currentTarget as HTMLElement).children).find((c) => !c.classList.contains('drop-gap'));
     if (!row) return;
     const r = row.getBoundingClientRect();
-    if (e.clientY >= r.top && e.clientY <= r.bottom) overRow = { key, after: e.clientY > r.top + r.height / 2 };
-    else if (overRow?.key !== key) overRow = { key, after: e.clientY > r.top + r.height / 2 };
+    if (e.clientY >= r.top && e.clientY <= r.bottom) overRow = { key, after: e.clientY > r.top + r.height / 2, here };
+    else if (overRow?.key !== key) overRow = { key, after: e.clientY > r.top + r.height / 2, here };
   }
   async function rowDrop(e: DragEvent, key: string, here: 'sprint' | 'candidates'): Promise<void> {
-    if (!canReorder || !overRow || overRow.key !== key || !dragKey || !isNoopMove(d!, dragKey, here)) return;
+    if (!canReorder || !overRow || overRow.key !== key || !dragKey || !positional(here)) return;
     e.preventDefault();
     e.stopPropagation();
     const moving = dragKey;
     const after = overRow.after;
     dragEnd();
-    await model.change(async () => void (await (ui.sort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, moving, key, after)));
+    await landAt(moving, here, key, after);
+  }
+  /**
+   * A ticket may be put at a chosen place of a list: inside its own list always (rank or planning
+   * order), into the other list only in the rank order, which moves anywhere. In the planning order
+   * the other list sorts it in by priority and project, so no place is promised there.
+   */
+  function positional(here: 'sprint' | 'candidates'): boolean {
+    return isNoopMove(d!, dragKey, here) || ui.sort === 'rank';
+  }
+  /** Takes the ticket into the list (if it is in the other one), then puts it at the place. */
+  async function landAt(key: string, here: 'sprint' | 'candidates', anchor: string, after: boolean): Promise<void> {
+    if (!isNoopMove(d!, key, here)) await move(key, here);
+    await model.change(async () => void (await (ui.sort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, key, anchor, after)));
   }
   // --- Right-click menu: "Move to", as in the backlog -------------------------------------
   let ctx = $state<{ key: string; x: number; y: number } | null>(null);
@@ -213,8 +241,12 @@
   }
   function drop(to: 'sprint' | 'candidates'): void {
     const key = dragKey;
+    const last = listOf(to).at(-1);
+    const atEnd = !!key && !isNoopMove(d!, key, to) && endLands(to) && !!last;
     dragEnd();
-    if (key) void move(key, to);
+    if (!key) return;
+    if (atEnd) void landAt(key, to, last!.key, true);
+    else void move(key, to);
   }
   function laneKey(e: KeyboardEvent, here: 'sprint' | 'candidates'): void {
     if (!e.altKey) return;
@@ -370,8 +402,9 @@
         class:over={over && overWhich === 'candidates'}
         role="group"
         aria-label={t('Candidates')}
+        ondragenter={(e) => { if (!frozen && dragKey) e.preventDefault(); }}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'candidates'; } }}
-        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
+        ondragleave={(e) => laneLeave(e, 'candidates')}
         ondrop={(e) => { e.preventDefault(); drop('candidates'); }}
         onkeydown={(e) => laneKey(e, 'candidates')}
       >
@@ -398,8 +431,9 @@
         class:over={over && overWhich === 'sprint'}
         role="group"
         aria-label={t('Sprint {sprint}', { sprint: d.sprint })}
+        ondragenter={(e) => { if (!frozen && dragKey) e.preventDefault(); }}
         ondragover={(e) => { if (!frozen) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; over = true; overWhich = 'sprint'; } }}
-        ondragleave={(e) => { if (leaves(e)) { over = false; overRow = null; } }}
+        ondragleave={(e) => laneLeave(e, 'sprint')}
         ondrop={(e) => { e.preventDefault(); drop('sprint'); }}
         onkeydown={(e) => laneKey(e, 'sprint')}
       >
@@ -537,6 +571,7 @@
     <div
       class="slot"
       class:dragging={dragKey === x.key}
+      ondragenter={(e) => { if (!frozen && dragKey) e.preventDefault(); }}
       ondragover={(e) => rowOver(e, x.key, here)}
             ondrop={(e) => rowDrop(e, x.key, here)}
       oncontextmenu={(e) => openMenu(e, x.key)}
