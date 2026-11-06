@@ -60,6 +60,11 @@ func (g gitBackend) Abort() bool                            { return g.s.gitAbor
 
 // backend is the storage of the current data folder.
 func (s *Store) backend() Backend {
+	if dir := s.Folder(); dir != "" {
+		if cfg, ok := readFolderConfig(dir); ok {
+			return &folderBackend{s: s, dir: dir, cfg: cfg}
+		}
+	}
 	return gitBackend{s}
 }
 
