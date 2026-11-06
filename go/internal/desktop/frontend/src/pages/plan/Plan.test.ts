@@ -193,6 +193,27 @@ describe('Plan page', () => {
       expect(keys('Sprint')).toContain('ATL-412');
     });
 
+    it('shows a gap where the ticket will land, and none after the drag ends', async () => {
+      await show();
+      const gaps = () => document.querySelectorAll('.drop-gap').length;
+      row('ATL-412').dispatchEvent(drag('dragstart'));
+      expect(gaps()).toBe(0);
+      row('ATL-420').parentElement!.dispatchEvent(drag('dragover', -5));
+      await settled(() => expect(gaps()).toBe(1));
+      // Before the target: the gap is the slot's first child.
+      expect(row('ATL-420').parentElement!.firstElementChild!.classList.contains('drop-gap')).toBe(true);
+      row('ATL-412').dispatchEvent(drag('dragend'));
+      await settled(() => expect(gaps()).toBe(0));
+    });
+
+    it('shows a gap at the end of the other lane when dragging over the lane itself', async () => {
+      await show();
+      row('ATL-426').dispatchEvent(drag('dragstart'));
+      lane('Sprint').dispatchEvent(drag('dragover'));
+      await settled(() => expect(lane('Sprint').querySelectorAll('.drop-gap').length).toBe(1));
+      expect(lane('Candidates').querySelectorAll('.drop-gap').length).toBe(0);
+    });
+
     it('the upper half of the target puts the ticket before it', async () => {
       await show();
       const sort = vi.spyOn(mockApi, 'MoveWorkPackage');

@@ -11,6 +11,7 @@
   import type { BacklogTicket } from '../../lib/types.backlog';
   import { fmt, formatPeriod, fmtVal } from '../../lib/format';
   import Banner from '../../lib/ui/Banner.svelte';
+  import DropGap from '../../lib/ui/DropGap.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum } from './backlog';
   import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, t, toProForma, toggleSelected, ui } from './store.svelte';
@@ -110,6 +111,7 @@
 
   function dragStart(e: DragEvent, tk: BacklogTicket): void {
     dragKeys = ui.selection.includes(tk.key) ? [...ui.selection] : [tk.key];
+    dragHeight = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect().height || 40;
     e.dataTransfer?.setData('text/plain', dragKeys.join(','));
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   }
@@ -117,6 +119,12 @@
     dragKeys = [];
     overZone = '';
     overRow = '';
+  }
+  /** A drag over a whole list (not a row): the gap at its end, unless every dragged ticket already sits there. */
+  function laneGap(zone: string): boolean {
+    if (overZone !== zone || dragKeys.length === 0 || overRow !== '') return false;
+    const here = zone === 'backlog' || zone.startsWith('pf:') ? zone : `lane:${zone}`;
+    return !dragKeys.every((k) => zoneOf(k) === here);
   }
   function dragOver(e: DragEvent, zone: string): void {
     if (dragKeys.length === 0) return;
@@ -164,6 +172,8 @@
   // Reordering: in the planning order, ungrouped. A tracker's own rank stays; the order is kept beside it.
   const canReorder = $derived(view?.source !== 'none' && (ui.sort === 'order' || ui.sort === 'rank') && ui.group === 'none');
   let overRow = $state('');
+  let overAfter = $state(false);
+  let dragHeight = $state(40);
   // The list a ticket sits in ("" = a pro-forma sprint, not reorderable): the backlog or one sprint lane.
   // Reordering works inside one list, also for tickets the tracker has in a sprint (the order is only local).
   function zoneOf(key: string): string {
@@ -183,6 +193,11 @@
     if (!zone || zoneOf(dragKeys[0] ?? '') !== zone) return; // another list: the lane's drop earmarks
     e.preventDefault();
     e.stopPropagation();
+    // The half is read from the ticket itself, not the slot: the gap sits in the slot and must not move the middle.
+    const row = Array.from((e.currentTarget as HTMLElement).children).find((c) => !c.classList.contains('drop-gap'));
+    const r = row?.getBoundingClientRect();
+    if (r && e.clientY >= r.top && e.clientY <= r.bottom) overAfter = e.clientY > r.top + r.height / 2;
+    else if (overRow !== tk.key) overAfter = false;
     overRow = tk.key;
   }
   async function rowDrop(e: DragEvent, tk: BacklogTicket): Promise<void> {
@@ -190,9 +205,10 @@
     e.preventDefault();
     e.stopPropagation();
     const key = dragKeys[0] ?? '';
+    const after = overAfter;
     dragEnd();
     overRow = '';
-    await reorder(key, tk.key);
+    await reorder(key, tk.key, after);
   }
   async function rowKey(e: KeyboardEvent, tk: BacklogTicket): Promise<void> {
     if (!canReorder || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
@@ -453,7 +469,7 @@
               <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
               <span class="small muted">{t('The next fetch takes over the order of the tracker again.')}</span>
             {/if}
-            <span class="small muted">{ui.sort !== 'order' && ui.sort !== 'rank' ? t('Sorted by your choice. Choose the rank in the tracker or the planning order to see the list as planned.') : ui.sort === 'rank' ? (canReorder ? t('Order: your own order, then the rank in the tracker. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: your own order, then the rank in the tracker. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')) : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' && ui.sort !== 'rank' ? t('Sorted by your choice. Choose the rank in the tracker or the planning order to see the list as planned.') : ui.sort === 'rank' ? (canReorder ? t('Order: your own order, then the rank in the tracker. Drop a ticket between two others, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: your own order, then the rank in the tracker. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')) : canReorder ? t('Order: priority, then project, then your order. Drop a ticket between two others, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
@@ -495,6 +511,7 @@
                 <button class="btn ghost" type="button" onclick={() => (backlogOpen = false)}>{t('Show fewer issues')}</button>
               </div>
             {/if}
+            {#if laneGap('backlog')}<DropGap height={dragHeight} />{/if}
           </div>
         </div>
 
@@ -523,6 +540,7 @@
                     {@render row(tk, true, true)}
                   {/each}
                 {/if}
+                {#if laneGap(`pf:${pf.name}`)}<DropGap height={dragHeight} />{/if}
               </div>
             {/if}
           </div>
@@ -613,6 +631,7 @@
                   </div>
                 {/if}
               {/if}
+              {#if laneGap(l.sprint)}<DropGap height={dragHeight} />{/if}
             </div>
             {/if}
           </div>
@@ -656,7 +675,8 @@
 {#snippet row(tk: BacklogTicket, showProduct: boolean, showProject: boolean)}
   {#if view}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="slot" class:over={overRow === tk.key} ondragover={(e) => rowOver(e, tk)} ondragleave={() => { if (overRow === tk.key) overRow = ''; }} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
+    <div class="slot" class:dragging={dragKeys.includes(tk.key)} ondragover={(e) => rowOver(e, tk)} ondragleave={() => { if (overRow === tk.key) overRow = ''; }} ondrop={(e) => rowDrop(e, tk)} onkeydown={(e) => rowKey(e, tk)}>
+    {#if overRow === tk.key && !overAfter}<DropGap height={dragHeight} />{/if}
     <TicketRow
       ticket={tk}
       {view}
@@ -672,6 +692,7 @@
       onstep={(by) => step(tk, by)}
       oncontext={(e) => openMenu(e, tk)}
     />
+    {#if overRow === tk.key && overAfter}<DropGap height={dragHeight} />{/if}
     </div>
   {/if}
 {/snippet}
@@ -720,9 +741,6 @@
   }
   .ctx-note {
     padding: 6px 12px;
-  }
-  .slot.over {
-    box-shadow: 0 -2px 0 0 var(--primary);
   }
   .board {
     display: grid;
