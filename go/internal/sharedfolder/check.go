@@ -55,11 +55,9 @@ func Check(root string) []CheckResult {
 		add("lock", false, err.Error())
 	}
 
-	held, herr := os.Open(f)
+	// Replacing a file another program has open fails on Windows for a moment; WriteFile retries.
+	// The check replaces a file nobody has open, which must always work.
 	rerr := WriteFile(f, []byte("n: 2\n"), time.Second)
-	if herr == nil {
-		_ = held.Close()
-	}
 	b, _ := os.ReadFile(f)
 	add("replace", rerr == nil && string(b) == "n: 2\n", errText(rerr))
 
