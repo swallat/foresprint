@@ -6,7 +6,7 @@
   import { untrack } from 'svelte';
   import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
-  import { app, toast, PANEL_MIN, setPanelWidth } from '../../lib/app.svelte';
+  import { app, toast, win, PANEL_MIN, panelDocked, panelWidthMax, panelWidthNow, setPanelMode, setPanelWidth } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
@@ -36,24 +36,24 @@
     dragging = true;
   }
   function gripMove(e: PointerEvent): void {
-    if (dragging) setPanelWidth(window.innerWidth - e.clientX, false);
+    if (dragging) setPanelWidth(win.w - e.clientX, false);
   }
   function gripEnd(): void {
     if (!dragging) return;
     dragging = false;
-    setPanelWidth(app.panelWidth);
+    setPanelWidth(panelWidthNow());
   }
-  // A narrower window pulls a too wide panel back in.
+  // A narrower window pulls a too wide panel in (shown only; the remembered width stays).
   $effect(() => {
-    const fit = () => setPanelWidth(app.panelWidth, false);
+    const fit = () => (win.w = window.innerWidth);
     window.addEventListener('resize', fit);
     fit();
     return () => window.removeEventListener('resize', fit);
   });
   function gripKey(e: KeyboardEvent): void {
     const step = e.shiftKey ? 80 : 20;
-    if (e.key === 'ArrowLeft') setPanelWidth(app.panelWidth + step);
-    else if (e.key === 'ArrowRight') setPanelWidth(app.panelWidth - step);
+    if (e.key === 'ArrowLeft') setPanelWidth(panelWidthNow() + step);
+    else if (e.key === 'ArrowRight') setPanelWidth(panelWidthNow() - step);
     else if (e.key === 'Home') setPanelWidth(PANEL_MIN);
     else return;
     e.preventDefault();
@@ -229,7 +229,7 @@
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
-<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width="min({app.panelWidth}px, 100vw)">
+<aside class="panel" class:column={panelDocked()} data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width={panelDocked() ? undefined : `min(${panelWidthNow()}px, 100vw)`}>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <div
     class="grip"
@@ -238,8 +238,8 @@
     aria-orientation="vertical"
     aria-label={t('Panel width')}
     aria-valuemin={PANEL_MIN}
-    aria-valuenow={app.panelWidth}
-    aria-valuemax={Math.max(PANEL_MIN, window.innerWidth - 160)}
+    aria-valuenow={panelWidthNow()}
+    aria-valuemax={panelWidthMax()}
     title={t('Drag to change the width, double-click for the smallest width')}
     tabindex="0"
     onpointerdown={grip}
@@ -259,6 +259,9 @@
         <Icon name="fit_screen" />{t('Presentation view')}
       </button>
     {/if}
+    <button class="btn icon ghost" type="button" aria-pressed={app.panelMode === 'column'} aria-label={t('Show the panel as a column beside the page')} title={app.panelMode === 'column' ? t('Show the panel over the page') : t('Show the panel as a column beside the page')} onclick={() => setPanelMode(app.panelMode === 'column' ? 'overlay' : 'column')}>
+      <Icon name={app.panelMode === 'column' ? 'picture_in_picture' : 'dock_to_right'} />
+    </button>
     <button class="btn icon ghost" type="button" aria-label={t('Close')} title={t('Close')} onclick={close}><Icon name="close" /></button>
   </div>
 
@@ -598,6 +601,9 @@
     cursor: col-resize;
     touch-action: none;
     z-index: 1;
+  }
+  .panel.column .grip {
+    left: 0;
   }
   .grip::after {
     content: '';

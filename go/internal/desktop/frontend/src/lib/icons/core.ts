@@ -59,6 +59,8 @@ import i_filter_alt_off from '@material-symbols/svg-400/outlined/filter_alt_off.
 import i_fact_check from '@material-symbols/svg-400/outlined/fact_check.svg?raw';
 import i_filter_list from '@material-symbols/svg-400/outlined/filter_list.svg?raw';
 import i_fit_screen from '@material-symbols/svg-400/outlined/fit_screen.svg?raw';
+import i_dock_to_right from '@material-symbols/svg-400/outlined/dock_to_right.svg?raw';
+import i_picture_in_picture from '@material-symbols/svg-400/outlined/picture_in_picture.svg?raw';
 import i_flag from '@material-symbols/svg-400/outlined/flag.svg?raw';
 import i_folder from '@material-symbols/svg-400/outlined/folder.svg?raw';
 import i_folder_open from '@material-symbols/svg-400/outlined/folder_open.svg?raw';
@@ -184,6 +186,8 @@ const icons = {
   fact_check: i_fact_check,
   filter_list: i_filter_list,
   fit_screen: i_fit_screen,
+  dock_to_right: i_dock_to_right,
+  picture_in_picture: i_picture_in_picture,
   flag: i_flag,
   folder: i_folder,
   folder_open: i_folder_open,
