@@ -335,8 +335,10 @@ export async function start(): Promise<void> {
   if (calcModes.includes(calc)) app.calcMode = calc;
   await loadPrefs();
   await loadTeams();
-  await refreshStatus();
+  // The window opens as soon as the teams are known. The state of the storage needs several Git
+  // processes (slow on Windows); the top bar chip fills in when it arrives.
   app.ready = true;
+  void refreshStatus();
   void checkUpdate();
   timer ??= setInterval(refreshStatus, 15000);
   fetchTimer ??= setInterval(autoFetch, 30000);

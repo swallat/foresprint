@@ -438,3 +438,23 @@ func TestLineEndingsOfferIsAppliedOnce(t *testing.T) {
 		t.Fatalf("the rule file should be an unsaved change: %+v", st)
 	}
 }
+
+// A data folder that was deleted is reported at once. It must not be read as the repository
+// that lies around it: Git would run in the nearest folder that exists and show that one's state.
+func TestStatusOfADeletedFolderDoesNotLookAtTheRepositoryAround(t *testing.T) {
+	w := newWorld(t)
+	gone := New(filepath.Join(w.alice.root, "teams", "deleted"))
+	st := gone.Status()
+	if st.Problem == nil || st.Chip.State != ChipProblem {
+		t.Fatalf("a missing folder must be a problem: %+v", st.Chip)
+	}
+	if !strings.Contains(st.Problem.Message, "deleted") {
+		t.Errorf("the message names the folder: %q", st.Problem.Message)
+	}
+	if s := gone.Storage(); s.Ready || s.Problem == nil {
+		t.Errorf("settings of a missing folder: %+v", s)
+	}
+	if gone.StartBackgroundCheck() {
+		t.Error("no background check for a missing folder")
+	}
+}

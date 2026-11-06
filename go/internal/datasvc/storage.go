@@ -64,9 +64,7 @@ func (s *Store) Storage() StorageSettings {
 	out := StorageSettings{Kind: "git", Folder: dir, Hosts: gitsync.Hosts, Setup: []SetupItem{}}
 	ctx := s.ctx()
 	root, err := "", error(nil)
-	if dir == "" {
-		_, err = s.folder()
-	} else {
+	if _, err = s.folder(); err == nil {
 		root, err = gitsync.Root(ctx, dir)
 	}
 	if err != nil {
@@ -127,7 +125,7 @@ type ServerCheck struct {
 // CheckServer tests an address (format and connection) and writes nothing.
 func (s *Store) CheckServer(address string, allowInsecure bool) ServerCheck {
 	ctx := s.ctx()
-	if dir := s.Folder(); dir == "" || !isRepository(ctx, dir) {
+	if dir, err := s.folder(); err != nil || !isRepository(ctx, dir) {
 		// First start (D1): the address is checked before there is a folder.
 		address, err := git.ParseRemoteURL(address, allowInsecure)
 		if err != nil {
