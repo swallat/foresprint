@@ -15,6 +15,9 @@
   import SprintFigures from '../../lib/plan/SprintFigures.svelte';
   import SprintMeta from '../../lib/sprints/SprintMeta.svelte';
   import StageNav from '../../lib/sprints/StageNav.svelte';
+  import { fits, group, sortTickets } from '../backlog/backlog';
+  import TicketFilter from '../backlog/TicketFilter.svelte';
+  import { ui } from '../backlog/store.svelte';
   import type { ReviewInput, ReviewTicket, SprintReview } from '../../lib/types.review';
 
   let {}: PageProps = $props();
@@ -97,6 +100,21 @@
   );
   const listed = $derived(rows.filter((r) => !r.added));
   const addedRows = $derived(rows.filter((r) => r.added));
+  /** The filter, sort and grouping of the backlog on the ticket table (view only; sums use all rows). */
+  function shownRows(list: ReviewTicket[]): { id: string; label: string | null; kind: 'project' | 'product'; items: ReviewTicket[] }[] {
+    const shown = sortTickets(
+      list.filter((r) => fits(r, ui.filter)).map((r) => ({ r, key: r.key, title: r.title, size: r.estimate, rankPos: r.rankPos, product: r.product, project: r.project, refined: r.refined })),
+      ui.sort,
+    );
+    if (ui.group === 'none') return shown.length ? [{ id: '', label: null, kind: 'project', items: shown.map((x) => x.r) }] : [];
+    return group(shown, ui.group, { products: info?.filterProducts ?? [], projects: info?.filterProjects ?? [] }).map((g) => ({
+      id: g.id,
+      label: g.name || (g.kind === 'project' ? t('Daily business') : t('No product')),
+      kind: g.kind,
+      items: g.items.map((x) => x.r),
+    }));
+  }
+  const hiddenRows = $derived(listed.length + addedRows.length - shownRows(listed).reduce((n, g) => n + g.items.length, 0) - shownRows(addedRows).reduce((n, g) => n + g.items.length, 0));
   const pulledNow = $derived(info?.tickets ? rows.filter((r) => r.added && r.done) : []);
   const noEstimateNow = $derived(pulledNow.filter((r) => r.estimate === 0).map((r) => r.key));
   const listSum = $derived(listed.reduce((sum, r) => sum + r.estimate, 0));
@@ -281,6 +299,10 @@
       {#if Math.abs(listSum - commitmentNow) > 0.001 && !info.reviewed}
         <p class="small muted" data-testid="sum-hint">{t('The tickets add up to {sum}, the commitment is {commitment}.', { sum: days(listSum), commitment: days(commitmentNow) })}</p>
       {/if}
+      <div class="filters" data-tour="review-filters">
+        <TicketFilter products={info.filterProducts} projects={info.filterProjects} multi={info.filterProducts.length > 0} />
+        {#if hiddenRows > 0}<span class="small muted">{t('{n} hidden by the filters', { n: hiddenRows })}</span>{/if}
+      </div>
       <div class="tw">
         <table class="t">
           <thead>
@@ -294,10 +316,10 @@
             </tr>
           </thead>
           <tbody>
-            {#each listed as r (r.key)}{@render trow(r)}{/each}
-            {#if addedRows.length > 0}
+            {@render group_(listed)}
+            {#if shownRows(addedRows).length > 0}
               <tr class="sum"><td colspan="6"><Icon name="call_received" size={14} /> {t('Pulled in after the planning')} <span class="small muted">{t('(new in the sprint since freezing, not part of the commitment)')}</span></td></tr>
-              {#each addedRows as r (r.key)}{@render trow(r)}{/each}
+              {@render group_(addedRows)}
             {/if}
           </tbody>
         </table>
@@ -403,6 +425,15 @@
   {/if}
 {/if}
 
+{#snippet group_(list: ReviewTicket[])}
+  {#each shownRows(list) as g (g.id)}
+    {#if g.label !== null}
+      <tr class="sum"><td colspan="6"><Icon name={g.kind === 'product' ? 'inventory_2' : g.id ? 'flag' : 'inventory_2'} size={14} /> {g.label}</td></tr>
+    {/if}
+    {#each g.items as r (r.key)}{@render trow(r)}{/each}
+  {/each}
+{/snippet}
+
 {#snippet trow(r: ReviewTicket)}
   <tr>
     <td class="tk"><span class="key">{r.key}</span> {r.title}</td>
@@ -427,6 +458,7 @@
 {/snippet}
 
 <style>
+  .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .block {
     margin-bottom: 16px;
   }

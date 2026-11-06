@@ -238,16 +238,18 @@ func reviewNextSprintID(fc *forecast.Forecast, s model.Sprint) string {
 func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) SprintReview {
 	col := column(data, fc, s)
 	out := SprintReview{
-		Sprint:      col,
-		Unit:        settingsUnitAt(data, s.Start),
-		Started:     !s.Start.After(fc.Today),
-		Reviewed:    s.Velocity != nil,
-		PlannedDays: col.Capacity,
-		FrozenDays:  col.Capacity,
-		Targets:     reviewTargets(data, fc, s),
-		List:        []ReviewTicket{},
-		Products:    []ReviewProduct{},
-		Tag:         team + "/" + s.ID,
+		Sprint:         col,
+		Unit:           settingsUnitAt(data, s.Start),
+		Started:        !s.Start.After(fc.Today),
+		Reviewed:       s.Velocity != nil,
+		PlannedDays:    col.Capacity,
+		FrozenDays:     col.Capacity,
+		Targets:        reviewTargets(data, fc, s),
+		List:           []ReviewTicket{},
+		Products:       []ReviewProduct{},
+		FilterProducts: []Named{},
+		FilterProjects: namedProjects(data),
+		Tag:            team + "/" + s.ID,
 	}
 	if s.Capacity != nil {
 		out.FrozenDays = *s.Capacity
@@ -276,12 +278,21 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 			}
 		}
 		sum, extra := 0.0, ticketimport.AdditionalDone{}
+		pc := &planCtx{data: data}
+		if data.Team.Features.Products {
+			for _, p := range data.Products {
+				out.FilterProducts = append(out.FilterProducts, Named{ID: p.ID, Name: p.Name})
+			}
+		}
 		for _, r := range rows {
 			row := ReviewTicket{Key: r.key, Title: r.key, Added: r.added}
 			noEst := false
 			if t := data.TicketByKey(r.key); t != nil {
 				noEst = t.Estimate == nil
 				row.Title = t.Title
+				row.Product, row.Project = pc.productOf(*t), pc.projectOf(*t)
+				row.Refined = t.Estimate != nil && t.EstimateSource == model.EstimateRefined && !t.RefinedUnclear
+				row.RankPos = pc.rankPos(t.Key)
 				row.Status = str(t.Status)
 				row.Estimate = val(t.Estimate)
 				row.Done = t.Done || strings.EqualFold(str(t.Status), "done")
