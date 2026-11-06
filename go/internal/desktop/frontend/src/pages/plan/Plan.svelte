@@ -19,6 +19,9 @@
   import type { PageProps } from '../../lib/routes';
   import type { FreezeInput, PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
+  import { fits, group, sortTickets } from '../backlog/backlog';
+  import TicketFilter from '../backlog/TicketFilter.svelte';
+  import { ui } from '../backlog/store.svelte';
 
   let {}: PageProps = $props();
 
@@ -70,35 +73,21 @@
   const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
-  /** The order of both lanes: the tracker's rank (default) or the planning order (priority, project, rank). */
-  let laneSort = $state<'rank' | 'order'>('rank');
-  const byRank = (list: PlanTicket[]): PlanTicket[] => (laneSort === 'rank' ? [...list].sort((a, b) => (a.rankPos || Infinity) - (b.rankPos || Infinity)) : list);
+  /** Both lanes follow the filter, sort and grouping of the backlog (shared state, view only, nothing is saved). */
+  const byRank = (list: PlanTicket[]): PlanTicket[] => sortTickets(list, ui.sort);
+  /** Reordering by drag needs the order of the list: rank or planning order, not grouped. */
+  const canReorder = $derived((ui.sort === 'rank' || ui.sort === 'order') && ui.group === 'none');
   const lane = $derived<PlanTicket[]>(byRank(d?.tickets ?? []));
+  /** What the filter leaves of the sprint lane; the sums and the freeze use the whole lane. */
+  const laneShown = $derived(lane.filter((x) => fits(x, ui.filter)));
   const allCandidates = $derived<PlanTicket[]>(d?.candidates ?? []);
-  /** Filters of the candidate lane (view only, nothing is saved): the running sprint is hidden by default. */
   let showRunning = $state(false);
-  let onlyRefined = $state(false);
-  let fProduct = $state('');
-  let fProject = $state('');
   const candidates = $derived(
-    byRank(allCandidates).filter(
-      (x) =>
-        (showRunning || !d?.running || x.sprint !== d.running) &&
-        (!onlyRefined || x.refined) &&
-        (!fProduct || x.product === fProduct) &&
-        (!fProject || x.project === fProject),
-    ),
+    byRank(allCandidates).filter((x) => (showRunning || !d?.running || x.sprint !== d.running) && fits(x, ui.filter)),
   );
   const hidden = $derived(allCandidates.length - candidates.length);
-  const productIds = $derived([...new Set(allCandidates.map((x) => x.product).filter(Boolean))]);
-  const projectIds = $derived([...new Set(allCandidates.map((x) => x.project).filter(Boolean))]);
-  const productName = (id: string) => d?.products.find((p) => p.id === id)?.name || id;
-  const projectName = (id: string) => d?.projects.find((p) => p.id === id)?.name || id;
-  // A filter value the new team or sprint does not have must not keep hiding everything.
-  $effect(() => {
-    if (fProduct && !productIds.includes(fProduct)) fProduct = '';
-    if (fProject && !projectIds.includes(fProject)) fProject = '';
-  });
+  const laneHidden = $derived(lane.length - laneShown.length);
+  const sections = <T extends PlanTicket>(list: T[]) => (d && ui.group !== 'none' ? group(list, ui.group, { products: d.products, projects: d.projects }) : []);
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -155,7 +144,7 @@
     overRow = null;
   }
   function rowOver(e: DragEvent, key: string, here: 'sprint' | 'candidates'): void {
-    if (frozen || !dragKey || dragKey === key || !isNoopMove(d!, dragKey, here)) return;
+    if (frozen || !canReorder || !dragKey || dragKey === key || !isNoopMove(d!, dragKey, here)) return;
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
@@ -164,13 +153,13 @@
     overRow = { key, after: e.clientY > r.top + r.height / 2 };
   }
   async function rowDrop(e: DragEvent, key: string, here: 'sprint' | 'candidates'): Promise<void> {
-    if (!overRow || overRow.key !== key || !dragKey || !isNoopMove(d!, dragKey, here)) return;
+    if (!canReorder || !overRow || overRow.key !== key || !dragKey || !isNoopMove(d!, dragKey, here)) return;
     e.preventDefault();
     e.stopPropagation();
     const moving = dragKey;
     const after = overRow.after;
     dragEnd();
-    await model.change(async () => void (await (laneSort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, moving, key, after)));
+    await model.change(async () => void (await (ui.sort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, moving, key, after)));
   }
   // --- Right-click menu: "Move to", as in the backlog -------------------------------------
   let ctx = $state<{ key: string; x: number; y: number } | null>(null);
@@ -193,12 +182,13 @@
       ctx = null;
       return;
     }
-    const list = ctxIn === 'sprint' ? lane : candidates;
+    const list = ctxIn === 'sprint' ? laneShown : candidates;
     ctx = null;
+    if (!canReorder) return;
     const others = list.filter((x) => x.key !== key);
     const anchor = top ? others[0] : others[others.length - 1];
     if (!key || !anchor) return;
-    await model.change(async () => void (await (laneSort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, key, anchor.key, !top)));
+    await model.change(async () => void (await (ui.sort === 'rank' ? api.MoveTicketByRank : api.MoveWorkPackage)(app.team, key, anchor.key, !top)));
   }
 
   function dragStart(e: DragEvent, key: string): void {
@@ -355,6 +345,9 @@
       </div>
     </div>
   {:else}
+    <div class="filters" data-tour="plan-filters">
+      <TicketFilter products={d.products} projects={d.projects} multi={d.multiProduct} />
+    </div>
     <div id="lanes" class="grid cols-2 gapb" data-tour="plan-lanes">
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div
@@ -370,26 +363,9 @@
         <div class="lane-head">
           <div class="row"><strong class="grow">{t('Candidates')}</strong><span class="small muted data">{candidates.length} {itemWord(d)} · {fmtVal(sizeSum(candidates))} {unitName(d)}</span></div>
           <span class="small muted">{t('Backlog and earmarked for later sprints')}</span>
-          <div class="row cand-filter" role="group" aria-label={t('Filter candidates')}>
+          <div class="cand-filter" role="group" aria-label={t('Filter candidates')}>
             {#if d.running}
               <label class="small"><input type="checkbox" bind:checked={showRunning} /> {t('Running sprint too')}</label>
-            {/if}
-            <label class="small"><input type="checkbox" bind:checked={onlyRefined} /> {t('Refined only')}</label>
-            <select class="input small" aria-label={t('Sort by')} bind:value={laneSort}>
-              <option value="rank">{t('Rank in the tracker')}</option>
-              <option value="order">{t('Planning order')}</option>
-            </select>
-            {#if productIds.length}
-              <select class="input small" aria-label={t('Product')} bind:value={fProduct}>
-                <option value="">{t('All products')}</option>
-                {#each productIds as id (id)}<option value={id}>{productName(id)}</option>{/each}
-              </select>
-            {/if}
-            {#if projectIds.length}
-              <select class="input small" aria-label={t('Project')} bind:value={fProject}>
-                <option value="">{t('All projects')}</option>
-                {#each projectIds as id (id)}<option value={id}>{projectName(id)}</option>{/each}
-              </select>
             {/if}
           </div>
           {#if hidden > 0}
@@ -397,11 +373,7 @@
           {/if}
         </div>
         <div class="lane-body body" role="list">
-          {#each candidates as x (x.key)}
-            {@render laneRow(x, 'candidates')}
-          {:else}
-            <div class="small muted pad">{hidden > 0 ? t('All candidates are hidden by the filters.') : t('No candidates left.')}</div>
-          {/each}
+          {@render laneList(candidates, 'candidates', hidden > 0 ? t('All candidates are hidden by the filters.') : t('No candidates left.'))}
         </div>
       </div>
 
@@ -428,14 +400,11 @@
             {:else}<span class="chip ok">{t('within the range')}</span>{/if}
             {#if unrefined}<span class="chip warn">{t('{n} not refined', { n: unrefined })}</span>{/if}
             {#if noEstimate}<span class="chip warn">{t('{n} without estimate (count 0)', { n: noEstimate })}</span>{/if}
+            {#if laneHidden > 0}<span class="muted">{t('{n} hidden by the filters', { n: laneHidden })}</span>{/if}
           </div>
         </div>
         <div class="lane-body body" role="list">
-          {#each lane as x (x.key)}
-            {@render laneRow(x, 'sprint')}
-          {:else}
-            <div class="small muted pad">{t('Still empty. Drag {items} here.', { items: itemWord(d) })}</div>
-          {/each}
+          {@render laneList(laneShown, 'sprint', lane.length === 0 ? t('Still empty. Drag {items} here.', { items: itemWord(d) }) : t('All tickets of the sprint are hidden by the filters.'))}
         </div>
       </div>
     </div>
@@ -529,6 +498,23 @@
   </div>
 {/if}
 
+{#snippet laneList(list: PlanTicket[], here: 'sprint' | 'candidates', empty: string)}
+  {#if list.length === 0}
+    <div class="small muted pad">{empty}</div>
+  {:else if ui.group === 'none'}
+    {#each list as x (x.key)}{@render laneRow(x, here)}{/each}
+  {:else}
+    {#each sections(list) as g (g.id)}
+      <div class="gh small">
+        <Icon name={g.kind === 'product' ? 'inventory_2' : g.id ? 'flag' : 'inventory_2'} size={14} />
+        <strong>{g.name || (g.kind === 'project' ? t('Daily business') : t('No product'))}</strong>
+        <span class="muted data">{fmtVal(sizeSum(g.items))} {unitName(d!)}, {g.items.length}</span>
+      </div>
+      {#each g.items as x (x.key)}{@render laneRow(x, here)}{/each}
+    {/each}
+  {/if}
+{/snippet}
+
 {#snippet laneRow(x: PlanTicket, here: 'sprint' | 'candidates')}
   {#if d}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -583,7 +569,9 @@
   .ctx-item:hover:not(:disabled),
   .ctx-item:focus-visible { background: var(--surface-2); }
   .ctx-item:disabled { opacity: 0.45; cursor: default; }
-  .cand-filter { flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+  .cand-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .gh { display: flex; gap: 8px; align-items: center; padding: 6px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .slot.before { box-shadow: 0 -2px 0 0 var(--primary); }
   .slot.after { box-shadow: 0 2px 0 0 var(--primary); }
   .gapb {

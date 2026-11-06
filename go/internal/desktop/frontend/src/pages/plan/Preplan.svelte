@@ -13,8 +13,11 @@
   import SprintHead from '../../lib/plan/SprintHead.svelte';
   import Summary from '../../lib/plan/Summary.svelte';
   import TicketRow from '../../lib/plan/TicketRow.svelte';
-  import type { PlanProduct, PlanSprint } from '../../lib/types.plan';
+  import type { PlanProduct, PlanProject, PlanSprint } from '../../lib/types.plan';
   import WhatIfCard from './WhatIfCard.svelte';
+  import { fits, sortTickets } from '../backlog/backlog';
+  import TicketFilter from '../backlog/TicketFilter.svelte';
+  import { ui } from '../backlog/store.svelte';
   import type { PageProps } from '../../lib/routes';
 
   let {}: PageProps = $props();
@@ -71,12 +74,22 @@
     });
   const useDefaults = () => model.change(() => api.UseDefaults(app.team, d!.sprint), t('Standard amounts taken over.'));
 
-  /** Earmarked tickets by project; daily business (no project) last. */
+  /** Earmarked tickets that the filter of the backlog leaves (shared state, view only), sorted as chosen. */
+  const shown = $derived(d ? sortTickets(d.tickets.filter((x) => fits(x, ui.filter)), ui.sort) : []);
+  const hiddenN = $derived(d ? d.tickets.length - shown.length : 0);
+  /** The shown tickets by project (daily business last), or by product when chosen; empty groups drop out. */
   const byProject = $derived.by(() => {
     if (!d) return [];
-    const ids = [...d.projects.map((p) => p.id), ''];
-    return ids
-      .map((id) => ({ id, project: d.projects.find((p) => p.id === id), list: d.tickets.filter((x) => (x.project || '') === id) }))
+    if (ui.group === 'product') {
+      return [...d.products.map((p) => p.id), '']
+        .map((id) => ({ id, project: undefined as PlanProject | undefined, label: d.products.find((p) => p.id === id)?.name ?? t('No product'), icon: 'inventory_2' as const, list: shown.filter((x) => (x.product || '') === id) }))
+        .filter((g) => g.list.length);
+    }
+    return [...d.projects.map((p) => p.id), '']
+      .map((id) => {
+        const project = d.projects.find((p) => p.id === id);
+        return { id, project, label: project?.name ?? t('Daily business'), icon: 'flag' as const, list: shown.filter((x) => (x.project || '') === id) };
+      })
       .filter((g) => g.list.length);
   });
   const sumOf = (list: { size: number | null }[]) => list.reduce((a, x) => a + (x.size ?? 0), 0);
@@ -232,7 +245,15 @@
         <h2>{t('Earmarked {items} by project', { items: itemWord(d) })}</h2>
         <a class="btn" href="#/backlog"><Icon name="view_list" />{t('Earmark in the backlog')}</a>
       </div>
-      {#if byProject.length === 0}
+      {#if d.tickets.length > 0}
+        <div class="filters" data-tour="preplan-filters">
+          <TicketFilter products={d.products} projects={d.projects} multi={d.multiProduct} groups={d.multiProduct} />
+          {#if hiddenN > 0 && byProject.length > 0}<span class="small muted">{t('{n} hidden by the filters', { n: hiddenN })}</span>{/if}
+        </div>
+      {/if}
+      {#if byProject.length === 0 && hiddenN > 0}
+        <p class="muted small">{t('All {n} earmarked tickets are hidden by the filters.', { n: hiddenN })}</p>
+      {:else if byProject.length === 0}
         <div class="banner">
           <Icon name="inbox" />
           <div class="grow">
@@ -245,7 +266,7 @@
           {#each byProject as g (g.id)}
             <div class="card flush">
               <div class="row group-head">
-                <span class="chip"><Icon name="flag" size={14} />{g.project?.name ?? t('Daily business')}</span>
+                <span class="chip"><Icon name={g.icon} size={14} />{g.label}</span>
                 <span class="small muted">{g.list.length} {itemWord(d, g.list.length !== 1)} · <span class="data">{fmtVal(sumOf(g.list))}</span> {unitName(d)}</span>
                 <span class="spacer"></span>
                 {#if g.project}
@@ -277,6 +298,7 @@
 {/if}
 
 <style>
+  .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .gap {
     margin-top: 16px;
   }

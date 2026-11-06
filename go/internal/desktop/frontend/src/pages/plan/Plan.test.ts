@@ -7,6 +7,8 @@ import { mockApi } from '../../lib/mock';
 import { app } from '../../lib/app.svelte';
 import { resetPlanMock } from '../../lib/mock/plan';
 import { sprints } from '../../lib/mock/shared';
+import { blank } from '../backlog/backlog';
+import { ui } from '../backlog/store.svelte';
 import Plan from './Plan.svelte';
 
 const SPRINT = '2026.21';
@@ -16,6 +18,9 @@ let cmp: ReturnType<typeof mount> | undefined;
 
 beforeEach(() => {
   resetPlanMock();
+  ui.filter = blank();
+  ui.sort = 'rank';
+  ui.group = 'none';
   app.toasts = [];
 });
 
@@ -74,7 +79,7 @@ describe('Plan page', () => {
     box('Running sprint too').click();
     await tick();
     expect(keys('Candidates')).toContain('ATL-401');
-    box('Refined only').click();
+    [...document.querySelectorAll<HTMLButtonElement>('button.chip.filter')].find((b) => b.textContent!.trim() === 'Refined')!.click();
     await tick();
     expect(keys('Candidates')).not.toContain('ATL-433');
     expect(keys('Candidates')).toContain('ATL-424');

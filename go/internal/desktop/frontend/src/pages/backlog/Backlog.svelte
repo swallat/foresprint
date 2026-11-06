@@ -12,8 +12,9 @@
   import { fmt, formatPeriod, fmtVal } from '../../lib/format';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
-  import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum, type Group, type Sort } from './backlog';
+  import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum } from './backlog';
   import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, t, toProForma, toggleSelected, ui } from './store.svelte';
+  import TicketFilter from './TicketFilter.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let {}: PageProps = $props();
@@ -70,7 +71,8 @@
   }
   const lanes = $derived(view?.lanes ?? []);
   // Lanes follow the rank too while that is the sort; any other sort leaves them in planning order.
-  const laneTickets = (list: BacklogTicket[]): BacklogTicket[] => sortTickets(list, ui.sort === 'rank' ? 'rank' : 'order');
+  // The filter, search and sort of the page apply to the lanes too; their sums stay on all earmarked tickets.
+  const laneTickets = (list: BacklogTicket[]): BacklogTicket[] => sortTickets(list.filter((tk) => matches(tk, ui.filter, names, view?.multi ?? false)), ui.sort);
   const laneIds = $derived(lanes.map((l) => l.sprint));
   const current = $derived(activeView(ui.filter));
   const viewName: Record<string, string> = $derived({
@@ -81,14 +83,6 @@
     earmarked: t('Earmarked'),
     open: t('Open points'),
   });
-  const sortNames = $derived<[Sort, string][]>([
-    ['rank', t('Rank in the tracker')],
-    ['order', t('Planning order')],
-    ['size-desc', t('Largest first')],
-    ['size-asc', t('Smallest first')],
-    ['key', t('Key')],
-    ['title', t('Title')],
-  ]);
   const currentCustom = $derived(activeCustom(ui.custom, ui.filter, ui.group, ui.sort));
   let naming = $state(false);
   let newName = $state('');
@@ -388,35 +382,7 @@
     </div>
 
     <div class="filters">
-      {#if view.multi && view.products.length}
-        <div class="row">
-          <span class="small muted">{t('Product')}</span>
-          {#each view.products as p (p.id)}
-            <button type="button" class="chip filter" class:on={ui.filter.products.includes(p.id)} aria-pressed={ui.filter.products.includes(p.id)} onclick={() => (ui.filter.products = toggle(ui.filter.products, p.id))}>{p.name}</button>
-          {/each}
-        </div>
-      {/if}
-      <div class="row">
-        <span class="small muted">{t('Project')}</span>
-        {#each view.projects.filter((p) => !p.closed) as p (p.id)}
-          <button type="button" class="chip filter" class:on={ui.filter.projects.includes(p.id)} aria-pressed={ui.filter.projects.includes(p.id)} onclick={() => (ui.filter.projects = toggle(ui.filter.projects, p.id))}><Icon name="flag" size={14} />{p.name}</button>
-        {/each}
-        <button type="button" class="chip filter" class:on={ui.filter.projects.includes('')} aria-pressed={ui.filter.projects.includes('')} onclick={() => (ui.filter.projects = toggle(ui.filter.projects, ''))}>{t('Daily business')}</button>
-        <span class="small muted gap">{t('Progress')}</span>
-        <button type="button" class="chip filter" class:on={ui.filter.refined === 'yes'} aria-pressed={ui.filter.refined === 'yes'} onclick={() => (ui.filter.refined = ui.filter.refined === 'yes' ? 'all' : 'yes')}>{t('Refined')}</button>
-        <button type="button" class="chip filter" class:on={ui.filter.refined === 'open'} aria-pressed={ui.filter.refined === 'open'} onclick={() => (ui.filter.refined = ui.filter.refined === 'open' ? 'all' : 'open')}><Icon name="help" size={14} />{t('Still open')}</button>
-        <span class="small muted gap">{t('Sort by')}</span>
-        <select class="input sort" aria-label={t('Sort by')} bind:value={ui.sort}>
-          {#each sortNames as [value, label] (value)}<option {value}>{label}</option>{/each}
-        </select>
-        <span class="small muted gap">{t('Layout')}</span>
-        <button type="button" class="chip filter" class:on={ui.layout === 'side'} aria-pressed={ui.layout === 'side'} onclick={() => setLayout('side')}><Icon name="vertical_split" size={14} />{t('Side by side')}</button>
-        <button type="button" class="chip filter" class:on={ui.layout === 'stacked'} aria-pressed={ui.layout === 'stacked'} onclick={() => setLayout('stacked')}><Icon name="splitscreen" size={14} />{t('Stacked')}</button>
-        <span class="small muted gap">{t('Group by')}</span>
-        {#each [['none', t('Nothing')], ['project', t('Project')], ...(view.multi ? [['product', t('Product')]] : [])] as [value, label] (value)}
-          <button type="button" class="chip filter" class:on={ui.group === value} aria-pressed={ui.group === value} onclick={() => (ui.group = value as Group)}>{label}</button>
-        {/each}
-      </div>
+      <TicketFilter products={view.products} projects={view.projects} multi={view.multi} layout />
       <div class="row">
         <label class="search-box">
           <Icon name="search" size={16} />
@@ -577,7 +543,7 @@
                 <button class="btn ghost icon" type="button" aria-expanded={!closed} aria-label={closed ? t('Expand sprint {id}', { id: l.sprint }) : t('Collapse sprint {id}', { id: l.sprint })} onclick={() => (laneClosed[l.sprint] = !closed)}><Icon name={closed ? 'chevron_right' : 'keyboard_arrow_down'} /></button>
                 <strong class="data">{l.sprint}</strong>
                 <span class="muted small data">{formatPeriod(l.start, l.end)}</span>
-                <span class="chip data" title={t('Earmarked tickets')}>{l.tickets.length}</span>
+                <span class="chip data" title={t('Earmarked tickets')}>{laneTickets(l.tickets).length === l.tickets.length ? l.tickets.length : t('{shown} of {total}', { shown: laneTickets(l.tickets).length, total: l.tickets.length })}</span>
                 <span class="grow"></span>
                 {#if l.absences === 'confirmed'}
                   <span class="chip ok"><Icon name="check" size={14} />{t('Absences confirmed')}</span>
@@ -619,16 +585,30 @@
               {/if}
             </div>
             {#if !closed}
+            {@const shownTickets = laneTickets(l.tickets)}
             <div class="lane-body">
               {#if l.tickets.length === 0}
                 <p class="muted small pad">{t('Nothing earmarked yet. Drag a ticket here or use Earmark for…')}</p>
+              {:else if shownTickets.length === 0}
+                <p class="muted small pad">{t('Nothing here fits the filter.')}</p>
+              {:else if ui.group !== 'none'}
+                {#each group(shownTickets, ui.group, view) as s (s.id)}
+                  <div class="gh">
+                    {#if s.kind === 'product'}<span class="dot"></span>{:else}<Icon name={s.id ? 'flag' : 'inventory_2'} size={16} />{/if}
+                    {s.name || (s.kind === 'project' ? t('Daily business') : t('No product'))}
+                    <span class="muted data count">{fmtVal(sum(s.items))} {unit}, {s.items.length}</span>
+                  </div>
+                  {#each s.items as tk (tk.key)}
+                    {@render row(tk, s.kind !== 'product', false)}
+                  {/each}
+                {/each}
               {:else}
-                {#each (laneOpen[l.sprint] ? laneTickets(l.tickets) : laneTickets(l.tickets).slice(0, LANE_PREVIEW)) as tk (tk.key)}
+                {#each (laneOpen[l.sprint] ? shownTickets : shownTickets.slice(0, LANE_PREVIEW)) as tk (tk.key)}
                   {@render row(tk, true, false)}
                 {/each}
-                {#if l.tickets.length > LANE_PREVIEW}
+                {#if shownTickets.length > LANE_PREVIEW}
                   <div class="more">
-                    <button class="btn ghost" type="button" onclick={() => (laneOpen[l.sprint] = !laneOpen[l.sprint])}>{laneOpen[l.sprint] ? t('Show fewer issues') : t('Show all issues ({total})', { total: l.tickets.length })}</button>
+                    <button class="btn ghost" type="button" onclick={() => (laneOpen[l.sprint] = !laneOpen[l.sprint])}>{laneOpen[l.sprint] ? t('Show fewer issues') : t('Show all issues ({total})', { total: shownTickets.length })}</button>
                   </div>
                 {/if}
               {/if}
@@ -754,9 +734,6 @@
     flex-direction: column;
     gap: 8px;
     margin-bottom: 12px;
-  }
-  .gap {
-    margin-left: 8px;
   }
   .adjust {
     margin: var(--space-1, 4px) 0 0;

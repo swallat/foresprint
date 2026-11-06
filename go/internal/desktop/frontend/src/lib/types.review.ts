@@ -1,6 +1,7 @@
 // Types of the Review and the minutes, as go/internal/app/types_review.go sends them.
 
 import type { AbsenceColumn } from './types.sprints';
+import type { Named } from './types.backlog';
 
 export interface ReviewTicket {
   key: string;
@@ -15,6 +16,11 @@ export interface ReviewTicket {
   rest: number;
   /** Where the rest continues: "" = next sprint, a sprint id, "backlog". */
   target: string;
+  /** For the filters and the sort of the table; the Close call ignores them. */
+  product: string;
+  project: string;
+  refined: boolean;
+  rankPos: number;
 }
 
 export interface ReviewProduct {
@@ -60,6 +66,9 @@ export interface SprintReview {
   /** The fixed factor valid for the sprint; null = the measured rate is used. */
   factor?: number | null;
   products: ReviewProduct[];
+  /** The products and projects of the filter above the ticket table. */
+  filterProducts: Named[];
+  filterProjects: Named[];
   productsOn: boolean;
   productionOn: boolean;
   production: number;
