@@ -140,7 +140,7 @@
     <ul>
       <li>{t('The trend is flat (mean of the window), rising or falling, as set in the forecast settings. With thin history only the mean is used and the sprint is marked.')}</li>
       <li>{t('The range is an 80 % interval around the Forecast PLAN. It measures how far each of the last sprints missed the mean of the sprints before it, and it widens with the square root of the distance to the last result. It needs at least 3 sprints; below 5 it is only a rough hint.')}</li>
-      <li>{t('For a sprint that is already planned, the recorded commitment replaces the projection and is marked as actual.')}</li>
+      <li>{t('Only where there is no trend, the recorded commitment replaces the projection and is marked as actual; with no history at all, the start rate of the team stands in.')}</li>
     </ul>
     {#if next?.trend != null && next.capacity != null && next.plan != null}
       {@render example(`${next.id}: ${fmt(next.trend)} ÷ ${fmt(ref, 0)} × ${fmtCap(next.capacity)} = ${fmt((next.trend / ref) * next.capacity, 4)} → ${fmt(next.plan)}`)}

@@ -115,6 +115,15 @@
   "Series shown in the chart": "Im Diagramm gezeigte Reihen",
   "Fulfillment (right axis)": "Fulfillment (rechte Achse)",
   "{id}: fulfillment {n}": "{id}: Fulfillment {n}",
-  "{id}: commitment {n}": "{id}: Commitment {n}"
+  "{id}: commitment {n}": "{id}: Commitment {n}",
+  "Calculation paths of the values": "Rechenwege der Werte",
+  "Above 100 % when work added later was also finished.": "Über 100 %, wenn auch später hinzugekommene Arbeit fertig wurde.",
+  "C = commitment, U = estimates of the planned items that are not finished (at most C), A = estimates of items pulled in later and finished. Without tickets, U and A are the values entered at the Review.": "C = Commitment, U = Schätzungen der geplanten Einträge, die nicht fertig sind (höchstens C), A = Schätzungen der später nachgezogenen und fertigen Einträge. Ohne Tickets sind U und A die im Review eingetragenen Werte.",
+  "R = carry-over and B = backlog from the Planning of the sprint, or the value entered there.": "R = Übertrag und B = Backlog aus dem Planning des Sprints oder der dort eingetragene Wert.",
+  "Cap = capacity of the sprint in person days (frozen at the Review), Ref = reference capacity of the team.": "Cap = Kapazität des Sprints in Personentagen (beim Review eingefroren), Ref = Referenzkapazität des Teams.",
+  "w = window of sprints with an N (a is the first of them); with fewer than w but at least 3, Ø is the mean of all. X = Ø, or T where Ø is missing. With the flat trend mode T(k) = X(k−1). T is never below 0.": "w = Fenster der Sprints mit einem N (a ist der erste davon); bei weniger als w, aber mindestens 3, ist Ø der Mittelwert aller. X = Ø, oder T, wo Ø fehlt. Im Trend-Modus „Flach“ gilt T(k) = X(k−1). T liegt nie unter 0.",
+  "T = trend of the sprint, Cap = its capacity, rounded down to the rounding of the team. Without a trend: P = ⌊ C ⌋; without any history: P = ⌊ Cap × start rate ⌋.": "T = Trend des Sprints, Cap = seine Kapazität, abgerundet auf die Rundung des Teams. Ohne Trend: P = ⌊ C ⌋; ganz ohne Historie: P = ⌊ Cap × Startwert ⌋.",
+  "n = last results N in the window (at least 3), h = distance in sprints to the last result, t = factor of the t distribution for 80 %. Never below 0; rounded to the rounding of the team.": "n = letzte Ergebnisse N im Fenster (mindestens 3), h = Abstand in Sprints zum letzten Ergebnis, t = Faktor der t-Verteilung für 80 %. Nie unter 0; gerundet auf die Rundung des Teams.",
+  "D = extra days off of your assumption, Focus = focus in %. Without a trend: start rate instead of T ÷ Ref.": "D = zusätzliche freie Tage deiner Annahme, Focus = Fokus in %. Ohne Trend: Startwert statt T ÷ Ref."
  }
 }

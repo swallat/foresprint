@@ -1,6 +1,7 @@
 <script lang="ts">
   import { shortNames } from '../../lib/axis';
   import { fmt, fmtVal } from '../../lib/format';
+  import Icon from '../../lib/Icon.svelte';
   import { t } from '../../lib/i18n.svelte';
   import type { ForecastRow, WhatIfRow } from '../../lib/types.forecast';
 
@@ -118,6 +119,68 @@
   // Labels in the plot are rounded to one decimal so they stay short; tooltips keep the team's rounding.
   const label = (v: number | null) => fmt(v, 1);
 
+  // The calculation path of every value that is shown: symbols only, so the numbers can be rebuilt
+  // by hand. Each row explains its symbols; the full text is on Help > Calculations.
+  interface Path {
+    key: Key;
+    name: string;
+    formula: string;
+    where: string;
+  }
+  const paths = $derived(
+    ([
+      {
+        key: 'vel',
+        name: t('Velocity'),
+        formula: 'V = C − U + A',
+        where: t('C = commitment, U = estimates of the planned items that are not finished (at most C), A = estimates of items pulled in later and finished. Without tickets, U and A are the values entered at the Review.'),
+      },
+      {
+        key: 'com',
+        name: t('Commitment'),
+        formula: 'C = R + B',
+        where: t('R = carry-over and B = backlog from the Planning of the sprint, or the value entered there.'),
+      },
+      {
+        key: 'nv',
+        name: t('Normalized velocity'),
+        formula: 'N = V ÷ Cap × Ref',
+        where: t('Cap = capacity of the sprint in person days (frozen at the Review), Ref = reference capacity of the team.'),
+      },
+      {
+        key: 'trend',
+        name: t('Trend of the normalized velocity'),
+        formula: 'Ø(k) = ( N(a) + … + N(k) ) ÷ w\nT(k) = X(k−1) + ( X(k−1) − X(k−2) )',
+        where: t('w = window of sprints with an N (a is the first of them); with fewer than w but at least 3, Ø is the mean of all. X = Ø, or T where Ø is missing. With the flat trend mode T(k) = X(k−1). T is never below 0.'),
+      },
+      {
+        key: 'plan',
+        name: t('Forecast PLAN'),
+        formula: 'P = ⌊ T ÷ Ref × Cap ⌋',
+        where: t('T = trend of the sprint, Cap = its capacity, rounded down to the rounding of the team. Without a trend: P = ⌊ C ⌋; without any history: P = ⌊ Cap × start rate ⌋.'),
+      },
+      {
+        key: 'range',
+        name: t('Range'),
+        formula: 'σ = √( Σ ( N(j) − mean( N(1) … N(j−1) ) )² ÷ (n−1) ),  j = 2 … n\nP ± t(n−1) × σ × √h ÷ Ref × Cap',
+        where: t('n = last results N in the window (at least 3), h = distance in sprints to the last result, t = factor of the t distribution for 80 %. Never below 0; rounded to the rounding of the team.'),
+      },
+      {
+        key: 'wif',
+        name: t('What if'),
+        formula: "P' = ⌊ T ÷ Ref × Cap' × Focus ÷ 100 ⌋\nCap' = max( 0, Cap − D )",
+        where: t("D = extra days off of your assumption, Focus = focus in %. Without a trend: start rate instead of T ÷ Ref."),
+      },
+      {
+        key: 'ful',
+        name: t('Fulfillment (right axis)'),
+        formula: 'F = V ÷ C',
+        where: t('Above 100 % when work added later was also finished.'),
+      },
+    ] satisfies Path[]).filter((p) => on[p.key] && (p.key !== 'wif' || whatIf.length > 0)),
+  );
+  const swatch = (k: Key): string => (k === 'trend' ? 'nv dash' : k === 'plan' || k === 'range' ? 'fc' + (k === 'plan' ? ' dash' : '') : k);
+
   const triangle = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy + r} ${cx - r},${cy + r}`;
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
 </script>
@@ -206,7 +269,74 @@
   {/each}
 </svg>
 
+{#if paths.length > 0}
+  <details class="paths">
+    <summary><Icon name="calculate" size={18} /> {t('Calculation paths of the values')}</summary>
+    <dl>
+      {#each paths as p (p.key)}
+        <div class="p">
+          <dt><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s {swatch(p.key)}" /></svg>{p.name}</dt>
+          <dd>
+            <div class="formula data">{p.formula}</div>
+            <div class="small muted">{p.where}</div>
+          </dd>
+        </div>
+      {/each}
+    </dl>
+    <a class="small" href="#/help/calculations?topic=forecast">{t('Formula and special cases')}</a>
+  </details>
+{/if}
+
 <style>
+  .paths {
+    margin-top: 12px;
+  }
+  .paths summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .paths summary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .paths[open] summary {
+    color: var(--primary);
+  }
+  .paths dl {
+    margin: 8px 0;
+    display: grid;
+    gap: 8px;
+  }
+  .p {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) 3fr;
+    gap: 4px 16px;
+    align-items: start;
+  }
+  .paths dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  .paths dd {
+    margin: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .formula {
+    padding: 4px 8px;
+    background: var(--surface-2);
+    border-radius: var(--r-ctl);
+    white-space: pre-line;
+  }
+  @media (max-width: 720px) {
+    .p {
+      grid-template-columns: 1fr;
+    }
+  }
   .legend {
     display: flex;
     gap: 16px;
