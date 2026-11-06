@@ -319,7 +319,12 @@ func CloneRepository(ctx context.Context, url, path string, timeout time.Duratio
 		// (and with a short connect time) so that the next step is shown instead.
 		if os.Getenv("GIT_SSH_COMMAND") == "" && os.Getenv("GIT_SSH") == "" {
 			if own, _ := Lenient(ctx, parent, "config", "--get", "core.sshCommand"); own == "" {
-				env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o ConnectTimeout=20"
+				// A graphical askpass (Git for Windows) can still answer; then only the connect time is limited.
+				if os.Getenv("SSH_ASKPASS") != "" {
+					env["GIT_SSH_COMMAND"] = "ssh -o ConnectTimeout=20"
+				} else {
+					env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o ConnectTimeout=20"
+				}
 			}
 		}
 		_, err := With(ctx, parent, Opts{Network: true, Timeout: timeout, URL: address.URL, Env: env},

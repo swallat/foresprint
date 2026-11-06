@@ -107,6 +107,7 @@
   let guide = $state('');
   let username = $state('');
   let problem = $state<Problem | null>(null);
+  let cloning = $state(false);
   let message = $state('');
   let serverOk = $state('');
   let busy = $state(false);
@@ -320,9 +321,13 @@
       } else if (d.step === 'signin') {
         if (token && !(await testToken())) return;
         if (!(await saveIdentity())) return;
-        if (d.kind === 'clone' && !(await applyStorage())) {
-          if (problem?.kind === 'auth') tokenOk = false;
-          return;
+        if (d.kind === 'clone') {
+          cloning = true;
+          const ok = await applyStorage().finally(() => (cloning = false));
+          if (!ok) {
+            if (problem?.kind === 'auth') tokenOk = false;
+            return;
+          }
         }
         afterStorage();
       } else if (d.step === 'team') {
@@ -536,7 +541,7 @@
           <p class="small muted">{t('Name and email are optional here. Saving asks for them if they are still missing.')}</p>
           <div class="field"><label for="su-name">{t('Your name')}</label><input id="su-name" class="input" bind:value={d.name} /></div>
           <div class="field"><label for="su-mail">{t('Email')}</label><input id="su-mail" class="input" type="email" bind:value={d.email} /></div>
-          {#if busy && d.kind === 'clone'}<p class="small muted" role="status">{t('Copying the data from the server. This can take a minute.')}</p>{/if}
+          {#if cloning}<p class="small muted" role="status">{t('Copying the data from the server. This can take a minute.')}</p>{/if}
         </div>
       </div>
     {:else if d.step === 'team'}
