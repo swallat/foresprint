@@ -32,6 +32,27 @@
     "This file cannot be put back value by value.": "Diese Datei lässt sich nicht Wert für Wert zurücksetzen.",
     "This value cannot be put back.": "Dieser Wert lässt sich nicht zurücksetzen.",
     "The value you entered cannot be read: {error}": "Der eingegebene Wert ist nicht lesbar: {error}",
-    "This value has changed in the meantime; look at the changes again.": "Dieser Wert hat sich inzwischen geändert; sieh dir die Änderungen noch einmal an."
+    "This value has changed in the meantime; look at the changes again.": "Dieser Wert hat sich inzwischen geändert; sieh dir die Änderungen noch einmal an.",
+    "The shared folder is not reachable": "Der geteilte Ordner ist nicht erreichbar",
+    "The folder {path} cannot be reached.": "Der Ordner {path} ist nicht erreichbar.",
+    "Check the network connection or the drive. You can keep working; saving waits.": "Prüfe die Netzwerkverbindung oder das Laufwerk. Du kannst weiterarbeiten, das Speichern wartet.",
+    "Shared folder not reachable: saving waits": "Geteilter Ordner nicht erreichbar: Speichern wartet",
+    "The shared folder is being saved": "Der geteilte Ordner wird gerade gespeichert",
+    "{who} is saving right now.": "{who} speichert gerade.",
+    "Try again in a moment.": "Versuche es gleich noch einmal.",
+    "This save is not in the history.": "Dieser Speicherstand steht nicht im Verlauf.",
+    "There is no snapshot of {file} from that day.": "Es gibt keinen Schnappschuss von {file} aus diesem Tag.",
+    "This save cannot be taken back exactly: the state before it is not kept.": "Dieser Speicherstand lässt sich nicht genau zurücknehmen: Der Stand davor ist nicht mehr gespeichert.",
+    "Choose a folder first.": "Wähle zuerst einen Ordner.",
+    "The local copy and the shared folder must be different folders, neither inside the other.": "Lokale Kopie und geteilter Ordner müssen verschiedene Ordner sein, keiner im anderen.",
+    "The folder {path} is a Git repository already.": "Der Ordner {path} ist bereits ein Git-Repository.",
+    "A file changed meanwhile": "Eine Datei hat sich inzwischen geändert",
+    "Someone saved or a sync service delivered a file while this was running. Nothing was lost.": "Jemand hat gespeichert oder ein Sync-Dienst hat eine Datei geliefert, während das lief. Es ging nichts verloren.",
+    "Try again.": "Versuche es noch einmal.",
+    "Foresprint cannot tell which file {file} belongs to; open it and copy what you need by hand.": "Foresprint kann nicht erkennen, zu welcher Datei {file} gehört; öffne sie und übernimm, was du brauchst, von Hand.",
+    "{file} was saved again after this save; take those saves back first.": "{file} wurde nach diesem Speicherstand erneut gespeichert; nimm zuerst diese Speicherstände zurück.",
+    "{file} has unsaved changes; save or discard them first.": "{file} hat ungespeicherte Änderungen; speichere oder verwirf sie zuerst.",
+    "{file} is not up to date; refresh first.": "{file} ist nicht auf dem neuesten Stand; aktualisiere zuerst.",
+    "{path} is not a Foresprint shared folder yet. Create the storage there, or check the path.": "{path} ist noch kein geteilter Foresprint-Ordner. Lege dort den Speicher an oder prüfe den Pfad."
   }
 }
