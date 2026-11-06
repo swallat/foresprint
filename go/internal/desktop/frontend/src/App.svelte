@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { app, leaveDemo, refresh, save, start } from './lib/app.svelte';
+  import { app, panelDocked, panelWidthNow, leaveDemo, refresh, save, start } from './lib/app.svelte';
   import { watchData } from './lib/liveData.svelte';
   import { t } from './lib/i18n.svelte';
   import { current, go, match } from './lib/router.svelte';
@@ -80,7 +80,7 @@
       {/key}
     </main>
   {:else}
-    <div class="app" class:docked={app.ticket && app.panelMode === 'column'} style:--panel-w="{app.panelWidth}px">
+    <div class="app" class:docked={app.ticket && panelDocked()} style:--panel-w="{panelWidthNow()}px">
       <Topbar />
       <Rail />
       <main class="main" id="main" tabindex="-1">

@@ -92,27 +92,33 @@ const PANEL_ROOM = 160;
 const COLUMN_PAGE_MIN = 360;
 const RAIL_WIDTH = 232;
 
-function panelMax(): number {
-  const w = typeof window === 'undefined' ? 1200 : window.innerWidth;
-  const room = app.panelMode === 'column' ? RAIL_WIDTH + COLUMN_PAGE_MIN : PANEL_ROOM;
-  return Math.max(PANEL_MIN, w - room);
+/** Window width, reactive; kept up to date by the ticket panel. */
+export const win = $state({ w: typeof window === 'undefined' ? 1200 : window.innerWidth });
+
+/** The column only fits in a wide window; a narrower one shows the panel over the page. */
+export function panelDocked(): boolean {
+  return app.panelMode === 'column' && win.w >= RAIL_WIDTH + PANEL_MIN + COLUMN_PAGE_MIN;
 }
 
 /** Largest panel width for the current mode (the grip's upper bound). */
 export function panelWidthMax(): number {
-  return panelMax();
+  return Math.max(PANEL_MIN, win.w - (panelDocked() ? RAIL_WIDTH + COLUMN_PAGE_MIN : PANEL_ROOM));
 }
 
-/** Switches the ticket panel between overlay and column; remembered on this machine. */
+/** The width shown: the remembered one, pulled in where the window or the mode leaves less room. */
+export function panelWidthNow(): number {
+  return Math.min(app.panelWidth, panelWidthMax());
+}
+
+/** Switches the ticket panel between overlay and column; remembered on this machine. The width stays as it was. */
 export function setPanelMode(mode: PanelMode): void {
   app.panelMode = mode;
   store.set('panelMode', mode);
-  setPanelWidth(app.panelWidth, false);
 }
 
 /** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
 export function setPanelWidth(px: number, remember = true): void {
-  app.panelWidth = Math.round(Math.min(panelMax(), Math.max(PANEL_MIN, px)));
+  app.panelWidth = Math.round(Math.min(panelWidthMax(), Math.max(PANEL_MIN, px)));
   if (remember) store.set('panelWidth', String(app.panelWidth));
 }
 
