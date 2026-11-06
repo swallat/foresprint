@@ -74,3 +74,23 @@ describe('ForecastChart legend', () => {
     expect(button('Fulfillment').getAttribute('aria-pressed')).toBe('true');
   });
 });
+
+describe('ForecastChart calculation paths', () => {
+  const names = () => [...host.querySelectorAll('.paths dt')].map((e) => e.textContent?.trim());
+  it('lists the symbolic path of every series that is shown', async () => {
+    await show();
+    expect(host.querySelector('.paths')).not.toBeNull();
+    expect(names().length).toBeGreaterThanOrEqual(4);
+    expect(host.querySelector('.paths')?.textContent).toContain('P = ⌊ T ÷ Ref × Cap ⌋');
+    expect(host.querySelector('.paths')?.textContent).not.toContain('F = V ÷ C');
+  });
+  it('follows the legend', async () => {
+    await show();
+    button('Fulfillment').click();
+    await tick();
+    expect(host.querySelector('.paths')?.textContent).toContain('F = V ÷ C');
+    button('Forecast PLAN').click();
+    await tick();
+    expect(host.querySelector('.paths')?.textContent).not.toContain('P = ⌊ T ÷ Ref × Cap ⌋');
+  });
+});
