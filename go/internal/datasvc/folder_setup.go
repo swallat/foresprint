@@ -41,7 +41,7 @@ func (s *Store) CheckSharedFolder(shared string) SharedFolderCheck {
 			out.Service = h.name
 		}
 	}
-	files, _ := scan(shared)
+	files, _, _ := scan(shared)
 	out.HasData = len(files) > 0
 	return out
 }
@@ -62,7 +62,9 @@ func (s *Store) UseSharedFolder(local, shared, person string) Opened {
 	if info, err := os.Stat(shared); err != nil || !info.IsDir() {
 		return Opened{Problem: problemOf(git.New(i18n.T("The folder {path} does not exist.", "path", shared), "path", ""))}
 	}
-	if local == shared || strings.HasPrefix(local, shared+string(filepath.Separator)) || strings.HasPrefix(shared, local+string(filepath.Separator)) {
+	// Compared without regard to case: Windows and macOS treat C:\Data and c:\data as one folder.
+	l, sh := strings.ToLower(local), strings.ToLower(shared)
+	if l == sh || strings.HasPrefix(l, sh+string(filepath.Separator)) || strings.HasPrefix(sh, l+string(filepath.Separator)) {
 		return Opened{Problem: problemOf(git.New(i18n.T("The local copy and the shared folder must be different folders, neither inside the other."), "path", ""))}
 	}
 	if _, err := os.Stat(filepath.Join(local, ".git")); err == nil {

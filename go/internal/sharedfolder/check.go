@@ -34,7 +34,7 @@ func Check(root string) []CheckResult {
 		add("write", false, err.Error())
 		return out
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	f := filepath.Join(dir, "a.yaml")
 	if err := WriteFile(f, []byte("n: 1\n"), time.Second); err != nil {
 		add("write", false, err.Error())
@@ -45,10 +45,10 @@ func Check(root string) []CheckResult {
 	lock := filepath.Join(dir, "lock")
 	fd, err := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err == nil {
-		fd.Close()
+		_ = fd.Close()
 		second, err2 := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 		if err2 == nil {
-			second.Close()
+			_ = second.Close()
 		}
 		add("lock", errors.Is(err2, fs.ErrExist), "")
 	} else {
@@ -58,7 +58,7 @@ func Check(root string) []CheckResult {
 	held, herr := os.Open(f)
 	rerr := WriteFile(f, []byte("n: 2\n"), time.Second)
 	if herr == nil {
-		held.Close()
+		_ = held.Close()
 	}
 	b, _ := os.ReadFile(f)
 	add("replace", rerr == nil && string(b) == "n: 2\n", errText(rerr))

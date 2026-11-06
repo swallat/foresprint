@@ -45,6 +45,12 @@
     "This save cannot be taken back exactly: the state before it is not kept.": "Dieser Speicherstand lässt sich nicht genau zurücknehmen: Der Stand davor ist nicht mehr gespeichert.",
     "Choose a folder first.": "Wähle zuerst einen Ordner.",
     "The local copy and the shared folder must be different folders, neither inside the other.": "Lokale Kopie und geteilter Ordner müssen verschiedene Ordner sein, keiner im anderen.",
-    "The folder {path} is a Git repository already.": "Der Ordner {path} ist bereits ein Git-Repository."
+    "The folder {path} is a Git repository already.": "Der Ordner {path} ist bereits ein Git-Repository.",
+    "A file changed meanwhile": "Eine Datei hat sich inzwischen geändert",
+    "Someone saved or a sync service delivered a file while this was running. Nothing was lost.": "Jemand hat gespeichert oder ein Sync-Dienst hat eine Datei geliefert, während das lief. Es ging nichts verloren.",
+    "Try again.": "Versuche es noch einmal.",
+    "Foresprint cannot tell which file {file} belongs to; open it and copy what you need by hand.": "Foresprint kann nicht erkennen, zu welcher Datei {file} gehört; öffne sie und übernimm, was du brauchst, von Hand.",
+    "{file} was saved again after this save; take those saves back first.": "{file} wurde nach diesem Speicherstand erneut gespeichert; nimm zuerst diese Speicherstände zurück.",
+    "{file} has unsaved changes; save or discard them first.": "{file} hat ungespeicherte Änderungen; speichere oder verwirf sie zuerst."
   }
 }

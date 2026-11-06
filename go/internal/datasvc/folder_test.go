@@ -21,9 +21,9 @@ func put(t *testing.T, root, rel, content string) {
 	}
 }
 
-func get(t *testing.T, root, rel string) string {
+func get(t *testing.T, root string) string {
 	t.Helper()
-	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	b, err := os.ReadFile(filepath.Join(root, "t1", "team.yaml"))
 	if err != nil {
 		return "<missing>"
 	}
@@ -54,7 +54,7 @@ func team(t *testing.T) (anna, ben *Store, shared, annaDir, benDir string) {
 
 func TestFolderFirstSaveAndJoin(t *testing.T) {
 	_, ben, shared, _, benDir := team(t)
-	if got := get(t, benDir, "t1/team.yaml"); !strings.Contains(got, "capacity: 5") {
+	if got := get(t, benDir); !strings.Contains(got, "capacity: 5") {
 		t.Fatalf("Ben did not get the data: %q", got)
 	}
 	if st := ben.Status(); st.Kind != KindFolder || st.Chip.State != ChipOK || st.Unsaved != 0 {
@@ -90,7 +90,7 @@ func TestFolderMergesDifferentValues(t *testing.T) {
 		t.Fatalf("ben: %+v", r)
 	}
 	for _, root := range []string{shared, benDir} {
-		got := get(t, root, "t1/team.yaml")
+		got := get(t, root)
 		if !strings.Contains(got, "capacity: 6") || !strings.Contains(got, "velocity: 12") {
 			t.Fatalf("%s not merged: %q", root, got)
 		}
@@ -98,7 +98,7 @@ func TestFolderMergesDifferentValues(t *testing.T) {
 	if r := anna.Refresh(); r.Outcome != OutcomeSaved {
 		t.Fatalf("anna refresh: %+v", r)
 	}
-	if got := get(t, annaDir, "t1/team.yaml"); !strings.Contains(got, "velocity: 12") {
+	if got := get(t, annaDir); !strings.Contains(got, "velocity: 12") {
 		t.Fatalf("anna: %q", got)
 	}
 	if r := anna.Refresh(); r.Outcome != OutcomeNothing {
@@ -119,7 +119,7 @@ func TestFolderConflictAndDecision(t *testing.T) {
 	if r.Outcome != OutcomeConflict || r.Conflicts != 1 {
 		t.Fatalf("expected a conflict: %+v", r)
 	}
-	if got := get(t, shared, "t1/team.yaml"); !strings.Contains(got, "capacity: 6") {
+	if got := get(t, shared); !strings.Contains(got, "capacity: 6") {
 		t.Fatalf("shared must stay untouched by the failed save: %q", got)
 	}
 	cs := ben.Conflicts()
@@ -133,7 +133,7 @@ func TestFolderConflictAndDecision(t *testing.T) {
 	if r := ben.Save(SaveOptions{Message: "mine wins"}); r.Outcome != OutcomeSaved {
 		t.Fatalf("save after decision: %+v", r)
 	}
-	if got := get(t, shared, "t1/team.yaml"); !strings.Contains(got, "capacity: 7") {
+	if got := get(t, shared); !strings.Contains(got, "capacity: 7") {
 		t.Fatalf("shared: %q", got)
 	}
 }
@@ -149,7 +149,7 @@ func TestFolderConflictCopyAndLock(t *testing.T) {
 		t.Fatalf("%+v", cs)
 	}
 	ben.ResolveConflicts([]Decision{{File: cs[0].File, Path: []string{}, Choice: Theirs}})
-	if got := get(t, benDir, "t1/team.yaml"); !strings.Contains(got, "name: Other") {
+	if got := get(t, benDir); !strings.Contains(got, "name: Other") {
 		t.Fatalf("copy not taken over: %q", got)
 	}
 	if _, err := os.Stat(filepath.Join(shared, filepath.FromSlash(cs[0].File))); err == nil {
@@ -160,7 +160,7 @@ func TestFolderConflictCopyAndLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rel()
+	defer rel.Release()
 	// Shorten the wait: the lock stays for the test, Save waits 10 s at most.
 	start := time.Now()
 	r := ben.Save(SaveOptions{})
@@ -182,7 +182,7 @@ func TestFolderOfflineDiscardRevert(t *testing.T) {
 	if d := anna.Discard(nil); d.Problem != nil || d.Status.Unsaved != 0 {
 		t.Fatalf("discard %+v", d)
 	}
-	if got := get(t, annaDir, "t1/team.yaml"); !strings.Contains(got, "capacity: 5") {
+	if got := get(t, annaDir); !strings.Contains(got, "capacity: 5") {
 		t.Fatalf("not discarded: %q", got)
 	}
 	// Second save of the day: the exact earlier state is not kept, Revert says so.
@@ -192,7 +192,7 @@ func TestFolderOfflineDiscardRevert(t *testing.T) {
 	if len(h) != 2 {
 		t.Fatalf("history %+v", h)
 	}
-	if d := anna.Revert(h[0].ID); d.Problem == nil && !strings.Contains(get(t, annaDir, "t1/team.yaml"), "capacity: 5") {
+	if d := anna.Revert(h[0].ID); d.Problem == nil && !strings.Contains(get(t, annaDir), "capacity: 5") {
 		t.Fatalf("revert gave neither the old state nor an explanation: %+v", d)
 	}
 	// Offline: the shared folder is gone; editing works, saving waits.
@@ -227,5 +227,85 @@ func TestFolderCheckAndSetupGuards(t *testing.T) {
 	}
 	if o := s.UseSharedFolder(t.TempDir(), filepath.Join(shared, "missing"), ""); o.Problem == nil {
 		t.Fatal("missing shared accepted")
+	}
+}
+
+func TestFolderEmptyShareIsNotReachable(t *testing.T) {
+	anna, _, shared, annaDir, _ := team(t)
+	// A mount point that is not mounted, or a sync folder not filled yet: an empty folder without
+	// the marker. Refresh must not delete the local copy, Save must not publish into it.
+	gone := shared + "-away"
+	if err := os.Rename(shared, gone); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(shared, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if r := anna.Refresh(); r.Outcome != OutcomeOffline {
+		t.Fatalf("refresh: %+v", r)
+	}
+	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: 8\nvelocity: 10\n")
+	if r := anna.Save(SaveOptions{}); r.Outcome != OutcomeOffline {
+		t.Fatalf("save: %+v", r)
+	}
+	if got := get(t, annaDir); !strings.Contains(got, "capacity: 8") {
+		t.Fatalf("local copy changed: %q", got)
+	}
+	if entries, _ := os.ReadDir(shared); len(entries) != 0 {
+		t.Fatalf("something was written into the empty folder: %v", entries)
+	}
+}
+
+func TestFolderJournalNamesCannotLeaveTheCopy(t *testing.T) {
+	anna, _, shared, annaDir, _ := team(t)
+	outside := filepath.Join(filepath.Dir(annaDir), "precious.txt")
+	if err := os.WriteFile(outside, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	evil := sharedfolder.Entry{ID: "evil", Who: "Mallory", Time: time.Now(), Summary: "x", Files: map[string]sharedfolder.Change{
+		"../precious.txt": {Before: "", After: ""}, "../../etc/x": {Before: "a", After: "b"}}}
+	if err := sharedfolder.Append(shared, evil); err != nil {
+		t.Fatal(err)
+	}
+	h, _ := anna.History("", 0)
+	for _, v := range h {
+		for _, f := range v.Files {
+			if strings.Contains(f, "..") {
+				t.Fatalf("history shows %q", f)
+			}
+		}
+	}
+	anna.Revert("evil")
+	anna.Restore("", "evil", "")
+	if b, err := os.ReadFile(outside); err != nil || string(b) != "keep" {
+		t.Fatalf("file outside the copy touched: %q %v", b, err)
+	}
+}
+
+func TestFolderKeepsDiscardedAndReplacedEdits(t *testing.T) {
+	anna, _, shared, annaDir, _ := team(t)
+	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: 42\nvelocity: 10\n")
+	anna.Discard(nil)
+	trashed := func() string {
+		var found string
+		_ = filepath.WalkDir(filepath.Join(annaDir, ".foresprint-local", "trash"), func(p string, d os.DirEntry, err error) error {
+			if err == nil && !d.IsDir() {
+				b, _ := os.ReadFile(p)
+				found += string(b)
+			}
+			return nil
+		})
+		return found
+	}
+	if !strings.Contains(trashed(), "capacity: 42") {
+		t.Fatalf("discarded edit not kept: %q", trashed())
+	}
+	// Taking a conflict copy over an unsaved edit keeps the edit.
+	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: 77\nvelocity: 10\n")
+	put(t, shared, "t1/team (Ben's conflicted copy 2026-11-06).yaml", "name: Copy\n")
+	cs := anna.Conflicts()
+	anna.ResolveConflicts([]Decision{{File: cs[0].File, Path: []string{}, Choice: Theirs}})
+	if !strings.Contains(trashed(), "capacity: 77") || !strings.Contains(get(t, annaDir), "name: Copy") {
+		t.Fatalf("copy taken without keeping the edit: %q / %q", trashed(), get(t, annaDir))
 	}
 }

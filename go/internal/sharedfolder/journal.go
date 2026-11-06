@@ -82,7 +82,7 @@ func ReadJournal(root string) ([]Entry, error) {
 				out = append(out, e)
 			}
 		}
-		f.Close()
+		_ = f.Close()
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Time.After(out[j].Time) })
 	return out, nil

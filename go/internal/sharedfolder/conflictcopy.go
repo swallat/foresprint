@@ -12,8 +12,9 @@ import (
 // Sync services do not merge; when two computers change a file at once they keep both and give
 // the second one a new name. These patterns recognise the names the common services use.
 var conflictCopyRes = []*regexp.Regexp{
-	// Dropbox: "plan (Anna's conflicted copy 2026-11-06).yaml", also "(In Konflikt stehende Kopie von Anna ...)".
-	regexp.MustCompile(`(?i) \([^)]*(conflicted copy|konflikt)[^)]*\)`),
+	// Dropbox: "plan (Anna's conflicted copy 2026-11-06).yaml", German "(In Konflikt stehende Kopie von Anna ...)".
+	// A plain "(Konflikte)" in a name is a normal file name.
+	regexp.MustCompile(`(?i) \([^)]*(conflicted copy|in konflikt stehende kopie)[^)]*\)`),
 	// Nextcloud / ownCloud: "plan (conflicted copy 2026-11-06 101010).yaml".
 	regexp.MustCompile(`(?i)\(conflicted copy [^)]*\)`),
 	// Syncthing: "plan.sync-conflict-20261106-101010-ABCDEFG.yaml".
