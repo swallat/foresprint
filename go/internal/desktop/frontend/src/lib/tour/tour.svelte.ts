@@ -6,6 +6,7 @@ import { app, demoVariantKey, enterDemo, leaveDemo, selectSprint } from '../app.
 import { registerCommands } from '../commands';
 import { t } from '../i18n.svelte';
 import { go } from '../router.svelte';
+import { allTickets, store as backlog } from '../../pages/backlog/store.svelte';
 import { flowById, flows, type Flow, type SprintPick, type Step } from './flows';
 
 export const tour = $state({
@@ -52,12 +53,18 @@ async function show(): Promise<void> {
     if (id) selectSprint(id);
   }
   if (step.wizard) wizard.request = step.wizard;
+  // a ticket key of the person's own data must not stay open on the demo team
+  if (!step.openTicket) app.ticket = '';
   go(step.route, undefined, step.query);
   tour.unmarked = false;
   if (!step.target) return;
   for (const wait of [0, ...waits]) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     if (mine !== run) return;
+    if (step.openTicket && !app.ticket) {
+      const first = allTickets(backlog.view)[0];
+      if (first) app.ticket = first.key;
+    }
     const el = document.querySelector(step.target);
     if (el) {
       el.classList.add('hl');
@@ -130,6 +137,7 @@ export async function endTour(): Promise<void> {
   tour.steps = [];
   tour.index = 0;
   tour.unmarked = false;
+  app.ticket = '';
   if (enteredDemo) {
     enteredDemo = false;
     await leaveDemo();

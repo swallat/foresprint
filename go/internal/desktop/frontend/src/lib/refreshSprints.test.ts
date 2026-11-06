@@ -18,10 +18,10 @@ describe('refreshSprints', () => {
     app.team = 'demo';
     app.sprints = [info('2026.21', '2026-10-19', 'current'), info('2026.22', '2026-11-02', 'future')];
     app.sprint = '2026.22';
-    vi.mocked(api.Sprints).mockResolvedValue([info('2026.21', '2026-10-19', 'current'), info('ACCSEC - 2026.22', '2026-11-02', 'future')]);
+    vi.mocked(api.Sprints).mockResolvedValue([info('2026.21', '2026-10-19', 'current'), info('Platform - 2026.22', '2026-11-02', 'future')]);
     await refreshSprints();
-    expect(app.sprints.map((s) => s.id)).toContain('ACCSEC - 2026.22');
-    expect(app.sprint).toBe('ACCSEC - 2026.22');
+    expect(app.sprints.map((s) => s.id)).toContain('Platform - 2026.22');
+    expect(app.sprint).toBe('Platform - 2026.22');
   });
 
   it('keeps the selection when the sprint is still there', async () => {

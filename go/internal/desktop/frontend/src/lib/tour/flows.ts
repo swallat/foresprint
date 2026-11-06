@@ -24,6 +24,8 @@ export interface Step {
   sprint?: SprintPick;
   /** The page has nothing to show for a team that keeps its work packages in Foresprint. */
   trackerOnly?: boolean;
+  /** Open the first ticket of the backlog in the side panel before marking the target. */
+  openTicket?: boolean;
   text: () => string;
 }
 
@@ -60,7 +62,7 @@ export const flows: Flow[] = [
       { route: '/backlog', target: tour('backlog-views'), text: () => t('Pick a saved view such as Refinement or click a filter. The list reacts at once, also while you search.') },
       { route: '/backlog', target: tour('backlog-list'), text: () => t('Order the tickets by dragging the handle up or down, or with Alt and the arrow keys. Dragging into a sprint earmarks the ticket; a toast offers Undo.') },
       { route: '/backlog', target: tour('backlog-ticket'), text: () => t('A click on the title opens the ticket panel. The key and the arrow open the ticket in the tracker.') },
-      { route: '/backlog', target: tour('ticket-panel'), text: () => t('In the panel you maintain estimate, product, project and earmark and see whether the ticket is refined. The history is below.') },
+      { route: '/backlog', target: tour('ticket-panel'), openTicket: true, text: () => t('In the panel you maintain estimate, product, project and earmark and see whether the ticket is refined. The history is below.') },
       { route: '/backlog', target: tour('backlog-ruleflag'), trackerOnly: true, text: () => t('If no product rule or more than one applies, the row is marked. The product of the rule decides; you can set it by hand for this ticket.') },
     ],
   },
@@ -148,7 +150,7 @@ export const flows: Flow[] = [
     steps: [
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-present'), text: () => t('In the planning you share only Foresprint. The presentation view shows the tickets of the sprint and the candidates large in the window.') },
       { route: '/present', text: () => t('Description, acceptance criteria, subtasks, links, comments and attachments come with the sync. The arrow keys page through; the space bar puts the ticket into the sprint or takes it out.') },
-      { route: '/backlog', target: tour('ticket-panel'), text: () => t('The same details are in the ticket panel everywhere, for example in the backlog. The presentation view opens from there as well.') },
+      { route: '/backlog', target: tour('ticket-panel'), openTicket: true, text: () => t('The same details are in the ticket panel everywhere, for example in the backlog. The presentation view opens from there as well.') },
     ],
   },
   {
