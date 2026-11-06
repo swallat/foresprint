@@ -19,6 +19,11 @@ import (
 type StorageSettings struct {
 	Kind   string `json:"kind"`
 	Folder string `json:"folder"`
+	// Shared and Person are set for the shared-folder storage (Kind "folder"): the shared folder
+	// and the name in the journal. Connected says whether the shared folder can be reached now.
+	Shared    string `json:"shared,omitempty"`
+	Person    string `json:"person,omitempty"`
+	Connected bool   `json:"connected,omitempty"`
 	// Ready: the folder is a data repository.
 	Ready bool `json:"ready"`
 	// Server is the address without credentials, "" = none set up.
@@ -61,6 +66,11 @@ type SignInGuide struct {
 // Storage reads the settings page. It changes nothing and needs no network.
 func (s *Store) Storage() StorageSettings {
 	dir := s.Folder()
+	if cfg, ok := readFolderConfig(dir); ok {
+		f := &folderBackend{s: s, dir: dir, cfg: cfg}
+		return StorageSettings{Kind: KindFolder, Folder: dir, Ready: true, Shared: cfg.Shared, Person: f.person(),
+			Connected: f.connected(), Hosts: []string{}, Setup: []SetupItem{}}
+	}
 	out := StorageSettings{Kind: "git", Folder: dir, Hosts: gitsync.Hosts, Setup: []SetupItem{}}
 	ctx := s.ctx()
 	root, err := "", error(nil)
@@ -368,6 +378,11 @@ func (s *Store) OpenFolder(folder string) Opened {
 	abs, err := filepath.Abs(folder)
 	if err != nil {
 		return Opened{Problem: problemOf(err)}
+	}
+	if _, ok := readFolderConfig(abs); ok {
+		// A copy of a shared folder (from the recent list): no Git repository around it.
+		s.SetFolder(abs)
+		return Opened{Folder: abs}
 	}
 	if _, err := gitsync.Root(s.ctx(), abs); err != nil {
 		return Opened{Problem: problemOf(err)}

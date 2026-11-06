@@ -65,7 +65,18 @@ func TestReleaseKeepsForeignLock(t *testing.T) {
 	root := t.TempDir()
 	a, _ := Acquire(root, "a", "h", time.Second, time.Now)
 	must(t, os.Remove(LockPath(root)))
-	b, _ := Acquire(root, "b", "h", time.Second, time.Now)
+	// Windows keeps a removed file "pending delete" for a moment, so the first try may fail.
+	var b *Handle
+	var err error
+	for i := 0; i < 40; i++ {
+		if b, err = Acquire(root, "b", "h", time.Second, time.Now); err == nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("b cannot take the lock: %v", err)
+	}
 	a.Release() // must not remove b's lock
 	if !errors.Is(a.Renew(time.Now), ErrLockLost) {
 		t.Fatal("renew of a lost lock must fail")

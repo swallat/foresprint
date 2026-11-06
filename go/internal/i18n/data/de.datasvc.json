@@ -45,7 +45,7 @@
     "This save cannot be taken back exactly: the state before it is not kept.": "Dieser Speicherstand lässt sich nicht genau zurücknehmen: Der Stand davor ist nicht mehr gespeichert.",
     "Choose a folder first.": "Wähle zuerst einen Ordner.",
     "The local copy and the shared folder must be different folders, neither inside the other.": "Lokale Kopie und geteilter Ordner müssen verschiedene Ordner sein, keiner im anderen.",
-    "The folder {path} is a Git repository already.": "Der Ordner {path} ist bereits ein Git-Repository.",
+    "The folder {path} is inside a Git repository already. Choose a folder for your copy outside of it.": "Der Ordner {path} liegt bereits in einem Git-Repository. Wähle für deine Kopie einen Ordner außerhalb davon.",
     "A file changed meanwhile": "Eine Datei hat sich inzwischen geändert",
     "Someone saved or a sync service delivered a file while this was running. Nothing was lost.": "Jemand hat gespeichert oder ein Sync-Dienst hat eine Datei geliefert, während das lief. Es ging nichts verloren.",
     "Try again.": "Versuche es noch einmal.",

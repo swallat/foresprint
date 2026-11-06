@@ -7,8 +7,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 )
+
+// tokenSeq keeps tokens apart where the clock is coarse (on Windows two calls can return one time).
+var tokenSeq atomic.Uint64
 
 // LockTTL is how long a save lock holds before others may take it over (a save takes a second;
 // a program that died while holding it must not block the team).
@@ -69,7 +73,7 @@ func Acquire(root, owner, host string, wait time.Duration, now func() time.Time)
 	if err := os.MkdirAll(filepath.Join(root, Dir), 0o755); err != nil {
 		return nil, err
 	}
-	token := fmt.Sprintf("%d-%d", os.Getpid(), now().UnixNano())
+	token := fmt.Sprintf("%d-%d-%d", os.Getpid(), now().UnixNano(), tokenSeq.Add(1))
 	deadline := now().Add(wait)
 	path := LockPath(root)
 	for {
