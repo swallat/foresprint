@@ -408,6 +408,24 @@ func extract(data []byte, dir string) error {
 	}
 }
 
+// NewErrorsAgainst returns the errors of the full validation of the data folder path that the data
+// folder baseline does not have, as readable lines (for storage without Git: the baseline is the
+// state everybody else works on).
+func NewErrorsAgainst(ctx context.Context, path, baseline string, today time.Time) ([]string, error) {
+	if today.IsZero() {
+		today = time.Now()
+	}
+	now, err := issueSet(ctx, path, today)
+	if err != nil {
+		return nil, err
+	}
+	before, err := issueSet(ctx, baseline, today)
+	if err != nil {
+		return nil, err
+	}
+	return newLines(now, before), nil
+}
+
 // NewErrors returns the errors of the full validation in the working state that were not yet
 // present in the state baseline (commit), as readable lines.
 func NewErrors(ctx context.Context, path, baseline string, today time.Time) ([]string, error) {
@@ -426,6 +444,11 @@ func NewErrors(ctx context.Context, path, baseline string, today time.Time) ([]s
 	if err != nil {
 		return nil, err
 	}
+	return newLines(now, before), nil
+}
+
+// newLines are the issues of now that before does not have, sorted, as lines.
+func newLines(now, before map[Issue]bool) []string {
 	var found []Issue
 	for i := range now {
 		if !before[i] {
@@ -446,5 +469,5 @@ func NewErrors(ctx context.Context, path, baseline string, today time.Time) ([]s
 	for i, f := range found {
 		lines[i] = f.Key + ": " + f.Where + ": " + f.Message
 	}
-	return lines, nil
+	return lines
 }

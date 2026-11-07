@@ -180,6 +180,8 @@ func TestRecentFoldersMarkInUseAndMissing(t *testing.T) {
 }
 
 func TestSharedFolderThroughTheAPI(t *testing.T) {
+	gitsync.SetValidator(func(context.Context, string, time.Time) ([]gitsync.Issue, error) { return nil, nil }) // the test data is no complete team
+	t.Cleanup(func() { gitsync.SetValidator(nil) })
 	api := newAPI(t, t.TempDir())
 	shared := t.TempDir()
 	local := filepath.Join(t.TempDir(), "copy")
