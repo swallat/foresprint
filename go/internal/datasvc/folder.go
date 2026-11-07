@@ -15,6 +15,7 @@ import (
 	"github.com/swallat/foresprint/internal/gitsync"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/sharedfolder"
+	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/yamlmerge"
 	"github.com/swallat/foresprint/internal/yamlx"
 )
@@ -616,7 +617,7 @@ func (f *folderBackend) run(push bool, message string, anyway bool) Result {
 	pushed := 0
 	if push && !anyway {
 		// Like with Git: data errors that the shared folder does not have yet stop the save.
-		if found, err := f.newErrors(); err != nil {
+		if found, err := f.newErrors(lock); err != nil {
 			return f.problem(err)
 		} else if len(found) > 0 {
 			res.Outcome = OutcomeFindings
@@ -641,13 +642,17 @@ func (f *folderBackend) run(push bool, message string, anyway bool) Result {
 
 // newErrors are the errors of the full data check in the local copy that the shared folder does not
 // have; nothing is checked when there is nothing to save.
-func (f *folderBackend) newErrors() ([]string, error) {
+func (f *folderBackend) newErrors(lock *sharedfolder.Handle) ([]string, error) {
 	st, err := f.state()
 	if err != nil {
 		return nil, err
 	}
-	if len(st.outgoing) == 0 {
+	// A shared folder without any team is new: its first save would count every old error as new.
+	if len(st.outgoing) == 0 || len(storage.NewRepository(f.cfg.Shared).Teams()) == 0 {
 		return []string{}, nil
+	}
+	if err := lock.Renew(time.Now); err != nil { // the check can take a while on a slow share
+		return nil, err
 	}
 	found, err := gitsync.NewErrorsAgainst(f.s.ctx(), f.dir, f.cfg.Shared, f.s.today())
 	if found == nil {

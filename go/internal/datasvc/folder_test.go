@@ -398,6 +398,10 @@ func TestFolderSaveStopsOnNewDataErrors(t *testing.T) {
 	gitsync.SetValidator(bad)
 	t.Cleanup(func() { gitsync.SetValidator(nil) })
 	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: -1\nvelocity: 10\n")
+	// The first save into a new shared folder has nothing to compare with.
+	if found, err := ((&folderBackend{s: anna, dir: annaDir, cfg: folderConfig{Shared: t.TempDir()}}).newErrors(nil)); err != nil || len(found) != 0 {
+		t.Fatalf("empty shared folder: %v %v", found, err)
+	}
 	r := anna.Save(SaveOptions{Message: "bad"})
 	if r.Outcome != OutcomeFindings || len(r.Findings) != 1 {
 		t.Fatalf("save with a new error: %+v", r)

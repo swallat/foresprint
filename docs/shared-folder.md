@@ -67,7 +67,8 @@ inside the other.
 - A folder counts as reachable only if it contains `.foresprint/storage.yaml`; an unmounted mount point or a
   sync folder that is not filled yet is treated as offline.
 - Before saving, the full data check runs on your copy. Errors that the shared folder does not have yet stop the save and are
-  listed, as with Git; "Save anyway" saves regardless. Errors already in the shared folder do not block anybody.
+  listed; "Save anyway" saves regardless. (Git checks only after merging other people's work; here every save is checked,
+  because nothing else stands between a hand edit and the team.) A new, still empty shared folder is not checked. Errors already in the shared folder do not block anybody.
 - Names from the journal are checked before use (no `..`, no absolute paths).
 
 ## Limits
