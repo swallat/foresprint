@@ -14,6 +14,8 @@
   import type { TicketSource } from '../../lib/types.today';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import SharedFolderCard from '../settings/SharedFolderCard.svelte';
+  import type { StorageSettings } from '../../lib/types.data';
 
   let {}: PageProps = $props();
 
@@ -22,7 +24,7 @@
   // goes to Git's credential helper at once. The draft (no secrets) is remembered, so that the
   // window can be closed in between.
   type Step = 'storage' | 'signin' | 'team' | 'tickets' | 'done';
-  type StorageKind = 'keep' | SetupKind;
+  type StorageKind = 'keep' | SetupKind | 'shared';
   type TeamChoice = 'existing' | 'demo' | 'new';
 
   interface Draft {
@@ -113,6 +115,26 @@
   let busy = $state(false);
   // What the data folder was made from (kind, address, target); the same choice is not made twice.
   let applied = '';
+  // The shared folder is set up by the card from Settings; it works on the real storage at once.
+  let shared = $state<StorageSettings>();
+  const sharedReady = $derived(shared?.kind === 'folder');
+
+  $effect(() => {
+    if (d.kind !== 'shared' || shared) return;
+    api.Storage().then((st) => (shared = st)).catch((e) => fail(null, String(e)));
+  });
+
+  /** The card has set the shared folder up: take over its teams; Next goes on. */
+  async function sharedUsed(): Promise<void> {
+    applied = ''; // the data folder is the shared copy now, whatever was applied before
+    shared = await api.Storage();
+    info = await api.SetupState();
+    const usable = info.teams.filter((x) => !x.problem);
+    if (usable.length > 0) {
+      d.team = 'existing';
+      d.existing = usable[0]?.key ?? '';
+    } else if (d.team === 'existing') d.team = 'new';
+  }
 
   $effect(() => {
     if (adding || storageOnly) return;
@@ -255,13 +277,14 @@
 
   /** Makes the data folder as chosen. Runs once, on leaving the step that needs it. */
   async function applyStorage(): Promise<boolean> {
-    if (d.kind === 'keep') return true;
+    if (d.kind === 'keep' || d.kind === 'shared') return true;
     const target = d.kind === 'clone' ? cloneTarget : d.folder;
     const key = [d.kind, d.address, target].join('|');
     if (applied === key) return true;
     const r = await api.SetupStorage(d.kind, d.address, target);
     if (fail(r.problem)) return false;
     applied = key;
+    shared = undefined; // read again when the shared folder is chosen: the data folder has changed
     info = await api.SetupState();
     const usable = info.teams.filter((x) => !x.problem);
     if (usable.length > 0) {
@@ -287,6 +310,8 @@
     if (d.kind === 'clone') {
       if (!d.address.trim()) return t('Enter the address of the repository.');
       if (!d.parent) return t('Choose the folder the data is copied into.');
+    } else if (d.kind === 'shared') {
+      if (!sharedReady) return t('Test the shared folder and press “Use this folder” first.');
     } else if (d.kind !== 'keep' && !d.folder) return t('Choose a folder.');
     return '';
   }
@@ -316,7 +341,8 @@
         if (fail(null, missingStorage())) return;
         if (d.kind !== 'clone' && !(await applyStorage())) return;
         if (d.kind === 'clone') await guideFor();
-        if (d.kind === 'clone' || !d.name) d.step = 'signin';
+        if (d.kind === 'shared') afterStorage();
+        else if (d.kind === 'clone' || !d.name) d.step = 'signin';
         else afterStorage();
       } else if (d.step === 'signin') {
         if (token && !(await testToken())) return;
@@ -417,7 +443,9 @@
         ? t('The data folder as it is: {folder}', { folder: info?.dataDir ?? '' })
         : d.kind === 'clone'
           ? t('Copied from {address}', { address: d.address })
-          : d.kind === 'open'
+          : d.kind === 'shared'
+            ? t('Shared folder: {folder}', { folder: shared?.shared ?? '' })
+            : d.kind === 'open'
             ? t('Opened: {folder}', { folder: d.folder })
             : t('Started new: {folder}', { folder: d.folder }),
     team: d.team === 'demo' ? t('Team Atlas (demo)') : d.team === 'new' ? d.teamName : (hasTeams.find((x) => x.key === d.existing)?.name ?? d.existing),
@@ -504,9 +532,15 @@
             {/if}
           </span>
         </div>
-        <div class="opt off" aria-disabled="true">
-          <input type="radio" disabled aria-label={t('Shared folder')} />
-          <span><strong>{t('Shared folder')}</strong> <span class="chip">{t('after 1.0')}</span><span class="block small muted">{t('A file server or SharePoint follows after 1.0.')}</span></span>
+        <div class="opt" class:on={d.kind === 'shared'}>
+          <input type="radio" id="opt-kind-shared" name="kind" value="shared" bind:group={d.kind} />
+          <span class="grow">
+            <label for="opt-kind-shared"><strong>{t('Shared folder')}</strong></label>
+            <span class="block small muted">{t('A folder on a file server or in a sync service such as Dropbox, Nextcloud or OneDrive, instead of a Git repository.')}</span>
+            {#if d.kind === 'shared' && shared}
+              <div class="fields"><SharedFolderCard st={shared} onchange={sharedUsed} embedded /></div>
+            {/if}
+          </span>
         </div>
       </div>
     {:else if d.step === 'signin'}
@@ -738,17 +772,12 @@
     border: 1px solid var(--border);
     border-radius: var(--r-card);
   }
-  .opt > span > label:first-child,
-  .opt > span > strong {
+  .opt > span > label:first-child {
     cursor: pointer;
   }
   .opt.on {
     border-color: var(--primary);
     background: var(--primary-weak);
-  }
-  .opt.off {
-    opacity: 0.7;
-    cursor: default;
   }
   .opt input {
     margin-top: 3px;
