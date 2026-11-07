@@ -9,7 +9,7 @@
   // Settings > Storage > Shared folder: keep the team's data in a folder on a file server or in a
   // sync service (Dropbox, Nextcloud, OneDrive ...) instead of a Git repository.
 
-  let { st, onchange }: { st: StorageSettings; onchange: () => void | Promise<void> } = $props();
+  let { st, onchange, embedded = false }: { st: StorageSettings; onchange: () => void | Promise<void>; embedded?: boolean } = $props();
 
   let shared = $state('');
   let local = $state('');
@@ -91,8 +91,8 @@
   }
 </script>
 
-<section class="card" aria-labelledby="s-shared" data-tour="settings-shared-folder">
-  <h2 id="s-shared">{t('Shared folder')}</h2>
+<svelte:element this={embedded ? 'div' : 'section'} class={embedded ? 'embedded' : 'card'} aria-labelledby={embedded ? undefined : 's-shared'} data-tour={embedded ? undefined : 'settings-shared-folder'}>
+  {#if !embedded}<h2 id="s-shared">{t('Shared folder')}</h2>{/if}
   {#if isFolder}
     <p class="data wrap">{st.shared}</p>
     <div class="row">
@@ -155,7 +155,7 @@
       {/if}
     {/if}
   {/if}
-</section>
+</svelte:element>
 
 <style>
   .wrap {
