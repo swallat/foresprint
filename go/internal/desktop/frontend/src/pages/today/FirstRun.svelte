@@ -121,11 +121,12 @@
 
   $effect(() => {
     if (d.kind !== 'shared' || shared) return;
-    void api.Storage().then((st) => (shared = st));
+    api.Storage().then((st) => (shared = st)).catch((e) => fail(null, String(e)));
   });
 
-  /** The card has set the shared folder up: take over its teams and go on. */
+  /** The card has set the shared folder up: take over its teams; Next goes on. */
   async function sharedUsed(): Promise<void> {
+    applied = ''; // the data folder is the shared copy now, whatever was applied before
     shared = await api.Storage();
     info = await api.SetupState();
     const usable = info.teams.filter((x) => !x.problem);
@@ -283,6 +284,7 @@
     const r = await api.SetupStorage(d.kind, d.address, target);
     if (fail(r.problem)) return false;
     applied = key;
+    shared = undefined; // read again when the shared folder is chosen: the data folder has changed
     info = await api.SetupState();
     const usable = info.teams.filter((x) => !x.problem);
     if (usable.length > 0) {
@@ -536,7 +538,7 @@
             <label for="opt-kind-shared"><strong>{t('Shared folder')}</strong></label>
             <span class="block small muted">{t('A folder on a file server or in a sync service such as Dropbox, Nextcloud or OneDrive, instead of a Git repository.')}</span>
             {#if d.kind === 'shared' && shared}
-              <span class="block fields"><SharedFolderCard st={shared} onchange={sharedUsed} /></span>
+              <div class="fields"><SharedFolderCard st={shared} onchange={sharedUsed} embedded /></div>
             {/if}
           </span>
         </div>
