@@ -142,3 +142,20 @@ describe('Setup wizard, storage only (Settings, Storage)', () => {
     await vi.waitFor(() => expect(location.hash).toContain('/settings/storage'), { timeout: 3000 });
   });
 });
+
+describe('Setup wizard, shared folder', () => {
+  it('offers the shared folder and asks to use it before going on', async () => {
+    current.query = { only: 'storage' };
+    host = document.createElement('div');
+    document.body.append(host);
+    cmp = mount(FirstRun, { target: host, props: { params: {} } });
+    await vi.waitFor(() => expect(host.querySelector('#opt-kind-shared')).not.toBeNull(), { timeout: 3000 });
+    const radio = host.querySelector<HTMLInputElement>('#opt-kind-shared')!;
+    expect(radio.disabled).toBe(false);
+    radio.click();
+    await vi.waitFor(() => expect(host.querySelector('#sf-shared')).not.toBeNull(), { timeout: 3000 });
+    button(/^Next/).click();
+    await vi.waitFor(() => expect(host.textContent).toContain('Use this folder'), { timeout: 3000 });
+    expect(host.textContent).toContain('first');
+  });
+});

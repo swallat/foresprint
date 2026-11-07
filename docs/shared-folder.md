@@ -46,7 +46,7 @@ not detected.
 ## Setting up
 
 Open **Settings > Storage > Shared folder**, choose the folder, and press "Test the folder". If the test passes, choose
-where your copy of the data lives and your name for the history, then "Use this folder".
+where your copy of the data lives and your name for the history, then "Use this folder". The first-start wizard offers the same choice under "Where does the team keep its data?".
 
 A folder becomes the team's storage only when a person says "create" (it then gets `.foresprint/storage.yaml`);
 for everybody else the folder must already have that marker. If the local copy was set up for another shared
