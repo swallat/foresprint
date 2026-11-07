@@ -1,12 +1,14 @@
 package datasvc
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/swallat/foresprint/internal/gitsync"
 	"github.com/swallat/foresprint/internal/sharedfolder"
 )
 
@@ -30,9 +32,17 @@ func get(t *testing.T, root string) string {
 	return string(b)
 }
 
+// noValidation switches the data check off: the test data is not a complete team.
+func noValidation(t *testing.T) {
+	t.Helper()
+	gitsync.SetValidator(func(context.Context, string, time.Time) ([]gitsync.Issue, error) { return nil, nil })
+	t.Cleanup(func() { gitsync.SetValidator(nil) })
+}
+
 // team sets up two people, Anna and Ben, with their own local copies of one shared folder.
 func team(t *testing.T) (anna, ben *Store, shared, annaDir, benDir string) {
 	t.Helper()
+	noValidation(t)
 	base := t.TempDir()
 	shared, annaDir, benDir = filepath.Join(base, "share"), filepath.Join(base, "anna"), filepath.Join(base, "ben")
 	if err := os.MkdirAll(shared, 0o755); err != nil {
@@ -374,5 +384,33 @@ func TestFolderCopyInsideGitIsRefusedAndLabelsAreEmpty(t *testing.T) {
 	other := New("")
 	if o := other.OpenFolder(annaDir); o.Problem != nil || o.Folder != annaDir {
 		t.Fatalf("open the copy again: %+v", o)
+	}
+}
+
+func TestFolderSaveStopsOnNewDataErrors(t *testing.T) {
+	anna, _, shared, annaDir, _ := team(t)
+	bad := func(_ context.Context, dir string, _ time.Time) ([]gitsync.Issue, error) {
+		if b, err := os.ReadFile(filepath.Join(dir, "t1", "team.yaml")); err == nil && strings.Contains(string(b), "capacity: -1") {
+			return []gitsync.Issue{{Key: "t1", Where: filepath.Join(dir, "t1", "team.yaml"), Message: "capacity must not be negative"}}, nil
+		}
+		return nil, nil
+	}
+	gitsync.SetValidator(bad)
+	t.Cleanup(func() { gitsync.SetValidator(nil) })
+	put(t, annaDir, "t1/team.yaml", "name: Team\ncapacity: -1\nvelocity: 10\n")
+	r := anna.Save(SaveOptions{Message: "bad"})
+	if r.Outcome != OutcomeFindings || len(r.Findings) != 1 {
+		t.Fatalf("save with a new error: %+v", r)
+	}
+	if got := get(t, shared); !strings.Contains(got, "capacity: 5") {
+		t.Fatalf("shared folder changed: %s", got)
+	}
+	if r := anna.Save(SaveOptions{Message: "bad", SaveAnyway: true}); r.Outcome != OutcomeSaved {
+		t.Fatalf("save anyway: %+v", r)
+	}
+	// An error the shared folder has already is not new.
+	put(t, annaDir, "t1/team.yaml", "name: Team 2\ncapacity: -1\nvelocity: 10\n")
+	if r := anna.Save(SaveOptions{Message: "again"}); r.Outcome != OutcomeSaved {
+		t.Fatalf("old error blocks the save: %+v", r)
 	}
 }

@@ -66,6 +66,8 @@ inside the other.
 - The base of the merge is written from exactly the bytes that were merged or copied.
 - A folder counts as reachable only if it contains `.foresprint/storage.yaml`; an unmounted mount point or a
   sync folder that is not filled yet is treated as offline.
+- Before saving, the full data check runs on your copy. Errors that the shared folder does not have yet stop the save and are
+  listed, as with Git; "Save anyway" saves regardless. Errors already in the shared folder do not block anybody.
 - Names from the journal are checked before use (no `..`, no absolute paths).
 
 ## Limits
@@ -76,4 +78,3 @@ inside the other.
 - Git-only features (branches, labels) are not available; the window hides them.
 - File names that differ only in case, or that are invalid on Windows (`aux.yaml`, `a:b.yaml`), are not handled;
   avoid them in team data.
-- The data check before saving (errors in the merged data) is not run yet.

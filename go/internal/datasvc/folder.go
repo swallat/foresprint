@@ -520,13 +520,13 @@ func (f *folderBackend) problem(err error) Result {
 
 // Save implements Backend.
 func (f *folderBackend) Save(opts SaveOptions) Result {
-	return f.run(true, f.s.messageOf(opts.Message))
+	return f.run(true, f.s.messageOf(opts.Message), opts.SaveAnyway)
 }
 
 // Refresh implements Backend.
-func (f *folderBackend) Refresh() Result { return f.run(false, "") }
+func (f *folderBackend) Refresh() Result { return f.run(false, "", false) }
 
-func (f *folderBackend) run(push bool, message string) Result {
+func (f *folderBackend) run(push bool, message string, anyway bool) Result {
 	f.s.fmu.Lock()
 	defer f.s.fmu.Unlock()
 	if !f.connected() {
@@ -614,6 +614,17 @@ func (f *folderBackend) run(push bool, message string) Result {
 		return res
 	}
 	pushed := 0
+	if push && !anyway {
+		// Like with Git: data errors that the shared folder does not have yet stop the save.
+		if found, err := f.newErrors(); err != nil {
+			return f.problem(err)
+		} else if len(found) > 0 {
+			res.Outcome = OutcomeFindings
+			res.Findings = found
+			res.Status = f.Status()
+			return res
+		}
+	}
 	if push {
 		if pushed, err = f.publish(lock, message); err != nil {
 			return f.problem(err)
@@ -626,6 +637,23 @@ func (f *folderBackend) run(push bool, message string) Result {
 	}
 	res.Status = f.Status()
 	return res
+}
+
+// newErrors are the errors of the full data check in the local copy that the shared folder does not
+// have; nothing is checked when there is nothing to save.
+func (f *folderBackend) newErrors() ([]string, error) {
+	st, err := f.state()
+	if err != nil {
+		return nil, err
+	}
+	if len(st.outgoing) == 0 {
+		return []string{}, nil
+	}
+	found, err := gitsync.NewErrorsAgainst(f.s.ctx(), f.dir, f.cfg.Shared, f.s.today())
+	if found == nil {
+		found = []string{}
+	}
+	return found, err
 }
 
 // publish writes the files that only the local copy changed to the shared folder, with snapshot
