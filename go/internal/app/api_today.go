@@ -176,6 +176,8 @@ func (a *API) todaySetMuted(team, key string, on bool) error {
 	if strings.TrimSpace(key) == "" {
 		return nil
 	}
+	editMu.Lock() // a parallel edit of team.yaml must not overwrite this one
+	defer editMu.Unlock()
 	repo, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return err
