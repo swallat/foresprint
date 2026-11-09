@@ -2,8 +2,8 @@ package app
 
 import (
 	"sort"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/swallat/foresprint/internal/config"
