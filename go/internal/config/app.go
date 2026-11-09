@@ -133,3 +133,14 @@ func SaveDataDir(path string) error {
 
 // Install hooks the saved language into the translation, so that texts follow the setting.
 func Install() { i18n.SetSaved(func() string { return String("language") }) }
+
+// MutedFindings lists the findings of the start page the person silenced, as "team|key".
+func MutedFindings() []string { return Strings("muted_findings") }
+
+// SaveMutedFindings replaces the list of silenced findings.
+func SaveMutedFindings(list []string) error {
+	if list == nil {
+		list = []string{}
+	}
+	return Update(map[string]any{"muted_findings": list})
+}

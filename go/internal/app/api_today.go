@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/planning"
@@ -67,6 +68,8 @@ type TodayFinding struct {
 	Where   string `json:"where"` // file, optionally with the entry
 	Message string `json:"message"`
 	Route   string `json:"route"` // page of the window, e.g. "/team/people"
+	// Key identifies the finding for silencing it; it does not change with the numbers in the text.
+	Key string `json:"key"`
 }
 
 // TodayData is what the start page shows for a team.
@@ -81,6 +84,9 @@ type TodayData struct {
 	Findings []TodayFinding `json:"findings"`
 	Errors   int            `json:"errors"`
 	Notices  int            `json:"notices"`
+	// Muted are the findings the person silenced (on this computer); they are neither listed
+	// above nor counted, and can be brought back.
+	Muted []TodayFinding `json:"muted"`
 }
 
 // MaxFindings is the number of findings the start page lists.
@@ -102,10 +108,17 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 		Source:   sourceOf(data.Team),
 		Sprints:  todaySprints(data, day),
 		Findings: []TodayFinding{},
+		Muted:    []TodayFinding{},
 	}
+	muted := todayMutedSet(team)
 	issues := validate.CheckTeam(data, day)
 	sort.SliceStable(issues, func(i, j int) bool { return issues[i].Level == validate.Error && issues[j].Level != validate.Error })
 	for _, is := range issues {
+		f := TodayFinding{Level: "notice", Where: is.Where, Message: is.Message, Route: routeOf(is.Where), Key: todayFindingKey(is.Where, is.Message)}
+		if muted[f.Key] {
+			out.Muted = append(out.Muted, f)
+			continue
+		}
 		level := "notice"
 		if is.Level == validate.Error {
 			level = "error"
@@ -114,16 +127,68 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 			out.Notices++
 		}
 		if len(out.Findings) < MaxFindings {
-			out.Findings = append(out.Findings, TodayFinding{Level: level, Where: is.Where, Message: is.Message, Route: routeOf(is.Where)})
+			f.Level = level
+			out.Findings = append(out.Findings, f)
 		}
 	}
 	for _, f := range todayExtraFindings(data, day) {
+		if muted[f.Key] {
+			out.Muted = append(out.Muted, f)
+			continue
+		}
 		out.Notices++
 		if len(out.Findings) < MaxFindings {
 			out.Findings = append(out.Findings, f)
 		}
 	}
 	return out, nil
+}
+
+// todayFindingKey is the stable name of a finding: the place and the text without its numbers.
+func todayFindingKey(where, message string) string {
+	return where + "|" + strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return -1
+		}
+		return r
+	}, message)
+}
+
+func todayMutedSet(team string) map[string]bool {
+	out := map[string]bool{}
+	for _, m := range config.MutedFindings() {
+		if k, ok := strings.CutPrefix(m, team+"|"); ok {
+			out[k] = true
+		}
+	}
+	return out
+}
+
+// MuteFinding silences a finding of the start page for this team on this computer.
+func (a *API) MuteFinding(team, key string) error {
+	if strings.TrimSpace(key) == "" {
+		return nil
+	}
+	entry := team + "|" + key
+	list := config.MutedFindings()
+	for _, m := range list {
+		if m == entry {
+			return nil
+		}
+	}
+	return config.SaveMutedFindings(append(list, entry))
+}
+
+// UnmuteFinding brings a silenced finding back.
+func (a *API) UnmuteFinding(team, key string) error {
+	entry := team + "|" + key
+	var list []string
+	for _, m := range config.MutedFindings() {
+		if m != entry {
+			list = append(list, m)
+		}
+	}
+	return config.SaveMutedFindings(list)
 }
 
 // todayExtraFindings are the notices the start page adds to the data check: projects at risk (with
@@ -157,7 +222,7 @@ func todayExtraFindings(data *storage.TeamData, day time.Time) []TodayFinding {
 			}
 			if len(parts) > 0 {
 				out = append(out, TodayFinding{
-					Level: "notice", Where: "projects.yaml: " + p.ID, Route: "/projects",
+					Level: "notice", Where: "projects.yaml: " + p.ID, Route: "/projects", Key: "projects.yaml: " + p.ID + "|at-risk",
 					Message: i18n.T("Project {name} is at risk: {why}.", "name", p.Name, "why", strings.Join(parts, "; ")),
 				})
 			}
@@ -166,15 +231,16 @@ func todayExtraFindings(data *storage.TeamData, day time.Time) []TodayFinding {
 	if data.Team.Features.Tickets {
 		missing := 0
 		for _, t := range data.Tickets {
-			if size, _ := preplan.TicketSize(t, data, 1); !t.Done && size == nil {
+			// Only a ticket that counts as refined must have an estimate; before that it is normal.
+			if size, _ := preplan.TicketSize(t, data, 1); !t.Done && size == nil && t.RefinedUnclear {
 				missing++
 			}
 		}
 		switch {
 		case missing == 1:
-			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Message: i18n.T("1 open ticket has no estimate.")})
+			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Key: "tickets|no-estimate", Message: i18n.T("1 refined ticket has no estimate.")})
 		case missing > 1:
-			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Message: i18n.T("{count} open tickets have no estimate.", "count", missing)})
+			out = append(out, TodayFinding{Level: "notice", Where: "tickets", Route: "/backlog", Key: "tickets|no-estimate", Message: i18n.T("{count} refined tickets have no estimate.", "count", missing)})
 		}
 	}
 	return out

@@ -5,6 +5,8 @@ import type { TodayData, TodaySprint } from '../types.today';
 import type { SprintInfo } from '../types';
 import { sprints } from './shared';
 
+const muted = new Set<string>();
+
 function today(): TodayData {
   const day = new Date().toISOString().slice(0, 10);
   const at = Math.max(0, sprints.findIndex((s) => s.state === 'current'));
@@ -39,6 +41,13 @@ function today(): TodayData {
         { key: 'plan', state: 'open', detail: '' },
       ],
     });
+  const all: TodayData['findings'] = [
+    { level: 'notice', where: 'sprints/2026.22.yaml', message: 'Absences are announced only.', route: '/sprint/prepare', key: 'sprints/2026.22.yaml|Absences are announced only.' },
+    { level: 'notice', where: 'products.yaml: platform', message: 'The product has no share in the sprint.', route: '/team/products', key: 'products.yaml: platform|no-share' },
+    { level: 'notice', where: 'projects.yaml: self-service', message: 'Project Self-Service is at risk: the contingent is nearly used up (4.0 of 40.0 PD left).', route: '/projects', key: 'projects.yaml: self-service|at-risk' },
+    { level: 'notice', where: 'tickets', message: '2 refined tickets have no estimate.', route: '/backlog', key: 'tickets|no-estimate' },
+  ];
+  const findings = all.filter((f) => !muted.has(f.key));
   return {
     date: day,
     team: 'atlas',
@@ -46,19 +55,21 @@ function today(): TodayData {
     source: 'tracker',
     sprints: out,
     errors: 0,
-    notices: 4,
-    findings: [
-      { level: 'notice', where: 'sprints/2026.22.yaml', message: 'Absences are announced only.', route: '/sprint/prepare' },
-      { level: 'notice', where: 'products.yaml: platform', message: 'The product has no share in the sprint.', route: '/team/products' },
-      { level: 'notice', where: 'projects.yaml: self-service', message: 'Project Self-Service is at risk: the contingent is nearly used up (4.0 of 40.0 PD left).', route: '/projects' },
-      { level: 'notice', where: 'tickets', message: '2 open tickets have no estimate.', route: '/backlog' },
-    ],
+    notices: findings.length,
+    findings,
+    muted: all.filter((f) => muted.has(f.key)),
   };
 }
 
 const todayMock: Partial<Api> = {
   async Today() {
     return today();
+  },
+  async MuteFinding(_team, key) {
+    muted.add(key);
+  },
+  async UnmuteFinding(_team, key) {
+    muted.delete(key);
   },
 };
 

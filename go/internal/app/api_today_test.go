@@ -89,7 +89,7 @@ func TestTodayFindsProjectAtRiskAndTicketsWithoutEstimate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := storage.TicketsFile{Tickets: append(data.Tickets, model.Ticket{Key: "T-9", Title: "Unknown", Rank: model.Ptr("z")})}
+	f := storage.TicketsFile{Tickets: append(data.Tickets, model.Ticket{Key: "T-9", Title: "Unknown", Rank: model.Ptr("z"), RefinedUnclear: true}, model.Ticket{Key: "T-10", Title: "Not refined yet", Rank: model.Ptr("zz")})}
 	if _, err := repo.SaveTickets(team, f); err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestTodayFindsProjectAtRiskAndTicketsWithoutEstimate(t *testing.T) {
 	if !strings.Contains(project, "Self-Service") || !strings.Contains(project, "4.0 of 40.0 PD") {
 		t.Errorf("project finding = %q", project)
 	}
-	if tickets != "1 open ticket has no estimate." {
+	if tickets != "1 refined ticket has no estimate." {
 		t.Errorf("ticket finding = %q", tickets)
 	}
 }
@@ -134,5 +134,47 @@ func TestTodaySprintsDoNotListASkippedSprintTwice(t *testing.T) {
 		if n > 1 {
 			t.Errorf("%s listed %d times", id, n)
 		}
+	}
+}
+
+// A finding can be silenced and brought back; the setting is kept per team.
+func TestTodayMuteFinding(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := storage.TicketsFile{Tickets: append(data.Tickets, model.Ticket{Key: "T-9", Title: "Unknown", Rank: model.Ptr("z"), RefinedUnclear: true})}
+	if _, err := repo.SaveTickets(team, f); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
+	before, err := api.todayAt(team, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var key string
+	for _, fi := range before.Findings {
+		if fi.Route == "/backlog" {
+			key = fi.Key
+		}
+	}
+	if key == "" {
+		t.Fatal("no finding about tickets without estimate")
+	}
+	if err := api.MuteFinding(team, key); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := api.todayAt(team, at)
+	if len(after.Muted) != 1 || after.Muted[0].Key != key || after.Notices != before.Notices-1 {
+		t.Fatalf("muted = %+v, notices %d -> %d", after.Muted, before.Notices, after.Notices)
+	}
+	if err := api.UnmuteFinding(team, key); err != nil {
+		t.Fatal(err)
+	}
+	back, _ := api.todayAt(team, at)
+	if len(back.Muted) != 0 || back.Notices != before.Notices {
+		t.Fatalf("after unmute: %+v", back)
 	}
 }
