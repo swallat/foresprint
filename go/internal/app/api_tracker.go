@@ -485,6 +485,7 @@ func (a *API) TrackerFieldNames(team, baseURL string) []string {
 type trackerRun struct {
 	syncing map[string]bool
 	failed  map[string]string
+	checked map[string]time.Time             // per team: the last fetch of this run that succeeded, also when nothing changed and nothing was written
 	mapped  map[string]TrackerFields         // per team: the mapping the last fetch of this run used
 	board   map[string][]sources.SprintValue // per team: the open and future sprints of the Jira board, as the last read found them
 	boardID map[string]int                   // per team: the board number that list was read from
@@ -502,6 +503,11 @@ func (a *API) TrackerInfo(team string) TrackerStatus {
 	}
 	a.mu.Lock()
 	out.Syncing, out.Failed = a.run.syncing[team], a.run.failed[team]
+	// A fetch without changes writes nothing, so the stored time stays old: the chip must show
+	// the time of the last successful fetch anyway.
+	if c, ok := a.run.checked[team]; ok && (data.TicketsImported == nil || c.After(*data.TicketsImported)) {
+		out.Last = c.Format(time.RFC3339)
+	}
 	a.mu.Unlock()
 	return out
 }
@@ -534,6 +540,10 @@ func (a *API) trackerSyncRun(team string, keepOrder bool) (Result, error) {
 		a.run.failed[team] = err.Error()
 	} else {
 		delete(a.run.failed, team)
+		if a.run.checked == nil {
+			a.run.checked = map[string]time.Time{}
+		}
+		a.run.checked[team] = now()
 	}
 	a.mu.Unlock()
 	return res, err

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
@@ -137,9 +138,16 @@ func TestSyncTrackerWritesTicketsAndNeverWipesWithAnEmptyAnswer(t *testing.T) {
 	if info := api.TrackerInfo(team); !info.Enabled || info.Last == "" || info.Failed != "" || info.Syncing {
 		t.Fatalf("info = %+v", info)
 	}
-	// Same answer again: nothing to write.
+	// Same answer again: nothing to write, but the chip shows the time of this fetch.
+	first := api.TrackerInfo(team).Last
+	old := now
+	now = func() time.Time { return old().Add(2 * time.Hour) }
+	defer func() { now = old }()
 	if res, err := api.SyncTracker(team); err != nil || !strings.Contains(res.Message, "no changes") {
 		t.Fatalf("second sync = %+v, %v", res, err)
+	}
+	if again := api.TrackerInfo(team).Last; again == first {
+		t.Fatalf("the time of the chip did not move after a fetch without changes: %s", again)
 	}
 	// A query that matches nothing (wrong query, lost permission) must not wipe the import.
 	f.tickets.Store([]string{})
