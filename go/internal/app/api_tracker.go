@@ -512,6 +512,9 @@ func (a *API) TrackerInfo(team string) TrackerStatus {
 	return out
 }
 
+// TrackerUnchanged is the Outcome of a fetch that found nothing to write: the window must not reload.
+const TrackerUnchanged = "unchanged"
+
 // SyncTracker reads the tickets from Jira now (query, fields and token as saved) and writes
 // tickets.yaml and, if the reconciliation needs it, preplan.yaml. A query without tickets never
 // wipes the last import.
@@ -595,7 +598,7 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	a.run.mapped[team] = trackerFieldsOf(data.Team.Tracker)
 	a.mu.Unlock()
 	if plan.Unchanged(data.Tickets, data.TicketsSource) {
-		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
+		return Result{OK: true, Outcome: TrackerUnchanged, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
 	}
 	if _, err := plan.Apply(planSaver{repo}, team, now()); err != nil {
 		return Result{}, err
