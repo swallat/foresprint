@@ -128,6 +128,9 @@
   "Naming pattern of the sprints (optional)": "Namensmuster der Sprints (optional)",
   "e.g. Team {JJJJ}.{N}": "z. B. Team {JJJJ}.{N}",
   "Read from the name: {pattern}. The next sprints are named the same way.": "Aus dem Namen gelesen: {pattern}. Die nächsten Sprints werden genauso benannt.",
-  "{JJJJ} year, {N} number in the year, {LFD} running number.": "{JJJJ} Jahr, {N} Nummer im Jahr, {LFD} laufende Nummer."
+  "{JJJJ} year, {N} number in the year, {LFD} running number.": "{JJJJ} Jahr, {N} Nummer im Jahr, {LFD} laufende Nummer.",
+  "Silence this finding. You can bring it back below.": "Diesen Befund stummschalten. Du kannst ihn unten wieder anzeigen.",
+  "{n} silenced": "{n} stummgeschaltet",
+  "Show again": "Wieder anzeigen"
  }
 }
