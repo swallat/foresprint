@@ -347,8 +347,10 @@ export async function autoFetch(): Promise<void> {
   const team = app.team;
   lastTry.set(team, Date.now());
   app.busy = 'sync'; // the top bar buttons wait, as for a fetch by hand
+  let unchanged = false;
   try {
-    await api.SyncTrackerAuto(team);
+    // the time of the chip also moves after a fetch without changes: only written data is news
+    unchanged = (await api.SyncTrackerAuto(team)).outcome === 'unchanged';
   } catch {
     /* shown by the chip through refreshStatus */
   } finally {
@@ -356,7 +358,7 @@ export async function autoFetch(): Promise<void> {
   }
   const before = tr.last;
   await refreshStatus();
-  if (app.team === team && app.status.tracker.last !== before) {
+  if (app.team === team && !unchanged && app.status.tracker.last !== before) {
     app.rev++;
     // not pulled away from under someone who is typing: the live watcher waits for a quiet moment
     window.dispatchEvent(new CustomEvent('foresprint:news'));
