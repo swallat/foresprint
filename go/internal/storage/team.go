@@ -239,6 +239,10 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 		team.AsOf = &day
 	}
 
+	if team.MutedFindings, err = texts(get(d, "muted_findings"), where, "muted_findings"); err != nil {
+		return model.Team{}, err
+	}
+
 	f := &team.Forecast
 	if f.ReferenceCapacity, msg = finiteOf(getOr(fc, "reference_capacity", int64(67))); msg != "" {
 		return fail(pyError(msg))
@@ -367,6 +371,9 @@ func TeamToDict(team model.Team) *yamlx.Map {
 	}
 	if team.AsOf != nil { // only when set: files of teams without it stay unchanged
 		put(out, "as_of", yamlx.Date(*team.AsOf))
+	}
+	if len(team.MutedFindings) > 0 { // only when something is silenced
+		put(out, "muted_findings", strs(team.MutedFindings))
 	}
 	if len(team.ProductOwners) > 0 { // only with a list: files from 0.8 stay unchanged
 		put(out, "product_owners", productOwnersTo(team.ProductOwners))

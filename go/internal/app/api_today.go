@@ -3,10 +3,8 @@ package app
 import (
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/planning"
@@ -111,7 +109,7 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 		Findings: []TodayFinding{},
 		Muted:    []TodayFinding{},
 	}
-	muted := todayMutedSet(team)
+	muted := todayMutedSet(data.Team)
 	issues := validate.CheckTeam(data, day)
 	sort.SliceStable(issues, func(i, j int) bool { return issues[i].Level == validate.Error && issues[j].Level != validate.Error })
 	for _, is := range issues {
@@ -156,47 +154,48 @@ func todayFindingKey(where, message string) string {
 	}, message)
 }
 
-var todayMuteMu sync.Mutex
-
-func todayMutedSet(team string) map[string]bool {
+func todayMutedSet(team model.Team) map[string]bool {
 	out := map[string]bool{}
-	for _, m := range config.MutedFindings() {
-		if k, ok := strings.CutPrefix(m, team+"|"); ok {
-			out[k] = true
-		}
+	for _, k := range team.MutedFindings {
+		out[k] = true
 	}
 	return out
 }
 
-// MuteFinding silences a finding of the start page for this team on this computer.
+// MuteFinding silences a finding of the start page for the whole team (team.yaml).
 func (a *API) MuteFinding(team, key string) error {
-	if strings.TrimSpace(key) == "" {
-		return nil
-	}
-	todayMuteMu.Lock()
-	defer todayMuteMu.Unlock()
-	entry := team + "|" + key
-	list := config.MutedFindings()
-	for _, m := range list {
-		if m == entry {
-			return nil
-		}
-	}
-	return config.SaveMutedFindings(append(list, entry))
+	return a.todaySetMuted(team, key, true)
 }
 
 // UnmuteFinding brings a silenced finding back.
 func (a *API) UnmuteFinding(team, key string) error {
-	todayMuteMu.Lock()
-	defer todayMuteMu.Unlock()
-	entry := team + "|" + key
+	return a.todaySetMuted(team, key, false)
+}
+
+func (a *API) todaySetMuted(team, key string, on bool) error {
+	if strings.TrimSpace(key) == "" {
+		return nil
+	}
+	repo, data, err := a.loadRepoTeam(team)
+	if err != nil {
+		return err
+	}
+	t := data.Team
 	var list []string
-	for _, m := range config.MutedFindings() {
-		if m != entry {
-			list = append(list, m)
+	for _, k := range t.MutedFindings {
+		if k != key {
+			list = append(list, k)
 		}
 	}
-	return config.SaveMutedFindings(list)
+	if on {
+		list = append(list, key)
+	}
+	t.MutedFindings = list
+	if _, err := repo.SaveTeam(t); err != nil {
+		return err
+	}
+	storage.ClearTeamCache()
+	return nil
 }
 
 // todayExtraFindings are the notices the start page adds to the data check: projects at risk (with

@@ -155,6 +155,9 @@ type Team struct {
 	// AsOf is the day that counts as "today" for this team (as_of in team.yaml); nil = the
 	// clock. Meant for test data and scenarios, so that their dates need not move with the day.
 	AsOf *time.Time
+	// MutedFindings are the keys of the findings of the start page the team silenced
+	// (muted_findings in team.yaml).
+	MutedFindings []string
 }
 
 // TodayOf returns the day that counts as today for the team: AsOf, otherwise the day of real.
