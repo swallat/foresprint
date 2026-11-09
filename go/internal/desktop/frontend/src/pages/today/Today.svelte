@@ -270,7 +270,7 @@
       <details class="muted-findings">
         <summary class="small muted">{t('{n} silenced', { n: data.muted.length })}</summary>
         <ul class="findings">
-          {#each data.muted as f (f.key)}
+          {#each data.muted as f, i (i)}
             <li>
               <span class="grow muted">{f.message} <span class="small data">{f.where}</span></span>
               <button class="btn" type="button" onclick={() => mute(f.key, false)}><Icon name="visibility" />{t('Show again')}</button>

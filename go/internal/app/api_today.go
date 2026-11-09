@@ -2,6 +2,7 @@ package app
 
 import (
 	"sort"
+	"sync"
 	"strings"
 	"time"
 
@@ -115,7 +116,8 @@ func (a *API) todayAt(team string, now time.Time) (TodayData, error) {
 	sort.SliceStable(issues, func(i, j int) bool { return issues[i].Level == validate.Error && issues[j].Level != validate.Error })
 	for _, is := range issues {
 		f := TodayFinding{Level: "notice", Where: is.Where, Message: is.Message, Route: routeOf(is.Where), Key: todayFindingKey(is.Where, is.Message)}
-		if muted[f.Key] {
+		// Errors are never hidden.
+		if muted[f.Key] && is.Level != validate.Error {
 			out.Muted = append(out.Muted, f)
 			continue
 		}
@@ -154,6 +156,8 @@ func todayFindingKey(where, message string) string {
 	}, message)
 }
 
+var todayMuteMu sync.Mutex
+
 func todayMutedSet(team string) map[string]bool {
 	out := map[string]bool{}
 	for _, m := range config.MutedFindings() {
@@ -169,6 +173,8 @@ func (a *API) MuteFinding(team, key string) error {
 	if strings.TrimSpace(key) == "" {
 		return nil
 	}
+	todayMuteMu.Lock()
+	defer todayMuteMu.Unlock()
 	entry := team + "|" + key
 	list := config.MutedFindings()
 	for _, m := range list {
@@ -181,6 +187,8 @@ func (a *API) MuteFinding(team, key string) error {
 
 // UnmuteFinding brings a silenced finding back.
 func (a *API) UnmuteFinding(team, key string) error {
+	todayMuteMu.Lock()
+	defer todayMuteMu.Unlock()
 	entry := team + "|" + key
 	var list []string
 	for _, m := range config.MutedFindings() {
