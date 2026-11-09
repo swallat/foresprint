@@ -68,6 +68,18 @@
     go(to);
   }
 
+  async function mute(key: string, on: boolean): Promise<void> {
+    if (!team) return;
+    try {
+      if (on) await api.MuteFinding(team, key);
+      else await api.UnmuteFinding(team, key);
+    } catch (e) {
+      failure = String(e);
+      return;
+    }
+    await load(team);
+  }
+
   function stateText(s: TodayStep): string {
     if (s.detail) return s.detail;
     return s.state === 'done' ? t('done') : t('open');
@@ -244,12 +256,28 @@
             </span>
             <span class="grow">{f.message} <span class="muted small data">{f.where}</span></span>
             <a class="btn" href={link(f.route)}>{t('Open')}<Icon name="arrow_forward" /></a>
+            {#if f.level === 'notice'}
+              <button class="btn" type="button" title={t('Silence this finding. You can bring it back below.')} aria-label={t('Silence this finding. You can bring it back below.')} onclick={() => mute(f.key, true)}><Icon name="visibility_off" /></button>
+            {/if}
           </li>
         {/each}
       </ul>
       {#if data.errors + data.notices > data.findings.length}
         <p class="small muted">{t('{n} more findings are not listed here.', { n: data.errors + data.notices - data.findings.length })}</p>
       {/if}
+    {/if}
+    {#if data.muted.length > 0}
+      <details class="muted-findings">
+        <summary class="small muted">{t('{n} silenced', { n: data.muted.length })}</summary>
+        <ul class="findings">
+          {#each data.muted as f, i (i)}
+            <li>
+              <span class="grow muted">{f.message} <span class="small data">{f.where}</span></span>
+              <button class="btn" type="button" onclick={() => mute(f.key, false)}><Icon name="visibility" />{t('Show again')}</button>
+            </li>
+          {/each}
+        </ul>
+      </details>
     {/if}
   </section>
 {:else}

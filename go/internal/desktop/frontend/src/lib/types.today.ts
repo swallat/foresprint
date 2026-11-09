@@ -28,6 +28,8 @@ export interface TodayFinding {
   where: string;
   message: string;
   route: string;
+  /** Stable name for silencing the finding. */
+  key: string;
 }
 
 export interface TodayData {
@@ -39,8 +41,12 @@ export interface TodayData {
   findings: TodayFinding[];
   errors: number;
   notices: number;
+  /** Findings the person silenced on this computer. */
+  muted: TodayFinding[];
 }
 
 export interface TodayApi {
   Today(team: string): Promise<TodayData>;
+  MuteFinding(team: string, key: string): Promise<void>;
+  UnmuteFinding(team: string, key: string): Promise<void>;
 }

@@ -205,7 +205,7 @@ func Build(fc *forecast.Forecast) ([]byte, error) {
 	// the existing section of team.yaml.
 	var flat []Setting
 	for _, s := range Flatten(storage.TeamToDict(team), "") {
-		if !strings.HasPrefix(s.Path, "tracker.") {
+		if !strings.HasPrefix(s.Path, "tracker.") && s.Path != "muted_findings" {
 			flat = append(flat, s)
 		}
 	}
