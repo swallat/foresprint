@@ -15,6 +15,9 @@ type PlanSprint struct {
 	// StartedOn is the day the sprint counts as started from ("" before the start); StartDue:
 	// the sprint is not started, but its first day has come.
 	StartedOn string `json:"startedOn"`
+	// StartDerived: the start is not marked in the sprint file but follows from its recorded
+	// plan (sprints of older versions); "Change start day" writes the mark.
+	StartDerived bool `json:"startDerived"`
 	StartDue  bool   `json:"startDue"`
 	// Unit is the estimation unit of the team ("SP" or "PT").
 	Unit string `json:"unit"`

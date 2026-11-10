@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 // copyDemo copies the demo team to a temporary data folder, so that tests may write.
@@ -341,5 +343,38 @@ func TestPeriodsReachPlanPageAndFollowChanges(t *testing.T) {
 	}
 	if short := days(); short == 0 || short >= long {
 		t.Fatalf("shortened period gives %v days, was %v", short, long)
+	}
+}
+
+func TestPreplanIsNotMissingOnceTheSprintRuns(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var cur string
+	for _, s := range sprints {
+		if s.State == "current" {
+			cur = s.ID
+		}
+	}
+	if cur == "" {
+		t.Skip("no running sprint in the demo data")
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	for i := range data.Sprints {
+		if data.Sprints[i].ID == cur {
+			data.Sprints[i].Products = nil // no amount at all
+			if _, err := repo.SaveSprint(team, &data.Sprints[i]); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	p, err := api.SprintPrepare(team, cur)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range p.Ready {
+		if r.Kind == "preplan" && r.State == ReadyOpen {
+			t.Errorf("a running sprint still misses amounts: %+v", r)
+		}
 	}
 }

@@ -348,6 +348,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	v.Days = workdays(c)
 	v.Stage = c.stage()
 	v.StartedOn, v.StartDue = startInfo(c.sprint, c.fc.Phase(c.sprint), c.today)
+	v.StartDerived = v.StartedOn != "" && c.sprint.StartedOn == nil
 	// Absences count with the days of the planned periods; the stored sprint stays as typed.
 	eff := c.effective()
 	v.Absences = absenceName(eff)
