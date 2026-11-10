@@ -20,6 +20,8 @@ export interface AbsenceColumn {
   frozenPlan: number | null;
   /** Cells whose planned periods give other days than the frozen cell. */
   drifts: number;
+  /** The sprint has not started; a frozen one can be opened again. */
+  open: boolean;
 }
 
 export type CellState = 'confirmed' | 'announced' | 'empty';

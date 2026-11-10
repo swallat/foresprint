@@ -133,6 +133,8 @@
   "Type days directly (half days with a comma), Enter moves down. Periods, FTE and typed days count live until the sprint starts. Only days are stored, never a reason.": "Tage direkt eintippen (halbe Tage mit Komma), Enter springt nach unten. Zeiträume, FTE und getippte Tage zählen live, bis der Sprint startet. Gespeichert werden nur Tage, nie ein Grund.",
   "Why does the start freeze?": "Warum schreibt der Start fest?",
   "\"Start sprint\" freezes the absences: periods count as typed days, empty cells as 0 days.": "\"Sprint starten\" schreibt die Abwesenheiten fest: Zeiträume zählen als getippte Tage, leere Felder als 0 Tage.",
-  "A frozen sprint keeps its capacity. If a period changes later, a note shows the difference and \"Adopt periods\" takes it over.": "Ein festgeschriebener Sprint behält seine Kapazität. Ändert sich später ein Zeitraum, zeigt ein Hinweis den Unterschied und \"Zeiträume übernehmen\" übernimmt ihn."
+  "A frozen sprint keeps its capacity. If a period changes later, a note shows the difference and \"Adopt periods\" takes it over.": "Ein festgeschriebener Sprint behält seine Kapazität. Ändert sich später ein Zeitraum, zeigt ein Hinweis den Unterschied und \"Zeiträume übernehmen\" übernimmt ihn.",
+  "This sprint was frozen before it started. A click makes it follow periods and FTE again.": "Dieser Sprint wurde vor dem Start festgeschrieben. Ein Klick lässt ihn wieder Zeiträumen und FTE folgen.",
+  "Make live again": "Wieder live schalten"
  }
 }

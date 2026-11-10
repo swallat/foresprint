@@ -37,6 +37,8 @@ type AbsenceColumn struct {
 	FrozenPlan *float64 `json:"frozenPlan"`
 	// Drifts counts the cells whose planned periods give other days than the frozen cell.
 	Drifts int `json:"drifts"`
+	// Open: the sprint has not started. A frozen one (older file) can be opened again.
+	Open bool `json:"open"`
 }
 
 // AbsenceCell is the absence of one person in one sprint.

@@ -341,17 +341,8 @@ func stepsOf(s model.Sprint, state string) []TodayStep {
 	if state == "past" || state == "running" {
 		return []TodayStep{step(StepReview, s.Velocity != nil, "")}
 	}
+	// Absences follow the periods and typed days until the start: nothing is left to do here.
 	var abs string
-	switch s.AbsenceStatus() {
-	case model.AbsencesExpected:
-		if len(s.ExpectedAbsences) == 1 {
-			abs = i18n.T("announced only (1 person)")
-		} else {
-			abs = i18n.T("announced only ({count} people)", "count", len(s.ExpectedAbsences))
-		}
-	case model.AbsencesUnknown:
-		abs = i18n.T("not entered yet")
-	}
 	pre, products := 0, 0
 	for _, v := range s.Products {
 		products++
@@ -365,7 +356,7 @@ func stepsOf(s model.Sprint, state string) []TodayStep {
 	}
 	planned := s.Planning != nil || s.CommittedTickets != nil
 	return []TodayStep{
-		step(StepAbsences, s.AbsencesConfirmed(), abs),
+		step(StepAbsences, true, abs),
 		step(StepPreplan, products > 0 && pre == products, preDetail),
 		step(StepPlan, planned, ""),
 	}

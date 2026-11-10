@@ -83,7 +83,7 @@ export const flows: Flow[] = [
   {
     id: 'F4',
     title: () => t('Plan a sprint'),
-    summary: () => t('Confirm absences, weigh tickets live against forecast, products and contingents, freeze the agreement.'),
+    summary: () => t('Check the absences, weigh tickets live against forecast, products and contingents, freeze the agreement.'),
     steps: [
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-sumbar'), text: () => t('At the top is the forecast PLAN with its range. The calculator button shows how it is calculated.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), text: () => t('Candidates on the left, the sprint on the right, prefilled from the earmarks. Drag a ticket, or move it with Alt and the arrow keys.') },

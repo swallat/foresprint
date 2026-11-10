@@ -955,3 +955,57 @@ func TestStartFreezesAbsencesAndShowsDrift(t *testing.T) {
 		t.Fatalf("adopt did not settle: %+v", c)
 	}
 }
+
+// A typed cell of a person whose periods lie elsewhere is no drift, the frozen PLAN equals the
+// current one right after the start, and taking the plan back makes the sprint follow the
+// periods again.
+func TestStartKeepsTypedCellsQuietAndReopenFollowsPeriods(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	if _, err := api.UnfreezeAbsences(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ := api.AbsenceGrid(team, next, 1)
+	col, person := grid.Columns[0], grid.Rows[0].Person
+	if _, err := api.SetAbsence(team, next, person, 2); err != nil { // typed; no period covers it
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: "2030-01-07", To: "2030-01-08"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	c := grid.Columns[0]
+	if c.Drifts != 0 || (c.FrozenPlan != nil && c.Plan != nil && *c.FrozenPlan != *c.Plan) {
+		t.Fatalf("a typed cell or the PLAN shows a false drift: %+v", c)
+	}
+	// Reopening the plan makes period cells follow the periods again.
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: grid.Rows[1].Person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.AdoptPeriods(team, next); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.ReopenPlan(team, next); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, nil); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if grid.Columns[0].State == AbsenceConfirmed {
+		t.Fatalf("plan reopened but absences still frozen: %+v", grid.Columns[0])
+	}
+	if got := grid.Rows[1].Cells[0].Days; got != 0 {
+		t.Fatalf("a cell that only repeated a period must follow it, days=%v", got)
+	}
+}

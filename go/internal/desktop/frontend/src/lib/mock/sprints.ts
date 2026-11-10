@@ -76,6 +76,7 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
     past: s.state === 'past',
     frozenPlan: null,
     drifts: 0,
+    open: false,
   });
 
   const window = (from: string, count: number) => {

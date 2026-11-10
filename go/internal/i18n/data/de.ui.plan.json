@@ -5,7 +5,6 @@
   "(Forecast PLAN − carried-over rest) × plannable share, rounded down.": "(Forecast PLAN − übertragener Rest) × verplanbarer Anteil, abgerundet.",
   "(PLAN − rest) × {pct} % · small stuff": "(PLAN − Rest) × {pct} % · Kleinkram",
   "(new in the sprint since freezing, not part of the commitment)": "(seit dem Einfrieren neu im Sprint, zählen nicht zum Commitment)",
-  "Absences are not confirmed.": "Abwesenheiten sind nicht bestätigt.",
   "Additionally finished ({unit})": "Zusätzlich erledigt ({unit})",
   "Adjust in {tracker}": "In {tracker} anpassen",
   "Agree on the amounts and the commitment together.": "Beträge und Zusage gemeinsam festlegen.",

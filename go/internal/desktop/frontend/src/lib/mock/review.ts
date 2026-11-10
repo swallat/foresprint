@@ -111,6 +111,7 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
         past: s.state === 'past',
         frozenPlan: null,
         drifts: 0,
+        open: false,
       },
       unit: 'SP',
       started: s.state !== 'future',

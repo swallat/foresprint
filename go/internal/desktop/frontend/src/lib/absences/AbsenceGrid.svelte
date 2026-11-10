@@ -135,6 +135,16 @@
     }
   }
 
+  /** A sprint frozen before it started (older file): follow the data again. */
+  async function reopen(sprint: string) {
+    try {
+      await enqueue(async () => replaceColumn(await api.UnfreezeAbsences(team, sprint)));
+      await load();
+    } catch (e) {
+      toast(String(e), 'bad');
+    }
+  }
+
   /** After the start: take the days the planned periods give now into the frozen cells. */
   async function adopt(sprint: string) {
     try {
@@ -256,6 +266,10 @@
                 {#if c.drifts > 0}
                   <button class="btn" type="button" onclick={() => adopt(c.id)} title={t('The planned periods give other days than the frozen cells. A click adopts them.')}>
                     <Icon name="sync" size={16} />{t('Adopt periods')}
+                  </button>
+                {:else if c.open}
+                  <button class="btn" type="button" onclick={() => reopen(c.id)} title={t('This sprint was frozen before it started. A click makes it follow periods and FTE again.')}>
+                    <Icon name="lock_open" size={16} />{t('Make live again')}
                   </button>
                 {:else if !planDiffers(c)}
                   <span class="frozen small"><Icon name="lock" size={14} />{t('Frozen at start')}</span>

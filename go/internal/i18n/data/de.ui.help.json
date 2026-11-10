@@ -31,7 +31,6 @@
   "Check the sync, filter, order and earmark tickets, maintain the ticket panel, clear rule conflicts.": "Sync prüfen, Tickets filtern, ordnen und vormerken, das Ticket-Panel pflegen, Regelkonflikte klären.",
   "Clear absences, check readiness and set the amount per product from the earmarks.": "Abwesenheiten klären, Bereitschaft prüfen und den Umfang je Produkt aus den Vormerkungen setzen.",
   "Close a sprint": "Einen Sprint abschließen",
-  "Confirm absences, weigh tickets live against forecast, products and contingents, freeze the agreement.": "Abwesenheiten bestätigen, Tickets live gegen Forecast, Produkte und Kontingente abwägen, die Vereinbarung einfrieren.",
   "Contingents are recommendations for the talk with the project lead; the PO decides.": "Kontingente sind Empfehlungen für das Gespräch mit der Projektleitung; die Entscheidung trifft der PO.",
   "Copyright": "Copyright",
   "Create a project, check the timeline and contingent, spot conflicts, report to the project lead.": "Ein Projekt anlegen, Zeitstrahl und Kontingent prüfen, Konflikte erkennen, an die Projektleitung berichten.",
@@ -212,6 +211,7 @@
   "Fulfillment = velocity / commitment": "Fulfillment = Velocity / Commitment",
   "The mean is the plain mean of the sprint ratios over the last sprints of the window; no mean is shown for fewer than 3 sprints.": "Der Durchschnitt ist das einfache Mittel der Sprint-Quoten über die letzten Sprints des Fensters; bei weniger als 3 Sprints wird kein Durchschnitt gezeigt.",
   "Work added later counts as done, so a sprint can lie above 100 %.": "Nachträglich Hinzugekommenes zählt als erledigt, ein Sprint kann also über 100 % liegen.",
-  "How much of the commitment the sprints delivered.": "Wie viel vom Commitment die Sprints geliefert haben."
+  "How much of the commitment the sprints delivered.": "Wie viel vom Commitment die Sprints geliefert haben.",
+  "Check the absences, weigh tickets live against forecast, products and contingents, freeze the agreement.": "Abwesenheiten prüfen, Tickets live gegen Forecast, Produkte und Kontingente abwägen, die Vereinbarung einfrieren."
  }
 }
