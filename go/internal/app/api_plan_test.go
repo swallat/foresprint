@@ -527,7 +527,7 @@ func TestWhatIfIgnoresTypedCommitmentWithTickets(t *testing.T) {
 		t.Fatalf("what-if = %+v err = %v", w, err)
 	}
 	// the sum of the tickets counts; with everything done by default the plan follows it
-	if w.Commitment == 99 || !w.Touched || w.Default {
+	if w.Commitment == 99 || !w.Touched || !w.Default {
 		t.Errorf("typed commitment counted with tickets: %+v", w)
 	}
 	// nothing entered: the default is that every ticket of the running sprint gets done
