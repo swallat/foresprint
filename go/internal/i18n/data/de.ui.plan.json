@@ -204,7 +204,6 @@
   "{key} continues in": "{key} läuft weiter in",
   "{key} taken into the sprint.": "{key} in den Sprint genommen.",
   "{key} taken out of the sprint.": "{key} aus dem Sprint genommen.",
-  "{n} PD absence ({state})": "{n} PT Abwesenheit ({state})",
   "{n} PD more than available": "{n} PT mehr als verfügbar",
   "{n} PD too much": "{n} PT zu viel",
   "{n} changes written.": "{n} Änderungen geschrieben.",
@@ -254,7 +253,7 @@
   "Go to Plan": "Zu Planen",
   "The commitment is set in the Planning on the first day of the sprint, {day}. Until then you can earmark and prepare.": "Das Commitment entsteht im Planning am ersten Tag des Sprints, {day}. Bis dahin kannst du vormerken und vorbereiten.",
   "When everybody agrees in the Planning, \"Start sprint\" freezes the plan and starts the sprint. A planning minute is written and, if you wish, a label is set on the tracker ticket.": "Wenn im Planning alle einverstanden sind, friert „Sprint starten“ den Plan ein und startet den Sprint. Ein Planning-Protokoll wird geschrieben und, falls gewünscht, ein Label am Ticket im Tracker gesetzt.",
-  "frozen": "festgeschrieben",
-  "{n} PD absence": "{n} PT Abwesenheit"
+  "{n} PD absence": "{n} PT Abwesenheit",
+  "{n} PD absence, frozen": "{n} PT Abwesenheit, festgeschrieben"
  }
 }

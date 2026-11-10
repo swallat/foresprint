@@ -60,7 +60,7 @@
       </Calc>
     </div>
     <div class="small muted">
-      {#if d.absenceDays}{d.absences === 'confirmed' ? t('{n} PD absence ({state})', { n: fmtVal(d.absenceDays), state: t('frozen') }) : t('{n} PD absence', { n: fmtVal(d.absenceDays) })}{:else}{t('no absence entered')}{/if}
+      {#if d.absenceDays}{d.absences === 'confirmed' ? t('{n} PD absence, frozen', { n: fmtVal(d.absenceDays) }) : t('{n} PD absence', { n: fmtVal(d.absenceDays) })}{:else}{t('no absence entered')}{/if}
     </div>
     {#if prod}
       <div class="small muted">{t('with production access about {n} PD', { n: fmtCap(prod.time) })}</div>
