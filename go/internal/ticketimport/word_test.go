@@ -51,12 +51,12 @@ func TestReresolveAppliesAChangedSprintTable(t *testing.T) {
 func TestResolveSprintExactIgnoresBareNumbers(t *testing.T) {
 	sprints := knownSprints{"3": true, "2026.20": true}
 	var names model.OrderedMap[string]
-	names.Set("BV Sprint 33", "2026.20")
+	names.Set("Atlas Sprint 33", "2026.20")
 	tr := model.TrackerSettings{SprintNames: names}
 	for name, want := range map[string]string{
 		"2026.20":             "2026.20",
 		"Team Sprint 2026.20": "2026.20",
-		"BV Sprint 33":        "2026.20",
+		"Atlas Sprint 33":     "2026.20",
 		"3":                   "3",
 		"Other Team Sprint 3": "",
 		"Release 45":          "",
@@ -72,7 +72,7 @@ func TestResolveSprintMatchesWithOrWithoutLeadingZero(t *testing.T) {
 	tr := model.TrackerSettings{}
 	padded := knownSprints{"2027.01": true, "2027.03": true, "2027.10": true}
 	for name, want := range map[string]string{
-		"AccSecc - BV Sprint 2027.3": "2027.03",
+		"Atlas - Team Sprint 2027.3": "2027.03",
 		"Team Sprint 2027.03":        "2027.03",
 		"Team Sprint 2027.10":        "2027.10",
 		"Team Sprint 2027.2":         "",
@@ -84,7 +84,7 @@ func TestResolveSprintMatchesWithOrWithoutLeadingZero(t *testing.T) {
 		}
 	}
 	plain := knownSprints{"2027.3": true}
-	if got := ResolveSprint("BV Sprint 2027.03", tr, plain); got == nil || *got != "2027.3" {
+	if got := ResolveSprint("Atlas Sprint 2027.03", tr, plain); got == nil || *got != "2027.3" {
 		t.Errorf("a padded name for an unpadded calendar: %v", got)
 	}
 }
