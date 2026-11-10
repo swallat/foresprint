@@ -19,7 +19,7 @@
     /** The day it counts as started from; empty before the start. */
     startedOn: string;
     /** The start is derived from the recorded plan, the file has no start mark. */
-    derived?: boolean;
+    fromPlan?: boolean;
     /** The first day has come and the sprint is not started. */
     due: boolean;
     stage: Stage;
@@ -27,7 +27,7 @@
     plan?: () => FreezeInput;
     onchange?: () => void | Promise<void>;
   }
-  let { sprint, start, end, startedOn, derived = false, due, stage, plan, onchange }: Props = $props();
+  let { sprint, start, end, startedOn, fromPlan = false, due, stage, plan, onchange }: Props = $props();
 
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const clock = () => app.teams.find((x) => x.key === app.team)?.asOf || iso(new Date());
@@ -82,7 +82,7 @@
       {#if running}
         <strong>{t('Sprint {id} runs since {day}.', { id: sprint, day: fmtDay(startedOn || start) })}</strong>
         <span class="small muted">{t('It stays running until its Review is closed.')}</span>
-        {#if derived}
+        {#if fromPlan}
           <span class="small muted">{t('The sprint file has no start mark; the start follows from the recorded plan. "Change start day" writes the mark.')}</span>
         {/if}
       {:else}

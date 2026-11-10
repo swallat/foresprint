@@ -66,7 +66,7 @@
   {/snippet}
 </SprintMeta>
 {#if d.sprint === app.sprint}
-  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} derived={d.startDerived} due={d.startDue} stage={d.stage} {plan} {onchange} />
+  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} fromPlan={d.startDerived} due={d.startDue} stage={d.stage} {plan} {onchange} />
 {/if}
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}
