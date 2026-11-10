@@ -12,6 +12,7 @@
   import { productColor } from './backlog';
   import { loadBacklog, present, store, allTickets, t } from './store.svelte';
   import { openExternal } from './external';
+  import JiraText from '../../lib/ui/JiraText.svelte';
 
   let {}: PageProps = $props();
 
@@ -35,7 +36,12 @@
 
   onMount(async () => {
     app.ticket = '';
-    if (!store.view) await loadBacklog();
+    if (!store.view || store.team !== app.team) {
+      // the list or the keys belong to another team (e.g. the person's data before a tour): start over
+      present.keys = [];
+      present.key = '';
+      await loadBacklog();
+    }
     if (present.keys.length === 0) {
       // opened by address: show what is earmarked, then the backlog
       const v = store.view;
@@ -143,7 +149,7 @@
     <div class="present-body">
       <div class="present-main">
         <h1>{detail.title}</h1>
-        {#if description}<section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{description}</p></section>{/if}
+        {#if description}<section class="td-sec"><h3>{t('Description')}</h3>{#if tracker?.description}<JiraText text={tracker.description} />{:else}<p class="prose">{description}</p>{/if}</section>{/if}
         {#if detail.acceptance}
           <section class="td-sec">
             <h3>{t('Acceptance criteria')}</h3>

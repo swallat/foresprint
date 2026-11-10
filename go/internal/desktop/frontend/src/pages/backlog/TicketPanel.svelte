@@ -6,11 +6,12 @@
   import { untrack } from 'svelte';
   import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
-  import { app, toast } from '../../lib/app.svelte';
+  import { app, toast, win, PANEL_MIN, panelDocked, panelWidthMax, panelWidthNow, setPanelMode, setPanelWidth } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
   import { openExternal } from './external';
+  import JiraText from '../../lib/ui/JiraText.svelte';
 
   let detail = $state<TicketDetail | undefined>();
   let tracker = $state<TrackerDetails | undefined>();
@@ -23,6 +24,40 @@
   let newComment = $state('');
   let newDep = $state('');
   let loadId = 0;
+  let dragging = $state(false);
+
+  // The grip on the left edge: dragging left widens the panel (it sits at the right window edge).
+  function grip(e: PointerEvent): void {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    el.focus();
+    el.setPointerCapture(e.pointerId);
+    dragging = true;
+  }
+  function gripMove(e: PointerEvent): void {
+    if (dragging) setPanelWidth(win.w - e.clientX, false);
+  }
+  function gripEnd(): void {
+    if (!dragging) return;
+    dragging = false;
+    setPanelWidth(panelWidthNow());
+  }
+  // A narrower window pulls a too wide panel in (shown only; the remembered width stays).
+  $effect(() => {
+    const fit = () => (win.w = window.innerWidth);
+    window.addEventListener('resize', fit);
+    fit();
+    return () => window.removeEventListener('resize', fit);
+  });
+  function gripKey(e: KeyboardEvent): void {
+    const step = e.shiftKey ? 80 : 20;
+    if (e.key === 'ArrowLeft') setPanelWidth(panelWidthNow() + step);
+    else if (e.key === 'ArrowRight') setPanelWidth(panelWidthNow() - step);
+    else if (e.key === 'Home') setPanelWidth(PANEL_MIN);
+    else return;
+    e.preventDefault();
+  }
 
   const view = $derived(store.view);
   const creating = $derived(app.ticket === NEW);
@@ -194,7 +229,27 @@
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
-<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')}>
+<aside class="panel" class:column={panelDocked()} data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')} style:width={panelDocked() ? undefined : `min(${panelWidthNow()}px, 100vw)`}>
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+  <div
+    class="grip"
+    class:on={dragging}
+    role="separator"
+    aria-orientation="vertical"
+    aria-label={t('Panel width')}
+    aria-valuemin={PANEL_MIN}
+    aria-valuenow={panelWidthNow()}
+    aria-valuemax={panelWidthMax()}
+    title={t('Drag to change the width, double-click for the smallest width')}
+    tabindex="0"
+    onpointerdown={grip}
+    onpointermove={gripMove}
+    onpointerup={gripEnd}
+    onpointercancel={gripEnd}
+    onlostpointercapture={gripEnd}
+    ondblclick={() => setPanelWidth(PANEL_MIN)}
+    onkeydown={gripKey}
+  ></div>
   <div class="panel-head">
     <strong class="data">{creating ? t('New work package') : app.ticket}</strong>
     {#if detail?.status}<span class="chip">{detail.status}</span>{/if}
@@ -204,6 +259,9 @@
         <Icon name="fit_screen" />{t('Presentation view')}
       </button>
     {/if}
+    <button class="btn icon ghost" type="button" aria-pressed={app.panelMode === 'column'} aria-label={t('Show the panel as a column beside the page')} title={app.panelMode === 'column' ? t('Show the panel over the page') : t('Show the panel as a column beside the page')} onclick={() => setPanelMode(app.panelMode === 'column' ? 'overlay' : 'column')}>
+      <Icon name={app.panelMode === 'column' ? 'picture_in_picture' : 'dock_to_right'} />
+    </button>
     <button class="btn icon ghost" type="button" aria-label={t('Close')} title={t('Close')} onclick={close}><Icon name="close" /></button>
   </div>
 
@@ -452,7 +510,7 @@
   {#if detail}
     {@const text = tracker?.description || detail.description}
     {#if text}
-      <section class="td-sec"><h3>{t('Description')}</h3><p class="prose">{text}</p></section>
+      <section class="td-sec"><h3>{t('Description')}</h3>{#if tracker?.description}<JiraText text={tracker.description} />{:else}<p class="prose">{text}</p>{/if}</section>
     {/if}
     {#if detail.acceptance}
       <section class="td-sec"><h3>{t('Acceptance criteria')}</h3><p class="prose">{detail.acceptance}</p></section>
@@ -504,7 +562,7 @@
         {#each tracker.comments as c, i (i)}
           <div class="td-comment">
             <div class="small"><strong>{c.author}</strong> <span class="muted data">{when(c.at)}</span></div>
-            <div class="prose">{c.text}</div>
+            <JiraText text={c.text} />
           </div>
         {/each}
       </section>
@@ -534,6 +592,33 @@
 {/snippet}
 
 <style>
+  .grip {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 1;
+  }
+  .panel.column .grip {
+    left: 0;
+  }
+  .grip::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: transparent;
+  }
+  .grip:hover::after,
+  .grip:focus-visible::after,
+  .grip.on::after {
+    background: var(--primary);
+  }
   .grow {
     flex: 1;
     min-width: 0;

@@ -27,9 +27,9 @@ func outside() error {
 	return git.New(i18n.T("The folder is outside the data repository."), "", "")
 }
 
-// History lists who changed what and when, newest first (D6). Scope is a team folder or a file,
+// gitHistory lists who changed what and when, newest first (D6). Scope is a team folder or a file,
 // relative to the data folder; "" is everything. Limit 0 means 40.
-func (s *Store) History(scope string, limit int) ([]Version, error) {
+func (s *Store) gitHistory(scope string, limit int) ([]Version, error) {
 	dir, err := s.folder()
 	if err != nil {
 		return nil, err
@@ -64,10 +64,10 @@ func (s *Store) History(scope string, limit int) ([]Version, error) {
 	return out, nil
 }
 
-// Restore brings the folder or file of scope back to the state of an earlier version. It is a
+// gitRestore brings the folder or file of scope back to the state of an earlier version. It is a
 // save on this computer that Save shares and Revert takes back. It is refused while there are
 // unsaved changes in that area.
-func (s *Store) Restore(scope, version, message string) Done {
+func (s *Store) gitRestore(scope, version, message string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)
@@ -80,9 +80,9 @@ func (s *Store) Restore(scope, version, message string) Done {
 	return s.done(rev, err)
 }
 
-// Revert takes back one change of the history with a new change (D6, "take back this change").
+// gitRevert takes back one change of the history with a new change (D6, "take back this change").
 // Merge entries cannot be taken back.
-func (s *Store) Revert(version string) Done {
+func (s *Store) gitRevert(version string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)
@@ -103,9 +103,9 @@ func (s *Store) undone(err error) Done {
 	return Done{Problem: problemOf(err), Status: s.Status()}
 }
 
-// Discard throws away the unsaved changes of the listed files (all when empty). Anything thrown
+// gitDiscard throws away the unsaved changes of the listed files (all when empty). Anything thrown
 // away is kept in the trash folder of the data repository; Lost says what would go.
-func (s *Store) Discard(files []string) Done {
+func (s *Store) gitDiscard(files []string) Done {
 	dir, err := s.folder()
 	if err != nil {
 		return s.undone(err)
@@ -151,6 +151,9 @@ type LostFile struct {
 
 // Labels lists the named states (tags), with what the server knows when it can be reached.
 func (s *Store) Labels(checkServer bool) ([]Label, error) {
+	if _, ok := s.backend().(*folderBackend); ok {
+		return []Label{}, nil // a shared folder has no labels
+	}
 	dir, err := s.folder()
 	if err != nil {
 		return nil, err

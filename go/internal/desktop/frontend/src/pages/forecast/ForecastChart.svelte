@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { id, num, op, row, par, fn, frac, sqrt, sq, floor, times, eq, minus, plus, sum, prime, lines } from '../../lib/mathml';
   import { shortNames } from '../../lib/axis';
   import { fmt, fmtVal } from '../../lib/format';
   import Icon from '../../lib/Icon.svelte';
@@ -125,56 +126,93 @@
     key: Key;
     name: string;
     formula: string;
+    /** Optional MathML rendering of the formula, so root and square show what they cover. */
+    math?: string;
     where: string;
   }
+  // Every product, quotient and square is grouped explicitly, so no order of operations is needed.
+  const V = id('V'), C = id('C'), U = id('U'), A = id('A'), N = id('N'), T = id('T'), X = id('X'), P = id('P');
+  const Cap = id('Cap'), Ref = id('Ref'), Focus = id('Focus');
+  const k = id('k'), j = id('j'), n = id('n'), h = id('h');
+  const mathVel = lines(row(V, eq, par(C, minus, U), plus, A));
+  const mathCom = lines(row(C, eq, id('R'), plus, id('B')));
+  const mathNv = lines(row(N, eq, par(frac(V, Cap)), times, Ref));
+  const mathTrend = lines(
+    row(fn('Ø', k), eq, frac(par(fn('N', id('a')), plus, op('…'), plus, fn('N', k)), id('w'))),
+    row(fn('T', k), eq, fn('X', k, minus, num(1)), plus, par(fn('X', k, minus, num(1)), minus, fn('X', k, minus, num(2)))),
+  );
+  const mathPlan = lines(row(P, eq, floor(par(frac(T, Ref)), times, Cap)));
+  const mathRange = lines(
+    row(
+      id('σ'), eq,
+      sqrt(frac(
+        row(sum(row(j, eq, num(2)), n), sq(par(fn('N', j), minus, fn('mean', fn('N', num(1)), op('…'), fn('N', j, minus, num(1)))))),
+        par(n, minus, num(1)),
+      )),
+    ),
+    row(P, op('±'), par(frac(par(fn('t', n, minus, num(1)), times, id('σ'), times, sqrt(h)), Ref)), times, Cap),
+  );
+  const mathWif = lines(
+    row(prime(P), eq, floor(par(par(frac(T, Ref)), times, prime(Cap)), times, par(frac(Focus, num(100))))),
+    row(prime(Cap), eq, fn('max', num(0), op(','), Cap, minus, id('D'))),
+  );
+  const mathFul = lines(row(id('F'), eq, frac(V, C)));
   const paths = $derived(
     ([
       {
         key: 'vel',
         name: t('Velocity'),
         formula: 'V = C − U + A',
+        math: mathVel,
         where: t('C = commitment, U = estimates of the planned items that are not finished (at most C), A = estimates of items pulled in later and finished. Without tickets, U and A are the values entered at the Review.'),
       },
       {
         key: 'com',
         name: t('Commitment'),
         formula: 'C = R + B',
+        math: mathCom,
         where: t('R = carry-over and B = backlog from the Planning of the sprint, or the value entered there.'),
       },
       {
         key: 'nv',
         name: t('Normalized velocity'),
         formula: 'N = V ÷ Cap × Ref',
+        math: mathNv,
         where: t('Cap = capacity of the sprint in person days (frozen at the Review), Ref = reference capacity of the team.'),
       },
       {
         key: 'trend',
         name: t('Trend of the normalized velocity'),
         formula: 'Ø(k) = ( N(a) + … + N(k) ) ÷ w\nT(k) = X(k−1) + ( X(k−1) − X(k−2) )',
+        math: mathTrend,
         where: t('w = window of sprints with an N (a is the first of them); with fewer than w but at least 3, Ø is the mean of all. X = Ø, or T where Ø is missing. With the flat trend mode T(k) = X(k−1). T is never below 0.'),
       },
       {
         key: 'plan',
         name: t('Forecast PLAN'),
         formula: 'P = ⌊ T ÷ Ref × Cap ⌋',
+        math: mathPlan,
         where: t('T = trend of the sprint, Cap = its capacity, rounded down to the rounding of the team. Without a trend: P = ⌊ C ⌋; without any history: P = ⌊ Cap × start rate ⌋.'),
       },
       {
         key: 'range',
         name: t('Range'),
         formula: 'σ = √( Σ ( N(j) − mean( N(1) … N(j−1) ) )² ÷ (n−1) ),  j = 2 … n\nP ± t(n−1) × σ × √h ÷ Ref × Cap',
+        math: mathRange,
         where: t('n = last results N in the window (at least 3), h = distance in sprints to the last result, t = factor of the t distribution for 80 %. Never below 0; rounded to the rounding of the team.'),
       },
       {
         key: 'wif',
         name: t('What if'),
         formula: "P' = ⌊ T ÷ Ref × Cap' × Focus ÷ 100 ⌋\nCap' = max( 0, Cap − D )",
+        math: mathWif,
         where: t("D = extra days off of your assumption, Focus = focus in %. Without a trend: start rate instead of T ÷ Ref."),
       },
       {
         key: 'ful',
         name: t('Fulfillment (right axis)'),
         formula: 'F = V ÷ C',
+        math: mathFul,
         where: t('Above 100 % when work added later was also finished.'),
       },
     ] satisfies Path[]).filter((p) => on[p.key] && (p.key !== 'wif' || whatIf.length > 0)),
@@ -277,7 +315,11 @@
         <div class="p">
           <dt><svg width="18" height="12" aria-hidden="true"><line x1="0" x2="18" y1="6" y2="6" class="s {swatch(p.key)}" /></svg>{p.name}</dt>
           <dd>
-            <div class="formula data">{p.formula}</div>
+            {#if p.math}
+              <div class="formula math" role="img" aria-label={p.formula}>{@html p.math}</div>
+            {:else}
+              <div class="formula data">{p.formula}</div>
+            {/if}
             <div class="small muted">{p.where}</div>
           </dd>
         </div>
@@ -331,6 +373,15 @@
     background: var(--surface-2);
     border-radius: var(--r-ctl);
     white-space: pre-line;
+  }
+  .formula.math {
+    font-size: 15px;
+    color: var(--text);
+    overflow-x: auto;
+  }
+  .formula.math :global(math) {
+    font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', serif;
+    margin: 4px 0;
   }
   @media (max-width: 720px) {
     .p {

@@ -53,6 +53,10 @@ export const app = $state({
   problem: '',
   /** Personal setting: calculations next to numbers (see lib/calc/Calc.svelte). */
   calcMode: 'icon' as CalcMode,
+  /** Width of the ticket panel in pixels (at least PANEL_MIN); remembered on this machine. */
+  panelWidth: 440,
+  /** The ticket panel lies over the page (overlay) or sits beside it as a column; remembered on this machine. */
+  panelMode: 'overlay' as PanelMode,
   /** The invented demo team is shown instead of the data folder (nothing is read or saved). */
   demo: false,
   /** The variant the demo was opened with ("atlas/packages"); see demoChoice. */
@@ -60,6 +64,8 @@ export const app = $state({
   /** A newer program version is known (daily check at the start); undefined if none. */
   update: undefined as UpdateInfo | undefined,
 });
+
+export type PanelMode = 'overlay' | 'column';
 
 export type CalcMode = 'off' | 'icon' | 'inline';
 
@@ -79,6 +85,42 @@ const store = {
     }
   },
 };
+
+export const PANEL_MIN = 440;
+const PANEL_ROOM = 160;
+/** As a column the panel leaves the rail and at least this much for the page. */
+const COLUMN_PAGE_MIN = 360;
+const RAIL_WIDTH = 232;
+
+/** Window width, reactive; kept up to date by the ticket panel. */
+export const win = $state({ w: typeof window === 'undefined' ? 1200 : window.innerWidth });
+
+/** The column only fits in a wide window; a narrower one shows the panel over the page. */
+export function panelDocked(): boolean {
+  return app.panelMode === 'column' && win.w >= RAIL_WIDTH + PANEL_MIN + COLUMN_PAGE_MIN;
+}
+
+/** Largest panel width for the current mode (the grip's upper bound). */
+export function panelWidthMax(): number {
+  return Math.max(PANEL_MIN, win.w - (panelDocked() ? RAIL_WIDTH + COLUMN_PAGE_MIN : PANEL_ROOM));
+}
+
+/** The width shown: the remembered one, pulled in where the window or the mode leaves less room. */
+export function panelWidthNow(): number {
+  return Math.min(app.panelWidth, panelWidthMax());
+}
+
+/** Switches the ticket panel between overlay and column; remembered on this machine. The width stays as it was. */
+export function setPanelMode(mode: PanelMode): void {
+  app.panelMode = mode;
+  store.set('panelMode', mode);
+}
+
+/** Sets the ticket panel width, never below the minimum or wider than the window leaves room for. */
+export function setPanelWidth(px: number, remember = true): void {
+  app.panelWidth = Math.round(Math.min(panelWidthMax(), Math.max(PANEL_MIN, px)));
+  if (remember) store.set('panelWidth', String(app.panelWidth));
+}
 
 const calcModes: CalcMode[] = ['off', 'icon', 'inline'];
 
@@ -147,6 +189,7 @@ export async function loadTeams(): Promise<void> {
 }
 
 export async function selectTeam(key: string): Promise<void> {
+  if (key !== app.team) app.ticket = ''; // a ticket of the former team does not exist in this one
   app.team = key;
   if (!app.demo) store.set('team', key);
   app.sprints = key ? await api.Sprints(key).catch(() => []) : [];
@@ -273,6 +316,7 @@ export async function enterDemo(): Promise<void> {
   app.demo = true;
   app.demoVariant = demoVariantKey();
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
@@ -284,6 +328,7 @@ export async function leaveDemo(): Promise<void> {
   app.demo = false;
   app.demoVariant = '';
   app.team = '';
+  app.ticket = '';
   await loadTeams();
   await refreshStatus();
 }
@@ -302,8 +347,10 @@ export async function autoFetch(): Promise<void> {
   const team = app.team;
   lastTry.set(team, Date.now());
   app.busy = 'sync'; // the top bar buttons wait, as for a fetch by hand
+  let unchanged = false;
   try {
-    await api.SyncTrackerAuto(team);
+    // the time of the chip also moves after a fetch without changes: only written data is news
+    unchanged = (await api.SyncTrackerAuto(team)).outcome === 'unchanged';
   } catch {
     /* shown by the chip through refreshStatus */
   } finally {
@@ -311,7 +358,7 @@ export async function autoFetch(): Promise<void> {
   }
   const before = tr.last;
   await refreshStatus();
-  if (app.team === team && app.status.tracker.last !== before) {
+  if (app.team === team && !unchanged && app.status.tracker.last !== before) {
     app.rev++;
     // not pulled away from under someone who is typing: the live watcher waits for a quiet moment
     window.dispatchEvent(new CustomEvent('foresprint:news'));
@@ -333,6 +380,9 @@ export async function start(): Promise<void> {
   if (inProgram && (await api.InDemo())) await api.LeaveDemo();
   const calc = store.get('calc') as CalcMode;
   if (calcModes.includes(calc)) app.calcMode = calc;
+  if (store.get('panelMode') === 'column') app.panelMode = 'column';
+  const pw = parseInt(store.get('panelWidth'), 10);
+  if (Number.isFinite(pw)) setPanelWidth(pw, false);
   await loadPrefs();
   await loadTeams();
   // The window opens as soon as the teams are known. The state of the storage needs several Git

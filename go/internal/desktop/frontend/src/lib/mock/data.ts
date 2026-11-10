@@ -20,6 +20,7 @@ import type {
   UnsavedFile,
   ValueRef,
   Problem,
+  SharedFolderCheck,
   StorageSettings,
   Version,
 } from '../types.data';
@@ -336,6 +337,20 @@ export const dataMock: DataApi = {
   },
   async Reattach() {
     return { branch: 'main', rescue: '', commits: false, changes: false };
+  },
+  async CheckSharedFolder(shared: string): Promise<SharedFolderCheck> {
+    const ok = shared !== '' && !shared.includes('missing');
+    const keys = ['exists', 'write', 'lock', 'replace', 'clock', 'names'] as const;
+    return {
+      ok,
+      results: ok ? keys.map((key) => ({ key, ok: true, detail: key === 'clock' ? '+0.1 s' : '' })) : [{ key: 'exists', ok: false, detail: 'The folder does not exist.' }],
+      hasData: shared.includes('team'),
+      service: /dropbox/i.test(shared) ? 'Dropbox' : '',
+    };
+  },
+  async UseSharedFolder(local: string, shared: string, _person: string, create: boolean) {
+    if (!create && !shared.includes('team')) return { folder: '', problem: problemOf(`${shared} is not a Foresprint shared folder yet. Create the storage there, or check the path.`) };
+    return { folder: local };
   },
   async CloneFrom(_address: string, folder: string) {
     return { folder };

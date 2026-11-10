@@ -43,6 +43,7 @@ with guidance:
 name: Team A
 unit: PT                    # PT or SP (capacity is always PT)
 as_of: 2026-10-14           # only for test data: this day counts as today (see below)
+muted_findings: ["tickets|no-estimate"]   # optional: findings of the start page the team silenced (set in the window)
 features:                   # optional features, all false for new teams
   products: false           # product distribution
   po: false                 # PO assignment

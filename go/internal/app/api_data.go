@@ -87,6 +87,21 @@ func (a *API) ShareLabel(name string) datasvc.Done { return a.data.ShareLabel(na
 // DeleteLabel removes a label here and, where it can, on the server.
 func (a *API) DeleteLabel(name string) datasvc.Done { return a.data.DeleteLabel(name) }
 
+// CheckSharedFolder tests a folder for the shared-folder storage; it only writes a temporary
+// subfolder that it removes again.
+func (a *API) CheckSharedFolder(shared string) datasvc.SharedFolderCheck {
+	return a.data.CheckSharedFolder(shared)
+}
+
+// UseSharedFolder sets the data folder local up as a copy of the shared folder; create marks a new
+// folder as the team's storage.
+func (a *API) UseSharedFolder(local, shared, person string, create bool) datasvc.Opened {
+	if p := a.demoProblem(); p != nil {
+		return datasvc.Opened{Problem: p}
+	}
+	return a.adopt(a.data.UseSharedFolder(local, shared, person, create))
+}
+
 // Storage reads Settings > Storage.
 func (a *API) Storage() datasvc.StorageSettings { return a.data.Storage() }
 
@@ -181,7 +196,7 @@ func nilIfEmpty(files []string) []string {
 
 // adopt remembers a folder the storage has just switched to as the data folder of the program.
 func (a *API) adopt(o datasvc.Opened) datasvc.Opened {
-	if o.Problem != nil || o.Folder == "" {
+	if o.Folder == "" { // a setup whose first refresh failed has a folder and a problem: the copy is in use
 		return o
 	}
 	if err := a.SetDataDir(o.Folder); err != nil {
