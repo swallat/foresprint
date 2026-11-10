@@ -154,6 +154,8 @@ export interface PlanSprint {
   stage: Stage;
   /** The day the sprint counts as started from (YYYY-MM-DD); empty before the start. */
   startedOn: string;
+  /** The start follows from the recorded plan, the sprint file has no start mark. */
+  startDerived: boolean;
   /** The first day has come but the sprint is not started yet. */
   startDue: boolean;
   unit: 'SP' | 'PT';
