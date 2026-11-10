@@ -334,3 +334,45 @@ func TestPendingTagsAgainstGit(t *testing.T) {
 		t.Fatalf("pending %v after the tag exists and the invalid one can never be set", got)
 	}
 }
+
+// A frozen ticket counts in the Review with the size it had at the start, not with the estimate
+// of today; a ticket pulled in later has no frozen size and counts with its estimate.
+func TestReviewCountsFrozenSizes(t *testing.T) {
+	dir := copyDemo(t)
+	api := newAPI(t, dir)
+	team := api.Teams()[0].Key
+	id := latestPast(t, api, team)
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	write := func(path, text string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	teamFile := dir + "/" + team + "/team.yaml"
+	b, _ := os.ReadFile(teamFile)
+	write(teamFile, strings.Replace(string(b), "features:\n", "features:\n  tickets: true\n", 1))
+	write(dir+"/"+team+"/tickets.yaml", fmt.Sprintf(`schema: 1
+tickets:
+- {key: T-1, title: First, estimate: 5, remaining: 0, done: true}
+- {key: T-2, title: Second, estimate: 3, remaining: 1}
+- {key: T-3, title: Third, estimate: 8}
+- {key: T-4, title: Pulled in, estimate: 2, done: true, in_sprint: "%s"}
+`, id))
+	sprintFile := dir + "/" + team + "/sprints/" + id + ".yaml"
+	sb, _ := os.ReadFile(sprintFile)
+	write(sprintFile, string(sb)+"committed_tickets: [T-1, T-2, T-3]\ncommitted_sizes:\n  T-1: 4\n  T-2: 2\n  T-3: 6\n")
+
+	r, err := api.SprintReview(team, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.NotDone != 8 || r.List[0].Estimate != 4 || r.List[3].Estimate != 2 {
+		t.Fatalf("frozen sizes not used: not done %v, list %+v", r.NotDone, r.List)
+	}
+	if r.List[1].Rest != 1 || r.List[2].Rest != 6 {
+		t.Fatalf("rest: %+v", r.List)
+	}
+}

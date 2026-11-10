@@ -138,6 +138,11 @@ type Sprint struct {
 	Name *string
 	// CommittedTickets is the ticket list frozen at Planning (the commitment); nil = not frozen.
 	CommittedTickets []string
+	// CommittedSizes is the size of each frozen ticket at the start (remaining if filled, else the
+	// estimate), by ticket key. The Review counts the commitment, the rest and the velocity with
+	// them; a sprint frozen before they were kept (or a ticket missing here) falls back to the
+	// ticket's estimate.
+	CommittedSizes map[string]float64
 	// Carry and RestNext are the definitive rest entered in the Review; they replace the
 	// assumption (see Prognosis).
 	Carry    []CarryItem
@@ -325,6 +330,7 @@ func (s Sprint) Clone() Sprint {
 	c.Products = maps.Clone(s.Products)
 	c.Projects = maps.Clone(s.Projects)
 	c.CommittedTickets = slices.Clone(s.CommittedTickets)
+	c.CommittedSizes = maps.Clone(s.CommittedSizes)
 	c.Removed = slices.Clone(s.Removed)
 	c.PeriodCells = slices.Clone(s.PeriodCells)
 	if s.Matrix != nil {

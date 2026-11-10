@@ -340,6 +340,8 @@ started_on: 2026-10-14      # the day the sprint was started ("Start sprint"), o
 start_pending: true         # optional: waits for its start (plan frozen early, or the start was taken back)
 expected_absences: {anna: 2}   # PO pre-planning: announced absences (forecast); affect capacity
 period_cells: [anna]              # set at the sprint start: people whose frozen cell came from their absence periods (compared with them later)
+committed_tickets: [T-1, T-2]       # set at the sprint start: the frozen ticket list
+committed_sizes: {T-1: 4, T-2: 2}  # set at the sprint start: the size of each (remaining if filled, else estimate); the Review counts commitment, rest and velocity with them. Older sprints without it use the estimate
                            # and Forecast PLAN until the absences are confirmed
 not_done: 1.5              # review, optional: amount that was not finished
 additional_done: 0.5       # review, optional: done in addition to the commitment
