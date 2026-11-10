@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/planning"
@@ -284,7 +285,7 @@ func todaySprints(data *storage.TeamData, day time.Time) []TodaySprint {
 	add := func(s model.Sprint, state string, open bool) {
 		ts := TodaySprint{
 			ID: s.ID, Start: s.Start.Format("2006-01-02"), End: s.End.Format("2006-01-02"), State: state,
-			Steps: stepsOf(s, state),
+			Steps: stepsOf(forecast.EffectiveSprint(data, s), state),
 		}
 		if state == "running" {
 			ts.DaysLeft = max(int(s.End.Sub(day).Hours()/24), 0)
