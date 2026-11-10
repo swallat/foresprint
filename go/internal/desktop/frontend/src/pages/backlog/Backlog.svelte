@@ -14,7 +14,7 @@
   import DropGap from '../../lib/ui/DropGap.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, activeCustom, applyView, blank, group, matches, neighbour, sortTickets, sum } from './backlog';
-  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, t, toProForma, toggleSelected, ui } from './store.svelte';
+  import { NEW, allTickets, applyCustomView, deleteCustomView, earmark, loadBacklog, loadCustomViews, openPresent, reorder, resetOrder, saveCustomView, setLayout, store, syncView, t, toProForma, toggleSelected, ui } from './store.svelte';
   import TicketFilter from './TicketFilter.svelte';
   import TicketRow from './TicketRow.svelte';
 
@@ -384,6 +384,7 @@
         {#if view.imported}
           <Icon name="sync" size={14} />
           {t('{tracker}: last fetch {when}, {count} tickets.', { tracker: view.tracker, when: ago(view.imported), count: view.tickets.length + lanes.reduce((n, l) => n + l.tickets.length, 0) })}
+          <button class="btn" type="button" disabled={app.busy === 'sync' || app.status.tracker.syncing} onclick={() => syncView()}><Icon name="sync" size={14} />{t('Sync this view')}</button>
         {:else}
           <Icon name="sync_disabled" size={14} />
           {t('{tracker}: no fetch yet.', { tracker: view.tracker })}
