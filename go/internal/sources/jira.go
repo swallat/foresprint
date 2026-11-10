@@ -615,7 +615,7 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 		}
 	}
 	if sprint != "" {
-		raws, err := j.fetchJQL("(" + base + ") AND sprint = " + jqlQuote(sprint), true)
+		raws, err := j.fetchJQL("("+base+") AND sprint = "+jqlQuote(sprint), true)
 		if err != nil {
 			return nil, err
 		}
@@ -627,7 +627,7 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 		for _, k := range keys[i:end] {
 			quoted = append(quoted, jqlQuote(k))
 		}
-		raws, err := j.fetchJQL("(" + base + ") AND key in (" + strings.Join(quoted, ",") + ")", true)
+		raws, err := j.fetchJQL("("+base+") AND key in ("+strings.Join(quoted, ",")+")", true)
 		if err != nil {
 			return nil, err
 		}
