@@ -109,17 +109,11 @@ func TestSprintPrepareReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Ready) < 2 || p.Ready[0].Kind != "absences" || p.Ready[0].State != ReadyOpen {
+	if len(p.Ready) < 2 || p.Ready[0].Kind != "absences" || p.Ready[0].State != ReadyDone {
 		t.Fatalf("readiness = %+v", p.Ready)
 	}
 	if p.CapacityBase < p.Sprint.Capacity {
 		t.Fatalf("base capacity %v below capacity %v", p.CapacityBase, p.Sprint.Capacity)
-	}
-	if _, err := api.FreezeAbsences(team, id); err != nil {
-		t.Fatal(err)
-	}
-	if p, _ = api.SprintPrepare(team, id); p.Ready[0].State != ReadyDone {
-		t.Fatalf("frozen absences should be done: %+v", p.Ready[0])
 	}
 }
 

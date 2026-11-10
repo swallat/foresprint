@@ -899,3 +899,59 @@ func TestPlanLaneMatchesBacklogLane(t *testing.T) {
 		t.Error("T-4 has an unclear refined state and must not show as refined")
 	}
 }
+
+// The start of a sprint writes the absences fast (periods included); a later change of a period
+// shows as a drift on the cell until it is adopted.
+func TestStartFreezesAbsencesAndShowsDrift(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	grid, err := api.AbsenceGrid(team, next, 1)
+	if err != nil || len(grid.Rows) == 0 {
+		t.Fatalf("grid: %v", err)
+	}
+	col, person := grid.Columns[0], grid.Rows[0].Person
+	if _, err := api.UnfreezeAbsences(team, next); err != nil { // the demo sprint may be frozen already
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	cell := func() AbsenceCell {
+		for _, r := range grid.Rows {
+			if r.Person == person {
+				return r.Cells[0]
+			}
+		}
+		t.Fatal("person missing")
+		return AbsenceCell{}
+	}
+	frozen := cell()
+	if grid.Columns[0].State != AbsenceConfirmed || frozen.Days == 0 || frozen.PeriodDays != nil || grid.Columns[0].Drifts != 0 {
+		t.Fatalf("start did not freeze the period days: %+v %+v", grid.Columns[0], frozen)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.Start}}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if c := cell(); c.Days != frozen.Days || c.PeriodDays == nil || *c.PeriodDays >= frozen.Days || grid.Columns[0].Drifts != 1 {
+		t.Fatalf("drift not shown: %+v %+v", grid.Columns[0], c)
+	}
+	if _, err := api.AdoptPeriods(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if c := cell(); c.PeriodDays != nil || c.Days >= frozen.Days || grid.Columns[0].Drifts != 0 {
+		t.Fatalf("adopt did not settle: %+v", c)
+	}
+}

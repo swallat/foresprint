@@ -109,10 +109,9 @@
 
   function text(r: ReadyItem): string {
     if (r.kind === 'absences') {
-      if (r.state === 'done') return t('Allocation frozen.');
       return r.count > 0
-        ? t('{n} people announced, not yet confirmed. Freeze the allocation in the table above.', { n: r.count })
-        : t('Nothing entered yet. Enter absences, or freeze the allocation: then nobody is absent.');
+        ? t('{n} people absent. Periods, FTE and typed days count live until the sprint starts.', { n: r.count })
+        : t('Nobody is absent so far. Periods and typed days count live until the sprint starts.');
     }
     if (r.kind === 'refinement') {
       return r.state === 'done'
@@ -135,7 +134,6 @@
 <StageNav
   stage="prepare"
   missing={{
-    prepare: info && info.sprint.state !== 'confirmed' ? t('Absences are not confirmed.') : '',
     preplan: info?.ready.some((r) => r.kind === 'preplan' && r.state === 'open') ? t('An amount is missing for some products.') : '',
   }}
 />
@@ -152,15 +150,15 @@
   <section class="card block" data-tour="prepare-grid">
     <h2>{t('Absences in person days')}</h2>
     <p class="small muted hint">
-      {t('Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.')}
+      {t('Type days directly (half days with a comma), Enter moves down. Periods, FTE and typed days count live until the sprint starts. Only days are stored, never a reason.')}
     </p>
     <details class="why small">
-      <summary>{t('Why freeze?')}</summary>
+      <summary>{t('Why does the start freeze?')}</summary>
       <ul>
-        <li>{t('A frozen sprint has a fixed capacity: changing an absence period later no longer moves it. You can still type days into its cells.')}</li>
+        <li>{t('"Start sprint" freezes the absences: periods count as typed days, empty cells as 0 days.')}</li>
+        <li>{t('A frozen sprint keeps its capacity. If a period changes later, a note shows the difference and "Adopt periods" takes it over.')}</li>
         <li>{t('Only frozen sprints flow into the absence rate the forecast expects for future sprints.')}</li>
         <li>{t('Closing a sprint in the Review freezes it automatically.')}</li>
-        <li>{t('A sprint you froze here opens again with a click on "Frozen"; nothing is lost.')}</li>
       </ul>
     </details>
     {#if current.length > 0}

@@ -126,6 +126,26 @@ func planSpan(fc *forecast.Forecast, id string) (low, high *float64) {
 	return nil, nil
 }
 
+// sprintsPeriodDrift lists the people of a frozen sprint whose planned periods now give other days than
+// the frozen cell, with the days the periods give. An open sprint follows the periods itself, so
+// it has no drift; people without a period are not compared (their days were typed).
+func sprintsPeriodDrift(data *storage.TeamData, stored model.Sprint) map[string]float64 {
+	if stored.AbsenceStatus() != model.AbsencesConfirmed || data.AbsencePeriods.Len() == 0 {
+		return nil
+	}
+	out := map[string]float64{}
+	for _, p := range data.People {
+		list, ok := data.AbsencePeriods.Get(p.ID)
+		if !ok {
+			continue
+		}
+		if now := capacity.AbsenceDaysOf(&data.Team, p, list, stored); now != stored.CellDays(p.ID) {
+			out[p.ID] = now
+		}
+	}
+	return out
+}
+
 func column(data *storage.TeamData, fc *forecast.Forecast, stored model.Sprint) AbsenceColumn {
 	// The column shows what the forecast counts: typed days plus the days of the planned periods.
 	s := forecast.EffectiveSprint(data, stored)
@@ -137,6 +157,10 @@ func column(data *storage.TeamData, fc *forecast.Forecast, stored model.Sprint) 
 		State:    absenceState(s),
 		Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
 		Past:     fc.Phase(s) == model.PhasePast,
+	}
+	if !col.Past {
+		col.FrozenPlan = s.ForecastPlan
+		col.Drifts = len(sprintsPeriodDrift(data, stored))
 	}
 	for _, d := range allAbsences(s) {
 		if d > 0 {
@@ -193,7 +217,11 @@ func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, e
 		any := false
 		for _, stored := range sprints {
 			s := forecast.EffectiveSprint(data, stored)
+			drift := sprintsPeriodDrift(data, stored)
 			cell := AbsenceCell{Days: s.CellDays(p.ID), State: cellState(s, p.ID), FromPeriod: stored.CellState(p.ID) == model.AbsencesUnknown && s.CellDays(p.ID) > 0}
+			if d, ok := drift[p.ID]; ok {
+				cell.PeriodDays = &d
+			}
 			if pc, ok := capacity.PersonOf(&data.Team, p, s, 0); ok {
 				cell.Active = true
 				cell.Max = float64(pc.Workdays - pc.Holidays)
@@ -321,6 +349,17 @@ func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	})
 }
 
+// AdoptPeriods writes the days of the planned absence periods into a frozen sprint, for every
+// person whose frozen cell no longer matches them. The sprint stays frozen.
+func (a *API) AdoptPeriods(team, sprintID string) (AbsenceColumn, error) {
+	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
+		for person, days := range sprintsPeriodDrift(data, *s) {
+			s.SetCell(person, days, model.AbsencesConfirmed)
+		}
+		return nil
+	})
+}
+
 // SprintPrepare returns the preview and the readiness list of a sprint.
 func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	data, err := storage.NewRepository(a.DataDir()).Load(team)
@@ -345,10 +384,9 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 	bare.SetAbsencesConfirmed(true)
 	out.CapacityBase = capacity.Sprint(&data.Team, data.People, bare, 0).Capacity
 
-	abs := ReadyItem{Kind: "absences", State: ReadyOpen, Count: out.Sprint.Entries, Names: []string{}}
-	if out.Sprint.State == AbsenceConfirmed {
-		abs.State = ReadyDone
-	}
+	// Absences follow the periods and the typed days until the sprint starts; nothing is left
+	// open here. The count only says how many people are absent.
+	abs := ReadyItem{Kind: "absences", State: ReadyDone, Count: out.Sprint.Entries, Names: []string{}}
 	out.Ready = append(out.Ready, abs)
 
 	if data.Team.Features.Tickets {

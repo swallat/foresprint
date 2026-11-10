@@ -175,7 +175,7 @@ keyboard, readable in light and dark.
 |---|---|---|
 | H1 | Today. | Running sprint, "next" hints, links lead to the right page. |
 | H2 | Backlog. | Views and filters, search, a long backlog scrolls smoothly, ticket panel, ordering by drag and by Alt+arrow, earmarking, presentation view (Escape ends it). |
-| H3 | Sprint overview and Prepare. | Absence grid (person by sprint), period entry, announced/confirmed per cell, capacity freeze, readiness check. |
+| H3 | Sprint overview and Prepare. | Absence grid (person by sprint), period entry, live until start, frozen with the start, drift note and "Adopt periods" afterwards, readiness check. |
 | H4 | Pre-plan. | What-if card, earmarks per sprint, table per product, plannable amount = floor((PLAN - carry-over) x plannable share). |
 | H5 | Plan. | Two lanes with drag and buttons, sum bar, product against budget, project against contingent. Deviations warn and never block. |
 | H6 | Review and Minutes. | Velocity, scope creep, frozen capacity, minutes file written and readable. |

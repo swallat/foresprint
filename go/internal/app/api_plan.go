@@ -1144,7 +1144,10 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	if err := planNonNegative(in.Commitment); err != nil {
 		return "", err
 	}
-	s := c.sprint.Clone()
+	// The start writes the absences fast: the days of the planned periods count as typed, and
+	// every empty cell as 0 days. From here a change of the periods only shows as a note.
+	s := c.effective().Clone()
+	s.Freeze()
 	view, err := c.view(team, nil)
 	if err != nil {
 		return "", err

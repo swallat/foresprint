@@ -32,6 +32,11 @@ type AbsenceColumn struct {
 	PlanLow  *float64 `json:"planLow"`  // lowest and highest PLAN of the window, nil without a projection
 	PlanHigh *float64 `json:"planHigh"`
 	Past     bool     `json:"past"`
+	// FrozenPlan is the Forecast PLAN written at the start of the sprint, nil before it. The
+	// column shows a note when it differs from Plan.
+	FrozenPlan *float64 `json:"frozenPlan"`
+	// Drifts counts the cells whose planned periods give other days than the frozen cell.
+	Drifts int `json:"drifts"`
 }
 
 // AbsenceCell is the absence of one person in one sprint.
@@ -42,6 +47,9 @@ type AbsenceCell struct {
 	Active bool    `json:"active"` // the person is in the team during the sprint
 	// FromPeriod: the days come from a planned absence period, nothing is typed in the sprint.
 	FromPeriod bool `json:"fromPeriod"`
+	// PeriodDays is set when the sprint is frozen and the planned periods now give other days
+	// than the frozen cell (the frozen number no longer matches the current data).
+	PeriodDays *float64 `json:"periodDays"`
 }
 
 // AbsenceRow is one person with a cell per column.
