@@ -222,6 +222,11 @@ func TestWhatIfLowersWhatIsPlannable(t *testing.T) {
 	if err != nil || w == nil || !w.Touched || w.NotDone != 8 || w.Rest != 3 {
 		t.Fatalf("what-if = %+v err = %v", w, err)
 	}
+	// the figures behind the jump: the running sprint counts as finished and moves the trend
+	if y := w.Why; y == nil || y.RunningNormalized == nil || y.TrendBefore == nil || y.TrendAfter == nil ||
+		y.AverageBefore == nil || y.AverageAfter == nil || y.Reference <= 0 || y.Mode == "" {
+		t.Errorf("what-if explains nothing: %+v", y)
+	}
 	if err := api.SaveAssumption(team, next, as); err != nil {
 		t.Fatal(err)
 	}

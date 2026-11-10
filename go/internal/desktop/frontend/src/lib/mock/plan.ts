@@ -146,7 +146,7 @@ function whatIf(sid: string, as: Assumption): WhatIf | null {
   const plan = Math.round(f.plan * k);
   const free = Math.floor(Math.max(plan - rest, 0) * SHARE);
   return {
-    running: cur, touched, commitment, notDone, extra, velocity, plan, planOriginal: f.plan,
+    running: cur, touched, commitment, notDone, extra, velocity, plan, planOriginal: f.plan, why: null,
     low: Math.round(f.low * k), high: Math.round(f.high * k), rest, later, plannable: free, smallStuff: Math.max(plan - rest, 0) - free,
   };
 }

@@ -32,6 +32,7 @@
     await model.change(() => api.SetStartRate(app.team, v), t('Start rate saved.'));
   }
   const n = $derived(count ?? d.tickets.length);
+  const why = $derived(whatIf?.why ?? null);
 
   const ratio = $derived(d.plan != null && d.capacity ? d.plan / d.capacity : null);
   const unit = $derived(unitName(d));
@@ -81,6 +82,16 @@
           <div>{t('No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.')}</div>
         {/if}
         <div class="data">{fmtCap(d.capacity)} {t('PD')} × {fmtRate(fromStart ? d.startRate : (d.trendRate ?? ratio))} = {fmt(d.plan)}</div>
+        {#if why && assumption}
+          <div>
+            {t('Without the assumption the running sprint does not count yet, the trend comes from the finished sprints only.')}
+            {t('With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average of the last {w} sprints before: {a}).', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, c: fmtCap(why.runningCapacity), n: fmt(why.runningNormalized, 1), r: fmtVal(why.reference), w: why.window, a: fmt(why.averageBefore, 1) })}
+          </div>
+          <div>
+            {#if why.mode === 'classic'}{t('The classic trend continues the change of the rolling average, so one more value can turn a falling trend into a rising one.')}{/if}
+            {t('Trend per reference capacity: {before} without, {after} with the assumption.', { before: fmt(why.trendBefore, 1), after: fmt(why.trendAfter, 1) })}
+          </div>
+        {/if}
       </Calc>
     </div>
     <div class="small muted">
@@ -103,6 +114,11 @@
         <span class="muted">{t('Expected amount per capacity PD until three sprints are finished, e.g. 0,7.')}</span>
       {:else}
         {t('range follows with more finished sprints')}
+      {/if}
+      {#if why && assumption && !fromStart}
+        <div>
+          {t('{sprint} counts with {v} {unit}: trend {before} → {after} per {r} PD.', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, before: fmt(why.trendBefore, 1), after: fmt(why.trendAfter, 1), r: fmtVal(why.reference) })}
+        </div>
       {/if}
     </div>
   </div>

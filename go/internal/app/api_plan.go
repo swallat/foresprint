@@ -805,6 +805,7 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 			return nil, err
 		} else if e != nil {
 			ent = e
+			w.Why = c.whatIfWhy(e, fc2)
 			plan = e.Result.Plan
 			low, high = nil, nil
 			if b, ok := analysis.BandAroundPlan(fc2, e); ok {
@@ -832,6 +833,29 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 		w.Plannable, w.SmallStuff = sp.Plannable, sp.SmallStuff
 	}
 	return w, nil
+}
+
+// whatIfWhy collects the figures that explain why the plan with the assumption differs from
+// the one without: the running sprint counts as finished and moves the average and the trend.
+func (c *planCtx) whatIfWhy(after *forecast.TimelineEntry, fcAfter *forecast.Forecast) *WhatIfWhy {
+	cur := c.running()
+	if cur == nil || after == nil || fcAfter == nil || c.entry == nil {
+		return nil
+	}
+	fs := c.data.Team.Forecast
+	why := &WhatIfWhy{Reference: fs.ReferenceCapacity, Window: fs.Window, Mode: string(fs.TrendMode),
+		TrendBefore: c.entry.Result.NormalizedVelocity.Trend, TrendAfter: after.Result.NormalizedVelocity.Trend}
+	if e := fcAfter.Entry(cur.Sprint.ID); e != nil {
+		why.RunningCapacity = e.Result.PlanCapacity
+		why.RunningNormalized = e.Result.NormalizedVelocity.Value
+		why.AverageAfter = e.Result.NormalizedVelocity.Average
+	}
+	for i, e := range c.fc.Entries {
+		if e.Sprint.ID == cur.Sprint.ID && i > 0 {
+			why.AverageBefore = c.fc.Entries[i-1].Result.NormalizedVelocity.Average
+		}
+	}
+	return why
 }
 
 // sortRest adds the rest of a carried ticket to what continues in this sprint or later.
