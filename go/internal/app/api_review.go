@@ -301,6 +301,14 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 					row.Rest = *t.Remaining
 				}
 			}
+			// A ticket of the frozen list counts with the size it had at the start, not with
+			// the estimate or the rest of today.
+			if sz, ok := s.CommittedSizes[r.key]; ok && !r.added {
+				row.Estimate = sz
+				if t := data.TicketByKey(r.key); t == nil || t.Remaining == nil {
+					row.Rest = sz
+				}
+			}
 			if c, ok := carried[r.key]; ok {
 				row.Done, row.Rest, row.Target = false, c.Rest, c.Target
 			} else if out.Reviewed {

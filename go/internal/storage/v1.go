@@ -758,6 +758,11 @@ func sprintExtrasFrom(d *yamlx.Map, s *model.Sprint, where string) error {
 	if s.CommittedTickets, err = texts(get(d, "committed_tickets"), where, "committed_tickets"); err != nil {
 		return err
 	}
+	if m := get(d, "committed_sizes"); m != nil {
+		if s.CommittedSizes, err = floatMap(m, where, "committed_sizes", func(k string) string { return where + ": committed_sizes." + k }); err != nil {
+			return err
+		}
+	}
 	if s.Carry, err = carryFrom(get(d, "carry"), where); err != nil {
 		return err
 	}
@@ -842,6 +847,9 @@ func sprintExtrasTo(d *yamlx.Map, s model.Sprint) {
 	}
 	if s.CommittedTickets != nil {
 		put(d, "committed_tickets", strs(s.CommittedTickets))
+	}
+	if len(s.CommittedSizes) > 0 {
+		put(d, "committed_sizes", sortedFloats(s.CommittedSizes))
 	}
 	if len(s.Removed) > 0 {
 		put(d, "removed_tickets", strs(s.Removed))

@@ -1162,12 +1162,14 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	var noProduct, noProductProd float64
 	if c.tickets() {
 		keys := []string{}
+		sizes := map[string]float64{}
 		for _, k := range in.Tickets {
 			t, ok := byKey[k]
 			if !ok {
 				return "", errors.New(i18n.T("The ticket {key} does not exist.", "key", k))
 			}
 			keys = append(keys, k)
+			sizes[k] = sizeOf(t)
 			commit += sizeOf(t)
 			if t.Product == "" && c.data.Team.Features.Products {
 				noProduct += sizeOf(t)
@@ -1185,6 +1187,7 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
+		s.CommittedSizes = sizes
 		// s.Removed stays: the write-back to the tracker needs to know what the team took out.
 	} else {
 		for id, v := range in.Amounts {
@@ -1316,7 +1319,7 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 // planUnfreeze takes the frozen plan out of a sprint copy.
 func planUnfreeze(s *model.Sprint) {
 	sprintsReopenAbsences(s)
-	s.CommittedTickets = nil
+	s.CommittedTickets, s.CommittedSizes = nil, nil
 	for id, v := range s.Products {
 		v.Planned, v.ProductionPlanned = nil, nil
 		setProductValue(s, id, func(x *model.ProductValues) { *x = v })
