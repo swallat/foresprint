@@ -295,6 +295,9 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				row.RankPos = pc.rankPos(t.Key)
 				row.Status = str(t.Status)
 				row.Estimate = val(t.Estimate)
+				if sz, _ := preplan.TicketSize(*t, data, 1); sz != nil {
+					row.Estimate = *sz
+				}
 				row.Done = t.Done || strings.EqualFold(str(t.Status), "done")
 				row.Rest = row.Estimate
 				if t.Remaining != nil {
