@@ -180,8 +180,8 @@ tickets:
 	if len(r.Pulled) != 1 || r.Pulled[0] != "T-4" || r.AdditionalDone != 2 {
 		t.Fatalf("additionally done not prefilled from the pulled-in ticket: %+v %v", r.Pulled, r.AdditionalDone)
 	}
-	if r.NotDone != 9 {
-		t.Fatalf("not done %v, want the two open tickets (rest 1 + 8)", r.NotDone)
+	if r.NotDone != 11 {
+		t.Fatalf("not done %v, want the two open tickets (3 + 8)", r.NotDone)
 	}
 	// T-2 turns out done; T-3 continues with a rest of 4 in the backlog.
 	in := ReviewInput{FrozenDays: 40, List: []ReviewTicket{
@@ -227,7 +227,7 @@ tickets:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.Tickets || r.Frozen || len(r.List) != 2 || r.List[0].Added || !r.List[0].Done || r.List[1].Done || r.NotDone != 1 || r.AdditionalDone != 0 {
+	if !r.Tickets || r.Frozen || len(r.List) != 2 || r.List[0].Added || !r.List[0].Done || r.List[1].Done || r.NotDone != 3 || r.AdditionalDone != 0 {
 		t.Fatalf("tracker tickets not listed: %+v", r)
 	}
 	closed, err := api.CloseReview(team, id, ReviewInput{FrozenDays: 40, List: []ReviewTicket{{Key: "T-2", Rest: 1, Target: ""}}})
@@ -235,7 +235,7 @@ tickets:
 		t.Fatal(err)
 	}
 	c := closed.Review
-	if !c.Tickets || len(c.List) != 2 || c.RestNext != 1 || c.NotDone != 1 {
+	if !c.Tickets || len(c.List) != 2 || c.RestNext != 1 || c.NotDone != 3 {
 		t.Fatalf("closed view lost the ticket table: %+v", c)
 	}
 	text, _ := api.MinutesText(team, closed.Minutes)
