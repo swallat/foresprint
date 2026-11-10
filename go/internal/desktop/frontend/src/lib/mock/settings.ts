@@ -236,6 +236,9 @@ const settingsMock: SettingsApi = {
   async PackageImportApply(): Promise<Result> {
     return { ok: true, message: '3 work packages imported.' };
   },
+  async SyncTrackerScope(): Promise<Result> {
+    return { ok: true, message: '12 tickets read, no changes.' };
+  },
   async SyncTrackerAuto(): Promise<Result> {
     return { ok: true, message: '46 tickets read, no changes.' };
   },

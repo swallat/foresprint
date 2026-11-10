@@ -589,6 +589,58 @@ func (j *JiraSource) Fetch() ([]RawTicket, error) {
 	if err != nil {
 		return nil, err
 	}
+	return j.fetchJQL(jql)
+}
+
+// keyChunk is how many keys one search asks for (keeps the URL short).
+const keyChunk = 50
+
+// FetchScope reads only the tickets of the saved query that are in the scope: the given keys
+// and/or the tickets of the named sprint. It is the fetch behind a view that shows a part of
+// the tickets. A scope without keys and sprint reads nothing.
+func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, error) {
+	base, err := j.jql()
+	if err != nil {
+		return nil, err
+	}
+	var out []RawTicket
+	seen := map[string]bool{}
+	add := func(raws []RawTicket) {
+		for _, r := range raws {
+			if !seen[r.Key] {
+				seen[r.Key] = true
+				out = append(out, r)
+			}
+		}
+	}
+	if sprint != "" {
+		raws, err := j.fetchJQL("(" + base + ") AND sprint = " + jqlQuote(sprint))
+		if err != nil {
+			return nil, err
+		}
+		add(raws)
+	}
+	for i := 0; i < len(keys); i += keyChunk {
+		end := min(i+keyChunk, len(keys))
+		quoted := make([]string, 0, end-i)
+		for _, k := range keys[i:end] {
+			quoted = append(quoted, jqlQuote(k))
+		}
+		raws, err := j.fetchJQL("(" + base + ") AND key in (" + strings.Join(quoted, ",") + ")")
+		if err != nil {
+			return nil, err
+		}
+		add(raws)
+	}
+	return out, nil
+}
+
+// jqlQuote quotes a JQL string value.
+func jqlQuote(v string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
+}
+
+func (j *JiraSource) fetchJQL(jql string) ([]RawTicket, error) {
 	resolved, err := j.ResolveFields()
 	if err != nil {
 		return nil, err

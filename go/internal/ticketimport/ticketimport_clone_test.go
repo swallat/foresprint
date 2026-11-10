@@ -1,6 +1,7 @@
 package ticketimport
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -88,5 +89,23 @@ func TestFetchWithoutProjectsKeepsTheProject(t *testing.T) {
 		if c.Kind == KindUnassigned || c.Kind == KindUnknownEpic {
 			t.Errorf("change %v although the team keeps no projects", c.Kind)
 		}
+	}
+}
+
+func TestPartialFetchKeepsTicketsOutsideTheScope(t *testing.T) {
+	env := Env{Partial: true, Tickets: []model.Ticket{{Key: "A-1", Title: "one"}, {Key: "A-2", Title: "two"}}}
+	plan := PlanImport(env, []sources.RawTicket{{Key: "A-2", Title: "two renamed"}, {Key: "A-3", Title: "three"}}, nil, false)
+	if len(plan.OfKind(KindMissing)) != 0 {
+		t.Fatalf("a partial fetch reports nothing missing: %v", plan.Changes)
+	}
+	var keys []string
+	for _, tk := range plan.Tickets {
+		keys = append(keys, tk.Key)
+	}
+	if got := strings.Join(keys, ","); got != "A-1,A-2,A-3" {
+		t.Fatalf("tickets = %s, want A-1,A-2,A-3", got)
+	}
+	if plan.Tickets[1].Title != "two renamed" {
+		t.Fatalf("A-2 not updated: %+v", plan.Tickets[1])
 	}
 }
