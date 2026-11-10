@@ -271,8 +271,8 @@ func personFrom(d PersonDTO, stored model.Person, teamCountry string) (model.Per
 			return p, err
 		}
 		ms := model.Membership{Start: from, FTE: m.FTE}
-		if !(m.FTE > 0 && m.FTE <= 1) {
-			return p, errors.New(i18n.T("The share of {name} must be between 0.1 and 1.0.", "name", p.Name))
+		if !(m.FTE >= 0 && m.FTE <= 1) {
+			return p, errors.New(i18n.T("The share of {name} must be between 0 and 1.0.", "name", p.Name))
 		}
 		if m.To != "" {
 			to, err := parseTeamDay(m.To)

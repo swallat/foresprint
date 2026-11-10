@@ -36,7 +36,7 @@
     {
       from: t('Enter the first day of every period.'),
       order: t('The end of a period lies before its start.'),
-      fte: t('The share must be between 0.1 and 1.0.'),
+      fte: t('The share must be between 0 and 1.0.'),
       overlap: t('The periods overlap.'),
       '': '',
     }[problem],
