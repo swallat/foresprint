@@ -749,9 +749,11 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 				continue
 			}
 			found++
+			// Without a size kept at the start a ticket counts like in the Size column: the
+			// rest (Story points) if the team plans with it, else the estimate.
 			est := 0.0
-			if t.Estimate != nil {
-				est = *t.Estimate
+			if sz, _ := preplan.TicketSize(t, c.data, 1); sz != nil {
+				est = *sz
 			}
 			added := frozen && !listed[t.Key]
 			if sz, ok := cur.Sprint.CommittedSizes[t.Key]; ok && !added {
