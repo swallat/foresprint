@@ -24,6 +24,7 @@
   let newComment = $state('');
   let newDep = $state('');
   let loadId = 0;
+  let syncedKey = ''; // the ticket compared with the tracker on opening (not again on every reload)
   let dragging = $state(false);
 
   // The grip on the left edge: dragging left widens the panel (it sits at the right window edge).
@@ -85,6 +86,7 @@
 
   async function load(synced = false): Promise<void> {
     const id = ++loadId;
+    if (!app.ticket) syncedKey = '';
     error = '';
     confirmDelete = false;
     tracker = undefined;
@@ -102,7 +104,10 @@
       if (!d.editable) {
         void loadTracker(id, d.key);
         // opening a tracker ticket compares it with the tracker right away
-        if (!synced) void syncScope([d.key], { force: true }).then((wrote) => (wrote && id === loadId ? load(true) : undefined));
+        if (!synced && syncedKey !== `${app.team}|${d.key}`) {
+          syncedKey = `${app.team}|${d.key}`;
+          void syncScope([d.key], { force: true }).then((wrote) => (wrote && id === loadId ? load(true) : undefined));
+        }
       }
     } catch (e) {
       if (id === loadId) {
