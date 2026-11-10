@@ -1147,6 +1147,13 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	// The start writes the absences fast: the days of the planned periods count as typed, and
 	// every empty cell as 0 days. From here a change of the periods only shows as a note.
 	s := c.effective().Clone()
+	for person := range s.ExpectedAbsences {
+		if c.sprint.CellState(person) == model.AbsencesUnknown { // from a period, not typed
+			s.PeriodCells = append(s.PeriodCells, person)
+		}
+	}
+	sort.Strings(s.PeriodCells)
+	s.PeriodCells = slices.Compact(s.PeriodCells)
 	s.Freeze()
 	view, err := c.view(team, nil)
 	if err != nil {

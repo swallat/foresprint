@@ -128,6 +128,10 @@ type Sprint struct {
 	// ExpectedAbsences are the announced absences per person from the PO pre-planning
 	// (forecast, not yet confirmed).
 	ExpectedAbsences map[string]float64
+	// PeriodCells are the people whose frozen cell was filled from their planned absence periods
+	// when the absences were frozen at the start. Only these cells are compared with the periods
+	// later and follow them again when the sprint is opened.
+	PeriodCells []string
 	// Prognoses are the team forecasts from the PO pre-plannings, older first.
 	Prognoses []Prognosis
 	// Name is a name given by hand; otherwise the naming pattern of the team gives one.
@@ -322,6 +326,7 @@ func (s Sprint) Clone() Sprint {
 	c.Projects = maps.Clone(s.Projects)
 	c.CommittedTickets = slices.Clone(s.CommittedTickets)
 	c.Removed = slices.Clone(s.Removed)
+	c.PeriodCells = slices.Clone(s.PeriodCells)
 	if s.Matrix != nil {
 		c.Matrix = make(map[string]map[string]float64, len(s.Matrix))
 		for k, v := range s.Matrix {

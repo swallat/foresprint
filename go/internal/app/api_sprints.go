@@ -130,18 +130,19 @@ func planSpan(fc *forecast.Forecast, id string) (low, high *float64) {
 // the frozen cell, with the days the periods give. An open sprint follows the periods itself, so
 // it has no drift; people without a period are not compared (their days were typed).
 func sprintsPeriodDrift(data *storage.TeamData, stored model.Sprint) map[string]float64 {
-	if stored.AbsenceStatus() != model.AbsencesConfirmed || data.AbsencePeriods.Len() == 0 {
+	if stored.AbsenceStatus() != model.AbsencesConfirmed || len(stored.PeriodCells) == 0 {
 		return nil
 	}
 	out := map[string]float64{}
-	for _, p := range data.People {
-		list, ok := data.AbsencePeriods.Get(p.ID)
-		if !ok {
-			continue
-		}
-		// A person whose periods give nothing in this sprint has typed days there: no comparison.
-		if now := capacity.AbsenceDaysOf(&data.Team, p, list, stored); now > 0 && now != stored.CellDays(p.ID) {
-			out[p.ID] = now
+	for _, id := range stored.PeriodCells {
+		for _, p := range data.People {
+			if p.ID != id {
+				continue
+			}
+			list, _ := data.AbsencePeriods.Get(p.ID)
+			if now := capacity.AbsenceDaysOf(&data.Team, p, list, stored); now != stored.CellDays(p.ID) {
+				out[p.ID] = now
+			}
 		}
 	}
 	return out
@@ -162,7 +163,7 @@ func column(data *storage.TeamData, fc *forecast.Forecast, stored model.Sprint) 
 	if !col.Past {
 		col.FrozenPlan = s.ForecastPlan
 		col.Drifts = len(sprintsPeriodDrift(data, stored))
-		col.Open = fc.Phase(s) == model.PhaseOpen
+		col.Open = fc.Phase(s) == model.PhaseOpen && s.Commitment == nil && s.CommittedTickets == nil
 	}
 	for _, d := range allAbsences(s) {
 		if d > 0 {
@@ -355,22 +356,17 @@ func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 }
 
 // sprintsReopenAbsences opens a frozen sprint again: the cells count as announced, and the cells
-// that only repeat what the planned periods give are dropped, so the sprint follows the periods
+// that were filled from the planned periods at the start are dropped, so the sprint follows the periods
 // again (typed days stay).
 func sprintsReopenAbsences(data *storage.TeamData, s *model.Sprint) {
 	if s.AbsenceStatus() != model.AbsencesConfirmed {
 		return
 	}
 	s.Unfreeze()
-	for _, p := range data.People {
-		list, ok := data.AbsencePeriods.Get(p.ID)
-		if !ok {
-			continue
-		}
-		if days := capacity.AbsenceDaysOf(&data.Team, p, list, *s); days > 0 && days == s.CellDays(p.ID) {
-			s.SetCell(p.ID, 0, model.AbsencesExpected)
-		}
+	for _, id := range s.PeriodCells {
+		s.SetCell(id, 0, model.AbsencesExpected)
 	}
+	s.PeriodCells = nil
 }
 
 // AdoptPeriods writes the days of the planned absence periods into a frozen sprint, for every
@@ -378,7 +374,7 @@ func sprintsReopenAbsences(data *storage.TeamData, s *model.Sprint) {
 func (a *API) AdoptPeriods(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
 		for person, days := range sprintsPeriodDrift(data, *s) {
-			s.SetCell(person, days, model.AbsencesConfirmed)
+			s.SetCell(person, days, model.AbsencesConfirmed) // 0 removes the cell
 		}
 		return nil
 	})

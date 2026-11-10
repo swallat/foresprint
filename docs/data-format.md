@@ -339,6 +339,7 @@ absences_confirmed: true   # only for older program versions; written together w
 started_on: 2026-10-14      # the day the sprint was started ("Start sprint"), optional; see Sprint workflow
 start_pending: true         # optional: waits for its start (plan frozen early, or the start was taken back)
 expected_absences: {anna: 2}   # PO pre-planning: announced absences (forecast); affect capacity
+period_cells: [anna]              # set at the sprint start: people whose frozen cell came from their absence periods (compared with them later)
                            # and Forecast PLAN until the absences are confirmed
 not_done: 1.5              # review, optional: amount that was not finished
 additional_done: 0.5       # review, optional: done in addition to the commitment

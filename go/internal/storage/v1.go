@@ -752,6 +752,9 @@ func valuesTo(values map[string]model.ProductValues) *yamlx.Map {
 func sprintExtrasFrom(d *yamlx.Map, s *model.Sprint, where string) error {
 	var err error
 	s.Name = text(get(d, "name"))
+	if s.PeriodCells, err = texts(get(d, "period_cells"), where, "period_cells"); err != nil {
+		return err
+	}
 	if s.CommittedTickets, err = texts(get(d, "committed_tickets"), where, "committed_tickets"); err != nil {
 		return err
 	}
@@ -833,6 +836,9 @@ func sprintExtrasTo(d *yamlx.Map, s model.Sprint) {
 		if len(matrix.Entries) > 0 {
 			put(d, "matrix", matrix)
 		}
+	}
+	if len(s.PeriodCells) > 0 {
+		put(d, "period_cells", strs(s.PeriodCells))
 	}
 	if s.CommittedTickets != nil {
 		put(d, "committed_tickets", strs(s.CommittedTickets))

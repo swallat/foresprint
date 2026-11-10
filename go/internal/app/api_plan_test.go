@@ -977,7 +977,8 @@ func TestStartKeepsTypedCellsQuietAndReopenFollowsPeriods(t *testing.T) {
 	if _, err := api.SetAbsence(team, next, person, 2); err != nil { // typed; no period covers it
 		t.Fatal(err)
 	}
-	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: "2030-01-07", To: "2030-01-08"}}); err != nil {
+	other := grid.Rows[1].Person
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: "2030-01-07", To: "2030-01-08"}, {Person: other, From: col.Start, To: col.End}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
@@ -988,20 +989,22 @@ func TestStartKeepsTypedCellsQuietAndReopenFollowsPeriods(t *testing.T) {
 	if c.Drifts != 0 || (c.FrozenPlan != nil && c.Plan != nil && *c.FrozenPlan != *c.Plan) {
 		t.Fatalf("a typed cell or the PLAN shows a false drift: %+v", c)
 	}
-	// Reopening the plan makes period cells follow the periods again.
-	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: grid.Rows[1].Person, From: col.Start, To: col.End}}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := api.AdoptPeriods(team, next); err != nil {
-		t.Fatal(err)
-	}
-	if err := api.ReopenPlan(team, next); err != nil {
-		t.Fatal(err)
-	}
+	// A removed period is a drift (the frozen days stay until adopted or reopened) ...
 	if _, err := api.SaveAbsencePeriods(team, nil); err != nil {
 		t.Fatal(err)
 	}
 	grid, _ = api.AbsenceGrid(team, next, 1)
+	if grid.Columns[0].Drifts != 1 || grid.Rows[1].Cells[0].PeriodDays == nil || *grid.Rows[1].Cells[0].PeriodDays != 0 {
+		t.Fatalf("removed period shows no drift: %+v", grid.Columns[0])
+	}
+	// ... and reopening the plan makes period cells follow the periods again, typed ones stay.
+	if err := api.ReopenPlan(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if got := grid.Rows[0].Cells[0].Days; got != 2 {
+		t.Fatalf("typed days lost: %v", got)
+	}
 	if grid.Columns[0].State == AbsenceConfirmed {
 		t.Fatalf("plan reopened but absences still frozen: %+v", grid.Columns[0])
 	}
