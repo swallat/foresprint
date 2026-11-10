@@ -1146,15 +1146,8 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	}
 	// The start writes the absences fast: the days of the planned periods count as typed, and
 	// every empty cell as 0 days. From here a change of the periods only shows as a note.
-	s := c.effective().Clone()
-	for person := range s.ExpectedAbsences {
-		if c.sprint.CellState(person) == model.AbsencesUnknown { // from a period, not typed
-			s.PeriodCells = append(s.PeriodCells, person)
-		}
-	}
-	sort.Strings(s.PeriodCells)
-	s.PeriodCells = slices.Compact(s.PeriodCells)
-	s.Freeze()
+	s := c.sprint.Clone()
+	sprintsFreezeWithPeriods(c.data, &s)
 	view, err := c.view(team, nil)
 	if err != nil {
 		return "", err
@@ -1321,8 +1314,8 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 }
 
 // planUnfreeze takes the frozen plan out of a sprint copy.
-func planUnfreeze(data *storage.TeamData, s *model.Sprint) {
-	sprintsReopenAbsences(data, s)
+func planUnfreeze(s *model.Sprint) {
+	sprintsReopenAbsences(s)
 	s.CommittedTickets = nil
 	for id, v := range s.Products {
 		v.Planned, v.ProductionPlanned = nil, nil
@@ -1342,7 +1335,7 @@ func (a *API) ReopenPlan(team, sprintID string) error {
 		return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
 	}
 	s := c.sprint.Clone()
-	planUnfreeze(c.data, &s)
+	planUnfreeze(&s)
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
 	if _, err := store.ObsoleteWithSave(sprintID, protocol.Planning, func() ([]string, error) {
 		path, serr := c.repo.SaveSprint(team, &s)

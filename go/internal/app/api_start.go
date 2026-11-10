@@ -157,7 +157,7 @@ func (a *API) WithdrawSprintStart(team, sprintID string) (SprintStart, error) {
 	}
 	s := found.Clone()
 	s.StartedOn, s.StartPending = nil, true
-	planUnfreeze(data, &s)
+	planUnfreeze(&s)
 	store := &protocol.Store{Dir: repo.TeamDir(team)}
 	if _, err := store.ObsoleteWithSave(sprintID, protocol.Planning, func() ([]string, error) {
 		path, serr := repo.SaveSprint(team, &s)

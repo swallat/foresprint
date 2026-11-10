@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -312,6 +313,9 @@ func (a *API) SetAbsence(team, sprintID, person string, days float64) (AbsenceCo
 		if s.CellState(person) == model.AbsencesConfirmed {
 			state = model.AbsencesConfirmed // typing into a confirmed cell keeps it confirmed
 		}
+		if s.AbsenceStatus() == model.AbsencesConfirmed { // a typed day no longer follows the periods
+			s.PeriodCells = slices.DeleteFunc(s.PeriodCells, func(id string) bool { return id == person })
+		}
 		s.SetCell(person, days, state)
 		return nil
 	})
@@ -341,8 +345,7 @@ func (a *API) SetAbsenceConfirmed(team, sprintID, person string, confirmed bool)
 // every empty cell as 0 days, so "nobody is absent" needs no extra step.
 func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
-		*s = forecast.EffectiveSprint(data, *s) // the days of the planned periods are frozen with it
-		s.Freeze()
+		sprintsFreezeWithPeriods(data, s)
 		return nil
 	})
 }
@@ -350,15 +353,33 @@ func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 // UnfreezeAbsences opens a frozen sprint again: the entries count as announced.
 func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
-		sprintsReopenAbsences(data, s)
+		sprintsReopenAbsences(s)
 		return nil
 	})
+}
+
+// sprintsFreezeWithPeriods freezes the absences of a sprint copy: the days of the planned
+// periods count as typed days, empty cells as 0. Every person without a typed cell is recorded
+// in PeriodCells, so a period added, changed or removed later shows as a drift.
+func sprintsFreezeWithPeriods(data *storage.TeamData, s *model.Sprint) {
+	if s.AbsenceStatus() == model.AbsencesConfirmed { // frozen before: nothing follows the periods any more
+		return
+	}
+	var followers []string
+	for _, p := range data.People {
+		if s.CellState(p.ID) == model.AbsencesUnknown {
+			followers = append(followers, p.ID)
+		}
+	}
+	*s = forecast.EffectiveSprint(data, *s).Clone()
+	s.PeriodCells = followers
+	s.Freeze()
 }
 
 // sprintsReopenAbsences opens a frozen sprint again: the cells count as announced, and the cells
 // that were filled from the planned periods at the start are dropped, so the sprint follows the periods
 // again (typed days stay).
-func sprintsReopenAbsences(data *storage.TeamData, s *model.Sprint) {
+func sprintsReopenAbsences(s *model.Sprint) {
 	if s.AbsenceStatus() != model.AbsencesConfirmed {
 		return
 	}
