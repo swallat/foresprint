@@ -475,7 +475,7 @@ func (a *API) lanes(data *storage.TeamData) ([]BacklogLane, []model.Sprint) {
 	out := make([]BacklogLane, 0, len(upcoming))
 	for _, s := range upcoming {
 		state := "unknown"
-		switch s.AbsenceStatus() {
+		switch forecast.EffectiveSprint(data, s).AbsenceStatus() {
 		case model.AbsencesConfirmed:
 			state = "confirmed"
 		case model.AbsencesExpected:

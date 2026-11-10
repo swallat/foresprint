@@ -348,11 +348,13 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	v.Days = workdays(c)
 	v.Stage = c.stage()
 	v.StartedOn, v.StartDue = startInfo(c.sprint, c.fc.Phase(c.sprint), c.today)
-	v.Absences = absenceName(s)
-	if len(s.Absences) > 0 {
-		v.AbsenceDays = sumPtr(s.Absences)
+	// Absences count with the days of the planned periods; the stored sprint stays as typed.
+	eff := c.effective()
+	v.Absences = absenceName(eff)
+	if len(eff.Absences) > 0 {
+		v.AbsenceDays = sumPtr(eff.Absences)
 	} else {
-		v.AbsenceDays = sumPtr(s.ExpectedAbsences)
+		v.AbsenceDays = sumPtr(eff.ExpectedAbsences)
 	}
 
 	order := make([]string, 0, len(c.fc.Entries)+1)
@@ -466,6 +468,10 @@ func (c *planCtx) previous() *model.Sprint {
 	}
 	return nil
 }
+
+// effective is the sprint as the forecast counts it: with the absence days of the planned
+// periods. Only for reading; edits must start from c.sprint so nothing derived is saved.
+func (c *planCtx) effective() model.Sprint { return forecast.EffectiveSprint(c.data, c.sprint) }
 
 func workdays(c *planCtx) int {
 	n := 0
@@ -611,10 +617,11 @@ func (c *planCtx) production(v *PlanSprint) *PlanProduction {
 		rate = *v.Rate
 	}
 	absRate := 0.0
-	if c.fc.Absences != nil && c.fc.Absences.Rate != nil && c.sprint.AbsenceStatus() == model.AbsencesUnknown {
+	eff := c.effective()
+	if c.fc.Absences != nil && c.fc.Absences.Rate != nil && eff.AbsenceStatus() == model.AbsencesUnknown {
 		absRate = *c.fc.Absences.Rate
 	}
-	pt := capacity.ProductionTimeOf(&c.data.Team, c.data.People, c.sprint, absRate, c.capPercent())
+	pt := capacity.ProductionTimeOf(&c.data.Team, c.data.People, eff, absRate, c.capPercent())
 	out := &PlanProduction{Time: pt.Time, CapPercent: pt.CapPercent, Available: pt.Available, People: []PlanProdPerson{}}
 	for _, p := range pt.People {
 		out.People = append(out.People, PlanProdPerson{Name: p.Person.Name, Capacity: p.Capacity, Absence: p.AbsenceDays})
