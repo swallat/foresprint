@@ -37,6 +37,7 @@ func (a *API) ArchiveTeam(team, confirm string) error {
 	}
 	a.forget(team)
 	delete(a.run.failed, team)
+	delete(a.run.checked, team)
 	return nil
 }
 

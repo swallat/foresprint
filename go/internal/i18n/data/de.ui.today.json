@@ -2,9 +2,11 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "A folder on a file server or in a sync service such as Dropbox, Nextcloud or OneDrive, instead of a Git repository.": "Ein Ordner auf einem Dateiserver oder in einem Sync-Dienst wie Dropbox, Nextcloud oder OneDrive, statt eines Git-Repositorys.",
+  "Test the shared folder and press “Use this folder” first.": "Teste zuerst den geteilten Ordner und drücke „Diesen Ordner verwenden“.",
+  "Shared folder: {folder}": "Geteilter Ordner: {folder}",
   "1 day left.": "Noch 1 Tag.",
   "A few short steps. You can go back at any time; everything stays changeable in the settings.": "Ein paar kurze Schritte. Du kannst jederzeit zurück; alles bleibt in den Einstellungen änderbar.",
-  "A file server or SharePoint follows after 1.0.": "Dateiserver oder SharePoint folgen nach 1.0.",
   "A repository with the data of the team is already on this computer.": "Ein Repository mit den Daten des Teams liegt schon auf diesem Rechner.",
   "Absences (people away)": "Abwesenheiten (wer fehlt)",
   "Address": "Adresse",
@@ -126,6 +128,9 @@
   "Naming pattern of the sprints (optional)": "Namensmuster der Sprints (optional)",
   "e.g. Team {JJJJ}.{N}": "z. B. Team {JJJJ}.{N}",
   "Read from the name: {pattern}. The next sprints are named the same way.": "Aus dem Namen gelesen: {pattern}. Die nächsten Sprints werden genauso benannt.",
-  "{JJJJ} year, {N} number in the year, {LFD} running number.": "{JJJJ} Jahr, {N} Nummer im Jahr, {LFD} laufende Nummer."
+  "{JJJJ} year, {N} number in the year, {LFD} running number.": "{JJJJ} Jahr, {N} Nummer im Jahr, {LFD} laufende Nummer.",
+  "Silence this finding. You can bring it back below.": "Diesen Befund stummschalten. Du kannst ihn unten wieder anzeigen.",
+  "{n} silenced": "{n} stummgeschaltet",
+  "Show again": "Wieder anzeigen"
  }
 }
