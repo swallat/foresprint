@@ -348,3 +348,24 @@ func TestSavePeopleNewPersonRemovableInSprintClosedEarly(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestSavePeopleAcceptsShareZeroAndOthersStaySavable(t *testing.T) {
+	api, team := demoCopy(t)
+	view, _ := api.People(team)
+	list := append([]PersonDTO{}, view.People...)
+	list = append(list, PersonDTO{Name: "Zero", Memberships: []MembershipDTO{{From: "2026-11-01", FTE: 0}}})
+	got, err := api.SavePeople(team, list)
+	if err != nil {
+		t.Fatalf("a share of 0 was refused: %v", err)
+	}
+	// Changing somebody else must not fail because of the 0.
+	next := append([]PersonDTO{}, got.People...)
+	next[0].Name += " B"
+	if _, err := api.SavePeople(team, next); err != nil {
+		t.Fatalf("saving another person failed: %v", err)
+	}
+	next[len(next)-1].Memberships[0].FTE = -0.1
+	if _, err := api.SavePeople(team, next); err == nil {
+		t.Error("a negative share was accepted")
+	}
+}

@@ -76,7 +76,7 @@ export function periodProblem(p: Person): PeriodProblem {
     const m = ms[i]!;
     if (m.from === '') return 'from';
     if (m.to !== '' && m.to < m.from) return 'order';
-    if (!(m.fte > 0 && m.fte <= 1)) return 'fte';
+    if (!(m.fte >= 0 && m.fte <= 1)) return 'fte';
     const prev = ms[i - 1];
     if (prev && (prev.to === '' || m.from <= prev.to)) return 'overlap';
   }

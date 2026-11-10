@@ -113,8 +113,8 @@
 
   function setShare(p: Person, text: string) {
     const fte = parseNum(text);
-    if (!(fte > 0 && fte <= 1)) {
-      toast(t('Enter a share between 0.1 and 1.0.'), 'bad');
+    if (!(fte >= 0 && fte <= 1)) {
+      toast(t('Enter a share between 0 and 1.0.'), 'bad');
       return load();
     }
     return save(replace(withShare(p, today, fte)), '', false);
