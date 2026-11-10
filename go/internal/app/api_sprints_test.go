@@ -309,3 +309,43 @@ func TestAbsenceGridShowsPeriodsAndFreezeKeepsThem(t *testing.T) {
 		t.Fatalf("frozen days lost: %+v", cell)
 	}
 }
+
+// A planned absence period reaches every page that shows absences, not only the grid, and a
+// change of the period follows at once (the stored sprint stays as typed).
+func TestPeriodsReachPlanPageAndFollowChanges(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	grid, err := api.AbsenceGrid(team, "", 40)
+	if err != nil {
+		t.Fatal(err)
+	}
+	col := grid.Columns[len(grid.Columns)-1]
+	person := grid.Rows[0].Person
+	days := func() float64 {
+		v, err := api.PlanSprint(team, col.ID, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v.AbsenceDays
+	}
+	if days() != 0 {
+		t.Skip("the demo sprint already has absences")
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	long := days()
+	if long == 0 {
+		t.Fatal("the Plan page ignores the planned period")
+	}
+	v, _ := api.PlanSprint(team, col.ID, nil)
+	if v.Absences != "announced" {
+		t.Fatalf("state = %q, want announced", v.Absences)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.Start}}); err != nil {
+		t.Fatal(err)
+	}
+	if short := days(); short == 0 || short >= long {
+		t.Fatalf("shortened period gives %v days, was %v", short, long)
+	}
+}
