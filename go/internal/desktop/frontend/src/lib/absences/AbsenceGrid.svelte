@@ -205,7 +205,7 @@
                 {#if !cell.active}
                   <span class="muted" title={t('Not in the team during this sprint.')}>–</span>
                 {:else}
-                  <div class="cell {cell.state === 'confirmed' && cell.days > 0 ? 'c' : cell.state === 'announced' ? 'a' : ''}" class:g={ghost !== undefined} class:d={cell.periodDays != null}>
+                  <div class="cell {cell.state === 'confirmed' && cell.days > 0 ? 'c' : ''}" class:g={ghost !== undefined} class:d={cell.periodDays != null}>
                     <input
                       class="input data"
                       inputmode="decimal"
@@ -322,10 +322,6 @@
     height: 28px;
     text-align: right;
     padding: 0 8px;
-  }
-  .cell.a .input {
-    background: var(--warn-weak);
-    border-color: var(--warn);
   }
   .cell.c .input {
     background: var(--ok-weak);

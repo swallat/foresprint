@@ -52,7 +52,7 @@ describe('AbsenceGrid', () => {
     cell.dispatchEvent(new Event('change', { bubbles: true }));
     await settle();
     expect(cell.value).toMatch(/2[.,]5/); // half days
-    expect(cell.closest('.cell')!.classList.contains('a')).toBe(true);
+    expect(cell.closest('.cell')!.classList.contains('c')).toBe(false); // open sprints have no colour: they are live
 
     cell.value = '';
     cell.dispatchEvent(new Event('change', { bubbles: true }));
