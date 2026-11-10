@@ -88,6 +88,9 @@ type Env struct {
 	// KeepOrder keeps the PO's own order of tracker tickets (preplan.yaml order); otherwise a
 	// fetch takes over the order of the tracker again.
 	KeepOrder bool
+	// Partial: the raw tickets are only a part of the query (one view). Known tickets that are
+	// not delivered stay as they are; nothing is reported missing.
+	Partial bool
 }
 
 // Plan is the result of the preview: the tickets to write, the reconciled preplan and what
@@ -692,7 +695,7 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 	}
 
 	for _, key := range oldOrder {
-		if _, ok := seen[key]; ok {
+		if _, ok := seen[key]; ok || env.Partial {
 			continue
 		}
 		prev := old[key]
@@ -733,6 +736,9 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 		}
 	}
 
+	if env.Partial {
+		plan.Tickets = mergePartial(env.Tickets, plan.Tickets)
+	}
 	for _, cycle := range FindCycles(plan.Tickets) {
 		plan.Warnings = append(plan.Warnings, sources.T("Circular dependencies: {cycle}",
 			"cycle", strings.Join(append(append([]string{}, cycle...), cycle[0]), " → ")))
@@ -871,4 +877,32 @@ func indexOf(list []string, s string) int {
 		}
 	}
 	return -1
+}
+
+// mergePartial puts the updated tickets into the stored ones: known tickets keep their place,
+// new ones follow at the end.
+func mergePartial(stored, updated []model.Ticket) []model.Ticket {
+	byKey := make(map[string]model.Ticket, len(updated))
+	for _, tk := range updated {
+		byKey[tk.Key] = tk
+	}
+	out := make([]model.Ticket, 0, len(stored)+len(updated))
+	placed := map[string]bool{}
+	for _, tk := range stored {
+		if placed[tk.Key] {
+			continue
+		}
+		placed[tk.Key] = true
+		if nt, ok := byKey[tk.Key]; ok {
+			tk = nt
+		}
+		out = append(out, tk)
+	}
+	for _, tk := range updated {
+		if !placed[tk.Key] {
+			placed[tk.Key] = true
+			out = append(out, tk)
+		}
+	}
+	return out
 }

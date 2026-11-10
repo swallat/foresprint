@@ -523,6 +523,10 @@ func (a *API) SyncTracker(team string) (Result, error) {
 }
 
 func (a *API) trackerSyncRun(team string, keepOrder bool) (Result, error) {
+	return a.trackerRun(team, func() (Result, error) { return a.syncTracker(team, keepOrder) })
+}
+
+func (a *API) trackerRun(team string, run func() (Result, error)) (Result, error) {
 	a.mu.Lock()
 	if a.run.syncing[team] {
 		a.mu.Unlock()
@@ -533,7 +537,7 @@ func (a *API) trackerSyncRun(team string, keepOrder bool) (Result, error) {
 	}
 	a.run.syncing[team] = true
 	a.mu.Unlock()
-	res, err := a.syncTracker(team, keepOrder)
+	res, err := run()
 	a.mu.Lock()
 	delete(a.run.syncing, team)
 	if a.run.failed == nil {
@@ -558,7 +562,25 @@ func (a *API) SyncTrackerAuto(team string) (Result, error) {
 	return a.trackerSyncRun(team, true)
 }
 
+// SyncTrackerScope reads only the tickets a view shows: the given keys and/or the tickets of
+// one sprint (by name). Known tickets outside the scope stay untouched and none is removed (only
+// a full fetch removes). The own order of the PO stays. An empty scope reads nothing.
+func (a *API) SyncTrackerScope(team string, keys []string, sprint string) (Result, error) {
+	if len(keys) == 0 && sprint == "" {
+		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", 0)}, nil
+	}
+	return a.trackerRun(team, func() (Result, error) { return a.trackerScopeSync(team, keys, sprint) })
+}
+
 func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
+	return a.trackerSyncWith(team, keepOrder, nil, "", false)
+}
+
+func (a *API) trackerScopeSync(team string, keys []string, sprint string) (Result, error) {
+	return a.trackerSyncWith(team, true, keys, sprint, true)
+}
+
+func (a *API) trackerSyncWith(team string, keepOrder bool, keys []string, sprint string, partial bool) (Result, error) {
 	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return Result{}, err
@@ -571,11 +593,18 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 		return Result{}, err
 	}
 	defer jira.Close()
-	raws, err := jira.Fetch()
+	var raws []sources.RawTicket
+	if partial {
+		raws, err = jira.FetchScope(keys, sprint)
+	} else {
+		raws, err = jira.Fetch()
+		if err == nil {
+			a.trackerReadBoardSprints(team, jira, data.Team.Tracker) // best effort: the backlog also shows empty sprints
+		}
+	}
 	if err != nil {
 		return Result{}, err
 	}
-	a.trackerReadBoardSprints(team, jira, data.Team.Tracker) // best effort: the backlog also shows empty sprints
 	// Edits of the PO during the fetch (pro-forma, earmarks, order) must not be written over:
 	// work from the files as they are now.
 	backlogMu.Lock()
@@ -584,12 +613,12 @@ func (a *API) syncTracker(team string, keepOrder bool) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if len(raws) == 0 && len(data.Tickets) > 0 {
+	if len(raws) == 0 && len(data.Tickets) > 0 && !partial {
 		return Result{}, bad("The query returned no tickets – nothing written. Check the query and the permissions of the token.")
 	}
 	name := jira.Name()
 	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, NoProjects: !data.Team.Features.Projects, Tickets: data.Tickets,
-		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: todayOf(data), KeepOrder: keepOrder}
+		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: todayOf(data), KeepOrder: keepOrder, Partial: partial}
 	plan := ticketimport.PlanImport(env, raws, &name, true)
 	a.mu.Lock()
 	if a.run.mapped == nil {
