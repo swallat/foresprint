@@ -526,8 +526,14 @@ func TestWhatIfIgnoresTypedCommitmentWithTickets(t *testing.T) {
 	if err != nil || w == nil {
 		t.Fatalf("what-if = %+v err = %v", w, err)
 	}
-	if w.Commitment == 99 || w.Touched {
+	// the sum of the tickets counts; with everything done by default the plan follows it
+	if w.Commitment == 99 || !w.Touched || w.Default {
 		t.Errorf("typed commitment counted with tickets: %+v", w)
+	}
+	// nothing entered: the default is that every ticket of the running sprint gets done
+	d, err := api.WhatIf(team, next, Assumption{Label: "A", Carry: []CarryInput{}})
+	if err != nil || d == nil || !d.Default || !d.Touched || d.NotDone != 0 || d.Velocity != d.Commitment {
+		t.Errorf("default assumption = %+v err = %v", d, err)
 	}
 }
 

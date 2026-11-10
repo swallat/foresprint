@@ -127,6 +127,8 @@ export interface WhatIf {
   later: number;
   plannable: number;
   smallStuff: number;
+  /** Nothing was entered: everything of the running sprint counts as done. */
+  default: boolean;
   why: WhatIfWhy | null;
 }
 

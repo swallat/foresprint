@@ -33,6 +33,8 @@
   }
   const n = $derived(count ?? d.tickets.length);
   const why = $derived(whatIf?.why ?? null);
+  /** An assumption of the person, or the default that everything of the running sprint is done. */
+  const assumed = $derived(!!assumption || (whatIf?.default ?? false));
 
   const ratio = $derived(d.plan != null && d.capacity ? d.plan / d.capacity : null);
   const unit = $derived(unitName(d));
@@ -71,7 +73,7 @@
   <div class="tile">
     <h2>
       {t('Forecast PLAN')}
-      {#if assumption}<span class="chip">{t('with assumption {label}', { label: assumption })}</span>{/if}
+      {#if assumption}<span class="chip">{t('with assumption {label}', { label: assumption })}</span>{:else if whatIf?.default}<span class="chip">{t('all tickets done')}</span>{/if}
       {#if fromStart}<span class="chip warn">{t('start rate')}</span>{/if}
     </h2>
     <div class="row">
@@ -82,7 +84,7 @@
           <div>{t('No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.')}</div>
         {/if}
         <div class="data">{fmtCap(d.capacity)} {t('PD')} × {fmtRate(fromStart ? d.startRate : (d.trendRate ?? ratio))} = {fmt(d.plan)}</div>
-        {#if why && assumption && !fromStart}
+        {#if why && assumed && !fromStart}
           <div>
             {t('Without the assumption the running sprint does not count yet, the trend comes from the finished sprints only.')}
             {t('With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average before: {a}).', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, c: fmtCap(why.runningCapacity), n: fmt(why.runningNormalized, 1), r: fmtVal(why.reference), a: fmt(why.averageBefore, 1) })}
@@ -97,7 +99,7 @@
     <div class="small muted">
       {#if d.low != null && d.high != null}
         {t('range')} <span class="data">{fmt(d.low)} – {fmt(d.high)}</span>
-        {#if assumption && whatIf?.planOriginal != null}· {t('without assumption')} <span class="data">{fmt(whatIf.planOriginal)}</span>{/if}
+        {#if assumed && whatIf?.planOriginal != null}· {assumption ? t('without assumption') : t('without running sprint')} <span class="data">{fmt(whatIf.planOriginal)}</span>{/if}
       {:else if fromStart}
         {t('Estimate from the start rate {rate}, no range yet', { rate: fmtRate(d.startRate) })}
       {:else if askStart}
@@ -115,7 +117,7 @@
       {:else}
         {t('range follows with more finished sprints')}
       {/if}
-      {#if why && assumption && !fromStart}
+      {#if why && assumed && !fromStart}
         <div>
           {t('{sprint} counts with {v} {unit}: trend {before} → {after} per {r} PD.', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, before: fmt(why.trendBefore, 1), after: fmt(why.trendAfter, 1), r: fmtVal(why.reference) })}
         </div>

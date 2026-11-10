@@ -406,6 +406,13 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 			}
 		}
 		sort.SliceStable(v.Assumptions, func(i, j int) bool { return v.Assumptions[i].Label < v.Assumptions[j].Label })
+		if assume == nil && len(v.Assumptions) > 0 {
+			assume = &v.Assumptions[len(v.Assumptions)-1] // the newest saved one
+		}
+		if assume == nil {
+			// Without an assumption of the person the running sprint counts as completely done.
+			assume = &Assumption{Carry: []CarryInput{}}
+		}
 		if assume != nil {
 			w, err := c.whatIf(*assume)
 			if err != nil {
@@ -779,14 +786,17 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 		if typed {
 			w.Commitment = *as.Commitment
 		}
-		w.Touched = len(as.Carry) > 0 || typed
+		// Default assumption: everything of the running sprint gets done (nothing carried over).
+		w.Touched = len(as.Carry) > 0 || typed || found > 0
 	} else {
 		w.Commitment = floatOr(as.Commitment, floatOr(cur.Sprint.Commitment, 0))
 		w.NotDone, w.Extra = floatOr(as.NotDone, 0), floatOr(as.Extra, 0)
 		rest := math.Min(floatOr(as.RestNext, w.NotDone), w.NotDone)
 		w.Rest, w.Later = rest, w.NotDone-rest
-		w.Touched = w.Commitment != floatOr(cur.Sprint.Commitment, 0) || w.NotDone > 0 || w.Extra > 0
+		w.Touched = w.Commitment != floatOr(cur.Sprint.Commitment, 0) || w.NotDone > 0 || w.Extra > 0 || w.Commitment > 0
 	}
+	w.Default = len(as.Carry) == 0 && as.Commitment == nil && as.NotDone == nil && as.Extra == nil && as.RestNext == nil &&
+		as.FocusPercent == nil && as.ExtraAbsenceDays == nil
 	w.Velocity = math.Max(w.Commitment-w.NotDone+w.Extra, 0)
 
 	plan, low, high := c.entry.Result.Plan, (*float64)(nil), (*float64)(nil)

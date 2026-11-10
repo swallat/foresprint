@@ -94,7 +94,8 @@ export class PlanModel {
       if (my !== this.seq) return;
       ensureDrafts(first.assumptions);
       const a = assumptions.active;
-      const use = touched(a, first.source !== 'none') ? $state.snapshot(a) : null;
+      // With a running sprint the plan always follows an assumption; untouched it is "all done".
+      const use = first.running || touched(a, first.source !== 'none') ? $state.snapshot(a ?? emptyAssumption('A')) : null;
       const data = use ? withLists(await api.PlanSprint(team, sprint, use as Assumption)) : first;
       this.running = use && first.running ? await api.WhatIf(team, sprint, use as Assumption) : null;
       if (my !== this.seq) return;

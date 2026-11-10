@@ -233,6 +233,8 @@ type WhatIf struct {
 	Later        float64  `json:"later"`
 	Plannable    float64  `json:"plannable"`
 	SmallStuff   float64  `json:"smallStuff"`
+	// Default: no assumption was entered, so everything of the running sprint counts as done.
+	Default bool `json:"default"`
 	// Why explains the jump of the Forecast PLAN: how the running sprint counts once the
 	// assumption makes it a finished sprint (nil if the plan does not change that way).
 	Why *WhatIfWhy `json:"why"`
