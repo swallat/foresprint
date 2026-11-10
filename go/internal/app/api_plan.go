@@ -754,6 +754,9 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 				est = *t.Estimate
 			}
 			added := frozen && !listed[t.Key]
+			if sz, ok := cur.Sprint.CommittedSizes[t.Key]; ok && !added {
+				est = sz
+			}
 			it, isCarried := carried[t.Key]
 			switch {
 			case !added:
@@ -1169,7 +1172,9 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 				return "", errors.New(i18n.T("The ticket {key} does not exist.", "key", k))
 			}
 			keys = append(keys, k)
-			sizes[k] = sizeOf(t)
+			if t.Size != nil {
+				sizes[k] = math.Round(sizeOf(t)*100) / 100
+			}
 			commit += sizeOf(t)
 			if t.Product == "" && c.data.Team.Features.Products {
 				noProduct += sizeOf(t)

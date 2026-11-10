@@ -502,7 +502,7 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 				return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", got.Target))
 			}
 			if !row.Added {
-				notDone += row.Estimate
+				notDone = math.Round((notDone+row.Estimate)*100) / 100
 			}
 			key := row.Key
 			s.Carry = append(s.Carry, model.CarryItem{Ticket: &key, Rest: got.Rest, Target: got.Target})
