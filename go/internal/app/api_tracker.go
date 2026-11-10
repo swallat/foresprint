@@ -616,7 +616,7 @@ func (a *API) trackerSyncWith(team string, keepOrder bool, keys []string, sprint
 	if plan.Unchanged(data.Tickets, data.TicketsSource) {
 		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", len(raws))}, nil
 	}
-	if _, err := plan.Apply(planSaver{repo}, team, now()); err != nil {
+	if _, err := plan.Apply(planSaver{repo, trackerStampOf(partial, data.TicketsImported)}, team, now()); err != nil {
 		return Result{}, err
 	}
 	storage.ClearTeamCache()
@@ -624,9 +624,16 @@ func (a *API) trackerSyncWith(team string, keepOrder bool, keys []string, sprint
 }
 
 // planSaver writes the files of an import.
-type planSaver struct{ repo *storage.Repository }
+type planSaver struct {
+	repo *storage.Repository
+	// keepStamp: a partial fetch leaves the time of the last full fetch alone.
+	keepStamp *time.Time
+}
 
 func (s planSaver) SaveTickets(team string, tickets []model.Ticket, now time.Time, source *string) (string, error) {
+	if s.keepStamp != nil {
+		now = *s.keepStamp
+	}
 	return s.repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets, Imported: &now, Source: source})
 }
 
@@ -881,4 +888,12 @@ func (a *API) RefreshBoardSprints(team string) (int, error) {
 	}
 	a.trackerKeepBoard(team, *t.BoardID, list)
 	return len(list), nil
+}
+
+// trackerStampOf is the time stamp a partial fetch keeps (nil: write the new one).
+func trackerStampOf(partial bool, last *time.Time) *time.Time {
+	if partial {
+		return last
+	}
+	return nil
 }

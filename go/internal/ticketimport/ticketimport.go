@@ -612,6 +612,9 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 	for i, key := range order {
 		plan.Tickets[i] = seen[key]
 		plan.Tickets[i].SubtaskCount = subtasks[key]
+		if prev, ok := old[key]; ok && env.Partial {
+			plan.Tickets[i].SubtaskCount = prev.SubtaskCount // a scope does not deliver all sub-tasks
+		}
 		if env.NoProjects {
 			plan.Tickets[i].Project, plan.Tickets[i].ProjectCandidates = old[key].Project, []string{}
 		}

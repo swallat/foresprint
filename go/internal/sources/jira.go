@@ -603,6 +603,7 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 	if err != nil {
 		return nil, err
 	}
+	base = stripOrderBy(base) // "(… ORDER BY Rank) AND …" is not valid JQL; the stored order stays anyway
 	var out []RawTicket
 	seen := map[string]bool{}
 	add := func(raws []RawTicket) {
@@ -633,6 +634,32 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 		add(raws)
 	}
 	return out, nil
+}
+
+// stripOrderBy cuts a trailing ORDER BY clause (outside quotes) off a JQL query.
+func stripOrderBy(q string) string {
+	inQuote := false
+	var quote rune
+	runes := []rune(q)
+	for i, r := range runes {
+		switch {
+		case inQuote:
+			if r == '\\' {
+				continue
+			}
+			if r == quote && (i == 0 || runes[i-1] != '\\') {
+				inQuote = false
+			}
+		case r == '"' || r == '\'':
+			inQuote, quote = true, r
+		case (r == 'o' || r == 'O') && (i == 0 || runes[i-1] == ' ' || runes[i-1] == ')' || runes[i-1] == '\n' || runes[i-1] == '\t'):
+			rest := strings.ToLower(string(runes[i:]))
+			if strings.HasPrefix(rest, "order") && len(strings.Fields(rest)) >= 2 && strings.Fields(rest)[0] == "order" && strings.Fields(rest)[1] == "by" {
+				return strings.TrimSpace(string(runes[:i]))
+			}
+		}
+	}
+	return q
 }
 
 // jqlQuote quotes a JQL string value.
