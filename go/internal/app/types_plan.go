@@ -233,6 +233,30 @@ type WhatIf struct {
 	Later        float64  `json:"later"`
 	Plannable    float64  `json:"plannable"`
 	SmallStuff   float64  `json:"smallStuff"`
+	// Default: no assumption was entered, so everything of the running sprint counts as done.
+	Default bool `json:"default"`
+	// Why explains the jump of the Forecast PLAN: how the running sprint counts once the
+	// assumption makes it a finished sprint (nil if the plan does not change that way).
+	Why *WhatIfWhy `json:"why"`
+}
+
+// WhatIfWhy lists the figures behind the difference between the plan without and with an
+// assumption. All values are normalized to the reference capacity of the team.
+type WhatIfWhy struct {
+	Reference       float64  `json:"reference"`
+	Window          int      `json:"window"`
+	RunningCapacity *float64 `json:"runningCapacity"`
+	// RunningNormalized is the expected velocity of the running sprint per reference capacity.
+	RunningNormalized *float64 `json:"runningNormalized"`
+	// AverageBefore is the rolling average of the sprints before the running one, AverageAfter
+	// the same with the running sprint included.
+	AverageBefore *float64 `json:"averageBefore"`
+	AverageAfter  *float64 `json:"averageAfter"`
+	// TrendBefore and TrendAfter are the rates the plan is calculated with (without / with).
+	TrendBefore *float64 `json:"trendBefore"`
+	TrendAfter  *float64 `json:"trendAfter"`
+	// Mode is the trend mode of the team (classic, linear or flat).
+	Mode string `json:"mode"`
 }
 
 // RunningTicket is a ticket of the running sprint for the what-if table.
