@@ -33,7 +33,6 @@
   }
   const n = $derived(count ?? d.tickets.length);
 
-  const stateName = (s: string) => ({ confirmed: t('confirmed'), announced: t('announced'), unknown: t('unknown') })[s] ?? s;
   const ratio = $derived(d.plan != null && d.capacity ? d.plan / d.capacity : null);
   const unit = $derived(unitName(d));
   const split = $derived(d.split);
@@ -61,7 +60,7 @@
       </Calc>
     </div>
     <div class="small muted">
-      {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmtVal(d.absenceDays), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
+      {#if d.absenceDays}{d.absences === 'confirmed' ? t('{n} PD absence ({state})', { n: fmtVal(d.absenceDays), state: t('frozen') }) : t('{n} PD absence', { n: fmtVal(d.absenceDays) })}{:else}{t('no absence entered')}{/if}
     </div>
     {#if prod}
       <div class="small muted">{t('with production access about {n} PD', { n: fmtCap(prod.time) })}</div>
