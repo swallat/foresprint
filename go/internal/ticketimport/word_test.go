@@ -56,7 +56,7 @@ func TestResolveSprintExactIgnoresBareNumbers(t *testing.T) {
 	for name, want := range map[string]string{
 		"2026.20":             "2026.20",
 		"Team Sprint 2026.20": "2026.20",
-		"Atlas Sprint 33":        "2026.20",
+		"Atlas Sprint 33":     "2026.20",
 		"3":                   "3",
 		"Other Team Sprint 3": "",
 		"Release 45":          "",
