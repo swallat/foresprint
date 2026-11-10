@@ -6,7 +6,7 @@
   import { untrack } from 'svelte';
   import { fmt, fmtVal } from '../../lib/format';
   import { api } from '../../lib/api';
-  import { app, toast, win, PANEL_MIN, panelDocked, panelWidthMax, panelWidthNow, setPanelMode, setPanelWidth } from '../../lib/app.svelte';
+  import { app, syncScope, toast, win, PANEL_MIN, panelDocked, panelWidthMax, panelWidthNow, setPanelMode, setPanelWidth } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, TrackerDetails, WorkPackageInput } from '../../lib/types.backlog';
   import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
@@ -24,6 +24,7 @@
   let newComment = $state('');
   let newDep = $state('');
   let loadId = 0;
+  let syncedKey = ''; // the ticket compared with the tracker on opening (not again on every reload)
   let dragging = $state(false);
 
   // The grip on the left edge: dragging left widens the panel (it sits at the right window edge).
@@ -83,8 +84,9 @@
     };
   }
 
-  async function load(): Promise<void> {
+  async function load(synced = false): Promise<void> {
     const id = ++loadId;
+    if (!app.ticket) syncedKey = '';
     error = '';
     confirmDelete = false;
     tracker = undefined;
@@ -99,7 +101,14 @@
       if (id !== loadId) return;
       detail = d;
       draft = d.editable ? fromDetail(d) : undefined;
-      if (!d.editable) void loadTracker(id, d.key);
+      if (!d.editable) {
+        void loadTracker(id, d.key);
+        // opening a tracker ticket compares it with the tracker right away
+        if (!synced && syncedKey !== `${app.team}|${d.key}`) {
+          syncedKey = `${app.team}|${d.key}`;
+          void syncScope([d.key], { force: true }).then((wrote) => (wrote && id === loadId ? load(true) : undefined));
+        }
+      }
     } catch (e) {
       if (id === loadId) {
         detail = undefined;
@@ -395,7 +404,7 @@
       <p class="small muted flush">{t('Changes go to the team data (arbeitspakete.yaml) and to the others with Save in the top bar. Attachments are not kept; write links into the description.')}</p>
       <div class="row">
         <button class="btn primary" type="button" disabled={!dirty && !creating} onclick={saveDraft}><Icon name="check" />{creating ? t('Create') : t('Save changes')}</button>
-        {#if dirty && !creating}<button class="btn" type="button" onclick={load}>{t('Discard')}</button>{/if}
+        {#if dirty && !creating}<button class="btn" type="button" onclick={() => load()}>{t('Discard')}</button>{/if}
         {#if !creating}
           <button class="btn" type="button" onclick={duplicate}><Icon name="content_copy" />{t('Duplicate')}</button>
           {#if confirmDelete}
