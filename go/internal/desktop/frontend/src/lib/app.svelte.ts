@@ -365,6 +365,42 @@ export async function autoFetch(): Promise<void> {
   }
 }
 
+const SCOPE_MIN_MS = 5 * 60000; // a view is not synced again within 5 minutes unless asked
+const SCOPE_MAX_KEYS = 200;
+const scopeTried = new Map<string, number>(); // team + scope -> when it was last tried
+let scopeRetry: ReturnType<typeof setTimeout> | undefined;
+let scopeRetryStep = 0;
+
+/** Syncs only the given tickets (what a view shows) from the tracker. Throttled per scope unless
+ * `force` (a button, a ticket opened). Silent; a failure leaves the data of the last fetch, shows
+ * in the top bar chip and the banner of the page, and is retried with growing pauses (30 s, 1 min,
+ * 5 min). Returns true when data was written. */
+export async function syncScope(keys: string[], opts: { force?: boolean } = {}): Promise<boolean> {
+  const tr = app.status.tracker;
+  const team = app.team;
+  const list = [...new Set(keys)].filter(Boolean).slice(0, SCOPE_MAX_KEYS);
+  if (app.demo || !team || !tr.enabled || tr.syncing || app.busy === 'sync' || list.length === 0) return false;
+  const id = `${team}|${[...list].sort().join(',')}`;
+  const now = Date.now();
+  if (!opts.force && now - (scopeTried.get(id) ?? 0) < SCOPE_MIN_MS) return false;
+  scopeTried.set(id, now);
+  clearTimeout(scopeRetry);
+  let wrote = false;
+  try {
+    wrote = (await api.SyncTrackerScope(team, list, '')).outcome !== 'unchanged';
+    scopeRetryStep = 0;
+  } catch {
+    const pause = [30_000, 60_000, 300_000][Math.min(scopeRetryStep++, 2)]!;
+    scopeRetry = setTimeout(() => void syncScope(keys, { force: true }), pause);
+  }
+  await refreshStatus();
+  if (wrote && app.team === team) {
+    app.rev++;
+    window.dispatchEvent(new CustomEvent('foresprint:news'));
+  }
+  return wrote;
+}
+
 /** Looks for a new version (once a day, never in the demo or a development build); silent on failure. */
 export async function checkUpdate(): Promise<void> {
   try {

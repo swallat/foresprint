@@ -178,6 +178,7 @@
   "Fetch changes of others": "Änderungen von anderen holen",
   "Fetch now": "Jetzt abrufen",
   "Simulated date: {date}": "Simuliertes Datum: {date}",
+  "Sync this view": "Diese Ansicht abgleichen",
   "This team counts {date} as today (as_of in team.yaml), not the date of the computer.": "Dieses Team rechnet mit {date} als heute (as_of in der team.yaml), nicht mit dem Datum des Rechners.",
   "Fetch tickets from {name} now": "Tickets jetzt aus {name} abrufen",
   "Fetching": "Abruf",

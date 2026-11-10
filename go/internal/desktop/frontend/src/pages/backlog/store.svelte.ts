@@ -4,7 +4,7 @@
 
 import { api } from '../../lib/api';
 import { fmt, fmtVal } from '../../lib/format';
-import { app, refreshStatus, toast } from '../../lib/app.svelte';
+import { app, refreshStatus, syncScope, toast } from '../../lib/app.svelte';
 import { language, t as translate } from '../../lib/i18n.svelte';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
 import { addCustom, blank, customKey, readCustom, removeCustom, type CustomView, type Group, type Sort } from './backlog';
@@ -98,6 +98,7 @@ export async function loadBacklog(): Promise<void> {
     store.team = team;
     store.error = '';
     void readBoard(team, view.tracker !== '');
+    if (view.tracker !== '') void syncScope(visibleKeys(view));
   } catch (e) {
     if (id === loadId) store.error = String(e);
   } finally {
@@ -132,6 +133,16 @@ export async function resetOrder(): Promise<void> {
     toast(String(e), 'bad');
   }
   await changed();
+}
+
+/** The tickets the backlog shows: the keys a view-wide sync asks the tracker for. */
+export function visibleKeys(view: BacklogView | undefined): string[] {
+  return allTickets(view).map((tk) => tk.key);
+}
+
+/** Syncs the tickets of this view now (button) and shows the result. */
+export async function syncView(): Promise<void> {
+  if (await syncScope(visibleKeys(store.view), { force: true })) await loadBacklog();
 }
 
 /** Every ticket the view knows, wherever it sits. */
