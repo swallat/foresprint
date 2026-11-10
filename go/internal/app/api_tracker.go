@@ -530,7 +530,7 @@ func (a *API) trackerRun(team string, run func() (Result, error)) (Result, error
 	a.mu.Lock()
 	if a.run.syncing[team] {
 		a.mu.Unlock()
-		return Result{Message: i18n.T("A sync is already running.")}, nil
+		return Result{Outcome: TrackerUnchanged, Message: i18n.T("A sync is already running.")}, nil
 	}
 	if a.run.syncing == nil {
 		a.run.syncing = map[string]bool{}
@@ -567,7 +567,7 @@ func (a *API) SyncTrackerAuto(team string) (Result, error) {
 // a full fetch removes). The own order of the PO stays. An empty scope reads nothing.
 func (a *API) SyncTrackerScope(team string, keys []string, sprint string) (Result, error) {
 	if len(keys) == 0 && sprint == "" {
-		return Result{OK: true, Message: i18n.T("{count} tickets read, no changes.", "count", 0)}, nil
+		return Result{OK: true, Outcome: TrackerUnchanged, Message: i18n.T("{count} tickets read, no changes.", "count", 0)}, nil
 	}
 	return a.trackerRun(team, func() (Result, error) { return a.trackerScopeSync(team, keys, sprint) })
 }

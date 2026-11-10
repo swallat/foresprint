@@ -589,7 +589,7 @@ func (j *JiraSource) Fetch() ([]RawTicket, error) {
 	if err != nil {
 		return nil, err
 	}
-	return j.fetchJQL(jql)
+	return j.fetchJQL(jql, false)
 }
 
 // keyChunk is how many keys one search asks for (keeps the URL short).
@@ -615,7 +615,7 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 		}
 	}
 	if sprint != "" {
-		raws, err := j.fetchJQL("(" + base + ") AND sprint = " + jqlQuote(sprint))
+		raws, err := j.fetchJQL("(" + base + ") AND sprint = " + jqlQuote(sprint), true)
 		if err != nil {
 			return nil, err
 		}
@@ -627,7 +627,7 @@ func (j *JiraSource) FetchScope(keys []string, sprint string) ([]RawTicket, erro
 		for _, k := range keys[i:end] {
 			quoted = append(quoted, jqlQuote(k))
 		}
-		raws, err := j.fetchJQL("(" + base + ") AND key in (" + strings.Join(quoted, ",") + ")")
+		raws, err := j.fetchJQL("(" + base + ") AND key in (" + strings.Join(quoted, ",") + ")", true)
 		if err != nil {
 			return nil, err
 		}
@@ -667,7 +667,9 @@ func jqlQuote(v string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
 }
 
-func (j *JiraSource) fetchJQL(jql string) ([]RawTicket, error) {
+// fetchJQL reads all tickets of a query. lenient (scope fetches): Jira only warns about a key or
+// sprint that does not exist, instead of answering 400 for the whole search.
+func (j *JiraSource) fetchJQL(jql string, lenient bool) ([]RawTicket, error) {
 	resolved, err := j.ResolveFields()
 	if err != nil {
 		return nil, err
@@ -678,10 +680,14 @@ func (j *JiraSource) fetchJQL(jql string) ([]RawTicket, error) {
 	var order []string
 	start, expected := 0, -1
 	for {
-		page, err := j.request(http.MethodGet, searchPath, url.Values{
+		params := url.Values{
 			"jql": {jql}, "fields": {wanted},
 			"startAt": {strconv.Itoa(start)}, "maxResults": {strconv.Itoa(pageSize)},
-		}, nil)
+		}
+		if lenient {
+			params.Set("validateQuery", "warn")
+		}
+		page, err := j.request(http.MethodGet, searchPath, params, nil)
 		if err != nil {
 			return nil, err
 		}

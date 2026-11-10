@@ -379,7 +379,7 @@ export async function syncScope(keys: string[], opts: { force?: boolean } = {}):
   const tr = app.status.tracker;
   const team = app.team;
   const list = [...new Set(keys)].filter(Boolean).slice(0, SCOPE_MAX_KEYS);
-  if (app.demo || !team || !tr.enabled || tr.syncing || app.busy === 'sync' || list.length === 0) return false;
+  if (app.demo || !team || !tr.enabled || tr.syncing || app.busy || list.length === 0) return false;
   const id = `${team}|${[...list].sort().join(',')}`;
   const now = Date.now();
   if (!opts.force && now - (scopeTried.get(id) ?? 0) < SCOPE_MIN_MS) return false;
@@ -387,11 +387,17 @@ export async function syncScope(keys: string[], opts: { force?: boolean } = {}):
   clearTimeout(scopeRetry);
   let wrote = false;
   try {
-    wrote = (await api.SyncTrackerScope(team, list, '')).outcome !== 'unchanged';
+    const r = await api.SyncTrackerScope(team, list, '');
+    wrote = r.ok && r.outcome !== 'unchanged';
     scopeRetryStep = 0;
   } catch {
-    const pause = [30_000, 60_000, 300_000][Math.min(scopeRetryStep++, 2)]!;
-    scopeRetry = setTimeout(() => void syncScope(keys, { force: true }), pause);
+    // growing pauses (30 s, 1 min, 5 min), then it stays with the chip and the buttons
+    const pause = [30_000, 60_000, 300_000][scopeRetryStep++];
+    if (pause !== undefined) {
+      scopeRetry = setTimeout(() => {
+        if (app.team === team) void syncScope(keys, { force: true });
+      }, pause);
+    }
   }
   await refreshStatus();
   if (wrote && app.team === team) {
