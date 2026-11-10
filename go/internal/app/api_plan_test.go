@@ -899,3 +899,159 @@ func TestPlanLaneMatchesBacklogLane(t *testing.T) {
 		t.Error("T-4 has an unclear refined state and must not show as refined")
 	}
 }
+
+// The start of a sprint writes the absences fast (periods included); a later change of a period
+// shows as a drift on the cell until it is adopted.
+func TestStartFreezesAbsencesAndShowsDrift(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	grid, err := api.AbsenceGrid(team, next, 1)
+	if err != nil || len(grid.Rows) == 0 {
+		t.Fatalf("grid: %v", err)
+	}
+	col, person := grid.Columns[0], grid.Rows[0].Person
+	if _, err := api.UnfreezeAbsences(team, next); err != nil { // the demo sprint may be frozen already
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	cell := func() AbsenceCell {
+		for _, r := range grid.Rows {
+			if r.Person == person {
+				return r.Cells[0]
+			}
+		}
+		t.Fatal("person missing")
+		return AbsenceCell{}
+	}
+	frozen := cell()
+	if grid.Columns[0].State != AbsenceConfirmed || frozen.Days == 0 || frozen.PeriodDays != nil || grid.Columns[0].Drifts != 0 {
+		t.Fatalf("start did not freeze the period days: %+v %+v", grid.Columns[0], frozen)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.Start}}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if c := cell(); c.Days != frozen.Days || c.PeriodDays == nil || *c.PeriodDays >= frozen.Days || grid.Columns[0].Drifts != 1 {
+		t.Fatalf("drift not shown: %+v %+v", grid.Columns[0], c)
+	}
+	if _, err := api.AdoptPeriods(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if c := cell(); c.PeriodDays != nil || c.Days >= frozen.Days || grid.Columns[0].Drifts != 0 {
+		t.Fatalf("adopt did not settle: %+v", c)
+	}
+}
+
+// A typed cell of a person whose periods lie elsewhere is no drift, the frozen PLAN equals the
+// current one right after the start, and taking the plan back makes the sprint follow the
+// periods again.
+func TestStartKeepsTypedCellsQuietAndReopenFollowsPeriods(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	if _, err := api.UnfreezeAbsences(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ := api.AbsenceGrid(team, next, 1)
+	col, person := grid.Columns[0], grid.Rows[0].Person
+	if _, err := api.SetAbsence(team, next, person, 2); err != nil { // typed; no period covers it
+		t.Fatal(err)
+	}
+	other := grid.Rows[1].Person
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: "2030-01-07", To: "2030-01-08"}, {Person: other, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	c := grid.Columns[0]
+	if c.Drifts != 0 || (c.FrozenPlan != nil && c.Plan != nil && *c.FrozenPlan != *c.Plan) {
+		t.Fatalf("a typed cell or the PLAN shows a false drift: %+v", c)
+	}
+	// A removed period is a drift (the frozen days stay until adopted or reopened) ...
+	if _, err := api.SaveAbsencePeriods(team, nil); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if grid.Columns[0].Drifts != 1 || grid.Rows[1].Cells[0].PeriodDays == nil || *grid.Rows[1].Cells[0].PeriodDays != 0 {
+		t.Fatalf("removed period shows no drift: %+v", grid.Columns[0])
+	}
+	// ... and reopening the plan makes period cells follow the periods again, typed ones stay.
+	if err := api.ReopenPlan(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if got := grid.Rows[0].Cells[0].Days; got != 2 {
+		t.Fatalf("typed days lost: %v", got)
+	}
+	if grid.Columns[0].State == AbsenceConfirmed {
+		t.Fatalf("plan reopened but absences still frozen: %+v", grid.Columns[0])
+	}
+	if got := grid.Rows[1].Cells[0].Days; got != 0 {
+		t.Fatalf("a cell that only repeated a period must follow it, days=%v", got)
+	}
+}
+
+// A period added after the start shows as drift for a person who had an empty cell, and a day
+// typed into a frozen cell survives opening the sprint again.
+func TestFrozenSprintDriftForNewPeriodsAndTypedDays(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	if _, err := api.UnfreezeAbsences(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ := api.AbsenceGrid(team, next, 1)
+	col, person := grid.Columns[0], grid.Rows[0].Person
+	if _, err := freezeOnly(api, team, next, FreezeInput{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: person, From: col.Start, To: col.End}}); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if grid.Columns[0].Drifts != 1 {
+		t.Fatalf("a period added after the start shows no drift: %+v", grid.Columns[0])
+	}
+	if _, err := api.SetAbsence(team, next, person, 3); err != nil { // typing ends the following
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if grid.Columns[0].Drifts != 0 {
+		t.Fatalf("a typed day still counts as following the periods: %+v", grid.Columns[0])
+	}
+	if err := api.ReopenPlan(team, next); err != nil {
+		t.Fatal(err)
+	}
+	grid, _ = api.AbsenceGrid(team, next, 1)
+	if got := grid.Rows[0].Cells[0].Days; got != 3 {
+		t.Fatalf("typed days lost on reopening: %v", got)
+	}
+}

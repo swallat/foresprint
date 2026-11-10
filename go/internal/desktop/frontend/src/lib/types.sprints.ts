@@ -16,6 +16,12 @@ export interface AbsenceColumn {
   planLow: number | null; // range of the PLAN over the window, null without a projection
   planHigh: number | null;
   past: boolean;
+  /** Forecast PLAN written at the sprint start, null before it. */
+  frozenPlan: number | null;
+  /** Cells whose planned periods give other days than the frozen cell. */
+  drifts: number;
+  /** The sprint has not started; a frozen one can be opened again. */
+  open: boolean;
 }
 
 export type CellState = 'confirmed' | 'announced' | 'empty';
@@ -28,6 +34,8 @@ export interface AbsenceCell {
   active: boolean;
   /** The days come from a planned absence period, nothing is typed in the sprint. */
   fromPeriod?: boolean;
+  /** Frozen sprint: the days the planned periods give now when they differ from the frozen cell. */
+  periodDays?: number | null;
 }
 
 export interface AbsenceRow {
@@ -101,5 +109,7 @@ export interface SprintsApi {
   SetAbsenceConfirmed(team: string, sprint: string, person: string, confirmed: boolean): Promise<AbsenceColumn>;
   FreezeAbsences(team: string, sprint: string): Promise<AbsenceColumn>;
   UnfreezeAbsences(team: string, sprint: string): Promise<AbsenceColumn>;
+  /** Takes the days of the planned periods into a frozen sprint. */
+  AdoptPeriods(team: string, sprint: string): Promise<AbsenceColumn>;
   SprintPrepare(team: string, sprint: string): Promise<SprintPrepare>;
 }

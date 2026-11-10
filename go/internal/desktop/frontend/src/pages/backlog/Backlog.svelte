@@ -641,7 +641,6 @@
                   {:else}
                     <span class="data">{t('No Forecast PLAN yet for this sprint.')}</span>
                   {/if}
-                  {#if l.absences !== 'confirmed'}<br /><span>{t('Absences are not confirmed yet, the forecast can still change.')}</span>{/if}
                 </Calc>
               </div>
               {#if over}

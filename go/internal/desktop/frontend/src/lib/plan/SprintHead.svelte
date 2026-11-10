@@ -23,7 +23,7 @@
   let { d, stage, actions, onchange, plan }: Props = $props();
 
   const steps = $derived([
-    { id: 'prepare', label: t('Prepare'), missing: d.absences !== 'confirmed' ? t('Absences are not confirmed.') : '' },
+    { id: 'prepare', label: t('Prepare'), missing: '' },
     {
       id: 'preplan',
       label: t('Pre-plan'),

@@ -42,7 +42,7 @@ describe('AbsenceGrid', () => {
     await open();
     expect(host.querySelectorAll('tbody tr').length).toBeGreaterThan(6);
     expect(inputs().length).toBe(18); // 6 people, 3 sprints
-    expect(host.textContent).toMatch(/Announced/); // the mock has announced absences
+    expect(host.textContent).toMatch(/Live/); // open sprints follow the data live
   });
 
   it('announces typed days and keeps a cleared value for undo', async () => {
@@ -64,41 +64,11 @@ describe('AbsenceGrid', () => {
     expect(cell.value).toMatch(/2[.,]5/);
   });
 
-  it('freezing confirms the sprint and shows the frozen state', async () => {
+  it('has no lock and no freeze button: open sprints are live until the start', async () => {
     await open();
-    const freeze = host.querySelector<HTMLButtonElement>('tbody tr:last-child button')!;
-    freeze.click();
-    await settle();
-    expect(host.querySelector('.frozen')).not.toBeNull();
-    expect(host.querySelector('th .chip.ok')).not.toBeNull();
-  });
-
-  it('applies typing and a freeze right after it in that order', async () => {
-    await open();
-    const cell = inputs().find((i) => i.value === '' && !i.disabled)!;
-    const column = cell.dataset.absCol!;
-    cell.value = '3';
-    cell.dispatchEvent(new Event('change', { bubbles: true }));
-    const idx = [...host.querySelectorAll('thead th.sc')].findIndex((th) => th.textContent!.includes(column));
-    host.querySelectorAll<HTMLButtonElement>('tbody tr:last-child button')[idx]!.click();
-    await settle();
-    await settle();
-    expect(cell.value).toMatch(/3/);
-    expect(cell.closest('.cell')!.classList.contains('c')).toBe(true);
-  });
-
-  it('locks one cell without freezing the sprint', async () => {
-    await open();
-    // the mock keeps its state between tests: take any announced cell that is still open
-    const box = host.querySelector('.cell.a')!;
-    expect(box).not.toBeNull();
-    const frozenBefore = host.querySelectorAll('.frozen').length;
-    box.querySelector<HTMLButtonElement>('button.lock')!.click();
-    await settle();
-    expect(box.classList.contains('c')).toBe(true);
-    expect(host.querySelectorAll('.frozen').length).toBe(frozenBefore); // the sprint is still open
-    // the other announced cells keep their open lock
-    expect(host.querySelectorAll('.cell.a').length).toBeGreaterThan(0);
+    expect(host.querySelector('button.lock')).toBeNull();
+    expect(host.textContent).toMatch(/Live until start/);
+    expect(host.querySelector('.frozen')).toBeNull();
   });
 
   it('stays out of reach for a finished sprint', async () => {
