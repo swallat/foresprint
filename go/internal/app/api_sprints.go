@@ -459,7 +459,9 @@ func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
 			out.Preplanned += *v.Preplanned
 		}
 	}
-	if pre.Count = len(pre.Names); pre.Count > 0 {
+	// once the plan is frozen or the sprint has started the amounts are settled, nothing is open
+	planFrozen := s.CommittedTickets != nil || (data.Team.Source() == model.SourceNone && s.Commitment != nil)
+	if pre.Count = len(pre.Names); pre.Count > 0 && fc.Phase(*s) == model.PhaseOpen && !planFrozen {
 		pre.State = ReadyOpen
 	}
 	out.Ready = append(out.Ready, pre)

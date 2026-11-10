@@ -28,7 +28,8 @@
       id: 'preplan',
       label: t('Pre-plan'),
       missing:
-        d.multiProduct && d.products.some((p) => p.active && p.pre == null)
+        // once the plan is frozen or the sprint runs the amounts are settled: nothing is missing
+        d.stage === 'open' && d.multiProduct && d.products.some((p) => p.active && p.pre == null)
           ? t('An amount is missing for some products.')
           : '',
     },
@@ -65,7 +66,7 @@
   {/snippet}
 </SprintMeta>
 {#if d.sprint === app.sprint}
-  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} due={d.startDue} stage={d.stage} {plan} {onchange} />
+  <StartSprint sprint={d.sprint} start={d.start} end={d.end} startedOn={d.startedOn} fromPlan={d.startDerived} due={d.startDue} stage={d.stage} {plan} {onchange} />
 {/if}
 <nav class="stepper" aria-label={t('Stages of the sprint')}>
   {#each steps as s, i (s.id)}
