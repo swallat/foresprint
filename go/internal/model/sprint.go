@@ -138,8 +138,8 @@ type Sprint struct {
 	Name *string
 	// CommittedTickets is the ticket list frozen at Planning (the commitment); nil = not frozen.
 	CommittedTickets []string
-	// CommittedSizes is the size of each frozen ticket at the start (remaining if filled, else the
-	// estimate), by ticket key. The Review counts the commitment, the rest and the velocity with
+	// CommittedSizes is the size of each frozen ticket at the start (the planning size: remaining or
+	// estimate as tracker.planning_uses says), by ticket key. The Review counts the commitment, the rest and the velocity with
 	// them; a sprint frozen before they were kept (or a ticket missing here) falls back to the
 	// ticket's estimate.
 	CommittedSizes map[string]float64

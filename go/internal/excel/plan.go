@@ -372,7 +372,7 @@ func carryOver(data, existing *storage.TeamData) {
 			s.Preplanned = o.Preplanned
 		}
 		s.Matrix, s.Removed, s.Projects = o.Matrix, o.Removed, o.Projects
-		s.CommittedTickets, s.Carry, s.RestNext = o.CommittedTickets, o.Carry, o.RestNext
+		s.CommittedTickets, s.CommittedSizes, s.Carry, s.RestNext = o.CommittedTickets, o.CommittedSizes, o.Carry, o.RestNext
 		s.StartedOn, s.StartPending = o.StartedOn, o.StartPending
 		for j := range s.Prognoses {
 			for _, op := range o.Prognoses {
