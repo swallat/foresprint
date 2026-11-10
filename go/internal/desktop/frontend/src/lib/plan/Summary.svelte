@@ -82,10 +82,10 @@
           <div>{t('No finished sprint yet: capacity times the start rate of the team. The history takes over once three sprints have a velocity.')}</div>
         {/if}
         <div class="data">{fmtCap(d.capacity)} {t('PD')} × {fmtRate(fromStart ? d.startRate : (d.trendRate ?? ratio))} = {fmt(d.plan)}</div>
-        {#if why && assumption}
+        {#if why && assumption && !fromStart}
           <div>
             {t('Without the assumption the running sprint does not count yet, the trend comes from the finished sprints only.')}
-            {t('With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average of the last {w} sprints before: {a}).', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, c: fmtCap(why.runningCapacity), n: fmt(why.runningNormalized, 1), r: fmtVal(why.reference), w: why.window, a: fmt(why.averageBefore, 1) })}
+            {t('With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average before: {a}).', { sprint: whatIf?.running ?? '', v: fmt(whatIf?.velocity), unit, c: fmtCap(why.runningCapacity), n: fmt(why.runningNormalized, 1), r: fmtVal(why.reference), a: fmt(why.averageBefore, 1) })}
           </div>
           <div>
             {#if why.mode === 'classic'}{t('The classic trend continues the change of the rolling average, so one more value can turn a falling trend into a rising one.')}{/if}

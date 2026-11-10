@@ -25,7 +25,7 @@
   "The classic trend continues the change of the rolling average, so one more value can turn a falling trend into a rising one.": "Der klassische Trend setzt die Veränderung des gleitenden Durchschnitts fort, ein zusätzlicher Wert kann daher einen fallenden Trend in einen steigenden drehen.",
   "The plannable amount times the share of the capacity that has production access, times the cap.": "Verplanbar mal Anteil der Kapazität mit Produktionszugang, mal Deckel.",
   "Trend per reference capacity: {before} without, {after} with the assumption.": "Trend je Referenzkapazität: {before} ohne, {after} mit Annahme.",
-  "With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average of the last {w} sprints before: {a}).": "Mit Annahme gilt {sprint} als abgeschlossen: Velocity {v} {unit} bei {c} PT Kapazität, das sind {n} je {r} PT Referenzkapazität (Durchschnitt der {w} Sprints davor: {a}).",
+  "With it {sprint} counts as finished: velocity {v} {unit} at {c} PD capacity, that is {n} per {r} PD reference capacity (average before: {a}).": "Mit Annahme gilt {sprint} als abgeschlossen: Velocity {v} {unit} bei {c} PT Kapazität, das sind {n} je {r} PT Referenzkapazität (Durchschnitt davor: {a}).",
   "Without the assumption the running sprint does not count yet, the trend comes from the finished sprints only.": "Ohne Annahme zählt der laufende Sprint noch nicht, der Trend kommt nur aus den abgeschlossenen Sprints.",
   "that is {pct} % of the plannable {basis} PD (share of the people with access in the capacity)": "das sind {pct} % der verplanbaren {basis} PT (Anteil der Personen mit Zugang an der Kapazität)",
   "cap {pct} %": "Deckel {pct} %",

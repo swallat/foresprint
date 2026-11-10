@@ -845,14 +845,24 @@ func (c *planCtx) whatIfWhy(after *forecast.TimelineEntry, fcAfter *forecast.For
 	fs := c.data.Team.Forecast
 	why := &WhatIfWhy{Reference: fs.ReferenceCapacity, Window: fs.Window, Mode: string(fs.TrendMode),
 		TrendBefore: c.entry.Result.NormalizedVelocity.Trend, TrendAfter: after.Result.NormalizedVelocity.Trend}
+	if after.Result.TrendFallback {
+		why.Mode = string(model.TrendFlat) // too little history: the engine used flat
+	}
+	if why.TrendBefore == nil || why.TrendAfter == nil {
+		return nil // start rate or no trend: nothing to explain
+	}
 	if e := fcAfter.Entry(cur.Sprint.ID); e != nil {
 		why.RunningCapacity = e.Result.PlanCapacity
 		why.RunningNormalized = e.Result.NormalizedVelocity.Value
 		why.AverageAfter = e.Result.NormalizedVelocity.Average
 	}
 	for i, e := range c.fc.Entries {
-		if e.Sprint.ID == cur.Sprint.ID && i > 0 {
-			why.AverageBefore = c.fc.Entries[i-1].Result.NormalizedVelocity.Average
+		if e.Sprint.ID != cur.Sprint.ID {
+			continue
+		}
+		// the last sprint before it that has an average (a sprint without velocity has none)
+		for j := i - 1; j >= 0 && why.AverageBefore == nil; j-- {
+			why.AverageBefore = c.fc.Entries[j].Result.NormalizedVelocity.Average
 		}
 	}
 	return why
