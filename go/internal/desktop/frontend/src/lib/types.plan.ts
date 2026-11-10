@@ -127,6 +127,22 @@ export interface WhatIf {
   later: number;
   plannable: number;
   smallStuff: number;
+  /** Nothing was entered: everything of the running sprint counts as done. */
+  default: boolean;
+  why: WhatIfWhy | null;
+}
+
+/** The figures behind the jump of the plan with an assumption (all per reference capacity). */
+export interface WhatIfWhy {
+  reference: number;
+  window: number;
+  runningCapacity: number | null;
+  runningNormalized: number | null;
+  averageBefore: number | null;
+  averageAfter: number | null;
+  trendBefore: number | null;
+  trendAfter: number | null;
+  mode: string;
 }
 
 export interface PlanSprint {
