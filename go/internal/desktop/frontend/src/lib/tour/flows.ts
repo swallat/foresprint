@@ -72,8 +72,7 @@ export const flows: Flow[] = [
     summary: () => t('Clear absences, check readiness and set the amount per product from the earmarks.'),
     steps: [
       { route: '/sprint/prepare', sprint: 'next', target: tour('sprint-stepper'), text: () => t('Today says the next sprint needs preparation. The stages at the top are links.') },
-      { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-grid'), text: () => t('The grid shows absences for this and the next sprints. Type the days directly; Tab or Enter moves on. A new entry is announced (open lock); a click on the lock confirms it.') },
-      { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-freeze'), text: () => t('"Freeze" confirms the whole allocation of a sprint: every entry counts as confirmed, empty cells as 0 days. A sprint with nobody absent is done this way too.') },
+      { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-grid'), text: () => t('The grid shows absences for this and the next sprints. Type the days directly; Tab or Enter moves on. Periods from People and absences count here at once; typed days win over a period. Everything stays live until the sprint starts, then the start freezes it.') },
       { route: '/sprint/prepare', sprint: 'next', target: tour('prepare-ready'), text: () => t('Readiness sums up absences, refinement and pre-planning.') },
       { route: '/sprint/preplan', sprint: 'next', target: tour('preplan-whatif'), text: () => t('While the running sprint is still open you estimate what will finish. Mark tickets as carried over and estimate their rest; the expected velocity falls by the full estimate, only the rest moves on.') },
       { route: '/sprint/preplan', sprint: 'next', target: tour('preplan-earmarks'), text: () => t('You can pre-plan at any time, also for later sprints. The earmarks from the backlog are listed by project and daily business, with a hint on the contingent.') },
@@ -84,9 +83,8 @@ export const flows: Flow[] = [
   {
     id: 'F4',
     title: () => t('Plan a sprint'),
-    summary: () => t('Confirm absences, weigh tickets live against forecast, products and contingents, freeze the agreement.'),
+    summary: () => t('Check the absences, weigh tickets live against forecast, products and contingents, freeze the agreement.'),
     steps: [
-      { route: '/sprint/plan', sprint: 'next', target: tour('plan-absences'), text: () => t('First the absences: if they are only announced you confirm them right here. You can plan without confirming.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-sumbar'), text: () => t('At the top is the forecast PLAN with its range. The calculator button shows how it is calculated.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), text: () => t('Candidates on the left, the sprint on the right, prefilled from the earmarks. Drag a ticket, or move it with Alt and the arrow keys.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-live'), text: () => t('Live: the sum against the range, products against their budget, projects against their contingent.') },

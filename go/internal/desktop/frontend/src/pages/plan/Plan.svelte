@@ -45,31 +45,6 @@
 
   const d = $derived(model.data);
 
-  /** People with announced absence days in this sprint (names and days only), for the banner. */
-  let announced = $state<{ name: string; days: number }[]>([]);
-  let announcedSeq = 0;
-  const bannerSprint = $derived(d && d.absences !== 'confirmed' && d.stage !== 'past' ? d.sprint : '');
-  $effect(() => {
-    const team = app.team;
-    const sprint = bannerSprint;
-    const mine = ++announcedSeq;
-    announced = [];
-    if (!team || !sprint) return;
-    api.AbsenceGrid(team, sprint, 1).then(
-      (g) => {
-        if (mine !== announcedSeq) return;
-        announced = g.rows.flatMap((r) => {
-          const c = r.cells[0];
-          return c && c.days > 0 && c.state !== 'confirmed' ? [{ name: r.name, days: c.days }] : [];
-        });
-      },
-      () => {
-        if (mine === announcedSeq) announced = [];
-      },
-    );
-  });
-  const freezeAbsences = () =>
-    model.change(async () => void (await api.FreezeAbsences(app.team, d!.sprint)), t('Allocation of {sprint} frozen.', { sprint: d!.sprint }));
   /** Tickets the tracker still has in the sprint that the team took out (saved with the sprint). */
   const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
@@ -322,25 +297,6 @@
   </SprintHead>
 
   <Summary {d} used={used} commitment={frozen ? d.committed : null} count={lane.length} assumption={touched(assumptions.active, d.source !== 'none') ? assumptions.active?.label : ''} whatIf={model.running} {model} />
-
-  {#if d.absences !== 'confirmed'}
-    <div class="banner warn" data-tour="plan-absences">
-      <Icon name="event_busy" />
-      <div class="grow">
-        <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
-        {t('Capacity and Forecast PLAN can still change.')}
-        {#if announced.length}
-          <div class="small">{t('Announced days:')} {announced.map((x) => `${x.name} (${fmtVal(x.days)})`).join(', ')}</div>
-        {/if}
-        <div class="row gap">
-          {#if d.stage !== 'past'}
-            <button type="button" class="btn" id="freeze-absences" onclick={freezeAbsences}><Icon name="lock" />{t('Freeze allocation')}</button>
-          {/if}
-          <a class="btn ghost" href="#/sprint/prepare">{t('Confirm in Prepare')}</a>
-        </div>
-      </div>
-    </div>
-  {/if}
 
   {#if d.frozen}
     <div class="banner info" id="frozen">

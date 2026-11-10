@@ -1144,7 +1144,10 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	if err := planNonNegative(in.Commitment); err != nil {
 		return "", err
 	}
+	// The start writes the absences fast: the days of the planned periods count as typed, and
+	// every empty cell as 0 days. From here a change of the periods only shows as a note.
 	s := c.sprint.Clone()
+	sprintsFreezeWithPeriods(c.data, &s)
 	view, err := c.view(team, nil)
 	if err != nil {
 		return "", err
@@ -1216,7 +1219,27 @@ func (a *API) planFreeze(team, sprintID string, in FreezeInput, startDay *time.T
 	case s.StartedOn == nil:
 		s.StartPending = true // the sprint is started by hand, not by the frozen plan
 	}
-	forecast.FreezePlan(&s, c.entry, c.today, true)
+	// The PLAN is frozen from the forecast of the frozen sprint: before the start the absences
+	// of the sprint may still be estimated, after it they are the frozen days.
+	entry := c.entry
+	if d2 := *c.data; true {
+		d2.Sprints = append([]model.Sprint(nil), c.data.Sprints...)
+		replaced := false
+		for i := range d2.Sprints {
+			if d2.Sprints[i].ID == s.ID {
+				d2.Sprints[i], replaced = s.Clone(), true
+			}
+		}
+		if !replaced {
+			d2.Sprints = append(d2.Sprints, s.Clone())
+		}
+		if fc2, err := forecast.Build(&d2, c.today); err == nil {
+			if e := fc2.Entry(s.ID); e != nil {
+				entry = e
+			}
+		}
+	}
+	forecast.FreezePlan(&s, entry, c.today, true)
 
 	store := &protocol.Store{Dir: c.repo.TeamDir(team)}
 	text := protocol.Render(protocol.Planning, c.data.Team.Name, sprintID, nowOf(c.data), c.planFacts(view, commit, in), nil, c.planNotes(in, byKey), "", false)
@@ -1292,6 +1315,7 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 
 // planUnfreeze takes the frozen plan out of a sprint copy.
 func planUnfreeze(s *model.Sprint) {
+	sprintsReopenAbsences(s)
 	s.CommittedTickets = nil
 	for id, v := range s.Products {
 		v.Planned, v.ProductionPlanned = nil, nil

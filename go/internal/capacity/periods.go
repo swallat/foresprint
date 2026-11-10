@@ -29,6 +29,18 @@ func periodDaySet(team *model.Team, person model.Person, period model.AbsencePer
 	return days
 }
 
+// AbsenceDaysOf is the number of days the periods of one person give in the sprint: the working
+// days inside any period, each counted once.
+func AbsenceDaysOf(team *model.Team, person model.Person, list []model.AbsencePeriod, sprint model.Sprint) float64 {
+	seen := map[time.Time]bool{}
+	for _, period := range list {
+		for d := range periodDaySet(team, person, period, sprint) {
+			seen[d] = true
+		}
+	}
+	return float64(len(seen))
+}
+
 // PeriodsApplied is a sprint with the absences that come from planned absence periods.
 type PeriodsApplied struct {
 	Sprint model.Sprint

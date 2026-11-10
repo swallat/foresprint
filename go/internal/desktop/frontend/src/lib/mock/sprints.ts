@@ -74,6 +74,9 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
     planLow: s.state === 'past' ? null : Math.floor(capacityOf(s.id) * RATE * 0.92),
     planHigh: s.state === 'past' ? null : Math.floor(capacityOf(s.id) * RATE * 1.08),
     past: s.state === 'past',
+    frozenPlan: null,
+    drifts: 0,
+    open: false,
   });
 
   const window = (from: string, count: number) => {
@@ -155,10 +158,13 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
       touch(sprint);
       return column(known(sprint));
     },
+    async AdoptPeriods(_team, sprint) {
+      return column(known(sprint));
+    },
     async SprintPrepare(_team, sprint): Promise<SprintPrepare> {
       const col = column(known(sprint));
       const ready: ReadyItem[] = [
-        { kind: 'absences', state: col.state === 'confirmed' ? 'done' : 'open', count: col.entries, names: [] },
+        { kind: 'absences', state: 'done', count: col.entries, names: [] },
         { kind: 'refinement', state: 'open', count: 2, names: ['ATL-212', 'ATL-218'] },
         { kind: 'preplan', state: 'open', count: 1, names: ['Mobile'] },
       ];

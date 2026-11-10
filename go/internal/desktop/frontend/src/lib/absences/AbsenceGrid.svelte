@@ -2,6 +2,8 @@
   // Absences of several sprints in one grid (flows.md decisions 1 and 23). Used on Prepare and
   // on Team > People. Days are typed in (half days, comma or point); an entry is announced (open
   // lock) until the sprint is frozen ("Freeze": closed lock, every empty cell counts as 0 days).
+  // Update (decision of 10.11.2026): periods, FTE and typed days count live until "Start sprint",
+  // which freezes the absences; later changes of a period only show as a drift to adopt.
   // A cleared value stays visible, struck through, with an undo button until the next save.
   // Edits are written at once through the API; the grid only shows what the API answered.
   import { untrack } from 'svelte';
@@ -133,37 +135,22 @@
     }
   }
 
-  async function lockCell(ci: number, ri: number, confirmed: boolean) {
-    if (!grid) return;
-    const sprint = col(ci).id;
-    const person = rowAt(ri).person;
-    cellAt(ri, ci).state = confirmed ? 'confirmed' : 'announced';
-    try {
-      await enqueue(async () => replaceColumn(await api.SetAbsenceConfirmed(team, sprint, person, confirmed)));
-    } catch (e) {
-      toast(String(e), 'bad');
-      await load();
-    }
-  }
-
-  async function freeze(sprint: string) {
-    try {
-      await enqueue(async () => replaceColumn(await api.FreezeAbsences(team, sprint)));
-      await load(); // every cell of the sprint is confirmed now
-      toast(t('Allocation of {sprint} frozen. Empty cells count as 0 days.', { sprint: nameOf(sprint) }), 'ok', {
-        label: t('Undo'),
-        run: () => void unfreeze(sprint, false),
-      });
-    } catch (e) {
-      toast(String(e), 'bad');
-    }
-  }
-
-  async function unfreeze(sprint: string, say = true) {
+  /** A sprint frozen before it started (older file): follow the data again. */
+  async function reopen(sprint: string) {
     try {
       await enqueue(async () => replaceColumn(await api.UnfreezeAbsences(team, sprint)));
       await load();
-      if (say) toast(t('Allocation of {sprint} is open again. Entries count as announced.', { sprint: nameOf(sprint) }));
+    } catch (e) {
+      toast(String(e), 'bad');
+    }
+  }
+
+  /** After the start: take the days the planned periods give now into the frozen cells. */
+  async function adopt(sprint: string) {
+    try {
+      await enqueue(async () => replaceColumn(await api.AdoptPeriods(team, sprint)));
+      await load();
+      toast(t('Periods adopted for {sprint}.', { sprint: nameOf(sprint) }));
     } catch (e) {
       toast(String(e), 'bad');
     }
@@ -180,8 +167,8 @@
     else void commit(ci, ri, input); // last person: no blur follows, so save here
   }
 
-  const stateText = (s: AbsenceColumn['state']) =>
-    s === 'confirmed' ? t('Confirmed') : s === 'announced' ? t('Announced') : t('Not entered');
+  const stateText = (s: AbsenceColumn['state']) => (s === 'confirmed' ? t('Frozen') : t('Live'));
+  const planDiffers = (c: AbsenceColumn) => c.frozenPlan != null && c.plan != null && Math.abs(c.frozenPlan - c.plan) >= 0.05;
 </script>
 
 {#if error}
@@ -197,8 +184,8 @@
             <th scope="col" class="sc" class:focus={c.id === focus}>
               <span class="data">{c.name}</span><br />
               <span class="muted small">{formatDate(c.start)}</span>
-              <span class="chip small {c.state === 'confirmed' ? 'ok' : c.state === 'announced' ? 'warn' : ''}">
-                {#if c.state !== 'unknown'}<Icon name={c.state === 'confirmed' ? 'lock' : 'lock_open'} size={14} />{/if}
+              <span class="chip small {c.state === 'confirmed' ? (c.drifts > 0 || planDiffers(c) ? 'warn' : 'ok') : ''}">
+                {#if c.state === 'confirmed'}<Icon name={c.drifts > 0 || planDiffers(c) ? 'warning' : 'lock'} size={14} />{/if}
                 {stateText(c.state)}
               </span>
             </th>
@@ -218,7 +205,7 @@
                 {#if !cell.active}
                   <span class="muted" title={t('Not in the team during this sprint.')}>–</span>
                 {:else}
-                  <div class="cell {cell.state === 'confirmed' && cell.days > 0 ? 'c' : cell.state === 'announced' ? 'a' : ''}" class:g={ghost !== undefined}>
+                  <div class="cell {cell.state === 'confirmed' && cell.days > 0 ? 'c' : cell.state === 'announced' ? 'a' : ''}" class:g={ghost !== undefined} class:d={cell.periodDays != null}>
                     <input
                       class="input data"
                       inputmode="decimal"
@@ -234,24 +221,9 @@
                       <button class="btn icon ghost" type="button" disabled={c.past} title={t('Restore {days} days', { days: days(ghost) })} aria-label={t('Restore {days} days', { days: days(ghost) })} onclick={() => restore(ci, ri)}>
                         <Icon name="undo" size={16} />
                       </button>
-                    {:else if cell.days > 0}
-                      {@const text = c.state === 'confirmed'
-                        ? t('Frozen with the sprint. Open the sprint to change the lock.')
-                        : cell.state === 'confirmed'
-                          ? t('Confirmed. A click makes it announced again.')
-                          : cell.fromPeriod
-                            ? t('From a planned absence period. A click confirms it.')
-                            : t('Announced. A click confirms it.')}
-                      <button
-                        class="btn icon ghost lock"
-                        type="button"
-                        disabled={c.past || c.state === 'confirmed'}
-                        title={text}
-                        aria-label={text}
-                        onclick={() => lockCell(ci, ri, cell.state !== 'confirmed')}
-                      >
-                        <Icon name={cell.state === 'confirmed' ? 'lock' : 'lock_open'} size={16} />
-                      </button>
+                    {:else if cell.periodDays != null}
+                      {@const note = t('Frozen {frozen} days, the planned periods now give {now}.', { frozen: days(cell.days), now: days(cell.periodDays) })}
+                      <span class="drift" title={note} aria-label={note}><Icon name="warning" size={16} /></span>
                     {/if}
                   </div>
                 {/if}
@@ -281,18 +253,27 @@
         <tr>
           <td>{t('Allocation')}</td>
           <td></td>
-          {#each grid.columns as c, ci (c.id)}
+          {#each grid.columns as c (c.id)}
             <td class="sc" class:focus={c.id === focus}>
               {#if c.past}
                 <span class="muted small">{t('Closed')}</span>
-              {:else if c.state === 'confirmed'}
-                <button class="btn ghost frozen" type="button" onclick={() => unfreeze(c.id)} title={c.entries ? t('{n} entries confirmed, all others 0 days. A click opens the sprint again.', { n: c.entries }) : t('Nobody is absent. A click opens the sprint again.')}>
-                  <Icon name="lock" size={16} />{t('Frozen')}
-                </button>
+              {:else if c.state !== 'confirmed'}
+                <span class="muted small" title={t('Periods, FTE and typed days count live until the sprint starts.')}>{t('Live until start')}</span>
               {:else}
-                <button class="btn" type="button" data-tour="prepare-freeze" onclick={() => freeze(c.id)} title={c.entries ? t('Confirm all entries; empty cells count as 0 days.') : t('Nobody is absent: empty cells count as 0 days.')}>
-                  <Icon name="lock_open" size={16} />{c.entries ? t('Freeze') : t('Nobody absent')}
-                </button>
+                {#if planDiffers(c)}
+                  <div class="small warnText">{t('Frozen PLAN {frozen}, now {now}.', { frozen: days(c.frozenPlan ?? 0), now: days(c.plan ?? 0) })}</div>
+                {/if}
+                {#if c.drifts > 0}
+                  <button class="btn" type="button" onclick={() => adopt(c.id)} title={t('The planned periods give other days than the frozen cells. A click adopts them.')}>
+                    <Icon name="sync" size={16} />{t('Adopt periods')}
+                  </button>
+                {:else if c.open}
+                  <button class="btn" type="button" onclick={() => reopen(c.id)} title={t('This sprint was frozen before it started. A click makes it follow periods and FTE again.')}>
+                    <Icon name="lock_open" size={16} />{t('Make live again')}
+                  </button>
+                {:else if !planDiffers(c)}
+                  <span class="frozen small"><Icon name="lock" size={14} />{t('Frozen at start')}</span>
+                {/if}
               {/if}
             </td>
           {/each}
@@ -350,11 +331,22 @@
     background: var(--ok-weak);
     border-color: var(--ok);
   }
-  .cell.a .lock {
+  .cell.d .input {
+    border-color: var(--warn);
+  }
+  .drift {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    height: 28px;
+    margin-left: 4px;
+    display: grid;
+    place-items: center;
     color: var(--warn);
   }
-  .cell.c .lock {
-    color: var(--ok);
+  .warnText {
+    color: var(--warn);
+    margin-bottom: 4px;
   }
   .cell.g .input {
     border-style: dashed;
