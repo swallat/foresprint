@@ -341,6 +341,8 @@ start_pending: true         # optional: waits for its start (plan frozen early, 
 expected_absences: {anna: 2}   # PO pre-planning: announced absences (forecast); affect capacity
 period_cells: [anna]              # set at the sprint start: people whose frozen cell came from their absence periods (compared with them later)
                            # and Forecast PLAN until the absences are confirmed
+committed_tickets: [T-1, T-2]       # set at the sprint start: the frozen ticket list
+committed_sizes: {T-1: 4, T-2: 2}  # set at the sprint start: the size of each (the planning size: remaining or estimate per `tracker.planning_uses`; tickets pulled in later count with their estimate); the Review counts commitment, rest and velocity with them. Older sprints without it use the estimate
 not_done: 1.5              # review, optional: amount that was not finished
 additional_done: 0.5       # review, optional: done in addition to the commitment
                            # (velocity = commitment - not done + additionally done)
