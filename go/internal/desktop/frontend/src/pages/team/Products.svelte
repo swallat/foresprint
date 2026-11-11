@@ -79,7 +79,8 @@
   // before, the later save would put the earlier values back to "auto".
   let queue: Promise<unknown> = Promise.resolve();
   function save(build: (list: Product[]) => Product[], message = ''): Promise<boolean> {
-    const run = queue.then(() => persist(build, message));
+    const team = app.team; // the team of the click, not of the moment the save runs
+    const run = queue.then(() => (team === app.team ? persist(build, message) : false));
     queue = run;
     return run;
   }
@@ -158,15 +159,22 @@
   const productFields: (keyof Product)[] = ['name', 'po', 'share', 'rule', 'from', 'to'];
 
   async function remove(p: Product) {
-    const before = view?.products ?? [];
-    if (!(await save((list) => list.filter((x) => x.id !== p.id)))) return;
+    // Both lists are read when the save runs, so a share save queued before it is not part of it.
+    let before: Product[] = [];
+    if (!(await save((list) => ((before = list), list.filter((x) => x.id !== p.id))))) return;
     const undo = inverse(before, view?.products ?? [], productFields);
     toast(t('{name} deleted.', { name: p.name }), 'ok', {
       label: t('Undo'),
       run: () => {
-        const { list, ok } = undo(view?.products ?? []);
-        if (!ok) toast(t('This change can no longer be undone.'), 'bad');
-        else void save(() => list, t('Change undone.'));
+        let ok = true;
+        void save((cur) => {
+          const r = undo(cur);
+          ok = r.ok;
+          return r.ok ? r.list : cur;
+        }).then((saved) => {
+          if (!ok) toast(t('This change can no longer be undone.'), 'bad');
+          else if (saved) toast(t('Change undone.'), 'ok');
+        });
       },
     });
   }
