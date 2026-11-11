@@ -110,6 +110,9 @@ func (s *Store) gitUnsavedChanges() ([]UnsavedFile, error) {
 						Kind: kindOf(ch), Before: show(ch.Before), After: show(ch.After),
 						HasBefore: !yamlmerge.IsMissing(ch.Before), HasAfter: !yamlmerge.IsMissing(ch.After)})
 				}
+				// Only the layout differs (order of keys, quotes, line ends): there is no value to
+				// put back, the file can only be taken back as a whole.
+				f.Whole = len(f.Values) == 0
 				out = append(out, f)
 				continue
 			}
@@ -162,6 +165,15 @@ func (s *Store) DiscardValues(items []ValueRef) Done {
 			if tree, ok = yamlmerge.Apply(tree, c.Path, c.Before); !ok {
 				return s.undone(git.New(i18n.T("This value cannot be put back."), "error", ""))
 			}
+		}
+		if len(yamlmerge.Changes(before, tree)) == 0 {
+			// Every value is back. Write the file as it was saved instead of dumping the tree:
+			// a dump may order keys or write timestamps differently, and the file would still
+			// count as changed although nothing differs.
+			if _, err := git.Git(ctx, root, "restore", "--source=HEAD", "--staged", "--worktree", "--", file); err != nil {
+				return s.undone(err)
+			}
+			continue
 		}
 		dumped, err := codec.Dump(tree)
 		if err != nil {

@@ -930,6 +930,22 @@ func floatOr(p *float64, def float64) float64 {
 	return *p
 }
 
+// planUniqueCarry keeps one entry per ticket (the last one wins, like in the what-if), in the order
+// the tickets first appear. The window may send a ticket twice when "carry-over" is pressed again.
+func planUniqueCarry(in []CarryInput) []CarryInput {
+	at := map[string]int{}
+	out := make([]CarryInput, 0, len(in))
+	for _, it := range in {
+		if i, seen := at[it.Ticket]; seen {
+			out[i] = it
+			continue
+		}
+		at[it.Ticket] = len(out)
+		out = append(out, it)
+	}
+	return out
+}
+
 // SaveAssumption keeps an assumption about the running sprint as a forecast ("prognosis") with
 // the label. The running sprint's file holds it; the review compares it with the result.
 func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
@@ -964,7 +980,7 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 		p.AdditionalDone = &w.Extra
 	}
 	p.FocusPercent, p.ExtraAbsenceDays = as.FocusPercent, as.ExtraAbsenceDays
-	for _, it := range as.Carry {
+	for _, it := range planUniqueCarry(as.Carry) {
 		key := it.Ticket
 		p.Carry = append(p.Carry, model.CarryItem{Ticket: &key, Rest: it.Rest, Target: it.Target})
 	}
