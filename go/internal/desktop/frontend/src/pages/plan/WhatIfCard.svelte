@@ -48,8 +48,10 @@
 
   function setCarry(x: RunningTicket, on: boolean): void {
     if (!a) return;
-    if (on) a.carry.push({ ticket: x.key, rest: restOf(x), target: '' });
-    else a.carry = a.carry.filter((c) => c.ticket !== x.key);
+    if (on) {
+      if (carried(x.key)) return; // pressed again: the ticket is carried once
+      a.carry.push({ ticket: x.key, rest: restOf(x), target: '' });
+    } else a.carry = a.carry.filter((c) => c.ticket !== x.key);
     void model.reload();
   }
   function setRest(x: RunningTicket, text: string): void {

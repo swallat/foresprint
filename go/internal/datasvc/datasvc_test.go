@@ -458,3 +458,68 @@ func TestStatusOfADeletedFolderDoesNotLookAtTheRepositoryAround(t *testing.T) {
 		t.Error("no background check for a missing folder")
 	}
 }
+
+// Putting the last value back leaves the file exactly as it was saved: a dump would move the
+// restored key to the end, and the file would still show as changed.
+func TestDiscardValuesRestoresTheSavedFileExactly(t *testing.T) {
+	w := newWorld(t)
+	saved := "velocity: 10\norder:\n- X-1\n- X-2\nscope_creep: 1\nstamp: 2026-11-10T08:55:01Z\n"
+	w.alice.write("a/2026.1.yaml", saved)
+	if res := w.alice.store.Save(SaveOptions{Message: "order"}); res.Outcome != OutcomeSaved {
+		t.Fatalf("save = %+v", res)
+	}
+	w.alice.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 1\nstamp: 2026-11-11T10:30:31Z\n")
+	list, err := w.alice.store.UnsavedChanges()
+	if err != nil || len(list) != 1 || len(list[0].Values) != 2 {
+		t.Fatalf("unsaved = %+v, %v", list, err)
+	}
+	for _, v := range list[0].Values {
+		if d := w.alice.store.DiscardValues([]ValueRef{{File: list[0].File, Path: v.Path}}); d.Problem != nil {
+			t.Fatalf("discard = %+v", d.Problem)
+		}
+	}
+	got, _ := os.ReadFile(filepath.Join(w.alice.root, filepath.FromSlash(list[0].File)))
+	if string(got) != saved {
+		t.Fatalf("file = %q", got)
+	}
+	if left, _ := w.alice.store.UnsavedChanges(); len(left) != 0 {
+		t.Fatalf("still unsaved: %+v", left)
+	}
+}
+
+// A file that differs only in layout has no value to put back: it is listed as a whole file.
+func TestUnsavedLayoutOnlyChangeIsAWholeFile(t *testing.T) {
+	w := newWorld(t)
+	w.alice.write("a/2026.1.yaml", "scope_creep: 1\nvelocity: 10\n")
+	list, err := w.alice.store.UnsavedChanges()
+	if err != nil || len(list) != 1 || !list[0].Whole || len(list[0].Values) != 0 {
+		t.Fatalf("unsaved = %+v, %v", list, err)
+	}
+	if d := w.alice.store.Discard([]string{list[0].File}); d.Problem != nil {
+		t.Fatalf("discard = %+v", d.Problem)
+	}
+	if left, _ := w.alice.store.UnsavedChanges(); len(left) != 0 {
+		t.Fatalf("still unsaved: %+v", left)
+	}
+}
+
+// A reorder of a list with ids is not shown as a value; putting back the other values keeps it.
+func TestDiscardValuesKeepsAReorderOfAKeyedList(t *testing.T) {
+	w := newWorld(t)
+	w.alice.write("a/2026.1.yaml", "velocity: 10\nitems:\n- id: 1\n- id: 2\n")
+	if res := w.alice.store.Save(SaveOptions{Message: "items"}); res.Outcome != OutcomeSaved {
+		t.Fatalf("save = %+v", res)
+	}
+	w.alice.write("a/2026.1.yaml", "velocity: 12\nitems:\n- id: 2\n- id: 1\n")
+	list, err := w.alice.store.UnsavedChanges()
+	if err != nil || len(list) != 1 || len(list[0].Values) != 1 {
+		t.Fatalf("unsaved = %+v, %v", list, err)
+	}
+	if d := w.alice.store.DiscardValues([]ValueRef{{File: list[0].File, Path: list[0].Values[0].Path}}); d.Problem != nil {
+		t.Fatalf("discard = %+v", d.Problem)
+	}
+	got, _ := os.ReadFile(filepath.Join(w.alice.root, filepath.FromSlash(list[0].File)))
+	if !strings.Contains(string(got), "velocity: 10") || strings.Index(string(got), "id: 2") > strings.Index(string(got), "id: 1") {
+		t.Fatalf("the reorder is lost: %q", got)
+	}
+}

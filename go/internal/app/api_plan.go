@@ -277,7 +277,15 @@ func (c *planCtx) savedCarry(prev *model.Sprint) (in, later float64) {
 			in += *restNext
 			return
 		}
-		for _, it := range items {
+		seen := map[string]bool{}
+		for i := len(items) - 1; i >= 0; i-- { // one entry per ticket, the last one counts
+			it := items[i]
+			if it.Ticket != nil {
+				if seen[*it.Ticket] {
+					continue
+				}
+				seen[*it.Ticket] = true
+			}
 			if it.Target == "" || it.Target == c.sprint.ID {
 				in += it.Rest
 			} else if it.Target != model.CarryBacklog && !strings.HasPrefix(it.Target, model.CarryProForma) {
@@ -466,6 +474,7 @@ func assumptionOf(p model.Prognosis) Assumption {
 	for _, it := range p.Carry {
 		as.Carry = append(as.Carry, CarryInput{Ticket: str(it.Ticket), Rest: it.Rest, Target: it.Target})
 	}
+	as.Carry = planUniqueCarry(as.Carry) // older files may list a ticket twice
 	return as
 }
 
@@ -931,6 +940,22 @@ func floatOr(p *float64, def float64) float64 {
 	return *p
 }
 
+// planUniqueCarry keeps one entry per ticket (the last one wins, like in the what-if), in the order
+// the tickets first appear. The window may send a ticket twice when "carry-over" is pressed again.
+func planUniqueCarry(in []CarryInput) []CarryInput {
+	at := map[string]int{}
+	out := make([]CarryInput, 0, len(in))
+	for _, it := range in {
+		if i, seen := at[it.Ticket]; seen {
+			out[i] = it
+			continue
+		}
+		at[it.Ticket] = len(out)
+		out = append(out, it)
+	}
+	return out
+}
+
 // SaveAssumption keeps an assumption about the running sprint as a forecast ("prognosis") with
 // the label. The running sprint's file holds it; the review compares it with the result.
 func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
@@ -965,7 +990,7 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 		p.AdditionalDone = &w.Extra
 	}
 	p.FocusPercent, p.ExtraAbsenceDays = as.FocusPercent, as.ExtraAbsenceDays
-	for _, it := range as.Carry {
+	for _, it := range planUniqueCarry(as.Carry) {
 		key := it.Ticket
 		p.Carry = append(p.Carry, model.CarryItem{Ticket: &key, Rest: it.Rest, Target: it.Target})
 	}
