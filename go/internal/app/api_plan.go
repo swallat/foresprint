@@ -276,7 +276,15 @@ func (c *planCtx) savedCarry(prev *model.Sprint) (in, later float64) {
 			in += *restNext
 			return
 		}
-		for _, it := range items {
+		seen := map[string]bool{}
+		for i := len(items) - 1; i >= 0; i-- { // one entry per ticket, the last one counts
+			it := items[i]
+			if it.Ticket != nil {
+				if seen[*it.Ticket] {
+					continue
+				}
+				seen[*it.Ticket] = true
+			}
 			if it.Target == "" || it.Target == c.sprint.ID {
 				in += it.Rest
 			} else if it.Target != model.CarryBacklog && !strings.HasPrefix(it.Target, model.CarryProForma) {
@@ -465,6 +473,7 @@ func assumptionOf(p model.Prognosis) Assumption {
 	for _, it := range p.Carry {
 		as.Carry = append(as.Carry, CarryInput{Ticket: str(it.Ticket), Rest: it.Rest, Target: it.Target})
 	}
+	as.Carry = planUniqueCarry(as.Carry) // older files may list a ticket twice
 	return as
 }
 

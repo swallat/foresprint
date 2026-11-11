@@ -166,7 +166,7 @@ func (s *Store) DiscardValues(items []ValueRef) Done {
 				return s.undone(git.New(i18n.T("This value cannot be put back."), "error", ""))
 			}
 		}
-		if len(yamlmerge.Changes(before, tree)) == 0 {
+		if sameAsSaved(ctx, root, file, text, before, tree) {
 			// Every value is back. Write the file as it was saved instead of dumping the tree:
 			// a dump may order keys or write timestamps differently, and the file would still
 			// count as changed although nothing differs.
@@ -185,4 +185,51 @@ func (s *Store) DiscardValues(items []ValueRef) Done {
 	}
 	git.InvalidateStatus()
 	return Done{Status: s.Status()}
+}
+
+// sameAsSaved says that the tree is what was saved: same values, lists in the same order, same
+// leading comment. The order of keys of a mapping does not count (a put-back key may come back
+// at another place). Only then is the saved file put back as it is; a difference the value list
+// cannot show (a reordered list, an edited comment) stays.
+func sameAsSaved(ctx context.Context, root, file, current string, before, tree any) bool {
+	raw, err := git.Bytes(ctx, root, "show", "HEAD:"+filepath.ToSlash(file))
+	if err != nil || yamlmerge.HeaderOf(string(raw)) != yamlmerge.HeaderOf(current) {
+		return false
+	}
+	return sameInOrder(before, tree)
+}
+
+func sameInOrder(a, b any) bool {
+	switch x := a.(type) {
+	case []any:
+		y, ok := b.([]any)
+		if !ok || len(x) != len(y) {
+			return false
+		}
+		for i := range x {
+			if !sameInOrder(x[i], y[i]) {
+				return false
+			}
+		}
+		return true
+	case *yamlx.Map:
+		y, ok := b.(*yamlx.Map)
+		if !ok || len(x.Entries) != len(y.Entries) {
+			return false
+		}
+		for _, e := range x.Entries {
+			found := false
+			for _, f := range y.Entries {
+				if yamlx.PyStr(e.Key) == yamlx.PyStr(f.Key) {
+					found = sameInOrder(e.Value, f.Value)
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+		return true
+	}
+	return yamlmerge.Same(a, b)
 }
