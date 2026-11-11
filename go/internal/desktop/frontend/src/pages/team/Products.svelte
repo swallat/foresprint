@@ -28,6 +28,9 @@
   const active = $derived((view?.products ?? []).filter((p) => !p.ended));
   const ended = $derived((view?.products ?? []).filter((p) => p.ended));
   const sum = $derived(shareSum(active));
+  // Products on "auto" split what is left, so only a total over 100 % or fixed shares that miss
+  // 100 % with nothing left to split are a problem.
+  const shareWarning = $derived(active.length > 1 && (sum > 100 || (sum !== 100 && active.every((p) => p.share !== null))));
   const rules = $derived(view?.source === 'tracker');
   const counts = $derived(view?.source !== 'none');
   const ticketsLabel = $derived(view?.source === 'packages' ? t('Work packages') : t('Tickets'));
@@ -71,9 +74,19 @@
     ruleText = (view?.products ?? []).find((p) => p.id === id)?.rule ?? '';
   }
 
-  async function save(next: Product[], message = ''): Promise<boolean> {
+  // Saves run one after the other and build their list from the page as the previous save left it.
+  // Tabbing through the share fields starts a save per field; with a list taken from the page
+  // before, the later save would put the earlier values back to "auto".
+  let queue: Promise<unknown> = Promise.resolve();
+  function save(build: (list: Product[]) => Product[], message = ''): Promise<boolean> {
+    const run = queue.then(() => persist(build, message));
+    queue = run;
+    return run;
+  }
+
+  async function persist(build: (list: Product[]) => Product[], message: string): Promise<boolean> {
     try {
-      view = await api.SaveProducts(app.team, next);
+      view = await api.SaveProducts(app.team, build(view?.products ?? []));
       if (message) toast(message, 'ok');
       return true;
     } catch (e) {
@@ -83,21 +96,31 @@
     }
   }
 
-  const replace = (p: Product) => (view?.products ?? []).map((x) => (x.id === p.id ? p : x));
+  const edit = (id: string, patch: Partial<Product>) => (list: Product[]) => list.map((x) => (x.id === id ? { ...x, ...patch } : x));
 
   function rename(p: Product, name: string) {
     if (!name.trim() || name === p.name) return load();
-    return save(replace({ ...p, name: name.trim() }));
+    return save(edit(p.id, { name: name.trim() }));
   }
 
-  function setShare(p: Product, text: string) {
-    if (text.trim() === '') return save(replace({ ...p, share: null }));
-    const value = parseNum(text);
-    if (!(value >= 0 && value <= 100)) {
+  /** Whole percent from what was typed: "25", "25 %" and "25,0" are fine; empty = auto. */
+  function shareOf(text: string): number | null | undefined {
+    const clean = text.replace('%', '').trim();
+    if (clean === '') return null;
+    const value = parseNum(clean);
+    return value >= 0 && value <= 100 ? Math.round(value) / 100 : undefined;
+  }
+
+  async function setShare(p: Product, input: HTMLInputElement) {
+    const share = shareOf(input.value);
+    if (share === undefined) {
       toast(t('Enter a share between 0 and 100 percent.'), 'bad');
-      return load();
+    } else {
+      await save(edit(p.id, { share }));
     }
-    return save(replace({ ...p, share: value / 100 }));
+    // The field keeps what was typed when the value did not change; show what is stored.
+    const stored = view?.products.find((x) => x.id === p.id)?.share ?? null;
+    input.value = String(percent(stored) ?? '');
   }
 
   // "+" menu in the top bar: open with a new row
@@ -119,7 +142,7 @@
       ended: false,
       used: false,
     };
-    void save([...(view?.products ?? []), product], t('Product added.')).then(() => {
+    void save((list) => [...list, product], t('Product added.')).then(() => {
       const added = view?.products.find((p) => p.name === product.name && !p.used);
       if (added) focusId = added.id;
     });
@@ -128,23 +151,22 @@
   async function applyRule() {
     const product = active.find((p) => p.id === ruleFor);
     if (!product) return;
-    await save(replace({ ...product, rule: ruleText.trim() }), t('Rule of {name} saved. It applies from the next fetch.', { name: product.name }));
+    await save(edit(product.id, { rule: ruleText.trim() }), t('Rule of {name} saved. It applies from the next fetch.', { name: product.name }));
     selectRule(ruleFor);
   }
 
   const productFields: (keyof Product)[] = ['name', 'po', 'share', 'rule', 'from', 'to'];
 
   async function remove(p: Product) {
-    const rest = (view?.products ?? []).filter((x) => x.id !== p.id);
     const before = view?.products ?? [];
-    if (!(await save(rest))) return;
+    if (!(await save((list) => list.filter((x) => x.id !== p.id)))) return;
     const undo = inverse(before, view?.products ?? [], productFields);
     toast(t('{name} deleted.', { name: p.name }), 'ok', {
       label: t('Undo'),
       run: () => {
         const { list, ok } = undo(view?.products ?? []);
         if (!ok) toast(t('This change can no longer be undone.'), 'bad');
-        else void save(list, t('Change undone.'));
+        else void save(() => list, t('Change undone.'));
       },
     });
   }
@@ -205,7 +227,7 @@
       {t('All tickets belong to the team; assignment rules, budgets and balance per product are hidden. With a second product they appear everywhere by themselves.')}
     </Banner>
   {/if}
-  {#if sum !== 100 && active.length > 1}
+  {#if shareWarning}
     <Banner tone="warn">{t('The shares add up to {sum} %, not 100 %. The rest is not distributed in the default share.', { sum })}</Banner>
   {/if}
 
@@ -227,7 +249,7 @@
           <tr>
             <td><input class="input name" data-name={p.id} value={p.name} aria-label={t('Name')} onchange={(e) => rename(p, e.currentTarget.value)} /></td>
             <td class="only-multipo">
-              <select class="input" aria-label={t('Product owner of {name}', { name: p.name })} value={p.po} onchange={(e) => save(replace({ ...p, po: e.currentTarget.value }))}>
+              <select class="input" aria-label={t('Product owner of {name}', { name: p.name })} value={p.po} onchange={(e) => save(edit(p.id, { po: e.currentTarget.value }))}>
                 {#if !view.owners.some((o) => o.id === p.po)}<option value={p.po}>{p.po || '–'}</option>{/if}
                 {#each view.owners as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
               </select>
@@ -235,11 +257,11 @@
             <td class="num">
               <input
                 class="input data share"
-                inputmode="numeric"
+                inputmode="decimal"
                 value={percent(p.share) ?? ''}
                 placeholder={t('auto')}
                 aria-label={t('Share of {name} in percent', { name: p.name })}
-                onchange={(e) => setShare(p, e.currentTarget.value)}
+                onchange={(e) => setShare(p, e.currentTarget)}
               />
             </td>
             {#if focus}
@@ -448,7 +470,7 @@
     width: 170px;
   }
   .share {
-    width: 64px;
+    width: 7.5rem;
     text-align: right;
   }
   .nowrap {
