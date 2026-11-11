@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/swallat/foresprint/internal/i18n"
 )
@@ -324,18 +325,23 @@ func Commit(ctx context.Context, paths []string, message, tag string) (string, e
 }
 
 // SafeTagName turns free text (such as team/sprint ids, which may contain spaces) into a name that
-// passes git check-ref-format: every character Git forbids becomes "-", runs of "-" collapse,
+// passes git check-ref-format: every character Git forbids becomes "-",
 // and the parts between "/" are cleaned of leading "." and trailing "." or ".lock".
 func SafeTagName(name string) string {
 	var parts []string
 	for _, part := range strings.Split(name, "/") {
 		var b strings.Builder
+		replaced := false // the last character written replaced a forbidden one
 		for _, r := range part {
 			switch {
-			case r <= ' ' || r == 0x7f, strings.ContainsRune("~^:?*[\\", r):
-				b.WriteByte('-')
+			case r <= ' ' || r == 0x7f || unicode.IsSpace(r), strings.ContainsRune("~^:?*[\\", r):
+				if !replaced {
+					b.WriteByte('-')
+				}
+				replaced = true
 			default:
 				b.WriteRune(r)
+				replaced = false
 			}
 		}
 		p := b.String()
@@ -343,13 +349,9 @@ func SafeTagName(name string) string {
 		for strings.Contains(p, "..") {
 			p = strings.ReplaceAll(p, "..", ".")
 		}
-		for strings.Contains(p, "--") {
-			p = strings.ReplaceAll(p, "--", "-")
-		}
 		for {
 			q := strings.TrimSuffix(strings.TrimSuffix(p, ".lock"), ".")
-			q = strings.TrimLeft(q, ".-")
-			q = strings.TrimRight(q, "-")
+			q = strings.TrimLeft(q, ".")
 			if q == p {
 				break
 			}
@@ -359,5 +361,9 @@ func SafeTagName(name string) string {
 			parts = append(parts, p)
 		}
 	}
-	return strings.Join(parts, "/")
+	out := strings.Trim(strings.Join(parts, "/"), "-")
+	if out == "" || out == "HEAD" {
+		return "sprint"
+	}
+	return out
 }
