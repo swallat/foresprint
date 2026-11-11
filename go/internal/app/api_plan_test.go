@@ -865,6 +865,7 @@ func TestPlanLaneMatchesBacklogLane(t *testing.T) {
 		{Key: "T-2", Title: "in the sprint in the tracker", Estimate: f(3), EstimateSource: model.EstimateRefined, InSprint: str(next)},
 		{Key: "T-3", Title: "earmarked, tracker says another sprint", Estimate: f(2), EstimateSource: model.EstimateRefined, InSprint: str(other)},
 		{Key: "T-4", Title: "refined state unclear", Estimate: f(1), EstimateSource: model.EstimateRefined, RefinedUnclear: true},
+		{Key: "T-5", Title: "only a remaining value", Remaining: f(0.25), EstimateSource: model.EstimateRefined},
 	}
 	if _, err := repo.SaveTickets(team, storage.TicketsFile{Tickets: tickets}); err != nil {
 		t.Fatal(err)
@@ -874,7 +875,7 @@ func TestPlanLaneMatchesBacklogLane(t *testing.T) {
 		t.Fatal(err)
 	}
 	pp := data.Preplan
-	pp.Earmarks = []model.Earmark{{Ticket: "T-1", Sprint: next}, {Ticket: "T-3", Sprint: next}, {Ticket: "T-4", Sprint: next}}
+	pp.Earmarks = []model.Earmark{{Ticket: "T-1", Sprint: next}, {Ticket: "T-3", Sprint: next}, {Ticket: "T-4", Sprint: next}, {Ticket: "T-5", Sprint: next}}
 	if _, err := repo.SavePreplan(team, pp); err != nil {
 		t.Fatal(err)
 	}
@@ -898,13 +899,16 @@ func TestPlanLaneMatchesBacklogLane(t *testing.T) {
 	for _, tk := range pv.Tickets {
 		plan[tk.Key] = tk.Refined
 	}
-	if len(back) != 3 || len(plan) != len(back) {
-		t.Fatalf("backlog lane %v, plan lane %v: both want T-1, T-2, T-4", back, plan)
+	if len(back) != 4 || len(plan) != len(back) {
+		t.Fatalf("backlog lane %v, plan lane %v: both want T-1, T-2, T-4, T-5", back, plan)
 	}
 	for k, r := range back {
 		if pr, ok := plan[k]; !ok || pr != r {
 			t.Errorf("%s: backlog refined %v, plan %v (in plan: %v)", k, r, pr, ok)
 		}
+	}
+	if !plan["T-5"] {
+		t.Error("T-5 counts by its remaining value and is refined, like in the backlog")
 	}
 	if back["T-4"] {
 		t.Error("T-4 has an unclear refined state and must not show as refined")

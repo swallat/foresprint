@@ -291,7 +291,8 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 				noEst = t.Estimate == nil
 				row.Title = t.Title
 				row.Product, row.Project = pc.productOf(*t), pc.projectOf(*t)
-				row.Refined = t.Estimate != nil && t.EstimateSource == model.EstimateRefined && !t.RefinedUnclear
+				size, source := preplan.TicketSize(*t, data, 1)
+				row.Refined = size != nil && source == model.EstimateRefined && !t.RefinedUnclear
 				row.RankPos = pc.rankPos(t.Key)
 				row.Status = str(t.Status)
 				row.Estimate = val(t.Estimate)

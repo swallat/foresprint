@@ -164,13 +164,14 @@ func (c *planCtx) rankPos(key string) int {
 }
 
 func (c *planCtx) planTicket(t model.Ticket) PlanTicket {
-	size, _ := preplan.TicketSize(t, c.data, 1)
+	size, source := preplan.TicketSize(t, c.data, 1)
 	pct, src := c.prodShare(t)
 	return PlanTicket{
 		Key: t.Key, Title: t.Title, Status: str(t.Status), URL: c.ticketURL(t.Key),
 		Estimate: t.Estimate, Size: size, Remaining: t.Remaining,
 		Product: c.productOf(t), Project: c.projectOf(t),
-		Refined: t.Estimate != nil && t.EstimateSource == model.EstimateRefined && !t.RefinedUnclear,
+		// Same rule as the backlog: the size that counts (estimate or remaining) is refined.
+		Refined: size != nil && source == model.EstimateRefined && !t.RefinedUnclear,
 		Sprint:  c.earmarkSprint(t), InTracker: str(t.InSprint),
 		ProdPct: pct, ProdSource: src, RankPos: c.rankPos(t.Key),
 	}
