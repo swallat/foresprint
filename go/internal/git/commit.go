@@ -322,3 +322,42 @@ func Commit(ctx context.Context, paths []string, message, tag string) (string, e
 	}
 	return Git(ctx, root, "rev-parse", "--short", "HEAD")
 }
+
+// SafeTagName turns free text (such as team/sprint ids, which may contain spaces) into a name that
+// passes git check-ref-format: every character Git forbids becomes "-", runs of "-" collapse,
+// and the parts between "/" are cleaned of leading "." and trailing "." or ".lock".
+func SafeTagName(name string) string {
+	var parts []string
+	for _, part := range strings.Split(name, "/") {
+		var b strings.Builder
+		for _, r := range part {
+			switch {
+			case r <= ' ' || r == 0x7f, strings.ContainsRune("~^:?*[\\", r):
+				b.WriteByte('-')
+			default:
+				b.WriteRune(r)
+			}
+		}
+		p := b.String()
+		p = strings.ReplaceAll(p, "@{", "@-")
+		for strings.Contains(p, "..") {
+			p = strings.ReplaceAll(p, "..", ".")
+		}
+		for strings.Contains(p, "--") {
+			p = strings.ReplaceAll(p, "--", "-")
+		}
+		for {
+			q := strings.TrimSuffix(strings.TrimSuffix(p, ".lock"), ".")
+			q = strings.TrimLeft(q, ".-")
+			q = strings.TrimRight(q, "-")
+			if q == p {
+				break
+			}
+			p = q
+		}
+		if p != "" && p != "@" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, "/")
+}

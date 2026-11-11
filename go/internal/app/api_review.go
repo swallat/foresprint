@@ -249,7 +249,7 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 		Products:       []ReviewProduct{},
 		FilterProducts: []Named{},
 		FilterProjects: namedProjects(data),
-		Tag:            team + "/" + s.ID,
+		Tag:            git.SafeTagName(team + "/" + s.ID),
 	}
 	if s.Capacity != nil {
 		out.FrozenDays = *s.Capacity
