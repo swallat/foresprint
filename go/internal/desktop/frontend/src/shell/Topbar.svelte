@@ -65,10 +65,10 @@
 
   <div class="spacer"></div>
 
-  <button class="btn icon ghost" type="button" aria-label={t('Undo')} title={t('Undo (Ctrl+Z)')} disabled={!history.canUndo || !!app.busy} onclick={undo}>
+  <button class="btn icon ghost hide-narrow" type="button" aria-label={t('Undo')} title={t('Undo (Ctrl+Z)')} disabled={!history.canUndo || !!app.busy} onclick={undo}>
     <Icon name="undo" />
   </button>
-  <button class="btn icon ghost" type="button" aria-label={t('Redo')} title={t('Redo (Ctrl+Y)')} disabled={!history.canRedo || !!app.busy} onclick={redo}>
+  <button class="btn icon ghost hide-narrow" type="button" aria-label={t('Redo')} title={t('Redo (Ctrl+Y)')} disabled={!history.canRedo || !!app.busy} onclick={redo}>
     <Icon name="redo" />
   </button>
 
