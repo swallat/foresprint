@@ -30,7 +30,8 @@ type historyStep struct {
 
 type historyLog struct {
 	mu      sync.Mutex
-	pending map[string][]byte
+	pending map[int]map[string][]byte // open steps by token; nil snapshot = not usable
+	next    int
 	dir     string
 	undo    []historyStep
 	redo    []historyStep
@@ -61,13 +62,15 @@ func historyData(rel string) bool {
 }
 
 // historySnapshot reads the data files of the folder (relative path -> content).
-func historySnapshot(dir string) map[string][]byte {
+func historySnapshot(dir string) (map[string][]byte, bool) {
 	out := map[string][]byte{}
+	complete := true
 	if dir == "" {
-		return out
+		return out, false
 	}
 	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
+			complete = false // a file that cannot be read must never count as absent
 			return nil
 		}
 		rel, rerr := filepath.Rel(dir, path)
@@ -85,40 +88,60 @@ func historySnapshot(dir string) map[string][]byte {
 			return nil
 		}
 		if info, ierr := d.Info(); ierr != nil || info.Size() > historyMaxFile {
+			complete = false
 			return nil
 		}
 		if b, berr := os.ReadFile(path); berr == nil {
 			out[rel] = b
+		} else {
+			complete = false
 		}
 		return nil
 	})
-	return out
+	return out, complete
 }
 
 func (h *historyLog) state() HistoryState {
 	return HistoryState{CanUndo: len(h.undo) > 0, CanRedo: len(h.redo) > 0}
 }
 
-// HistoryBegin remembers the data files before a step of the window.
-func (a *API) HistoryBegin() {
+// HistoryBegin remembers the data files before a step of the window and returns the token of
+// the step. When two steps overlap (the window and the browser page write at once), neither is
+// recorded: their changes cannot be told apart.
+func (a *API) HistoryBegin() int {
 	dir := a.DataDir()
-	snap := historySnapshot(dir)
+	snap, ok := historySnapshot(dir)
+	if !ok {
+		snap = nil
+	}
 	a.hist.mu.Lock()
 	defer a.hist.mu.Unlock()
-	a.hist.pending, a.hist.dir = snap, dir
+	h := &a.hist
+	if h.pending == nil {
+		h.pending = map[int]map[string][]byte{}
+	}
+	if len(h.pending) > 0 {
+		for k := range h.pending {
+			h.pending[k] = nil
+		}
+		snap = nil
+	}
+	h.next++
+	h.pending[h.next], h.dir = snap, dir
+	return h.next
 }
 
 // HistoryEnd compares the files with what HistoryBegin saw and, when they differ, puts the step
 // on the undo list. A new step empties the redo list.
-func (a *API) HistoryEnd() HistoryState {
+func (a *API) HistoryEnd(token int) HistoryState {
 	dir := a.DataDir()
-	now := historySnapshot(dir)
+	now, complete := historySnapshot(dir)
 	a.hist.mu.Lock()
 	defer a.hist.mu.Unlock()
 	h := &a.hist
-	before := h.pending
-	h.pending = nil
-	if before == nil || h.dir != dir {
+	before := h.pending[token]
+	delete(h.pending, token)
+	if before == nil || !complete || h.dir != dir {
 		return h.state()
 	}
 	step := historyStep{dir: dir, before: map[string][]byte{}, after: map[string][]byte{}}
@@ -149,7 +172,7 @@ func (a *API) HistoryEnd() HistoryState {
 func (a *API) HistoryClear() HistoryState {
 	a.hist.mu.Lock()
 	defer a.hist.mu.Unlock()
-	a.hist.undo, a.hist.redo, a.hist.pending = nil, nil, nil
+	a.hist.undo, a.hist.redo, a.hist.pending = nil, nil, nil // open steps end without a record
 	return a.hist.state()
 }
 
@@ -167,6 +190,8 @@ func (a *API) HistoryUndo() HistoryResult { return a.historyMove(true) }
 func (a *API) HistoryRedo() HistoryResult { return a.historyMove(false) }
 
 func (a *API) historyMove(undo bool) HistoryResult {
+	editMu.Lock()
+	defer editMu.Unlock()
 	dir := a.DataDir()
 	a.hist.mu.Lock()
 	defer a.hist.mu.Unlock()
@@ -203,6 +228,12 @@ func (a *API) historyMove(undo bool) HistoryResult {
 		if b == nil {
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 				return HistoryResult{Message: err.Error(), State: h.state()}
+			}
+			// Folders the step made go with it (an empty one would block the next archive).
+			for d := filepath.Dir(path); d != dir && strings.HasPrefix(d, dir); d = filepath.Dir(d) {
+				if os.Remove(d) != nil {
+					break
+				}
 			}
 			continue
 		}

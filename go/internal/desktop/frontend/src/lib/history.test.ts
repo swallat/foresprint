@@ -7,7 +7,7 @@ describe('undo list around writes', () => {
 
   it('brackets a write with HistoryBegin and HistoryEnd', async () => {
     const order: string[] = [];
-    vi.spyOn(mockApi, 'HistoryBegin').mockImplementation(async () => void order.push('begin'));
+    vi.spyOn(mockApi, 'HistoryBegin').mockImplementation(async () => (order.push('begin'), 1));
     vi.spyOn(mockApi, 'HistoryEnd').mockImplementation(async () => (order.push('end'), { canUndo: true, canRedo: false }));
     vi.spyOn(mockApi, 'SetLanguage').mockImplementation(async () => void order.push('write'));
     await api.SetLanguage('de');

@@ -32,9 +32,9 @@ func read(t *testing.T, p string) string {
 }
 
 func step(a *API, f func()) {
-	a.HistoryBegin()
+	tok := a.HistoryBegin()
 	f()
-	a.HistoryEnd()
+	a.HistoryEnd(tok)
 }
 
 func TestHistoryUndoRedo(t *testing.T) {
@@ -86,4 +86,26 @@ func TestHistoryNoChangeNoStep(t *testing.T) {
 		t.Fatal("empty step recorded")
 	}
 	a.HistoryClear()
+}
+
+func TestHistoryOverlapAndEmptyFolders(t *testing.T) {
+	a, dir := histAPI(t)
+	p := filepath.Join(dir, "x", "deep", "a.yaml")
+	q := filepath.Join(dir, "b.yaml")
+	write(t, q, "1")
+	t1 := a.HistoryBegin()
+	t2 := a.HistoryBegin()
+	write(t, q, "2")
+	a.HistoryEnd(t1)
+	a.HistoryEnd(t2)
+	if a.HistoryInfo().CanUndo {
+		t.Fatal("overlapping steps must not be recorded")
+	}
+	step(a, func() { write(t, p, "n") })
+	if r := a.HistoryUndo(); !r.OK {
+		t.Fatal(r)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "x")); err == nil {
+		t.Fatal("empty folder left behind")
+	}
 }

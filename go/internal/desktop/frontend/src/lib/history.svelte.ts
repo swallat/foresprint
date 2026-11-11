@@ -54,5 +54,7 @@ export const redo = (): Promise<void> => move(false);
 /** True for a field where the keys belong to the field's own undo. */
 export function isEditable(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
-  return !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
+  if (!el) return false;
+  if (el.tagName === 'INPUT') return !/^(checkbox|radio|button|submit|reset|range|color|file|image)$/.test((el as HTMLInputElement).type);
+  return el.tagName === 'TEXTAREA' || el.isContentEditable;
 }

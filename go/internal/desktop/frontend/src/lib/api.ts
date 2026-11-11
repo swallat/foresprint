@@ -98,7 +98,7 @@ let lastWriteEnd = 0;
 /** Methods that change data. Reads (the status poll, what a page loads when it opens) must not
  * count: a change of the other view right after them would be taken for the own one. */
 const writes =
-  /^(?!RefreshBoardSprints|SetupCheckServer|SetupGuide|SetupState|SetupRegions|ArchivedTeams)(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|HistoryUndo|HistoryRedo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
+  /^(?!RefreshBoardSprints|SetupCheckServer|SetupGuide|SetupState|SetupRegions|ArchivedTeams)(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|StartSprint|WithdrawSprintStart|MuteFinding|UnmuteFinding|AdoptPeriods|EnterDemo|LeaveDemo|HistoryUndo|HistoryRedo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
 
 /** Steps that rewrite files themselves (save, fetch, discard, sync, a switch of the folder): the
  * undo list ends with them, so that undo never puts back files over what they wrote. */
@@ -106,6 +106,7 @@ const clears =
   /^(Save|SaveAnyway|Refresh|Discard|DiscardValues|Revert|Restore|RestoreTeam|ResolveConflicts|TakeTheirs|AbortMerge|AbortSync|SyncTracker|SyncTrackerAuto|SyncTrackerScope|CloneFrom|Reattach|SwitchBranch|SetDataDir|UseSharedFolder|SaveServer|SignIn|ForgetSignIn|EnterDemo|LeaveDemo|InstallUpdate|Setup.*)$/;
 
 let histDepth = 0;
+let histToken = 0;
 let onHistory: ((s: HistoryState) => void) | undefined;
 
 /** The window's undo state (history.svelte.ts) hears every change of the list here. */
@@ -133,14 +134,14 @@ export const api: Api = new Proxy({} as Api, {
       const clear = write && clears.test(method);
       const first = track && histDepth++ === 0;
       try {
-        if (first) await (await resolve('HistoryBegin')).HistoryBegin().catch(() => undefined);
+        if (first) histToken = await (await resolve('HistoryBegin')).HistoryBegin().catch(() => -1);
         const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
         const fn = target[method];
         if (!fn) throw new Error(`api: unknown method ${method}`);
         return await fn.apply(target, args);
       } finally {
         if (track && --histDepth === 0) {
-          const state = await (await resolve('HistoryEnd')).HistoryEnd().catch(() => undefined);
+          const state = await (await resolve('HistoryEnd')).HistoryEnd(histToken).catch(() => undefined);
           if (state) onHistory?.(state);
         } else if (clear) {
           const state = await (await resolve('HistoryClear')).HistoryClear().catch(() => undefined);

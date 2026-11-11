@@ -5,7 +5,9 @@ import type { Api } from '../api';
 const none = { canUndo: false, canRedo: false };
 
 const historyMock: Partial<Api> = {
-  async HistoryBegin() {},
+  async HistoryBegin() {
+    return 0;
+  },
   async HistoryEnd() {
     return none;
   },

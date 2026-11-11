@@ -13,8 +13,8 @@ export interface HistoryResult {
 }
 
 export interface HistoryApi {
-  HistoryBegin(): Promise<void>;
-  HistoryEnd(): Promise<HistoryState>;
+  HistoryBegin(): Promise<number>;
+  HistoryEnd(token: number): Promise<HistoryState>;
   HistoryClear(): Promise<HistoryState>;
   HistoryInfo(): Promise<HistoryState>;
   HistoryUndo(): Promise<HistoryResult>;
