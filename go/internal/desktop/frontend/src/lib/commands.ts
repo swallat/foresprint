@@ -5,6 +5,7 @@
 import { api } from './api';
 import { app, openTicket, refresh, save, selectSprint, setTheme, syncTracker } from './app.svelte';
 import { t } from './i18n.svelte';
+import { history, redo, undo } from './history.svelte';
 import { go } from './router.svelte';
 import { pages, switchedOff } from './routes';
 
@@ -47,6 +48,8 @@ function actionCommands(): Command[] {
   const out: Command[] = [
     { id: 'act:save', label: t('Save'), group: 'action', hint: 'Ctrl+S', words: 'speichern commit', run: () => void save() },
     { id: 'act:refresh', label: t('Fetch changes of others'), group: 'action', hint: 'Ctrl+Shift+R', words: 'aktualisieren pull', run: () => void refresh() },
+    ...(history.canUndo ? [{ id: 'act:undo', label: t('Undo'), group: 'action' as const, hint: 'Ctrl+Z', words: 'rückgängig zurück', run: () => void undo() }] : []),
+    ...(history.canRedo ? [{ id: 'act:redo', label: t('Redo'), group: 'action' as const, hint: 'Ctrl+Y', words: 'wiederholen wiederherstellen', run: () => void redo() }] : []),
     {
       id: 'act:theme',
       label: t('Switch colour scheme'),

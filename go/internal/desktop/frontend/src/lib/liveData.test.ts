@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./api', () => ({
   ownCallRecent: vi.fn(() => false),
-  api: { Teams: vi.fn(async () => []), Status: vi.fn(async () => ({ storage: 'saved', tracker: { syncing: false } })), PendingTags: vi.fn(async () => []), Sprints: vi.fn(async () => []), TrackerInfo: vi.fn(async () => ({})) },
+  setHistoryListener: vi.fn(),
+  api: { Teams: vi.fn(async () => []), Status: vi.fn(async () => ({ storage: 'saved', tracker: { syncing: false } })), PendingTags: vi.fn(async () => []), Sprints: vi.fn(async () => []), TrackerInfo: vi.fn(async () => ({})), HistoryClear: vi.fn(async () => ({ canUndo: false, canRedo: false })) },
 }));
 
 describe('liveData', () => {

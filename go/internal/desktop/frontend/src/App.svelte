@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { app, panelDocked, panelWidthNow, leaveDemo, refresh, save, start } from './lib/app.svelte';
   import { watchData } from './lib/liveData.svelte';
+  import { isEditable, redo, undo } from './lib/history.svelte';
   import { t } from './lib/i18n.svelte';
   import { current, go, match } from './lib/router.svelte';
   import { pages } from './lib/routes';
@@ -61,6 +62,11 @@
     } else if (mod && e.shiftKey && e.key.toLowerCase() === 'r') {
       e.preventDefault();
       void refresh();
+    } else if (mod && !e.altKey && !isEditable(e.target) && ['z', 'y'].includes(e.key.toLowerCase())) {
+      // In a text field the keys stay with the field's own undo.
+      e.preventDefault();
+      if (e.key.toLowerCase() === 'y' || e.shiftKey) void redo();
+      else void undo();
     } else if (e.key === 'Escape') {
       app.railOpen = false;
     }

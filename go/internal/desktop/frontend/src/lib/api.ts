@@ -8,6 +8,7 @@
 import type { BacklogApi } from './types.backlog';
 import type { ForecastApi } from './types.forecast';
 import type { HelpApi } from './types.help';
+import type { HistoryApi, HistoryState } from './types.history';
 import type { SettingsApi } from './types.settings';
 import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
@@ -21,7 +22,7 @@ import type { TodayApi } from './types.today';
 
 // One interface per area (types.<area>.ts); only the methods of the shell are listed here.
 export interface Api
-  extends BacklogApi, DataApi, ForecastApi, HelpApi, PlanApi, ProjectsApi, ReviewApi, SettingsApi, SetupApi, SprintsApi, TeamApi, TodayApi {
+  extends BacklogApi, DataApi, ForecastApi, HelpApi, HistoryApi, PlanApi, ProjectsApi, ReviewApi, SettingsApi, SetupApi, SprintsApi, TeamApi, TodayApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -97,7 +98,21 @@ let lastWriteEnd = 0;
 /** Methods that change data. Reads (the status poll, what a page loads when it opens) must not
  * count: a change of the other view right after them would be taken for the own one. */
 const writes =
-  /^(?!RefreshBoardSprints|SetupCheckServer|SetupGuide|SetupState|SetupRegions|ArchivedTeams)(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
+  /^(?!RefreshBoardSprints|SetupCheckServer|SetupGuide|SetupState|SetupRegions|ArchivedTeams)(Set|Save|Add|Remove|Delete|Rename|Create|Apply|Archive|Restore|Reopen|Close|Freeze|Unfreeze|Move|Reset|Revert|Undo|StartSprint|WithdrawSprintStart|MuteFinding|UnmuteFinding|AdoptPeriods|EnterDemo|LeaveDemo|HistoryUndo|HistoryRedo|Discard|Resolve|Take|Sync|Refresh|Earmark|Enable|Forget|SignIn|Clone|Reattach|Switch|Abort|Use|Share|End|Resume|Install|PlanSprint|PlanWriteApply|PlanWriteUndo|ExcelImportApply|PackageImportApply|ForecastSave|Setup)/;
+
+/** Steps that rewrite files themselves (save, fetch, discard, sync, a switch of the folder): the
+ * undo list ends with them, so that undo never puts back files over what they wrote. */
+const clears =
+  /^(Save|SaveAnyway|Refresh|Discard|DiscardValues|Revert|Restore|RestoreTeam|ResolveConflicts|TakeTheirs|AbortMerge|AbortSync|SyncTracker|SyncTrackerAuto|SyncTrackerScope|CloneFrom|Reattach|SwitchBranch|SetDataDir|UseSharedFolder|SaveServer|SignIn|ForgetSignIn|EnterDemo|LeaveDemo|InstallUpdate|Setup.*)$/;
+
+let histDepth = 0;
+let histToken = 0;
+let onHistory: ((s: HistoryState) => void) | undefined;
+
+/** The window's undo state (history.svelte.ts) hears every change of the list here. */
+export function setHistoryListener(fn: (s: HistoryState) => void): void {
+  onHistory = fn;
+}
 
 /** True while a call of this view runs or a write of it ended a moment ago: a change of the data
  * folder in that time is most likely its own (see liveData.svelte.ts). */
@@ -114,12 +129,24 @@ export const api: Api = new Proxy({} as Api, {
       // view's changes.
       const write = writes.test(method);
       if (write) callsOpen++;
+      // Steps of the window go on the undo list: the data files before and after the call.
+      const track = write && !method.startsWith('History') && !clears.test(method);
+      const clear = write && clears.test(method);
+      const first = track && histDepth++ === 0;
       try {
+        if (first) histToken = await (await resolve('HistoryBegin')).HistoryBegin().catch(() => -1);
         const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
         const fn = target[method];
         if (!fn) throw new Error(`api: unknown method ${method}`);
         return await fn.apply(target, args);
       } finally {
+        if (track && --histDepth === 0) {
+          const state = await (await resolve('HistoryEnd')).HistoryEnd(histToken).catch(() => undefined);
+          if (state) onHistory?.(state);
+        } else if (clear) {
+          const state = await (await resolve('HistoryClear')).HistoryClear().catch(() => undefined);
+          if (state) onHistory?.(state);
+        }
         if (write) {
           callsOpen--;
           lastWriteEnd = Date.now();

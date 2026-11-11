@@ -2,6 +2,8 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
+  "Nothing to undo or redo.": "Es gibt nichts rückgängig zu machen oder zu wiederholen.",
+  "The data changed in the meantime, so the steps were dropped.": "Die Daten haben sich zwischenzeitlich geändert, deshalb wurden die Schritte verworfen.",
   "The browser access is only available in the window.": "Den Browser-Zugriff gibt es nur im Fenster.",
   "'{text}' is not a date (YYYY-MM-DD).": "'{text}' ist kein Datum (JJJJ-MM-TT).",
   "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",

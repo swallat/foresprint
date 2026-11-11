@@ -9,6 +9,7 @@ import core from './core';
 import data from './data';
 import forecast from './forecast';
 import help from './help';
+import history from './history';
 import plan from './plan';
 import projects from './projects';
 import review from './review';
@@ -24,6 +25,7 @@ export const mockApi = {
   ...data,
   ...forecast,
   ...help,
+  ...history,
   ...plan,
   ...projects,
   ...review,
