@@ -520,7 +520,8 @@ func sprintEnded(id string, env Env) bool {
 	return ok && !end.After(env.Today)
 }
 
-// sprintOpen says whether the sprint is known and current or in the future (its end after today).
+// sprintOpen says whether the sprint is known and not over: running or in the future (by phase, else
+// its end after today).
 func sprintOpen(id string, env Env) bool {
 	if p, ok := env.Sprints.(Phased); ok {
 		over, known := p.Over(id)

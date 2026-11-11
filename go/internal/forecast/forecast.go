@@ -584,3 +584,17 @@ func UnitAt(data *storage.TeamData, now time.Time) (unit model.Unit, from string
 	}
 	return unit, from
 }
+
+// SprintOver says whether the sprint (recorded or from the calendar) is past on the day by its
+// phase, not by its end date alone; ok is false for an unknown sprint. It is the phase of
+// Forecast.Phase for callers that have no forecast built.
+func SprintOver(data *storage.TeamData, id string, today time.Time) (over, ok bool) {
+	s, err := FindSprint(data, id, DefaultLookupAhead)
+	if err != nil || s == nil {
+		return false, false
+	}
+	if data.PhasesByDate {
+		return !s.End.After(today), true
+	}
+	return model.PhaseOf(data.Sprints, *s, today) == model.PhasePast, true
+}

@@ -210,7 +210,13 @@ func (s planSaver) SavePreplan(team string, pp model.Preplan) (string, error) {
 }
 
 // knownSprints tells the import which sprints exist (recorded or generated up to 52 ahead).
-type knownSprints struct{ data *storage.TeamData }
+type knownSprints struct {
+	data  *storage.TeamData
+	today time.Time
+}
+
+// Over implements ticketimport.Phased: a started sprint runs on after its last day until the Review.
+func (k knownSprints) Over(id string) (bool, bool) { return forecast.SprintOver(k.data, id, k.today) }
 
 func (k knownSprints) End(id string) (time.Time, bool) {
 	s, err := forecast.FindSprint(k.data, id, 52)
@@ -222,7 +228,7 @@ func (k knownSprints) End(id string) (time.Time, bool) {
 
 func ticketEnv(data *storage.TeamData, today time.Time) ticketimport.Env {
 	return ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, NoProjects: !data.Team.Features.Projects, Products: data.Products, Tickets: data.Tickets,
-		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: today}
+		Preplan: data.Preplan, Sprints: knownSprints{data, today}, Today: today}
 }
 
 // sourceSettings are the tracker settings as the sources need them.
