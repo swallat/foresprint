@@ -5,6 +5,7 @@
 
 import { api, ownCallRecent } from './api';
 import { app, refreshSprints, refreshStatus } from './app.svelte';
+import { history } from './history.svelte';
 
 interface WailsRuntime {
   EventsOn?: (name: string, cb: (...data: unknown[]) => void) => void;
@@ -42,6 +43,8 @@ let waiting: ReturnType<typeof setInterval> | undefined;
 async function apply(): Promise<void> {
   pending = false;
   live.what = 'applied';
+  // Someone else changed the files: steps of this view must not be put back over them.
+  void api.HistoryClear().then((s) => Object.assign(history, s));
   app.changed++;
   void refreshStatus();
   // The team list and the sprints of the other view's work (a team added, a sprint renamed).

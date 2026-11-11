@@ -64,6 +64,8 @@ type API struct {
 	enterMu sync.Mutex
 	// teamUndo is the last step of the Team area per team (undo.go).
 	teamUndo undoLog
+	// hist is the undo and redo list of the window (api_history.go).
+	hist historyLog
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
