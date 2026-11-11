@@ -349,6 +349,11 @@ func buildReview(team string, data *storage.TeamData, fc *forecast.Forecast, s m
 		if !out.Frozen && out.NotDone > out.Commitment {
 			out.NotDone = out.Commitment
 		}
+		// Without a frozen list nothing is marked as pulled in. What is done beyond the commitment
+		// still counts: the sprint's done tickets are its velocity.
+		if !out.Frozen {
+			extra.Points += reviewUnfrozenSurplus(out.List, out.Commitment, out.NotDone)
+		}
 		// A target that is not among the offered places stays selectable.
 		for _, r := range out.List {
 			if !r.Done && !hasTarget(out.Targets, r.Target) {
@@ -478,6 +483,7 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 	s.Commitment = model.Ptr(commitment)
 	s.Carry, s.RestNext = nil, nil
 	notDone := in.NotDone
+	var chosen []ReviewTicket // the list with the done marks the user chose
 	if view.Tickets {
 		byKey := map[string]ReviewTicket{}
 		for _, r := range in.List {
@@ -490,6 +496,7 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 			if !ok {
 				got = row
 			}
+			chosen = append(chosen, ReviewTicket{Estimate: row.Estimate, Added: row.Added, Done: got.Done})
 			if got.Done {
 				if row.Added {
 					in.AdditionalDone += row.Estimate
@@ -516,6 +523,9 @@ func (a *API) CloseReview(team, sprintID string, in ReviewInput) (ReviewClosed, 
 	}
 	if view.Tickets && !view.Frozen && notDone > commitment {
 		notDone = commitment
+	}
+	if view.Tickets && !view.Frozen {
+		in.AdditionalDone += reviewUnfrozenSurplus(chosen, commitment, notDone)
 	}
 	if notDone > commitment {
 		return ReviewClosed{}, fmt.Errorf("%s", i18n.T("Not done cannot be more than the commitment."))
@@ -800,4 +810,17 @@ func (a *API) PendingTags() []PendingTag {
 		out = append(out, PendingTag{Name: name, Ready: contains(usable, name)})
 	}
 	return out
+}
+
+// reviewUnfrozenSurplus is what a sprint without a frozen list got done beyond its commitment: the
+// estimates of the done tickets minus what the commitment leaves after the not done part. With
+// a list nobody can tell what was added, so the tickets of the sprint all count as listed.
+func reviewUnfrozenSurplus(list []ReviewTicket, commitment, notDone float64) float64 {
+	done := 0.0
+	for _, r := range list {
+		if r.Done && !r.Added {
+			done += r.Estimate
+		}
+	}
+	return math.Max(0, math.Round((done-math.Max(0, commitment-notDone))*100)/100)
 }

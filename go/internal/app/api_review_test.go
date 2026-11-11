@@ -244,6 +244,48 @@ tickets:
 	}
 }
 
+func TestReviewDoneBeyondCommitmentWithoutFrozenListCountsAsAdditional(t *testing.T) {
+	dir := copyDemo(t)
+	api := newAPI(t, dir)
+	team := api.Teams()[0].Key
+	id := latestPast(t, api, team)
+	if _, err := api.ReopenReview(team, id); err != nil {
+		t.Fatal(err)
+	}
+	teamFile := dir + "/" + team + "/team.yaml"
+	b, _ := os.ReadFile(teamFile)
+	if err := os.WriteFile(teamFile, []byte(strings.Replace(string(b), "features:\n", "features:\n  tickets: true\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	base, err := api.SprintReview(team, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit := base.Commitment
+	// The recorded commitment stays; the tracker has more done tickets in the sprint than it.
+	if err := os.WriteFile(dir+"/"+team+"/tickets.yaml", []byte(fmt.Sprintf(`schema: 1
+tickets:
+- {key: T-1, title: First, estimate: %[2]v, done: true, in_sprint: "%[1]s"}
+- {key: T-2, title: Second, estimate: 3, remaining: 1, in_sprint: "%[1]s"}
+`, id, commit+5)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := api.SprintReview(team, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Frozen || r.Commitment != commit || r.NotDone != 3 || r.AdditionalDone != 8 {
+		t.Fatalf("done beyond the commitment not counted: commitment %v notdone %v additional %v", r.Commitment, r.NotDone, r.AdditionalDone)
+	}
+	closed, err := api.CloseReview(team, id, ReviewInput{FrozenDays: 40, List: []ReviewTicket{{Key: "T-2", Rest: 1}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := closed.Review; c.Velocity != commit+5 || c.AdditionalDone != 8 {
+		t.Fatalf("velocity %v additional %v, want %v and 8", c.Velocity, c.AdditionalDone, commit+5)
+	}
+}
+
 func TestReviewTagsFollowTheReview(t *testing.T) {
 	api := newAPI(t, copyDemo(t))
 	team := api.Teams()[0].Key
