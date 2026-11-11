@@ -47,6 +47,16 @@ func (f ForecastSprints) End(id string) (time.Time, bool) {
 	return s.End, true
 }
 
+// Over implements Phased: a sprint is over by its phase (Review closed, a later sprint started,
+// or never started and its last day gone), not by its end date alone.
+func (f ForecastSprints) Over(id string) (bool, bool) {
+	s, err := f.Forecast.LookupSprint(id, forecast.DefaultLookupAhead)
+	if err != nil || s == nil {
+		return false, false
+	}
+	return f.Forecast.Phase(*s) == model.PhasePast, true
+}
+
 // IDs implements Lister.
 func (f ForecastSprints) IDs() []string {
 	ids := forecast.KnownSprintIDs(f.Forecast.Data, forecast.DefaultLookupAhead)
@@ -58,3 +68,4 @@ func (f ForecastSprints) IDs() []string {
 
 var _ Sprints = ForecastSprints{}
 var _ Lister = ForecastSprints{}
+var _ Phased = ForecastSprints{}

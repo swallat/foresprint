@@ -65,6 +65,14 @@ type Sprints interface {
 	End(id string) (end time.Time, ok bool)
 }
 
+// Phased is implemented by Sprints that know the lifecycle of a sprint. A sprint stays running
+// after its last day until its Review is closed (or the next sprint starts), so "over" is not the
+// same as "the end date is not after today".
+type Phased interface {
+	// Over says whether the sprint is past; ok is false for an unknown sprint.
+	Over(id string) (over, ok bool)
+}
+
 // Lister is implemented by Sprints that can also list their ids; the name of a tracker sprint is
 // then matched against ids that only contain its sprint number ("TEAM - 2026.20").
 type Lister interface {
@@ -501,14 +509,23 @@ func KnownEpics(projects []model.Project) map[string]bool {
 	return found
 }
 
-// sprintEnded says whether the sprint is known and already over (its end is not after today).
+// sprintEnded says whether the sprint is known and already over (past by its phase, else its end
+// is not after today).
 func sprintEnded(id string, env Env) bool {
+	if p, ok := env.Sprints.(Phased); ok {
+		over, known := p.Over(id)
+		return known && over
+	}
 	end, ok := env.Sprints.End(id)
 	return ok && !end.After(env.Today)
 }
 
 // sprintOpen says whether the sprint is known and current or in the future (its end after today).
 func sprintOpen(id string, env Env) bool {
+	if p, ok := env.Sprints.(Phased); ok {
+		over, known := p.Over(id)
+		return known && !over
+	}
 	end, ok := env.Sprints.End(id)
 	return ok && end.After(env.Today)
 }
