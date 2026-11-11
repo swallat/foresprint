@@ -181,7 +181,7 @@ func (a *API) trackerReresolve(repo *storage.Repository, team string, t model.Te
 		return err
 	}
 	data.Team = t
-	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data}, Today: todayOf(data)}
+	env := ticketimport.Env{Tracker: t.Tracker, Sprints: knownSprints{data, todayOf(data)}, Today: todayOf(data)}
 	tickets, preplan, changed := ticketimport.Reresolve(data.Tickets, data.Preplan, env)
 	if !changed {
 		return nil
@@ -618,7 +618,7 @@ func (a *API) trackerSyncWith(team string, keepOrder bool, keys []string, sprint
 	}
 	name := jira.Name()
 	env := ticketimport.Env{Tracker: data.Team.Tracker, Projects: data.Projects, NoProjects: !data.Team.Features.Projects, Tickets: data.Tickets,
-		Preplan: data.Preplan, Sprints: knownSprints{data}, Today: todayOf(data), KeepOrder: keepOrder, Partial: partial}
+		Preplan: data.Preplan, Sprints: knownSprints{data, todayOf(data)}, Today: todayOf(data), KeepOrder: keepOrder, Partial: partial}
 	plan := ticketimport.PlanImport(env, raws, &name, true)
 	a.mu.Lock()
 	if a.run.mapped == nil {
@@ -655,9 +655,15 @@ func (s planSaver) SavePreplan(team string, pp model.Preplan) (string, error) {
 }
 
 // knownSprints tells the import which sprints exist (recorded or generated up to 52 ahead).
-type knownSprints struct{ data *storage.TeamData }
+type knownSprints struct {
+	data  *storage.TeamData
+	today time.Time
+}
 
 func (k knownSprints) IDs() []string { return forecast.KnownSprintIDs(k.data, 52) }
+
+// Over implements ticketimport.Phased: a started sprint runs on after its last day until the Review.
+func (k knownSprints) Over(id string) (bool, bool) { return forecast.SprintOver(k.data, id, k.today) }
 
 func (k knownSprints) End(id string) (time.Time, bool) {
 	s, err := forecast.FindSprint(k.data, id, 52)
@@ -706,7 +712,7 @@ func trackerSprintsOf(data *storage.TeamData) []TrackerSprint {
 		}
 		out[i].Tickets += tickets
 	}
-	sprints := knownSprints{data}
+	sprints := knownSprints{data: data}
 	for _, tk := range data.Tickets {
 		if tk.SprintName == nil || strings.TrimSpace(*tk.SprintName) == "" {
 			continue

@@ -519,10 +519,10 @@ func (a *API) backlogTrackerLanes(data *storage.TeamData, board []sources.Sprint
 		if strings.EqualFold(s.State, "closed") {
 			continue
 		}
-		id := ticketimport.ResolveSprintExact(s.Name, data.Team.Tracker, knownSprints{data})
+		id := ticketimport.ResolveSprintExact(s.Name, data.Team.Tracker, knownSprints{data: data})
 		if id == nil {
 			// The looser guess of the import counts when a ticket of the team is in that sprint already.
-			if loose := ticketimport.ResolveSprint(s.Name, data.Team.Tracker, knownSprints{data}); loose != nil && ticketSprint[*loose] {
+			if loose := ticketimport.ResolveSprint(s.Name, data.Team.Tracker, knownSprints{data: data}); loose != nil && ticketSprint[*loose] {
 				id = loose
 			}
 		}
