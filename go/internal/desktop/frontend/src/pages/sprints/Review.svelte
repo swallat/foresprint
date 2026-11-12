@@ -92,8 +92,14 @@
   );
   // With tickets the scope numbers follow the table: what was pulled in and is done counts as
   // done in addition; the rest that continues in the next sprint is the final carry-over.
+  // Without a frozen list nothing is marked as pulled in: what is done beyond the commitment counts.
+  const surplusNow = $derived(
+    info?.tickets && !info.frozen
+      ? Math.max(0, Math.round((rows.filter((r) => r.done && !r.added).reduce((sum, r) => sum + r.estimate, 0) - Math.max(0, commitmentNow - notDoneNow)) * 100) / 100)
+      : 0,
+  );
   const additionalNow = $derived(
-    info?.reviewed ? info.additionalDone : info?.tickets ? rows.filter((r) => r.added && r.done).reduce((sum, r) => sum + r.estimate, 0) : n(additional),
+    info?.reviewed ? info.additionalDone : info?.tickets ? rows.filter((r) => r.added && r.done).reduce((sum, r) => sum + r.estimate, 0) + surplusNow : n(additional),
   );
   const restNow = $derived(
     info?.reviewed ? info.restNext : rows.filter((r) => !r.done && r.target === '').reduce((sum, r) => sum + n(rests[r.key] ?? '0'), 0),
