@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { history, redo, undo } from '../lib/history.svelte';
   import { app, refresh, save, selectSprint, selectTeam, setTheme, toast } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
@@ -63,6 +64,13 @@
   {/if}
 
   <div class="spacer"></div>
+
+  <button class="btn icon ghost hide-narrow" type="button" aria-label={t('Undo')} title={t('Undo (Ctrl+Z)')} disabled={!history.canUndo || !!app.busy} onclick={undo}>
+    <Icon name="undo" />
+  </button>
+  <button class="btn icon ghost hide-narrow" type="button" aria-label={t('Redo')} title={t('Redo (Ctrl+Y)')} disabled={!history.canRedo || !!app.busy} onclick={redo}>
+    <Icon name="redo" />
+  </button>
 
   <button class="search" type="button" title={t('Search and jump (Ctrl+K)')} onclick={() => (app.paletteOpen = true)}>
     <Icon name="search" /><span class="txt hide-mid">{t('Search')}</span><span class="small data hide-narrow hide-mid">Ctrl+K</span>
