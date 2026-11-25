@@ -92,6 +92,16 @@ async function resolve(method: string): Promise<Api> {
   return impl;
 }
 
+/**
+ * An error of the Go core as the pages expect it: plain text. Wails 2.12 rejected a failed call
+ * with the message as a string; since 2.13 it is an Error object, and String(e) in the pages
+ * would show "Error: " in front of every message. Errors of the shell itself (no connection,
+ * unknown method) and of the mock stay as they are.
+ */
+export function coreError(e: unknown, fromCore: boolean): unknown {
+  return fromCore && e instanceof Error ? e.message : e;
+}
+
 let callsOpen = 0;
 let lastWriteEnd = 0;
 
@@ -138,7 +148,11 @@ export const api: Api = new Proxy({} as Api, {
         const target = (await resolve(method)) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
         const fn = target[method];
         if (!fn) throw new Error(`api: unknown method ${method}`);
-        return await fn.apply(target, args);
+        try {
+          return await fn.apply(target, args);
+        } catch (e) {
+          throw coreError(e, bridge !== undefined && (target as unknown) === bridge);
+        }
       } finally {
         if (track && --histDepth === 0) {
           const state = await (await resolve('HistoryEnd')).HistoryEnd(histToken).catch(() => undefined);
