@@ -1,6 +1,46 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on weekdays"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "labels": ["dependencies"],
+  "platformAutomerge": true,
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"],
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "Patch and minor updates merge on their own once all required checks are green.",
+      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "automerge": true
+    },
+    {
+      "description": "Major updates wait for a person (or the weekly maintenance task).",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Runtime pieces whose breakage the tests do not catch reliably: never merge on their own.",
+      "matchPackageNames": [
+        "github.com/wailsapp/wails/v2",
+        "github.com/xuri/excelize/v2",
+        "go",
+        "golang",
+        "node"
+      ],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    }
   ]
 }

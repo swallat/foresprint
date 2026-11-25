@@ -1,0 +1,66 @@
+name: Security scan
+
+# Weekly look at known vulnerabilities in the Go and npm dependencies. Findings land in one
+# open issue (label security-scan); renovate security PRs are handled separately.
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: govulncheck
+        id: go
+        working-directory: go
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          set +e
+          "$(go env GOPATH)/bin/govulncheck" ./... > ../govulncheck.txt 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat ../govulncheck.txt
+      - name: npm audit
+        id: npm
+        working-directory: go/internal/desktop/frontend
+        run: |
+          set +e
+          npm ci --ignore-scripts > /dev/null 2>&1
+          npm audit --audit-level=high > ../../../../npm-audit.txt 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat ../../../../npm-audit.txt
+      - name: Report findings
+        if: steps.go.outputs.code != '0' || steps.npm.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Weekly security scan, run ${GITHUB_RUN_ID}: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo '### govulncheck'
+            echo '```'; head -c 20000 govulncheck.txt; echo '```'
+            echo '### npm audit (high and above)'
+            echo '```'; head -c 20000 npm-audit.txt; echo '```'
+          } > report.md
+          gh label create security-scan --color D93F0B --description "Weekly security scan findings" || true
+          existing=$(gh issue list --label security-scan --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file report.md
+          else
+            gh issue create --title "Security scan found vulnerable dependencies" --label security-scan --body-file report.md
+          fi
+          # A finding must stay visible in the run list as well.
+          exit 1
