@@ -2,6 +2,7 @@ name: Security scan
 
 # Weekly look at known vulnerabilities in the Go and npm dependencies. Findings land in one
 # open issue (label security-scan); renovate security PRs are handled separately.
+# A tool that fails for another reason than a finding fails the run without an issue.
 on:
   schedule:
     - cron: "17 3 * * 0"
@@ -29,21 +30,36 @@ jobs:
         working-directory: go
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          vuln="$(go env GOPATH)/bin/govulncheck"
           set +e
-          "$(go env GOPATH)/bin/govulncheck" ./... > ../govulncheck.txt 2>&1
-          echo "code=$?" >> "$GITHUB_OUTPUT"
+          # The window code (Wails) is behind the build tag "desktop"; Wails on Windows is pure Go,
+          # so a Windows pass sees it without the web view libraries.
+          "$vuln" ./... > ../govulncheck.txt 2>&1
+          c1=$?
+          echo "--- GOOS=windows, tags desktop,production ---" >> ../govulncheck.txt
+          GOOS=windows "$vuln" -tags desktop,production ./... >> ../govulncheck.txt 2>&1
+          c2=$?
           cat ../govulncheck.txt
+          # govulncheck: 0 = clean, 3 = vulnerabilities found, anything else = the tool failed.
+          for c in $c1 $c2; do
+            if [ "$c" != 0 ] && [ "$c" != 3 ]; then echo "::error::govulncheck failed (exit $c)"; exit 1; fi
+          done
+          if [ "$c1" = 3 ] || [ "$c2" = 3 ]; then echo "found=true" >> "$GITHUB_OUTPUT"; fi
       - name: npm audit
         id: npm
         working-directory: go/internal/desktop/frontend
         run: |
           set +e
-          npm ci --ignore-scripts > /dev/null 2>&1
+          # The audit reads package-lock.json only; no install needed.
           npm audit --audit-level=high > ../../../../npm-audit.txt 2>&1
-          echo "code=$?" >> "$GITHUB_OUTPUT"
+          c=$?
           cat ../../../../npm-audit.txt
+          # npm audit: 0 = nothing at that level, 1 = vulnerabilities found (the report says so).
+          if [ "$c" != 0 ]; then
+            if grep -q 'vulnerabilit' ../../../../npm-audit.txt; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "::error::npm audit failed (exit $c)"; exit 1; fi
+          fi
       - name: Report findings
-        if: steps.go.outputs.code != '0' || steps.npm.outputs.code != '0'
+        if: steps.go.outputs.found == 'true' || steps.npm.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -56,7 +72,7 @@ jobs:
             echo '```'; head -c 20000 npm-audit.txt; echo '```'
           } > report.md
           gh label create security-scan --color D93F0B --description "Weekly security scan findings" || true
-          existing=$(gh issue list --label security-scan --state open --json number --jq '.[0].number')
+          existing=$(gh issue list --label security-scan --state open --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body-file report.md
           else

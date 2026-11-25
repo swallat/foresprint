@@ -31,14 +31,23 @@
       "addLabels": ["needs-review"]
     },
     {
-      "description": "Runtime pieces whose breakage the tests do not catch reliably: never merge on their own.",
+      "description": "Libraries whose breakage the tests do not catch reliably: never merge on their own.",
       "matchPackageNames": [
         "github.com/wailsapp/wails/v2",
-        "github.com/xuri/excelize/v2",
-        "go",
-        "golang",
-        "node"
+        "github.com/xuri/excelize/v2"
       ],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Go and Node versions (go.mod, mise.toml, workflows): a person decides.",
+      "matchDepNames": ["go", "golang", "node", "nodejs"],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Same by datasource, in case a tool reports another name.",
+      "matchDatasources": ["golang-version", "node-version"],
       "automerge": false,
       "addLabels": ["needs-review"]
     }
