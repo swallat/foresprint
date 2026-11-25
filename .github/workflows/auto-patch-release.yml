@@ -1,0 +1,52 @@
+name: Auto patch release
+
+# Weekly check: when main only received dependency or security updates since the last release,
+# start the existing release workflow with the next patch version (v1.3.0 -> v1.3.1).
+#
+#   - Any merged pull request without the label "dependencies" or "security" since the last
+#     release (a feature or a fix) stops the automatic release; a person releases then.
+#   - With a "security" pull request the release is made right away; with only "dependencies"
+#     pull requests once the last release is older than 28 days.
+#   - The newest CI run on main must have succeeded.
+on:
+  schedule:
+    - cron: "30 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+jobs:
+  release:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Decide and start the release
+        run: |
+          set -euo pipefail
+          last=$(gh release list --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [ -z "$last" ]; then echo "No release yet; nothing to do."; exit 0; fi
+          since=$(gh release view "$last" --json publishedAt --jq .publishedAt)
+          prs=$(gh pr list --state merged --base main --search "merged:>$since" --limit 100 --json number,labels)
+          total=$(jq length <<< "$prs")
+          if [ "$total" = 0 ]; then echo "Nothing merged since $last."; exit 0; fi
+          other=$(jq '[.[] | select(([.labels[].name] | (index("dependencies") != null or index("security") != null)) | not)] | length' <<< "$prs")
+          if [ "$other" != 0 ]; then echo "$other pull request(s) since $last are not dependency or security updates; a person decides on the release."; exit 0; fi
+          security=$(jq '[.[] | select([.labels[].name] | index("security") != null)] | length' <<< "$prs")
+          age_days=$(( ( $(date +%s) - $(date -d "$since" +%s) ) / 86400 ))
+          if [ "$security" = 0 ] && [ "$age_days" -lt 28 ]; then echo "Only routine updates and $last is $age_days days old; waiting."; exit 0; fi
+          head=$(git rev-parse origin/main)
+          ci=$(gh run list --workflow ci.yml --branch main --commit "$head" --limit 1 --json conclusion --jq '.[0].conclusion // empty')
+          if [ "$ci" != success ]; then echo "CI on main ($head) is '$ci', not success; not releasing."; exit 0; fi
+          IFS=. read -r major minor patch <<< "${last#v}"
+          tag="v$major.$minor.$((patch + 1))"
+          if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then echo "Tag $tag exists already."; exit 0; fi
+          echo "Releasing $tag ($total updates since $last, $security security)."
+          gh workflow run release-app.yml --ref main -f tag="$tag"
