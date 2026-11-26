@@ -71,8 +71,7 @@ jobs:
             echo "---"
             echo "_Opened by the monthly workflow \`holidays-update.yml\`._"
           } > "$RUNNER_TEMP/body.md"
-          # The label lets the automatic patch release (auto-patch-release.yml) count this
-          # pull request as a dependency update.
+          # The label marks this pull request as a dependency update (docs/maintenance.md).
           gh label create dependencies --color 0366D6 --description "Dependency updates" 2> /dev/null || true
           gh pr create --base "$BASE" --head "$branch" --label dependencies \
             --title "Update holiday data to holidays $NEW" --body-file "$RUNNER_TEMP/body.md"

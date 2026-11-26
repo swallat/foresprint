@@ -1,55 +1,109 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "description": "Maintenance policy: docs/maintenance.md. Later package rules win over earlier ones.",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions"
+  ],
   "timezone": "Europe/Berlin",
-  "schedule": ["before 6am on weekdays"],
+  "schedule": ["* 0-5 * * 1-5"],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "minimumReleaseAge": "3 days",
   "labels": ["dependencies"],
-  "platformAutomerge": true,
+  "platformAutomerge": false,
+  "automergeType": "pr",
+  "rebaseWhen": "behind-base-branch",
+  "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "labels": ["dependencies", "security"],
+    "enabled": true,
     "schedule": ["at any time"],
-    "minimumReleaseAge": null
+    "minimumReleaseAge": null,
+    "addLabels": ["security"]
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on the first day of the month"],
-    "automerge": true
+    "schedule": ["* 0-5 * * 1"],
+    "automerge": true,
+    "minimumReleaseAge": null
   },
   "packageRules": [
     {
-      "description": "Patch and minor updates merge on their own once all required checks are green.",
-      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "description": "Merge non-major updates once every check on the PR is green.",
+      "matchUpdateTypes": ["patch", "minor", "pin", "pinDigest", "digest"],
       "automerge": true
     },
     {
-      "description": "Major updates wait for a person (or the weekly maintenance task).",
-      "matchUpdateTypes": ["major"],
+      "description": "Group GitHub Actions updates.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor", "pin", "pinDigest", "digest"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Group the Go modules.",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "go dependencies"
+    },
+    {
+      "description": "Group the frontend packages.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "0.x versions: a minor step may break the API, treat it like a major.",
+      "matchCurrentVersion": "/^(==|~=|>=|\\^|~|v)?0\\./",
+      "matchUpdateTypes": ["minor"],
+      "groupName": null,
       "automerge": false,
       "addLabels": ["needs-review"]
     },
     {
-      "description": "Libraries whose breakage the tests do not catch reliably: never merge on their own.",
+      "description": "Core libraries: the tests do not catch their breakage reliably (window host, Excel files).",
       "matchPackageNames": [
         "github.com/wailsapp/wails/v2",
         "github.com/xuri/excelize/v2"
       ],
+      "groupName": "core libraries",
       "automerge": false,
       "addLabels": ["needs-review"]
     },
     {
-      "description": "Go and Node versions (go.mod, mise.toml, workflows): a person decides.",
-      "matchDepNames": ["go", "golang", "node", "nodejs"],
+      "description": "Go and Node versions (go.mod, mise.toml, workflows): never merged on their own.",
+      "matchDepNames": ["go", "golang", "node", "nodejs", "uv"],
+      "groupName": null,
       "automerge": false,
       "addLabels": ["needs-review"]
     },
     {
       "description": "Same by datasource, in case a tool reports another name.",
       "matchDatasources": ["golang-version", "node-version"],
+      "groupName": null,
       "automerge": false,
       "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Actions of the release chain (artifacts, signing, attestation): never merged on their own.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": [
+        "actions/upload-artifact",
+        "actions/download-artifact",
+        "actions/attest-build-provenance",
+        "sigstore/cosign-installer",
+        "anthropics/claude-code-action"
+      ],
+      "groupName": "release chain actions",
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Major updates are only prepared, never merged on their own.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["needs-review", "major"]
     }
   ]
 }
