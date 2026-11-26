@@ -13,7 +13,7 @@ Steps per release:
 
 ## Security releases
 
-The weekly maintenance task may start a patch release by itself when security fixes are merged
+The daily maintenance task may start a patch release by itself when security fixes are merged
 and not released yet. It runs *Release app* on `main` with the next patch version; the rules are
 in [maintenance.md](maintenance.md#security-releases). Every other release is made by the
 maintainer as described above.
