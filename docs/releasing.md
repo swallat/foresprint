@@ -11,6 +11,13 @@ Steps per release:
 3. The workflow builds the archives and writes the release page. A tag with a suffix
    (`v1.0.0-beta.1`) becomes a pre-release.
 
+## Security releases
+
+The weekly maintenance task may start a patch release by itself when security fixes are merged
+and not released yet. It runs *Release app* on `main` with the next patch version; the rules are
+in [maintenance.md](maintenance.md#security-releases). Every other release is made by the
+maintainer as described above.
+
 ## Third-party licenses
 
 `THIRD_PARTY_NOTICES.md` and the text shown on the About page
