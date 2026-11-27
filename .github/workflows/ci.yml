@@ -162,7 +162,7 @@ jobs:
           code=0
           xvfb-run -a timeout -k 10 10 ../dist/foresprint --data ../examples/teams || code=$?
           test "$code" = 124 || test "$code" = 137
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: foresprint-${{ runner.os }}
           path: dist/foresprint*
